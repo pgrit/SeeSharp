@@ -1,0 +1,7 @@
+*.fsx.lock
+.fake
+.ionide
+.vs
+.vscode
+build
+src/dist

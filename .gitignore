@@ -5,3 +5,5 @@
 .vscode
 build
 src/dist
+
+__pycache__

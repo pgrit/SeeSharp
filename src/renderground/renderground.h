@@ -38,6 +38,10 @@ struct GROUND_API Hit {
 // Intersects the scene with a single ray.
 GROUND_API Hit TraceSingle(const float* pos, const float* dir);
 
+// Intersects the scene with multiple rays (in parallel, using tbb)
+// The results are written to the passed buffer, assuming it is of correct size.
+GROUND_API void TraceMulti(const float* positions, const float* directions, int num, Hit* hits);
+
 ///////////////////////////////////////////////////////////////////////////
 // Image I/O kernel API
 
@@ -47,6 +51,8 @@ GROUND_API int CreateImage(int width, int height, int numChannels);
 // Splats a value into the image buffer with the given ID.
 // Thread-safe (uses atomic add).
 GROUND_API void AddSplat(int image, float x, float y, const float* value);
+
+GROUND_API void AddSplatMulti(int image, const float* xs, const float* ys, const float* values, int count);
 
 // Writes an image to the filesystem.
 GROUND_API void WriteImage(int image, const char* filename);

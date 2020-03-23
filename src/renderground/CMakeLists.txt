@@ -1,6 +1,8 @@
 find_package(embree 3.0 REQUIRED)
 INCLUDE_DIRECTORIES(${EMBREE_INCLUDE_DIRS})
 
+find_package(TBB CONFIG REQUIRED)
+
 # TODO if Windows
 add_compile_definitions(GROUND_DLL GROUND_EXPORTS)
 
@@ -28,7 +30,7 @@ target_sources(Ground
         image/tinyexr.h
 )
 
-target_link_libraries(Ground ${EMBREE_LIBRARY})
+target_link_libraries(Ground ${EMBREE_LIBRARY} TBB::tbb)
 
 set_target_properties(Ground PROPERTIES
                       RUNTIME_OUTPUT_DIRECTORY_DEBUG ${CMAKE_CURRENT_SOURCE_DIR}/../dist

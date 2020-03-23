@@ -35,6 +35,14 @@ ground.TraceSingle.argtypes = [
     ctypes.POINTER(ctypes.c_float)
 ]
 
+ground.TraceMulti.restype = None
+ground.TraceMulti.argtypes = [
+    ctypes.POINTER(ctypes.c_float),
+    ctypes.POINTER(ctypes.c_float),
+    ctypes.c_int,
+    ctypes.POINTER(Hit)
+]
+
 ground.CreateImage.restype = ctypes.c_int
 ground.CreateImage.argtypes = [
     ctypes.c_int,
@@ -48,6 +56,15 @@ ground.AddSplat.argtypes = [
     ctypes.c_float,
     ctypes.c_float,
     ctypes.POINTER(ctypes.c_float)
+]
+
+ground.AddSplatMulti.restype = None
+ground.AddSplatMulti.argtypes = [
+    ctypes.c_int,
+    ctypes.POINTER(ctypes.c_float),
+    ctypes.POINTER(ctypes.c_float),
+    ctypes.POINTER(ctypes.c_float),
+    ctypes.c_int
 ]
 
 ground.WriteImage.restype = None

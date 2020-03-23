@@ -32,7 +32,8 @@ let diag = [|  3.0f; 3.0f; 0.0f |]
 
 let stopWatch = System.Diagnostics.Stopwatch.StartNew()
 
-for y in 0 .. imageHeight - 1 do
+open System.Threading.Tasks
+Parallel.For(0, imageHeight, fun y ->
     for x in 0 .. imageWidth - 1 do
         let org = [|
             topLeft.[0] + float32(x) / float32(imageWidth) * diag.[0];
@@ -45,9 +46,9 @@ for y in 0 .. imageHeight - 1 do
 
         let value = [| float32(hit.meshId) |]
         AddSplat(imageId, float32(x), float32(y), value)
+)
 
 stopWatch.Stop()
 printfn "%f ms" stopWatch.Elapsed.TotalMilliseconds
 
 WriteImage(imageId, "../../dist/renderFS.exr")
-

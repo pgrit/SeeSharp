@@ -1,5 +1,4 @@
-#ifndef RENDERGROUND_GEOMETRY_FLOAT3_H
-#define RENDERGROUND_GEOMETRY_FLOAT3_H
+#pragma once
 
 namespace ground {
 
@@ -8,5 +7,3 @@ struct Float3 {
 };
 
 } // namespace ground
-
-#endif // RENDERGROUND_GEOMETRY_FLOAT3_H

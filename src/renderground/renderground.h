@@ -1,5 +1,4 @@
-#ifndef RENDERGROUND_RENDERGROUND_H
-#define RENDERGROUND_RENDERGROUND_H
+#pragma once
 
 // Used to generate correct DLL linkage on Windows
 #ifdef GROUND_DLL
@@ -74,5 +73,3 @@ GROUND_API void SampleBsdf(const Hit* hit, float u, float v);
 GROUND_API void ComputeEmission(const Hit* hit);
 
 }
-
-#endif // RENDERGROUND_RENDERGROUND_H

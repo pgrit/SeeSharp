@@ -1,5 +1,4 @@
-#ifndef RENDERGROUND_GEOMETRY_RAY_H
-#define RENDERGROUND_GEOMETRY_RAY_H
+#pragma once
 
 #include "geometry/float3.h"
 
@@ -11,5 +10,3 @@ struct Ray {
 };
 
 } // namespace ground
-
-#endif // RENDERGROUND_GEOMETRY_RAY_H

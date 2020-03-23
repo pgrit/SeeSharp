@@ -22,6 +22,10 @@ target_sources(Ground
         geometry/mesh.cpp
         geometry/ray.h
         geometry/hit.h
+
+        image/image.h
+        image/image.cpp
+        image/tinyexr.h
 )
 
 target_link_libraries(Ground ${EMBREE_LIBRARY})

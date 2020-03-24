@@ -84,4 +84,18 @@ GROUND_API void WriteImage(int image, const char* filename) {
     ground::WriteImageToFile(images[image], filename);
 }
 
+
+
+GROUND_API void InitShadingSystem(int spectralResolution) {
+
+}
+
+GROUND_API int AddUberMaterial(const UberShaderParams* params) {
+    return -1;
+}
+
+GROUND_API void AssignMaterial(int mesh, int material) {
+
+}
+
 }

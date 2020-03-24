@@ -6,7 +6,10 @@
   </PropertyGroup>
   <ItemGroup>
     <Compile Include="Api.fs" />
+
     <Compile Include="SimpleQuad.fs" />
+    <Compile Include="ShadedQuad.fs" />
+
     <Compile Include="Program.fs" />
   </ItemGroup>
 </Project>

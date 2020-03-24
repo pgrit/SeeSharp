@@ -1,7 +1,6 @@
-﻿open System
-open SimpleQuad
-
+﻿
 [<EntryPoint>]
 let main argv =
-    SimpleQuad.Render()
+    // SimpleQuad.Render()
+    ShadedQuad.Render()
     0

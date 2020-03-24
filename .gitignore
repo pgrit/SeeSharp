@@ -14,7 +14,6 @@ src/dist
 # Python temporary and build files
 __pycache__
 
-# .NET core project files
+# .NET core generated files files
 src/examples/*/bin
 src/examples/*/obj
-*.csproj

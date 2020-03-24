@@ -1,0 +1,12 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <RootNamespace>F_</RootNamespace>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>netcoreapp3.1</TargetFramework>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Include="Api.fs" />
+    <Compile Include="SimpleQuad.fs" />
+    <Compile Include="Program.fs" />
+  </ItemGroup>
+</Project>

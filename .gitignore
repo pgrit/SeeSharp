@@ -1,9 +1,20 @@
+# User specific editor and IDE configurations
+.vs
+.vscode
+
+# F# caches and other temporary files
 *.fsx.lock
 .fake
 .ionide
-.vs
-.vscode
+
+# CMake generated files
 build
 src/dist
 
+# Python temporary and build files
 __pycache__
+
+# .NET core project files
+src/examples/*/bin
+src/examples/*/obj
+*.csproj

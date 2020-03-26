@@ -1,5 +1,5 @@
 find_package(embree 3.0 REQUIRED)
-INCLUDE_DIRECTORIES(${EMBREE_INCLUDE_DIRS})
+include_directories(${EMBREE_INCLUDE_DIRS})
 
 find_package(TBB CONFIG REQUIRED)
 
@@ -12,22 +12,45 @@ add_library(Ground SHARED)
 
 target_sources(Ground
     PUBLIC
+        api/api.h
+        api/camera.h
+        api/imageio.h
+        api/raytrace.h
+        api/shading.h
+        api/transforms.h
+
         renderground.h
 
     PRIVATE
-        renderground.cpp
+        api/api.cpp
+        api/camera.cpp
+        api/imageio.cpp
+        api/raytrace.cpp
+        api/shading.cpp
+        api/transforms.cpp
+        api/internal.h
 
-        geometry/float3.h
         geometry/geometry.h
         geometry/geometry.cpp
         geometry/mesh.h
         geometry/mesh.cpp
         geometry/ray.h
         geometry/hit.h
+        geometry/transform.h
+        geometry/transform.cpp
 
         image/image.h
         image/image.cpp
         image/tinyexr.h
+
+        math/constants.h
+        math/float3.h
+        math/float4.h
+        math/float4x4.h
+
+        cameras/camera.h
+        cameras/perspective.h
+        cameras/perspective.cpp
 )
 
 target_link_libraries(Ground ${EMBREE_LIBRARY} TBB::tbb)

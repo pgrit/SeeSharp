@@ -45,30 +45,50 @@ type Camera (imgW : int, imgH : int) =
     member this.ImageHeight = imgH
     abstract member GenerateRay : float32 * float32 -> float32[] * float32[]
 
-type OrthographicCamera (topLeft : float32[], diag : float32[], imgW : int, imgH : int) =
+type Vector = float32 * float32 * float32
+
+type OrthographicCamera (topLeft:Vector, diag:Vector, imgW:int, imgH:int) =
     inherit Camera (imgW, imgH)
     override this.GenerateRay (x:float32, y:float32) =
+        let (top, left, depth) = topLeft
+        let (diagx, diagy, _) = diag
         let org = [|
-            topLeft.[0] + float32(x) / float32(imgW) * diag.[0];
-            topLeft.[1] + float32(y) / float32(imgH) * diag.[1];
-            5.0f
+            top + float32(x) / float32(imgW) * diagx;
+            left + float32(y) / float32(imgH) * diagy;
+            depth
         |]
         let dir = [| 0.0f; 0.0f; -1.0f |]
         (org, dir)
 
-type HitCallback = (Hit * float32 * float32) -> unit
+type Spectrum = float32
+type Ray = (float32[] * float32[])
 
-let TraceRays (camera:Camera, report:HitCallback) =
+let rec OutgoingRadiance (hit:Hit, ray:Ray) =
+    if hit.meshId < 0 then
+        1.0f
+    else
+        // Sample a direction from the BSDF
+        // Trace a ray and recurse
+        let nextRay = ray
+        let bsdfValue = [| 0.0f |]
+        SampleBsdf(hit, ray, nextRay, bsdfValue)
+        
+        let nextHit = TraceSingle ray
+        OutgoingRadiance (nextHit, nextRay)
+        0.0f
+
+let TracePaths (camera:Camera, frameBuf:int) =
     Parallel.For(0, camera.ImageHeight, fun y ->
-        for x in 0 .. camera.ImageWidth - 1 do
+        for x in 0 .. camera.ImageWidth - 1 do            
             let ray = camera.GenerateRay (float32(x), float32(y))
             let hit = TraceSingle ray
-            report (hit, float32(x), float32(y))
+            let value = [| OutgoingRadiance (hit, ray) |]
+            AddSplat(frameBuf, float32(x), float32(y), value)
     ) |> ignore
 
 let SetupCamera (imageWidth:int, imageHeight:int) =
-    let topLeft  = [| -1.0f;  -1.0f; 5.0f |]
-    let diag = [|  3.0f; 3.0f; 0.0f |]
+    let topLeft  = (-1.0f, -1.0f, 5.0f)
+    let diag = (3.0f, 3.0f, 0.0f)
     OrthographicCamera(topLeft, diag, imageWidth, imageHeight)
 
 let Render () =
@@ -81,8 +101,6 @@ let Render () =
 
     let camera = SetupCamera (imageWidth, imageHeight)
 
-    TraceRays(camera, fun (hit, x, y) ->
-        let value = [| float32(hit.meshId) |]
-        AddSplat(frameBuf, x, y, value))
+    TracePaths (camera, frameBuf)
 
     WriteImage(frameBuf, "renderFS.exr")

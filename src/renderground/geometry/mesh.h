@@ -2,7 +2,7 @@
 
 #include <vector>
 
-#include "geometry/float3.h"
+#include "math/float3.h"
 
 namespace ground {
 

@@ -8,44 +8,75 @@
 std::vector<std::unique_ptr<ground::Material>> globalMaterials;
 std::unordered_map<int, int> globalMeshToMaterial;
 
+inline ground::Material* LookupMaterial(int meshId) {
+    auto matId = globalMeshToMaterial[meshId];
+
+    ApiCheck(matId < globalMaterials.size());
+
+    return globalMaterials[matId].get();
+}
+
 extern "C" {
 
 GROUND_API int AddUberMaterial(const UberShaderParams* params) {
-    ApiAssert(params->baseColorTexture < globalImages.size());
-    ApiAssert(params->emissionTexture < globalImages.size());
+    ApiCheck(params->baseColorTexture < 0 ||
+        params->baseColorTexture < globalImages.size());
+    ApiCheck(params->emissionTexture < 0 ||
+        params->emissionTexture < globalImages.size());
 
     ground::GenericMaterialParameters p {
-        globalImages[params->baseColorTexture].get(),
-        globalImages[params->emissionTexture].get()
+        params->baseColorTexture < 0
+            ? nullptr
+            : globalImages[params->baseColorTexture].get(),
+
+        params->emissionTexture < 0
+            ? nullptr
+            : globalImages[params->emissionTexture].get()
     };
+
     globalMaterials.emplace_back(new ground::GenericMaterial(p));
     return int(globalMaterials.size()) - 1;
 }
 
 GROUND_API void AssignMaterial(int mesh, int material) {
-    ApiAssert(mesh < globalScene.GetNumMeshes());
-    ApiAssert(material < globalMaterials.size());
+    ApiCheck(mesh < globalScene.GetNumMeshes());
+    ApiCheck(material < globalMaterials.size());
 
     globalMeshToMaterial[mesh] = material;
 }
 
-GROUND_API void ComputeEmission(const SurfacePoint* point, float* value) {
-    *value = 1.0f;
+GROUND_API float ComputeEmission(const SurfacePoint* point, Vector3 outDir,
+    float wavelength)
+{
+    auto material = LookupMaterial(point->meshId);
+    return material->ComputeEmission(ApiToInternal(*point),
+        ApiToInternal(outDir), wavelength);
 }
 
 GROUND_API BsdfSample WrapPrimarySampleToBsdf(const SurfacePoint* point,
-    float u, float v, float* value)
+    Vector3 outDir, float u, float v, float wavelength, bool isOnLightSubpath)
 {
-    *value = 1.0f;
+    auto material = LookupMaterial(point->meshId);
+
+    ground::Float3 inDir;
+    auto sampleInfo = material->WrapPrimarySampleToBsdf(ApiToInternal(*point),
+        &inDir, ApiToInternal(outDir), wavelength, isOnLightSubpath,
+        ground::Float2(u, v));
 
     return BsdfSample {
-        point->normal,
-        1.0f
+        InternalToApi(inDir),
+        sampleInfo.jacobian,
+        sampleInfo.reverseJacobian
     };
 }
 
-GROUND_API void EvaluateBsdf(const SurfacePoint* point, float* value) {
+GROUND_API float EvaluateBsdf(const SurfacePoint* point,
+    Vector3 outDir, Vector3 inDir, float wavelength, bool isOnLightSubpath)
+{
+    auto material = LookupMaterial(point->meshId);
 
+    return material->EvaluateBsdf(ApiToInternal(*point), ApiToInternal(inDir),
+        ApiToInternal(outDir), wavelength, isOnLightSubpath);
 }
 
 }

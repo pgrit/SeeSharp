@@ -49,6 +49,7 @@ struct GROUND_API SurfaceSample {
 struct GROUND_API BsdfSample {
     Vector3 direction;
     float jacobian;
+    float reverseJacobian;
 };
 
 struct GROUND_API UberShaderParams {

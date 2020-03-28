@@ -47,14 +47,8 @@ T Reflect(T v, T n) {
     return v - (2 * dot(n, v)) * n;
 }
 
-#define AssertNormalized(x) CheckNormalized(x, __FILE__, __LINE__)
-
-// TODO make this a CMake controlled define that can be toggled of for performance.
-//      SANITY_CHECKS are intended to test the internal code for rare bugs
-#define SANITY_CHECKS
-
 template <typename T>
-inline void CheckNormalized(const T& n, const char* file, int line) {
+inline void _CheckNormalized(const T& n, const char* file, int line) {
 #ifdef SANITY_CHECKS
     const float len = Length(n);
     const float tolerance = 0.001f;
@@ -64,10 +58,9 @@ inline void CheckNormalized(const T& n, const char* file, int line) {
     }
 #endif
 }
+#define CheckNormalized(x) _CheckNormalized(x, __FILE__, __LINE__)
 
-#define AssertFloatEqual(a, b) CheckFloatEqual(a, b, __FILE__, __LINE__)
-
-inline void CheckFloatEqual(float a, float b, const char* file, int line) {
+inline void _CheckFloatEqual(float a, float b, const char* file, int line) {
 #ifdef SANITY_CHECKS
     const float tolerance = 0.001f;
     if (a < b - tolerance || a > b + tolerance) {
@@ -76,5 +69,6 @@ inline void CheckFloatEqual(float a, float b, const char* file, int line) {
     }
 #endif
 }
+#define CheckFloatEqual(a, b) _CheckFloatEqual(a, b, __FILE__, __LINE__)
 
 } // namespace ground

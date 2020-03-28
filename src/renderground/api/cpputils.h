@@ -18,6 +18,10 @@ inline Vector3 operator* (const Vector3& a, float s) {
     return Vector3 { a.x * s, a.y * s, a.z * s };
 }
 
+inline Vector3 operator/ (const Vector3& a, float s) {
+    return a * (1.0f / s);
+}
+
 inline Vector3 operator* (float s, const Vector3& a) {
     return a * s;
 }
@@ -28,4 +32,8 @@ inline float Dot (const Vector3& a, const Vector3& b) {
 
 inline float LengthSquared(const Vector3& v) {
     return Dot(v, v);
+}
+
+inline float Length(const Vector3& v) {
+    return std::sqrt(LengthSquared(v));
 }

@@ -41,6 +41,31 @@ int SetupSceneGeometry() {
 
     FinalizeScene();
 
+    // Setup the materials
+    const auto blackTexture = CreateImage(1, 1, 1);
+    float black = 0.0f;
+    AddSplat(blackTexture, 0, 0, &black);
+
+    const auto emitTexture = CreateImage(1, 1, 1);
+    float emission = 1.0f;
+    AddSplat(emitTexture, 0, 0, &emission);
+
+    const auto reflectTexture = CreateImage(1, 1, 1);
+    float reflectance = 0.3f;
+    AddSplat(reflectTexture, 0, 0, &reflectance);
+
+    UberShaderParams lightMaterialParams {
+        blackTexture,
+        emitTexture
+    };
+    const auto lightMaterial = AddUberMaterial(&lightMaterialParams);
+
+    UberShaderParams diffuseMaterialParams {
+        reflectTexture,
+        -1
+    };
+    const auto diffuseMaterial = AddUberMaterial(&diffuseMaterialParams);
+
     return lightId;
 }
 
@@ -64,6 +89,9 @@ int main() {
 
     const int camId = SetupCamera(frameBuffer);
 
+    // For now: monochrome rendering at 500nm
+    const float wavelength = 500.0f;
+
     // tbb::parallel_for(tbb::blocked_range<int>(0, imageHeight),
         // [&](tbb::blocked_range<int> r) {
         for(int y = 0; y < imageHeight; ++y) {
@@ -81,27 +109,35 @@ int main() {
                 // Estimate DI via next event shadow ray
                 auto lightSample = WrapPrimarySampleToSurface(lightMesh, 0.5f, 0.5f);
                 if (!IsOccluded(&hit, lightSample.point.position)) {
-                    float emission = 0.0f;
-                    ComputeEmission(&lightSample.point, &emission);
+                    Vector3 lightDir = hit.point.position - lightSample.point.position;
+                    float emission = ComputeEmission(&lightSample.point,
+                        lightDir, wavelength);
 
+                    float bsdfValue = EvaluateBsdf(&hit.point, -ray.direction,
+                        lightDir, wavelength, false);
                     auto geometryTerms = ComputeGeometryTerms(&hit.point, &lightSample.point);
 
-                    // value = emission * geometryTerms.geomTerm / lightSample.jacobian;
+                    value = emission * bsdfValue
+                        * geometryTerms.geomTerm / lightSample.jacobian;
                 }
 
                 // Estimate DI via BSDF importance sampling
-                float bsdfValue = 0.0f;
-                auto bsdfSample = WrapPrimarySampleToBsdf(&hit.point, 0.5f, 0.5f, &bsdfValue);
+                auto bsdfSample = WrapPrimarySampleToBsdf(&hit.point,
+                    -ray.direction, 0.5f, 0.5f, wavelength, false);
+                float bsdfValue = EvaluateBsdf(&hit.point, -ray.direction,
+                    bsdfSample.direction, wavelength, false);
+
                 auto bsdfRay = SpawnRay(&hit, bsdfSample.direction);
                 auto bsdfhit = TraceSingle(bsdfRay);
-                if (bsdfhit.point.meshId == lightMesh) {
-                    // The light source was hit.
-                    float emission = 0.0f;
-                    ComputeEmission(&bsdfhit.point, &emission);
+
+                if (bsdfhit.point.meshId == lightMesh) { // The light source was hit.
+                    float emission = ComputeEmission(&bsdfhit.point,
+                        -bsdfRay.direction, wavelength);
 
                     auto geometryTerms = ComputeGeometryTerms(&hit.point, &bsdfhit.point);
 
-                    value = emission * bsdfValue * geometryTerms.cosineFrom / bsdfSample.jacobian;
+                    value = emission * bsdfValue
+                          * geometryTerms.cosineFrom / bsdfSample.jacobian;
                 }
 
                 // Combine with balance heuristic MIS

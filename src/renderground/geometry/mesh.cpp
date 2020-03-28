@@ -58,7 +58,7 @@ SurfacePoint Mesh::PrimarySampleToSurface(const Float2& primarySample, float* ja
     Float2 barycentricCoords(u, v);
 
     *jacobian = selectionJacobian / surfaceAreas[primId];
-    AssertFloatEqual(*jacobian, 1.0f / totalSurfaceArea);
+    CheckFloatEqual(*jacobian, 1.0f / totalSurfaceArea);
 
     return SurfacePoint {
         PointFromBarycentric(primId, barycentricCoords),

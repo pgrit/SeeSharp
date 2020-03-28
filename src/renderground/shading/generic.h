@@ -17,12 +17,16 @@ public:
         const Float3& inDir, const Float3& outDir, float wavelength,
         bool isOnLightSubpath) const final;
 
-    float WrapPrimarySampleToBsdf(const SurfacePoint& point,
+    BsdfSampleInfo WrapPrimarySampleToBsdf(const SurfacePoint& point,
         Float3* inDir, const Float3& outDir, float wavelength,
-        bool isOnLightSubpath) const final;
+        bool isOnLightSubpath, const Float2& primarySample) const final;
 
     float ComputeEmission(const SurfacePoint& point,
         const Float3& outDir, float wavelength) const final;
+
+    BsdfSampleInfo ComputeJacobians(const SurfacePoint& point,
+        const Float3& inDir, const Float3& outDir, float wavelength,
+        bool isOnLightSubpath) const final;
 };
 
 } // namespace ground

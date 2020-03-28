@@ -6,6 +6,9 @@ find_package(TBB CONFIG REQUIRED)
 # TODO if Windows
 add_compile_definitions(GROUND_DLL GROUND_EXPORTS)
 
+# TODO add option to enable / disable this
+add_compile_definitions(SANITY_CHECKS)
+
 include_directories(${CMAKE_CURRENT_SOURCE_DIR})
 
 add_library(Ground SHARED)

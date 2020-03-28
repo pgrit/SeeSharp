@@ -14,17 +14,28 @@ float GenericMaterial::EvaluateBsdf(const SurfacePoint& point,
     return 0.0f;
 }
 
-float GenericMaterial::WrapPrimarySampleToBsdf(const SurfacePoint& point,
+BsdfSampleInfo GenericMaterial::WrapPrimarySampleToBsdf(const SurfacePoint& point,
     Float3* inDir, const Float3& outDir, float wavelength,
-    bool isOnLightSubpath) const
+    bool isOnLightSubpath, const Float2& primarySample) const
 {
-    return 0.0f;
+    return BsdfSampleInfo {
+
+    };
 }
 
 float GenericMaterial::ComputeEmission(const SurfacePoint& point,
     const Float3& outDir, float wavelength) const
 {
     return 0.0f;
+}
+
+BsdfSampleInfo GenericMaterial::ComputeJacobians(const SurfacePoint& point,
+        const Float3& inDir, const Float3& outDir, float wavelength,
+        bool isOnLightSubpath) const
+{
+    return BsdfSampleInfo {
+
+    };
 }
 
 } // namespace ground

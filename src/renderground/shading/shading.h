@@ -7,6 +7,11 @@
 namespace ground
 {
 
+struct BsdfSampleInfo {
+    float jacobian;
+    float reverseJacobian;
+};
+
 class Material {
 public:
     virtual ~Material() {}
@@ -15,12 +20,16 @@ public:
         const Float3& inDir, const Float3& outDir, float wavelength,
         bool isOnLightSubpath) const = 0;
 
-    virtual float WrapPrimarySampleToBsdf(const SurfacePoint& point,
+    virtual BsdfSampleInfo WrapPrimarySampleToBsdf(const SurfacePoint& point,
         Float3* inDir, const Float3& outDir, float wavelength,
-        bool isOnLightSubpath) const = 0;
+        bool isOnLightSubpath, const Float2& primarySample) const = 0;
 
     virtual float ComputeEmission(const SurfacePoint& point,
         const Float3& outDir, float wavelength) const = 0;
+
+    virtual BsdfSampleInfo ComputeJacobians(const SurfacePoint& point,
+        const Float3& inDir, const Float3& outDir, float wavelength,
+        bool isOnLightSubpath) const = 0;
 };
 
 } // namespace ground

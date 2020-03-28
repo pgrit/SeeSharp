@@ -105,6 +105,9 @@ Hit Scene::Intersect(const Ray& ray) {
         errorOffset
     };
 
+    // Embree does not normalize the face normal
+    hit.point.normal = Normalized(hit.point.normal);
+
     return hit;
 }
 

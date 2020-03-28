@@ -3,6 +3,7 @@
 #include "api/cpputils.h"
 #include "geometry/geometry.h"
 #include "math/float2.h"
+#include "math/constants.h"
 
 #include <tbb/parallel_for.h>
 
@@ -17,7 +18,7 @@ GROUND_API void InitScene() {
 GROUND_API int AddTriangleMesh(const float* vertices, int numVerts,
     const int* indices, int numIdx)
 {
-    ApiAssert(numIdx % 3 == 0);
+    ApiCheck(numIdx % 3 == 0);
 
     return globalScene.AddMesh(ground::Mesh(
         reinterpret_cast<const ground::Float3*>(vertices), numVerts,
@@ -46,8 +47,8 @@ GROUND_API void TraceMulti(const Ray* rays, int num, Hit* hits) {
 }
 
 GROUND_API SurfaceSample WrapPrimarySampleToSurface(int meshId, float u, float v) {
-    ApiAssert(u >= 0 && u <= 1);
-    ApiAssert(v >= 0 && v <= 1);
+    ApiCheck(u >= 0 && u <= 1);
+    ApiCheck(v >= 0 && v <= 1);
 
     auto& m = globalScene.GetMesh(meshId);
 
@@ -83,9 +84,15 @@ GROUND_API Ray SpawnRay(const Hit* from, Vector3 direction) {
 
 GROUND_API GeometryTerms ComputeGeometryTerms(const SurfacePoint* from, const SurfacePoint* to) {
     auto dir = to->position - from->position;
+    float squaredDistance = LengthSquared(dir);
+    dir = dir / std::sqrt(squaredDistance);
+
+    ground::CheckNormalized(from->normal);
+    ground::CheckNormalized(to->normal);
+
     float cosSurface = std::abs(Dot(from->normal, dir));
     float cosLight = std::abs(Dot(to->normal, -dir));
-    float squaredDistance = LengthSquared(dir);
+
     float geomTerm = cosSurface * cosLight / squaredDistance;
 
     // avoid NaNs if we happen to sample the exact same point "to" and "from"

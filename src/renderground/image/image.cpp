@@ -18,14 +18,14 @@ int Image::PixelToIndex(int row, int col) const {
 
 void Image::AddValue(float x, float y, const float* value) {
     // TODO filtering support
-    int first = PixelToIndex(int(x), int(y));
+    int first = PixelToIndex(int(y), int(x));
     for (int i = 0; i < numChannels; ++i) {
         AtomicAddFloat(data[first + i], value[i]);
     }
 }
 
 void Image::GetValue(float x, float y, float* out) const {
-    int first = PixelToIndex(int(x), int(y));
+    int first = PixelToIndex(int(y), int(x));
     for (int i = 0; i < numChannels; ++i) {
         out[i] = data[first + i];
     }
@@ -49,7 +49,7 @@ void WriteImageToFileEXR(const Image& img, const std::string& filename) {
     // Copy the data into the buffers
     float* val = (float*) alloca(sizeof(float) * img.numChannels);
     for (int r = 0; r < img.height; ++r) for (int c = 0; c < img.width; ++c) {
-        img.GetValue(c, r, val);
+        img.GetValue(float(c), float(r), val);
 
         for (int i = 0; i < img.numChannels; ++i)
             channelImages[i][r * img.width + c] = val[i];

@@ -9,13 +9,12 @@ class Transform {
 public:
     Transform(const Float3& pos, const Float3& rot, const Float3& scale);
 
-    Float3 ApplyToDirection(const Float3& pos) const;
+    Float3 ApplyToDirection(const Float3& dir) const;
     Float3 ApplyToPoint(const Float3& pos) const;
-    Float3 ApplyToNormal(const Float3& pos) const;
+    Float3 ApplyToNormal(const Float3& n) const;
 
-    Float3 InvApplyToDirection(const Float3& pos) const;
+    Float3 InvApplyToDirection(const Float3& dir) const;
     Float3 InvApplyToPoint(const Float3& pos) const;
-    Float3 InvApplyToNormal(const Float3& pos) const;
 
 private:
     Float4x4 matrix;

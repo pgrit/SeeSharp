@@ -50,9 +50,9 @@ int main() {
 
                 Ray ray { org, dir };
 
-                Hit hit = TraceSingle(ray);
+                auto hit = TraceSingle(ray);
 
-                float value = hit.meshId;
+                float value = hit.point.meshId;
                 AddSplat(image, x, y, &value);
             }
         }

@@ -13,10 +13,6 @@
 
 extern "C" {
 
-struct GROUND_API Hit {
-    int meshId;
-};
-
 struct GROUND_API Vector3 {
     float x, y, z;
 };
@@ -28,6 +24,36 @@ struct GROUND_API Vector2 {
 struct GROUND_API Ray {
     Vector3 origin;
     Vector3 direction;
+    float minDistance;
+};
+
+struct GROUND_API SurfacePoint {
+    Vector3 position;
+    Vector3 normal;
+    Vector2 barycentricCoords;
+    int meshId;
+    int primId;
+};
+
+struct GROUND_API Hit {
+    SurfacePoint point;
+    float distance;
+    float errorOffset;
+};
+
+struct GROUND_API SurfaceSample {
+    SurfacePoint point;
+    float jacobian;
+};
+
+struct GROUND_API BsdfSample {
+    Vector3 direction;
+    float jacobian;
+};
+
+struct GROUND_API UberShaderParams {
+    int baseColorTexture;
+    int emissionTexture;
 };
 
 }

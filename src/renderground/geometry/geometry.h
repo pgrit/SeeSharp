@@ -21,6 +21,8 @@ public:
     void Init();
 
     int AddMesh(Mesh&& mesh);
+    const Mesh& GetMesh(int meshId) const { return meshes[meshId]; }
+    int GetNumMeshes() const { return meshes.size(); }
 
     void Finalize();
 

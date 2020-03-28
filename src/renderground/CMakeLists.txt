@@ -18,6 +18,7 @@ target_sources(Ground
         api/raytrace.h
         api/shading.h
         api/transforms.h
+        api/cpputils.h
 
         renderground.h
 
@@ -47,10 +48,16 @@ target_sources(Ground
         math/float3.h
         math/float4.h
         math/float4x4.h
+        math/distribution.h
+        math/wrap.h
 
         cameras/camera.h
         cameras/perspective.h
         cameras/perspective.cpp
+
+        shading/shading.h
+        shading/generic.h
+        shading/generic.cpp
 )
 
 target_link_libraries(Ground ${EMBREE_LIBRARY} TBB::tbb)

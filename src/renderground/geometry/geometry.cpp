@@ -1,4 +1,5 @@
 #include <cassert>
+#include <algorithm>
 
 #include "geometry/geometry.h"
 #include "geometry/hit.h"
@@ -31,12 +32,14 @@ int Scene::AddMesh(Mesh&& mesh) {
     const auto& m = meshes.back();
     const int meshId = meshes.size() - 1;
 
-    // Create the Embree buffer
+    // Create the Embree buffers
     RTCGeometry geom = rtcNewGeometry(embreeDevice, RTC_GEOMETRY_TYPE_TRIANGLE);
     float* vertices = (float*) rtcSetNewGeometryBuffer(geom,
-        RTC_BUFFER_TYPE_VERTEX, 0, RTC_FORMAT_FLOAT3, 3 * sizeof(float), m.GetNumVertices());
+        RTC_BUFFER_TYPE_VERTEX, 0, RTC_FORMAT_FLOAT3,
+        3 * sizeof(float), m.GetNumVertices());
     unsigned* indices = (unsigned*) rtcSetNewGeometryBuffer(geom,
-        RTC_BUFFER_TYPE_INDEX, 0, RTC_FORMAT_UINT3, 3 * sizeof(unsigned), m.GetNumTriangles());
+        RTC_BUFFER_TYPE_INDEX, 0, RTC_FORMAT_UINT3,
+        3 * sizeof(unsigned), m.GetNumTriangles());
 
     // Copy vertex and index data
     std::copy(m.GetVertexData(), m.GetVertexData() + m.GetNumVertices() * 3, vertices);
@@ -46,7 +49,7 @@ int Scene::AddMesh(Mesh&& mesh) {
 
     int geomId = rtcAttachGeometry(embreeScene, geom);
 
-    // Right now, we rely on the Embree Id and ours to be identical by default.
+    // Right now, we rely on the Embree ID and ours to be identical by default.
     // This restriction can be lifted by a lookup table if necessary.
     assert(geomId == meshId);
 
@@ -74,7 +77,7 @@ Hit Scene::Intersect(const Ray& ray) {
     rayhit.ray.dir_x = ray.direction.x;
     rayhit.ray.dir_y = ray.direction.y;
     rayhit.ray.dir_z = ray.direction.z;
-    rayhit.ray.tnear = 0;
+    rayhit.ray.tnear = ray.minDistance;
     rayhit.ray.tfar = std::numeric_limits<float>::infinity();
     rayhit.ray.mask = 0;
     rayhit.ray.flags = 0;
@@ -83,8 +86,23 @@ Hit Scene::Intersect(const Ray& ray) {
 
     rtcIntersect1(embreeScene, &context, &rayhit);
 
+    Float3 position = ray.origin + rayhit.ray.tfar * ray.direction;
+
+    float errorOffset = std::max(
+            std::max(std::abs(position.x),std::abs(position.y)),
+            std::max(std::abs(position.z),rayhit.ray.tfar)
+        ) * 32.0f * 1.19209e-07f;
+
     Hit hit {
-        rayhit.hit.geomID
+        SurfacePoint {
+            position,
+            Float3(rayhit.hit.Ng_x, rayhit.hit.Ng_y, rayhit.hit.Ng_z),
+            Float2(rayhit.hit.u, rayhit.hit.v),
+            rayhit.hit.geomID,
+            rayhit.hit.primID,
+        },
+        rayhit.ray.tfar,
+        errorOffset
     };
 
     return hit;

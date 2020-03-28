@@ -5,3 +5,7 @@
 #include <renderground/api/raytrace.h>
 #include <renderground/api/shading.h>
 #include <renderground/api/transforms.h>
+
+#ifdef __cplusplus
+#include <renderground/api/cpputils.h>
+#endif

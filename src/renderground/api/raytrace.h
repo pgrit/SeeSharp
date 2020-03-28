@@ -14,7 +14,7 @@ GROUND_API int AddTriangleMesh(const float* vertices, int numVerts,
 
 // Transforms 2D random numbers "u,v" in [0,1] to a point on the surface
 // of the given triangle mesh.
-GROUND_API void SampleTriangleMesh(float u, float v);
+GROUND_API SurfaceSample WrapPrimarySampleToSurface(int meshId, float u, float v);
 
 // Builds acceleration structures to prepare the scene for ray tracing.
 GROUND_API void FinalizeScene();
@@ -25,5 +25,21 @@ GROUND_API Hit TraceSingle(Ray ray);
 // Intersects the scene with multiple rays (in parallel, using tbb)
 // The results are written to the passed buffer, assuming it is of correct size.
 GROUND_API void TraceMulti(const Ray* rays, int num, Hit* hits);
+
+// Checks wether the point "to" is visible from the surface point "from".
+GROUND_API bool IsOccluded(const Hit* from, Vector3 to);
+
+// Creates and returns a ray starting at the surface point "from" with proper
+// offsets for self-intersection handling.
+GROUND_API Ray SpawnRay(const Hit* from, Vector3 direction);
+
+struct GROUND_API GeometryTerms {
+    float cosineFrom;
+    float cosineTo;
+    float squaredDistance;
+    float geomTerm;
+};
+
+GROUND_API GeometryTerms ComputeGeometryTerms(const SurfacePoint* from, const SurfacePoint* to);
 
 }

@@ -94,13 +94,19 @@ int main() {
     // For now: monochrome rendering at 500nm
     const float wavelength = 500.0f;
 
+    const uint64_t BaseSeed = 0xC030114Ui64;
+
     // tbb::parallel_for(tbb::blocked_range<int>(0, imageHeight),
         // [&](tbb::blocked_range<int> r) {
+    const int totalSpp = 8;
+    for (int sampleIdx = 0; sampleIdx < totalSpp; ++sampleIdx) {
         for(int y = 0; y < imageHeight; ++y) {
         // for (int y = r.begin(); y < r.end(); ++y) {
             for (int x = 0; x < imageWidth; ++x) {
+                RNG rng(HashSeed(BaseSeed, (y * imageWidth + x) * totalSpp + sampleIdx));
+
                 CameraSampleInfo camSample;
-                camSample.filmSample = Vector2 { x + 0.5f, y + 0.5f };
+                camSample.filmSample = Vector2 { x + rng.NextFloat(), y + rng.NextFloat() };
 
                 auto ray = GenerateCameraRay(camId, camSample);
                 auto hit = TraceSingle(ray);
@@ -109,7 +115,7 @@ int main() {
                 if (hit.point.meshId < 0) continue;
 
                 // Estimate DI via next event shadow ray
-                auto lightSample = WrapPrimarySampleToSurface(lightMesh, 0.5f, 0.5f);
+                auto lightSample = WrapPrimarySampleToSurface(lightMesh, rng.NextFloat(), rng.NextFloat());
                 if (!IsOccluded(&hit, lightSample.point.position)) {
                     Vector3 lightDir = hit.point.position - lightSample.point.position;
                     float emission = ComputeEmission(&lightSample.point,
@@ -119,13 +125,20 @@ int main() {
                         lightDir, wavelength, false);
                     auto geometryTerms = ComputeGeometryTerms(&hit.point, &lightSample.point);
 
-                    value = emission * bsdfValue
+                    // Compute MIS weights
+                    float pdfNextEvt = lightSample.jacobian;
+                    float pdfBsdf = ComputePrimaryToBsdfJacobian(&hit.point, -ray.direction,
+                        lightDir, wavelength, false).jacobian * geometryTerms.cosineTo / geometryTerms.squaredDistance;
+                    float pdfRatio = pdfBsdf / pdfNextEvt;
+                    float misWeight = 1 / (pdfRatio * pdfRatio + 1);
+
+                    value += misWeight * emission * bsdfValue
                         * geometryTerms.geomTerm / lightSample.jacobian;
                 }
 
                 // Estimate DI via BSDF importance sampling
                 auto bsdfSample = WrapPrimarySampleToBsdf(&hit.point,
-                    -ray.direction, 0.5f, 0.5f, wavelength, false);
+                    -ray.direction, rng.NextFloat(), rng.NextFloat(), wavelength, false);
                 float bsdfValue = EvaluateBsdf(&hit.point, -ray.direction,
                     bsdfSample.direction, wavelength, false);
 
@@ -138,16 +151,22 @@ int main() {
 
                     auto geometryTerms = ComputeGeometryTerms(&hit.point, &bsdfhit.point);
 
-                    value = emission * bsdfValue
-                          * geometryTerms.cosineFrom / bsdfSample.jacobian;
+                    // Compute MIS weights
+                    float pdfNextEvt = ComputePrimaryToSurfaceJacobian(&bsdfhit.point);
+                    float pdfBsdf = bsdfSample.jacobian * geometryTerms.cosineTo/ geometryTerms.squaredDistance;
+                    float pdfRatio = pdfNextEvt / pdfBsdf;
+                    float misWeight = 1 / (pdfRatio * pdfRatio + 1);
+
+                    value += misWeight * emission * bsdfValue
+                        * geometryTerms.cosineFrom / bsdfSample.jacobian;
                 }
 
-                // Combine with balance heuristic MIS
-
+                value /= totalSpp;
                 AddSplat(frameBuffer,
                     camSample.filmSample.x, camSample.filmSample.y, &value);
             }
         }
+    }
     // });
 
     WriteImage(frameBuffer, "render.exr");

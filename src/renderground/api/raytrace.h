@@ -16,6 +16,10 @@ GROUND_API int AddTriangleMesh(const float* vertices, int numVerts,
 // of the given triangle mesh.
 GROUND_API SurfaceSample WrapPrimarySampleToSurface(int meshId, float u, float v);
 
+// Computes the jacobian of the transform from primary sample space to
+// the surface of the triangle mesh on which the given point lies.
+GROUND_API float ComputePrimaryToSurfaceJacobian(const SurfacePoint* point);
+
 // Builds acceleration structures to prepare the scene for ray tracing.
 GROUND_API void FinalizeScene();
 

@@ -73,6 +73,22 @@ GROUND_API BsdfSample WrapPrimarySampleToBsdf(const SurfacePoint* point,
     };
 }
 
+GROUND_API BsdfSample ComputePrimaryToBsdfJacobian(const SurfacePoint* point,
+    Vector3 outDir, Vector3 inDir, float wavelength, bool isOnLightSubpath)
+{
+    auto material = LookupMaterial(point->meshId);
+
+    auto jacobians = material->ComputeJacobians(ApiToInternal(*point), ApiToInternal(inDir),
+        ApiToInternal(outDir), wavelength, isOnLightSubpath);
+
+    // TODO refactor, no need to also return a direction here, the caller knows it anyway
+    return BsdfSample {
+        inDir,
+        jacobians.jacobian,
+        jacobians.reverseJacobian
+    };
+}
+
 GROUND_API float EvaluateBsdf(const SurfacePoint* point,
     Vector3 outDir, Vector3 inDir, float wavelength, bool isOnLightSubpath)
 {

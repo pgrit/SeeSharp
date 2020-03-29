@@ -82,8 +82,17 @@ BsdfSampleInfo GenericMaterial::ComputeJacobians(const SurfacePoint& point,
         const Float3& inDir, const Float3& outDir, float wavelength,
         bool isOnLightSubpath) const
 {
-    return BsdfSampleInfo {
+    auto shadingNormal = scene->GetMesh(point.geomId).ComputeShadingNormal(
+        point.primId, point.barycentricCoords);
+    CheckNormalized(shadingNormal);
 
+    const auto normalizedInDir = Normalize(inDir);
+
+    // TODO compute actual jacobians of a more complex material once it is implemented
+
+    float diffuseJacobian = ComputeCosHemisphereJacobian(Dot(normalizedInDir, shadingNormal));
+    return BsdfSampleInfo {
+        diffuseJacobian, diffuseJacobian
     };
 }
 

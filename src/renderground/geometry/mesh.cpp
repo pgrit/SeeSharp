@@ -90,6 +90,10 @@ SurfacePoint Mesh::PrimarySampleToSurface(const Float2& primarySample, float* ja
     };
 }
 
+float Mesh::ComputePrimaryToSurfaceJacobian(const SurfacePoint& point) const {
+    return 1.0f / totalSurfaceArea;
+}
+
 template<typename VertArray, typename IdxArray>
 auto InterpolateOnTriangle(int primId, const Float2& barycentric,
     const VertArray& vertexData, const IdxArray& indices)

@@ -20,6 +20,7 @@ public:
     const int* GetIndexData() const { return indices.data(); }
 
     SurfacePoint PrimarySampleToSurface(const Float2& primarySample, float* jacobian) const;
+    float ComputePrimaryToSurfaceJacobian(const SurfacePoint& point) const;
 
     Float3 PointFromBarycentric(int primId, const Float2& barycentric) const;
 

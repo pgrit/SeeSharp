@@ -63,6 +63,11 @@ GROUND_API SurfaceSample WrapPrimarySampleToSurface(int meshId, float u, float v
     };
 }
 
+GROUND_API float ComputePrimaryToSurfaceJacobian(const SurfacePoint* point) {
+    auto& m = globalScene.GetMesh(point->meshId);
+    return m.ComputePrimaryToSurfaceJacobian(ApiToInternal(*point));
+}
+
 GROUND_API bool IsOccluded(const Hit* from, Vector3 to) {
     // TODO this function could (and should) call a special variant of "TraceSingle"
     //      that only checks occlusion for performance.

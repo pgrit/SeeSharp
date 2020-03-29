@@ -34,8 +34,8 @@ target_sources(Ground
         api/transforms.cpp
         api/internal.h
 
-        geometry/geometry.h
-        geometry/geometry.cpp
+        geometry/scene.h
+        geometry/scene.cpp
         geometry/mesh.h
         geometry/mesh.cpp
         geometry/ray.h

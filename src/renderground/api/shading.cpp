@@ -34,9 +34,12 @@ GROUND_API int AddUberMaterial(const UberShaderParams* params) {
             : globalImages[params->emissionTexture].get()
     };
 
-    globalMaterials.emplace_back(new ground::GenericMaterial(p));
+    globalMaterials.emplace_back(new ground::GenericMaterial(&globalScene, p));
     return int(globalMaterials.size()) - 1;
 }
+
+// TODO add sanity checks to report if meshes do not have a material assigned
+//      could be done in a scene validation step?
 
 GROUND_API void AssignMaterial(int mesh, int material) {
     ApiCheck(mesh < globalScene.GetNumMeshes());

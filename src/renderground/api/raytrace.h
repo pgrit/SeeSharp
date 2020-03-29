@@ -10,7 +10,7 @@ GROUND_API void InitScene();
 // Adds a triangle mesh to the current scene.
 // Vertices should be an array of 3D vectors: "x1, y1, z1, x2, y2, z2, ..." and so on
 GROUND_API int AddTriangleMesh(const float* vertices, int numVerts,
-    const int* indices, int numIdx);
+    const int* indices, int numIdx, const float* texCoords, const float* shadingNormals);
 
 // Transforms 2D random numbers "u,v" in [0,1] to a point on the surface
 // of the given triangle mesh.

@@ -1,7 +1,7 @@
 #include <cassert>
 #include <algorithm>
 
-#include "geometry/geometry.h"
+#include "geometry/scene.h"
 #include "geometry/hit.h"
 
 namespace ground {
@@ -106,7 +106,7 @@ Hit Scene::Intersect(const Ray& ray) {
     };
 
     // Embree does not normalize the face normal
-    hit.point.normal = Normalized(hit.point.normal);
+    hit.point.normal = Normalize(hit.point.normal);
 
     return hit;
 }

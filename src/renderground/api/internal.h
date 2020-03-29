@@ -1,6 +1,6 @@
 #include "api/api.h"
 #include "math/float3.h"
-#include "geometry/geometry.h"
+#include "geometry/scene.h"
 #include "geometry/transform.h"
 #include "geometry/hit.h"
 #include "cameras/camera.h"

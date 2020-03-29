@@ -1,7 +1,7 @@
 #include "api/raytrace.h"
 #include "api/internal.h"
 #include "api/cpputils.h"
-#include "geometry/geometry.h"
+#include "geometry/scene.h"
 #include "math/float2.h"
 #include "math/constants.h"
 
@@ -16,13 +16,14 @@ GROUND_API void InitScene() {
 }
 
 GROUND_API int AddTriangleMesh(const float* vertices, int numVerts,
-    const int* indices, int numIdx)
+    const int* indices, int numIdx, const float* texCoords, const float* shadingNormals)
 {
     ApiCheck(numIdx % 3 == 0);
 
     return globalScene.AddMesh(ground::Mesh(
         reinterpret_cast<const ground::Float3*>(vertices), numVerts,
-        indices, numIdx));
+        indices, numIdx, reinterpret_cast<const ground::Float2*>(texCoords),
+        reinterpret_cast<const ground::Float3*>(shadingNormals)));
 }
 
 GROUND_API void FinalizeScene() {

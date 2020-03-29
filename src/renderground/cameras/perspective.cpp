@@ -36,7 +36,7 @@ Ray PerspectiveCamera::GenerateRay(const Float2& filmSample, const Float2& lensS
 
     return Ray {
         origin,
-        Normalized(direction),
+        Normalize(direction),
         0.0f
     };
 }

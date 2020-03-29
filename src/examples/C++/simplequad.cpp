@@ -21,7 +21,7 @@ int main() {
         0, 2, 3
     };
 
-    AddTriangleMesh(vertices, 4, indices, 6);
+    AddTriangleMesh(vertices, 4, indices, 6, nullptr, nullptr);
 
     FinalizeScene();
 

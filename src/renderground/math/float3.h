@@ -9,6 +9,20 @@ struct Float3 {
 
     Float3(float x, float y, float z) : x(x), y(y), z(z) {}
     Float3(float v = 0.0f) : Float3(v,v,v) {}
+
+    inline float operator[] (int idx) const {
+        if (idx == 0) return x;
+        else if (idx == 1) return y;
+        else return z;
+    }
+
+    inline float& operator[] (int idx) {
+        if (idx == 0) return x;
+        else if (idx == 1) return y;
+        else return z;
+    }
+
+    Float3& operator *= (float s);
 };
 
 inline Float3 operator/ (const Float3& v, float s) {
@@ -55,8 +69,13 @@ inline float Length(const Float3& v) {
     return std::sqrt(LengthSquared(v));
 }
 
-inline Float3 Normalized(const Float3& v) {
+inline Float3 Normalize(const Float3& v) {
     return v * (1 / Length(v));
+}
+
+inline Float3& Float3::operator *= (float s) {
+    *this = (*this) * s;
+    return *this;
 }
 
 } // namespace ground

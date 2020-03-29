@@ -11,7 +11,7 @@ struct GenericMaterialParameters {
 
 class GenericMaterial : public Material {
 public:
-    GenericMaterial(const GenericMaterialParameters& params);
+    GenericMaterial(const Scene* scene, const GenericMaterialParameters& params);
 
     float EvaluateBsdf(const SurfacePoint& point,
         const Float3& inDir, const Float3& outDir, float wavelength,
@@ -27,6 +27,9 @@ public:
     BsdfSampleInfo ComputeJacobians(const SurfacePoint& point,
         const Float3& inDir, const Float3& outDir, float wavelength,
         bool isOnLightSubpath) const final;
+
+private:
+    GenericMaterialParameters parameters;
 };
 
 } // namespace ground

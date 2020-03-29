@@ -10,7 +10,8 @@ namespace ground {
 
 class Mesh {
 public:
-    Mesh(const Float3* verts, int numVerts, const int* indices, int numIndices);
+    Mesh(const Float3* verts, int numVerts, const int* indices, int numIndices,
+        const Float2* texCoords, const Float3* shadingNormals);
 
     size_t GetNumVertices() const { return vertices.size(); }
     size_t GetNumTriangles() const { return indices.size() / 3; }
@@ -22,6 +23,9 @@ public:
 
     Float3 PointFromBarycentric(int primId, const Float2& barycentric) const;
 
+    Float2 ComputeTextureCoordinates(int primId, const Float2& barycentric) const;
+    Float3 ComputeShadingNormal(int primId, const Float2& barycentric) const;
+
 private:
     std::vector<Float3> vertices;
     std::vector<int> indices;
@@ -31,9 +35,8 @@ private:
     float totalSurfaceArea;
     Distribution1D triangleDistribution;
 
-    // TODO:
-    //  - texture coordinates (per vertex)
-    //  - shading normals (per vertex)
+    std::vector<Float2> textureCoordinates;
+    std::vector<Float3> shadingNormals;
 };
 
 } // namespace ground

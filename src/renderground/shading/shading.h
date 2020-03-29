@@ -2,6 +2,7 @@
 
 #include "image/image.h"
 #include "geometry/hit.h"
+#include "geometry/scene.h"
 #include "math/float3.h"
 
 namespace ground
@@ -14,6 +15,7 @@ struct BsdfSampleInfo {
 
 class Material {
 public:
+    Material(const Scene* scene) : scene(scene) {}
     virtual ~Material() {}
 
     virtual float EvaluateBsdf(const SurfacePoint& point,
@@ -30,6 +32,9 @@ public:
     virtual BsdfSampleInfo ComputeJacobians(const SurfacePoint& point,
         const Float3& inDir, const Float3& outDir, float wavelength,
         bool isOnLightSubpath) const = 0;
+
+protected:
+    const Scene* scene;
 };
 
 } // namespace ground

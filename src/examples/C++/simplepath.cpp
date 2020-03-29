@@ -22,7 +22,7 @@ int SetupSceneGeometry() {
         0, 2, 3
     };
 
-    const int quadId = AddTriangleMesh(vertices, 4, indices, 6);
+    const int quadId = AddTriangleMesh(vertices, 4, indices, 6, nullptr, nullptr);
 
     // Light source
     float vertLight[] = {
@@ -37,7 +37,7 @@ int SetupSceneGeometry() {
         0, 2, 3
     };
 
-    const int lightId = AddTriangleMesh(vertLight, 4, idxLight, 6);
+    const int lightId = AddTriangleMesh(vertLight, 4, idxLight, 6, nullptr, nullptr);
 
     FinalizeScene();
 
@@ -47,11 +47,11 @@ int SetupSceneGeometry() {
     AddSplat(blackTexture, 0, 0, &black);
 
     const auto emitTexture = CreateImage(1, 1, 1);
-    float emission = 1.0f;
+    float emission = 10.0f;
     AddSplat(emitTexture, 0, 0, &emission);
 
     const auto reflectTexture = CreateImage(1, 1, 1);
-    float reflectance = 0.3f;
+    float reflectance = 0.85f;
     AddSplat(reflectTexture, 0, 0, &reflectance);
 
     UberShaderParams lightMaterialParams {
@@ -59,12 +59,14 @@ int SetupSceneGeometry() {
         emitTexture
     };
     const auto lightMaterial = AddUberMaterial(&lightMaterialParams);
+    AssignMaterial(lightId, lightMaterial);
 
     UberShaderParams diffuseMaterialParams {
         reflectTexture,
         -1
     };
     const auto diffuseMaterial = AddUberMaterial(&diffuseMaterialParams);
+    AssignMaterial(quadId, diffuseMaterial);
 
     return lightId;
 }

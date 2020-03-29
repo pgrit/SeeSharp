@@ -6,7 +6,8 @@
 
 namespace ground {
 
-Mesh::Mesh(const Float3* verts, int numVerts, const int* indices, int numIndices)
+Mesh::Mesh(const Float3* verts, int numVerts, const int* indices, int numIndices,
+    const Float2* texCoords, const Float3* shadingNormals)
 : vertices(numVerts), indices(numIndices)
 {
     // TODO assert that indices is a multiple of two
@@ -35,6 +36,26 @@ Mesh::Mesh(const Float3* verts, int numVerts, const int* indices, int numIndices
     }
 
     triangleDistribution.Build(surfaceAreas.begin(), surfaceAreas.end());
+
+    // Per-vertex texture coordinates
+    this->textureCoordinates.resize(numVerts);
+    if (!texCoords) { // not given: default to (0,0) everywhere
+        std::fill(textureCoordinates.begin(), textureCoordinates.end(), Float2{0, 0});
+    } else {
+        std::copy(texCoords, texCoords + numVerts, textureCoordinates.begin());
+    }
+
+    // Per-vertex shading normals
+    this->shadingNormals.resize(numVerts);
+    if (!shadingNormals) { // not given: default to face normals
+        for (int face = 0; face < numFaces; ++face) {
+            this->shadingNormals[indices[face + 0]] = faceNormals[face];
+            this->shadingNormals[indices[face + 1]] = faceNormals[face];
+            this->shadingNormals[indices[face + 2]] = faceNormals[face];
+        }
+    } else {
+        std::copy(shadingNormals, shadingNormals + numVerts, this->shadingNormals.begin());
+    }
 }
 
 SurfacePoint Mesh::PrimarySampleToSurface(const Float2& primarySample, float* jacobian) const {
@@ -69,14 +90,29 @@ SurfacePoint Mesh::PrimarySampleToSurface(const Float2& primarySample, float* ja
     };
 }
 
-Float3 Mesh::PointFromBarycentric(int primId, const Float2& barycentric) const {
-    auto& v1 = vertices[indices[primId + 0]];
-    auto& v2 = vertices[indices[primId + 1]];
-    auto& v3 = vertices[indices[primId + 2]];
+template<typename VertArray, typename IdxArray>
+auto InterpolateOnTriangle(int primId, const Float2& barycentric,
+    const VertArray& vertexData, const IdxArray& indices)
+{
+    auto& v1 = vertexData[indices[primId + 0]];
+    auto& v2 = vertexData[indices[primId + 1]];
+    auto& v3 = vertexData[indices[primId + 2]];
 
     return barycentric.x * v1
          + barycentric.y * v2
          + (1 - barycentric.x - barycentric.y) * v3;
+}
+
+Float3 Mesh::PointFromBarycentric(int primId, const Float2& barycentric) const {
+    return InterpolateOnTriangle(primId, barycentric, vertices, indices);
+}
+
+Float2 Mesh::ComputeTextureCoordinates(int primId, const Float2& barycentric) const {
+    return InterpolateOnTriangle(primId, barycentric, textureCoordinates, indices);
+}
+
+Float3 Mesh::ComputeShadingNormal(int primId, const Float2& barycentric) const {
+    return InterpolateOnTriangle(primId, barycentric, shadingNormals, indices);
 }
 
 } // namespace ground

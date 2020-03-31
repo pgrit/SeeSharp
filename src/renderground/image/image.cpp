@@ -57,8 +57,6 @@ void WriteImageToFileEXR(const Image& img, const std::string& filename) {
 
     // Gather an array of pointers to the channel buffers, as input to TinyEXR
     float** imagePtr = (float **) alloca(sizeof(float*) * image.num_channels);
-    for (int i = 0; i < img.numChannels; ++i)
-        imagePtr[i] = channelImages[i].data();
     image.images = (unsigned char**)imagePtr;
 
     EXRHeader header;
@@ -73,15 +71,19 @@ void WriteImageToFileEXR(const Image& img, const std::string& filename) {
     if (image.num_channels == 1) {
         header.channels[0].name[0] = 'Y';
         header.channels[0].name[1] = '\0';
+        imagePtr[0] = channelImages[0].data();
     } else if (image.num_channels == 3) {
-        // TODO layout of the channels is up to the user right now
-        //      we should find a way to communicate conventions!
-        header.channels[0].name[0] = 'R';
+        header.channels[0].name[0] = 'B';
         header.channels[0].name[1] = '\0';
+        imagePtr[0] = channelImages[2].data();
+
         header.channels[1].name[0] = 'G';
         header.channels[1].name[1] = '\0';
-        header.channels[2].name[0] = 'B';
+        imagePtr[1] = channelImages[1].data();
+
+        header.channels[2].name[0] = 'R';
         header.channels[2].name[1] = '\0';
+        imagePtr[2] = channelImages[0].data();
     } else {
         // TODO support other channel configurations as well
         //      raise error for unsupported configuration

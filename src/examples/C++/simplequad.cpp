@@ -27,7 +27,7 @@ int main() {
 
     const int imageWidth = 512;
     const int imageHeight = 512;
-    const int image = CreateImage(imageWidth, imageHeight, 1);
+    const int image = CreateImageRGB(imageWidth, imageHeight);
 
     float topLeft[] = { -1.0f, -1.0f, 5.0f };
     float diag[] = { 3.0f, 3.0f, 0.0f };
@@ -53,7 +53,7 @@ int main() {
                 auto hit = TraceSingle(ray);
 
                 float value = hit.point.meshId;
-                AddSplat(image, x, y, &value);
+                AddSplatRGB(image, x, y, ColorRGB{value,value,value});
             }
         }
     });

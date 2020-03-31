@@ -38,6 +38,30 @@ inline float Length(const Vector3& v) {
     return std::sqrt(LengthSquared(v));
 }
 
+inline ColorRGB operator* (const ColorRGB& a, const ColorRGB& b) {
+    return ColorRGB { a.r * b.r, a.g * b.g, a.b * b.b };
+}
+
+inline ColorRGB operator* (const ColorRGB& a, float s) {
+    return ColorRGB { a.r * s, a.g * s, a.b * s };
+}
+
+inline ColorRGB operator* (float s, const ColorRGB& a) {
+    return a * s;
+}
+
+inline ColorRGB operator+ (const ColorRGB& a, const ColorRGB& b) {
+    return ColorRGB { a.r + b.r, a.g + b.g, a.b + b.b };
+}
+
+inline ColorRGB operator+ (const ColorRGB& a, float s) {
+    return ColorRGB { a.r + s, a.g + s, a.b + s };
+}
+
+inline ColorRGB operator+ (float s, const ColorRGB& a) {
+    return a + s;
+}
+
 // Small and fast random number generator based on MWC64X
 // http://cas.ee.ic.ac.uk/people/dt10/research/rngs-gpu-mwc64x.html
 class RNG {

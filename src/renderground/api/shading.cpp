@@ -48,22 +48,22 @@ GROUND_API void AssignMaterial(int mesh, int material) {
     globalMeshToMaterial[mesh] = material;
 }
 
-GROUND_API float ComputeEmission(const SurfacePoint* point, Vector3 outDir,
-    float wavelength)
+GROUND_API ColorRGB ComputeEmission(const SurfacePoint* point, Vector3 outDir)
 {
     auto material = LookupMaterial(point->meshId);
-    return material->ComputeEmission(ApiToInternal(*point),
-        ApiToInternal(outDir), wavelength);
+    auto clr = material->ComputeEmission(ApiToInternal(*point),
+        ApiToInternal(outDir));
+    return ColorRGB {clr.x, clr.y, clr.z};
 }
 
 GROUND_API BsdfSample WrapPrimarySampleToBsdf(const SurfacePoint* point,
-    Vector3 outDir, float u, float v, float wavelength, bool isOnLightSubpath)
+    Vector3 outDir, float u, float v, bool isOnLightSubpath)
 {
     auto material = LookupMaterial(point->meshId);
 
     ground::Float3 inDir;
     auto sampleInfo = material->WrapPrimarySampleToBsdf(ApiToInternal(*point),
-        &inDir, ApiToInternal(outDir), wavelength, isOnLightSubpath,
+        &inDir, ApiToInternal(outDir), isOnLightSubpath,
         ground::Float2(u, v));
 
     return BsdfSample {
@@ -74,12 +74,12 @@ GROUND_API BsdfSample WrapPrimarySampleToBsdf(const SurfacePoint* point,
 }
 
 GROUND_API BsdfSample ComputePrimaryToBsdfJacobian(const SurfacePoint* point,
-    Vector3 outDir, Vector3 inDir, float wavelength, bool isOnLightSubpath)
+    Vector3 outDir, Vector3 inDir, bool isOnLightSubpath)
 {
     auto material = LookupMaterial(point->meshId);
 
     auto jacobians = material->ComputeJacobians(ApiToInternal(*point), ApiToInternal(inDir),
-        ApiToInternal(outDir), wavelength, isOnLightSubpath);
+        ApiToInternal(outDir), isOnLightSubpath);
 
     // TODO refactor, no need to also return a direction here, the caller knows it anyway
     return BsdfSample {
@@ -89,13 +89,14 @@ GROUND_API BsdfSample ComputePrimaryToBsdfJacobian(const SurfacePoint* point,
     };
 }
 
-GROUND_API float EvaluateBsdf(const SurfacePoint* point,
-    Vector3 outDir, Vector3 inDir, float wavelength, bool isOnLightSubpath)
+GROUND_API ColorRGB EvaluateBsdf(const SurfacePoint* point,
+    Vector3 outDir, Vector3 inDir, bool isOnLightSubpath)
 {
     auto material = LookupMaterial(point->meshId);
 
-    return material->EvaluateBsdf(ApiToInternal(*point), ApiToInternal(inDir),
-        ApiToInternal(outDir), wavelength, isOnLightSubpath);
+    auto clr = material->EvaluateBsdf(ApiToInternal(*point), ApiToInternal(inDir),
+        ApiToInternal(outDir), isOnLightSubpath);
+    return ColorRGB {clr.x, clr.y, clr.z};
 }
 
 }

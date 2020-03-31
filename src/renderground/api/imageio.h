@@ -5,13 +5,13 @@
 extern "C" {
 
 // Creates a new HDR image buffer, initialized to black. Returns its ID.
-GROUND_API int CreateImage(int width, int height, int numChannels);
+GROUND_API int CreateImageRGB(int width, int height);
 
 // Splats a value into the image buffer with the given ID.
 // Thread-safe (uses atomic add).
-GROUND_API void AddSplat(int image, float x, float y, const float* value);
+GROUND_API void AddSplatRGB(int image, float x, float y, ColorRGB value);
 
-GROUND_API void AddSplatMulti(int image, const float* xs, const float* ys, const float* values, int count);
+GROUND_API void AddSplatRGBMulti(int image, const float* xs, const float* ys, const ColorRGB* values, int count);
 
 // Writes an image to the filesystem.
 GROUND_API void WriteImage(int image, const char* filename);

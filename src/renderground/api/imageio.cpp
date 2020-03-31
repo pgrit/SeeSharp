@@ -7,22 +7,24 @@ std::vector<std::unique_ptr<ground::Image>> globalImages;
 
 extern "C" {
 
-GROUND_API int CreateImage(int width, int height, int numChannels) {
-    globalImages.emplace_back(new ground::Image(width, height, numChannels));
+GROUND_API int CreateImageRGB(int width, int height) {
+    globalImages.emplace_back(new ground::Image(width, height, 3));
     return int(globalImages.size()) - 1;
 }
 
-GROUND_API void AddSplat(int image, float x, float y, const float* value) {
+GROUND_API void AddSplatRGB(int image, float x, float y, ColorRGB value) {
     // TODO check that the image id is correct (Debug mode?)
-    globalImages[image]->AddValue(x, y, value);
+    globalImages[image]->AddValue(x, y, &value.r);
 }
 
-GROUND_API void AddSplatMulti(int image, const float* xs, const float* ys, const float* values, int num) {
+GROUND_API void AddSplatRGBMulti(int image, const float* xs, const float* ys,
+    const ColorRGB* values, int num)
+{
     auto& img = globalImages[image];
     tbb::parallel_for(tbb::blocked_range<int>(0, num),
         [&](tbb::blocked_range<int> r) {
         for (int i = r.begin(); i < r.end(); ++i) {
-            img->AddValue(xs[i], ys[i], values + (i * img->numChannels));
+            img->AddValue(xs[i], ys[i], &values[i].r);
         }
     });
 }

@@ -52,6 +52,10 @@ struct GROUND_API BsdfSample {
     float reverseJacobian;
 };
 
+struct GROUND_API ColorRGB {
+    float r, g, b;
+};
+
 struct GROUND_API UberShaderParams {
     int baseColorTexture;
     int emissionTexture;

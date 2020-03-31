@@ -11,9 +11,8 @@ GenericMaterial::GenericMaterial(const Scene* scene,
 {
 }
 
-float GenericMaterial::EvaluateBsdf(const SurfacePoint& point,
-    const Float3& inDir, const Float3& outDir, float wavelength,
-    bool isOnLightSubpath) const
+Float3 GenericMaterial::EvaluateBsdf(const SurfacePoint& point,
+    const Float3& inDir, const Float3& outDir, bool isOnLightSubpath) const
 {
     auto texCoords = scene->GetMesh(point.geomId).ComputeTextureCoordinates(
         point.primId, point.barycentricCoords);
@@ -21,16 +20,17 @@ float GenericMaterial::EvaluateBsdf(const SurfacePoint& point,
         point.primId, point.barycentricCoords);
 
     // TODO proper wavelength etc
-    float reflectance = 0.0f;
+    Float3 reflectance = 0.0f;
     if (parameters.baseColor)
-        parameters.baseColor->GetValue(texCoords.x, texCoords.y, &reflectance);
+        // TODO this is unsafe as hell, use a GetValue that returns an RGB explicitely
+        //      (and converts as necessary, handled by the image)
+        parameters.baseColor->GetValue(texCoords.x, texCoords.y, &reflectance.x);
 
     return reflectance * 1.0f / PI;
 }
 
 BsdfSampleInfo GenericMaterial::WrapPrimarySampleToBsdf(const SurfacePoint& point,
-    Float3* inDir, const Float3& outDir, float wavelength,
-    bool isOnLightSubpath, const Float2& primarySample) const
+    Float3* inDir, const Float3& outDir, bool isOnLightSubpath, const Float2& primarySample) const
 {
     auto texCoords = scene->GetMesh(point.geomId).ComputeTextureCoordinates(
         point.primId, point.barycentricCoords);
@@ -59,9 +59,7 @@ BsdfSampleInfo GenericMaterial::WrapPrimarySampleToBsdf(const SurfacePoint& poin
     };
 }
 
-float GenericMaterial::ComputeEmission(const SurfacePoint& point,
-    const Float3& outDir, float wavelength) const
-{
+Float3 GenericMaterial::ComputeEmission(const SurfacePoint& point, const Float3& outDir) const {
     auto texCoords = scene->GetMesh(point.geomId).ComputeTextureCoordinates(
         point.primId, point.barycentricCoords);
     auto shadingNormal = scene->GetMesh(point.geomId).ComputeShadingNormal(
@@ -71,16 +69,15 @@ float GenericMaterial::ComputeEmission(const SurfacePoint& point,
     //      conventions (at least: upsampled sRGB and luminance)
     //      the wavelength will have to somehow propagate to the texture if the upsampled
     //      result is stored in the image rather than computed on-the-fly
-    float emission = 0.0f;
+    Float3 emission = 0.0f;
     if (parameters.emission)
-        parameters.emission->GetValue(texCoords.x, texCoords.y, &emission);
+        parameters.emission->GetValue(texCoords.x, texCoords.y, &emission.x);
 
     return emission;
 }
 
 BsdfSampleInfo GenericMaterial::ComputeJacobians(const SurfacePoint& point,
-        const Float3& inDir, const Float3& outDir, float wavelength,
-        bool isOnLightSubpath) const
+        const Float3& inDir, const Float3& outDir, bool isOnLightSubpath) const
 {
     auto shadingNormal = scene->GetMesh(point.geomId).ComputeShadingNormal(
         point.primId, point.barycentricCoords);

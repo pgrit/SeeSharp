@@ -13,19 +13,17 @@ class GenericMaterial : public Material {
 public:
     GenericMaterial(const Scene* scene, const GenericMaterialParameters& params);
 
-    float EvaluateBsdf(const SurfacePoint& point,
-        const Float3& inDir, const Float3& outDir, float wavelength,
-        bool isOnLightSubpath) const final;
+    Float3 EvaluateBsdf(const SurfacePoint& point, const Float3& inDir,
+        const Float3& outDir, bool isOnLightSubpath) const final;
 
     BsdfSampleInfo WrapPrimarySampleToBsdf(const SurfacePoint& point,
-        Float3* inDir, const Float3& outDir, float wavelength,
-        bool isOnLightSubpath, const Float2& primarySample) const final;
+        Float3* inDir, const Float3& outDir, bool isOnLightSubpath,
+        const Float2& primarySample) const final;
 
-    float ComputeEmission(const SurfacePoint& point,
-        const Float3& outDir, float wavelength) const final;
+    Float3 ComputeEmission(const SurfacePoint& point, const Float3& outDir) const final;
 
     BsdfSampleInfo ComputeJacobians(const SurfacePoint& point,
-        const Float3& inDir, const Float3& outDir, float wavelength,
+        const Float3& inDir, const Float3& outDir,
         bool isOnLightSubpath) const final;
 
 private:

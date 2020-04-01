@@ -7,6 +7,7 @@
 
 std::vector<std::unique_ptr<ground::Material>> globalMaterials;
 std::unordered_map<int, int> globalMeshToMaterial;
+std::vector<int> globalEmitterRecord;
 
 inline ground::Material* LookupMaterial(int meshId) {
     auto matId = globalMeshToMaterial[meshId];
@@ -97,6 +98,15 @@ GROUND_API ColorRGB EvaluateBsdf(const SurfacePoint* point,
     auto clr = material->EvaluateBsdf(ApiToInternal(*point), ApiToInternal(inDir),
         ApiToInternal(outDir), isOnLightSubpath);
     return ColorRGB {clr.x, clr.y, clr.z};
+}
+
+GROUND_API int GetNumberEmitters() {
+    return globalEmitterRecord.size();
+}
+
+GROUND_API int GetEmitterMesh(int emitterId) {
+    ApiCheck(emitterId >= 0 && emitterId < globalEmitterRecord.size());
+    return globalEmitterRecord[emitterId];
 }
 
 }

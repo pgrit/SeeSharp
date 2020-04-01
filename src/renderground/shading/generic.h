@@ -26,6 +26,10 @@ public:
         const Float3& inDir, const Float3& outDir,
         bool isOnLightSubpath) const final;
 
+    bool IsEmissive() const final {
+        return parameters.emission != nullptr;
+    }
+
 private:
     GenericMaterialParameters parameters;
 };

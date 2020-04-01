@@ -3,72 +3,72 @@
     "transforms": [
       {
         "name": "camera",
-        "position": [ 0.0, 1.0, -6.8 ],
-        "rotation": [ 180.0, -0.0, 0.0 ],
-        "scale": [ 1.0, 1.0, -1.0 ]
+        "position": [ 0.0, 1.0, 6.8 ],
+        "rotation": [ 0, 180.0, 180.0 ],
+        "scale": [ -1.0, 1.0, 1.0 ]
       }
     ],
     "cameras": [
       {
         "name": "default",
         "type": "perspective",
-        "fov": "19.500000",
+        "fov": 19.5,
         "transform": "camera"
       }
     ],
     "materials": [
       {
         "name": "LeftWall",
-        "diffuseReflectance": {
+        "baseColor": {
           "type": "rgb",
           "value": [0.63, 0.065, 0.05]
         }
       },
       {
         "name": "RightWall",
-        "diffuseReflectance": {
+        "baseColor": {
           "type": "rgb",
           "value": [0.14, 0.45, 0.091]
         }
       },
       {
         "name": "Floor",
-        "diffuseReflectance": {
+        "baseColor": {
           "type": "rgb",
           "value": [0.725, 0.71, 0.68]
         }
       },
       {
         "name": "Ceiling",
-        "diffuseReflectance": {
+        "baseColor": {
           "type": "rgb",
           "value": [0.725, 0.71, 0.68]
         }
       },
       {
         "name": "BackWall",
-        "diffuseReflectance": {
+        "baseColor": {
           "type": "rgb",
           "value": [0.725, 0.71, 0.68]
         }
       },
       {
         "name": "ShortBox",
-        "diffuseReflectance": {
+        "baseColor": {
           "type": "rgb",
           "value": [0.725, 0.71, 0.68]
         }
       },
       {
         "name": "TallBox",
-        "diffuseReflectance": {
+        "baseColor": {
           "type": "rgb",
           "value": [0.725, 0.71, 0.68]
         }
       },
       {
         "name": "Light",
-        "diffuseReflectance": {
+        "baseColor": {
           "type": "rgb",
           "value": [ 0.0, 0.0, 0.0]
         }

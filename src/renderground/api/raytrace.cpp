@@ -27,6 +27,12 @@ GROUND_API int AddTriangleMesh(const float* vertices, int numVerts,
 }
 
 GROUND_API void FinalizeScene() {
+    // Scan the scene for all emissive objects and keep track of them.
+    for (int meshId = 0; meshId < globalScene.GetNumMeshes(); ++meshId) {
+        if (globalMaterials[globalMeshToMaterial[meshId]]->IsEmissive())
+            globalEmitterRecord.push_back(meshId);
+    }
+
     globalScene.Finalize();
 }
 

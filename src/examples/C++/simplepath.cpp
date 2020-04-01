@@ -6,7 +6,7 @@
 
 #include <tbb/parallel_for.h>
 
-int SetupSceneGeometry() {
+int SetupSimpleSceneGeometry() {
     InitScene();
 
     // Illuminated diffuse quad
@@ -71,6 +71,10 @@ int SetupSceneGeometry() {
     return lightId;
 }
 
+void LoadCornellBox() {
+    LoadSceneFromFile("../../data/scenes/cbox.json", 0);
+}
+
 int SetupCamera(int frameBuffer) {
     Vector3 pos { 0, 0, -5 };
     Vector3 rot { 0, 0, 0 };
@@ -81,15 +85,25 @@ int SetupCamera(int frameBuffer) {
 }
 
 int main() {
+    const int imageWidth = 512;
+    const int imageHeight = 512;
+    const int frameBuffer = CreateImageRGB(imageWidth, imageHeight);
+    InitScene();
+    LoadCornellBox();
+    FinalizeScene();
+
+    int numEmitter = GetNumberEmitters();
+    const int lightMesh = GetEmitterMesh(0); // TODO get them all and build a light selection structure
+
+    const int camId = 0;
+
+    // return 0;
+
     auto startTime = std::chrono::high_resolution_clock::now();
 
-    const int lightMesh = SetupSceneGeometry();
+    // const int lightMesh = SetupSimpleSceneGeometry();
 
-    const int imageWidth = 800;
-    const int imageHeight = 600;
-    const int frameBuffer = CreateImageRGB(imageWidth, imageHeight);
-
-    const int camId = SetupCamera(frameBuffer);
+    // const int camId = SetupCamera(frameBuffer);
 
     const uint64_t BaseSeed = 0xC030114Ui64;
 

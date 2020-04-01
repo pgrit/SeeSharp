@@ -33,7 +33,7 @@ def extractMaterials(content): # We only support a limited set of materials foll
     for g in groups:
         material = {
             "name": g[0],
-            "diffuseReflectance": {
+            "baseColor": {
                 "type": "rgb",
                 "value": [float(g[1]), float(g[2]), float(g[3])]
             }
@@ -164,7 +164,7 @@ def extractCamera(content):
     camera = {
         "name": "default",
         "type": "perspective",
-        "fov": cameraGroups[0],
+        "fov": float(cameraGroups[0]),
         "transform": "camera"
     }
 

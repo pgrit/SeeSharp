@@ -1,7 +1,12 @@
+add_library(Ground SHARED)
+
 find_package(embree 3.0 REQUIRED)
-include_directories(${EMBREE_INCLUDE_DIRS})
+target_include_directories(Ground PRIVATE ${EMBREE_INCLUDE_DIRS})
 
 find_package(TBB CONFIG REQUIRED)
+
+find_package(RapidJSON CONFIG REQUIRED)
+target_include_directories(Ground PRIVATE ${RAPIDJSON_INCLUDE_DIRS})
 
 # TODO if Windows
 add_compile_definitions(GROUND_DLL GROUND_EXPORTS)
@@ -10,8 +15,6 @@ add_compile_definitions(GROUND_DLL GROUND_EXPORTS)
 add_compile_definitions(SANITY_CHECKS)
 
 include_directories(${CMAKE_CURRENT_SOURCE_DIR})
-
-add_library(Ground SHARED)
 
 target_sources(Ground
     PUBLIC
@@ -22,6 +25,7 @@ target_sources(Ground
         api/shading.h
         api/transforms.h
         api/cpputils.h
+        api/scenefiles.h
 
         renderground.h
 
@@ -33,6 +37,7 @@ target_sources(Ground
         api/shading.cpp
         api/transforms.cpp
         api/internal.h
+        api/scenefiles.cpp
 
         geometry/scene.h
         geometry/scene.cpp

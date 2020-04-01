@@ -1,0 +1,18 @@
+{
+    "$id": "renderground.scene.schema.json",
+    "$schema": "http://json-schema.org/draft-04/schema",
+    "description": "Renderground scene file",
+    "type": "object",
+
+    "properties": {
+        "name": {},
+        "transforms": {},
+        "cameras": {},
+        "materials": {},
+        "objects": {}
+    },
+
+    "definitions": {
+
+    }
+}

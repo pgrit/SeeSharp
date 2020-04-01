@@ -18,6 +18,7 @@ extern std::vector<std::unique_ptr<ground::Image>> globalImages;
 extern ground::Scene globalScene;
 extern std::vector<std::unique_ptr<ground::Material>> globalMaterials;
 extern std::unordered_map<int, int> globalMeshToMaterial;
+extern std::vector<int> globalEmitterRecord;
 
 // TODO the following conversion functions (which are somewhat unsafe)
 //      could be completely avoided by separating data structures from

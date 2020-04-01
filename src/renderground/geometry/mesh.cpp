@@ -56,6 +56,8 @@ Mesh::Mesh(const Float3* verts, int numVerts, const int* indices, int numIndices
     } else {
         std::copy(shadingNormals, shadingNormals + numVerts, this->shadingNormals.begin());
     }
+
+    // TODO pre-normalize shading normals here? Can that be problematic with interpolation?
 }
 
 SurfacePoint Mesh::PrimarySampleToSurface(const Float2& primarySample, float* jacobian) const {
@@ -116,7 +118,8 @@ Float2 Mesh::ComputeTextureCoordinates(int primId, const Float2& barycentric) co
 }
 
 Float3 Mesh::ComputeShadingNormal(int primId, const Float2& barycentric) const {
-    return InterpolateOnTriangle(primId, barycentric, shadingNormals, indices);
+    // TODO this frequent call to Normalize could possibly be optimized away
+    return Normalize(InterpolateOnTriangle(primId, barycentric, shadingNormals, indices));
 }
 
 } // namespace ground

@@ -33,6 +33,8 @@ public:
         const Float3& inDir, const Float3& outDir,
         bool isOnLightSubpath) const = 0;
 
+    virtual bool IsEmissive() const = 0;
+
 protected:
     const Scene* scene;
 };

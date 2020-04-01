@@ -6,6 +6,8 @@
 #include <renderground/api/shading.h>
 #include <renderground/api/transforms.h>
 
+#include <renderground/api/scenefiles.h>
+
 #ifdef __cplusplus
 #include <renderground/api/cpputils.h>
 #endif

@@ -19,4 +19,8 @@ GROUND_API BsdfSample ComputePrimaryToBsdfJacobian(const SurfacePoint* point,
 
 GROUND_API ColorRGB ComputeEmission(const SurfacePoint* point, Vector3 outDir);
 
+GROUND_API int GetNumberEmitters();
+
+GROUND_API int GetEmitterMesh(int emitterId);
+
 }

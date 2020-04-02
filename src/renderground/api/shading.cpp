@@ -52,8 +52,7 @@ GROUND_API void AssignMaterial(int mesh, int material) {
 GROUND_API ColorRGB ComputeEmission(const SurfacePoint* point, Vector3 outDir)
 {
     auto material = LookupMaterial(point->meshId);
-    auto clr = material->ComputeEmission(ApiToInternal(*point),
-        ApiToInternal(outDir));
+    auto clr = material->ComputeEmission(*point, outDir);
     return ColorRGB {clr.x, clr.y, clr.z};
 }
 
@@ -62,13 +61,12 @@ GROUND_API BsdfSample WrapPrimarySampleToBsdf(const SurfacePoint* point,
 {
     auto material = LookupMaterial(point->meshId);
 
-    ground::Float3 inDir;
-    auto sampleInfo = material->WrapPrimarySampleToBsdf(ApiToInternal(*point),
-        &inDir, ApiToInternal(outDir), isOnLightSubpath,
-        ground::Float2(u, v));
+    Vector3 inDir;
+    auto sampleInfo = material->WrapPrimarySampleToBsdf(*point,
+        &inDir, outDir, isOnLightSubpath, Vector2{u, v});
 
     return BsdfSample {
-        InternalToApi(inDir),
+        inDir,
         sampleInfo.jacobian,
         sampleInfo.reverseJacobian
     };
@@ -79,8 +77,8 @@ GROUND_API BsdfSample ComputePrimaryToBsdfJacobian(const SurfacePoint* point,
 {
     auto material = LookupMaterial(point->meshId);
 
-    auto jacobians = material->ComputeJacobians(ApiToInternal(*point), ApiToInternal(inDir),
-        ApiToInternal(outDir), isOnLightSubpath);
+    auto jacobians = material->ComputeJacobians(*point, inDir,
+        outDir, isOnLightSubpath);
 
     // TODO refactor, no need to also return a direction here, the caller knows it anyway
     return BsdfSample {
@@ -95,8 +93,8 @@ GROUND_API ColorRGB EvaluateBsdf(const SurfacePoint* point,
 {
     auto material = LookupMaterial(point->meshId);
 
-    auto clr = material->EvaluateBsdf(ApiToInternal(*point), ApiToInternal(inDir),
-        ApiToInternal(outDir), isOnLightSubpath);
+    auto clr = material->EvaluateBsdf(*point, inDir,
+        outDir, isOnLightSubpath);
     return ColorRGB {clr.x, clr.y, clr.z};
 }
 

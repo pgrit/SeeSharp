@@ -1,8 +1,6 @@
 #pragma once
 
-#include "geometry/ray.h"
 #include "geometry/transform.h"
-#include "math/float2.h"
 #include "image/image.h"
 
 namespace ground {
@@ -15,7 +13,7 @@ public:
 
     virtual ~Camera() {}
 
-    virtual Ray GenerateRay(const Float2& filmSample, const Float2& lensSample, float time) = 0;
+    virtual Ray GenerateRay(const Vector2& filmSample, const Vector2& lensSample, float time) = 0;
 
 protected:
     const Transform* transform;

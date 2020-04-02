@@ -1,6 +1,6 @@
 #pragma once
 
-#include "math/float3.h"
+#include "api/types.h"
 
 namespace ground {
 
@@ -15,7 +15,7 @@ struct Float4 {
     : x(v), y(v), z(v), w(v)
     {}
 
-    Float4(const Float3& v, float w)
+    Float4(const Vector3& v, float w)
     : x(v.x), y(v.y), z(v.z), w(w)
     {}
 
@@ -33,8 +33,8 @@ struct Float4 {
         else return w;
     }
 
-    operator Float3() explicit const {
-        return Float3(x/w, y/w, z/w);
+    explicit operator Vector3() const {
+        return Vector3 { x/w, y/w, z/w };
     }
 };
 

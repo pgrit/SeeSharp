@@ -4,7 +4,6 @@
 
 #include "math/constants.h"
 #include "math/float4.h"
-#include "math/float3.h"
 
 namespace ground {
 

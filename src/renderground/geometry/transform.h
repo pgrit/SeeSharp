@@ -1,20 +1,19 @@
 #pragma once
 
-#include "math/float3.h"
 #include "math/float4x4.h"
 
 namespace ground {
 
 class Transform {
 public:
-    Transform(const Float3& pos, const Float3& rot, const Float3& scale);
+    Transform(const Vector3& pos, const Vector3& rot, const Vector3& scale);
 
-    Float3 ApplyToDirection(const Float3& dir) const;
-    Float3 ApplyToPoint(const Float3& pos) const;
-    Float3 ApplyToNormal(const Float3& n) const;
+    Vector3 ApplyToDirection(const Vector3& dir) const;
+    Vector3 ApplyToPoint(const Vector3& pos) const;
+    Vector3 ApplyToNormal(const Vector3& n) const;
 
-    Float3 InvApplyToDirection(const Float3& dir) const;
-    Float3 InvApplyToPoint(const Float3& pos) const;
+    Vector3 InvApplyToDirection(const Vector3& dir) const;
+    Vector3 InvApplyToPoint(const Vector3& pos) const;
 
 private:
     Float4x4 matrix;

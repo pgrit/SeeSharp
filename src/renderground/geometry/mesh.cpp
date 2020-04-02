@@ -6,8 +6,8 @@
 
 namespace ground {
 
-Mesh::Mesh(const Float3* verts, int numVerts, const int* indices, int numIndices,
-    const Float2* texCoords, const Float3* shadingNormals)
+Mesh::Mesh(const Vector3* verts, int numVerts, const int* indices, int numIndices,
+    const Vector2* texCoords, const Vector3* shadingNormals)
 : vertices(numVerts), indices(numIndices)
 {
     // TODO assert that indices is a multiple of two
@@ -27,7 +27,7 @@ Mesh::Mesh(const Float3* verts, int numVerts, const int* indices, int numIndices
         auto& v3 = vertices[indices[face + 2]];
 
         // Compute the normal. Winding order is CCW always.
-        Float3 n = Cross(v2 - v1, v3 - v1);
+        Vector3 n = Cross(v2 - v1, v3 - v1);
         float len = Length(n);
         faceNormals[face] = n / len;
         surfaceAreas[face] = len * 0.5f;
@@ -40,7 +40,7 @@ Mesh::Mesh(const Float3* verts, int numVerts, const int* indices, int numIndices
     // Per-vertex texture coordinates
     this->textureCoordinates.resize(numVerts);
     if (!texCoords) { // not given: default to (0,0) everywhere
-        std::fill(textureCoordinates.begin(), textureCoordinates.end(), Float2{0, 0});
+        std::fill(textureCoordinates.begin(), textureCoordinates.end(), Vector2{0, 0});
     } else {
         std::copy(texCoords, texCoords + numVerts, textureCoordinates.begin());
     }
@@ -60,7 +60,7 @@ Mesh::Mesh(const Float3* verts, int numVerts, const int* indices, int numIndices
     // TODO pre-normalize shading normals here? Can that be problematic with interpolation?
 }
 
-SurfacePoint Mesh::PrimarySampleToSurface(const Float2& primarySample, float* jacobian) const {
+SurfacePoint Mesh::PrimarySampleToSurface(const Vector2& primarySample, float* jacobian) const {
     // TODO sanity check that both primary sample values
     //      are in [0,1]
 
@@ -78,7 +78,7 @@ SurfacePoint Mesh::PrimarySampleToSurface(const Float2& primarySample, float* ja
     // Remap to a uniform distribution of barycentric coordinates
     float u = 0, v = 0;
     WrapToUniformTriangle(remapped, primarySample.y, u, v);
-    Float2 barycentricCoords(u, v);
+    Vector2 barycentricCoords { u, v };
 
     *jacobian = selectionJacobian / surfaceAreas[primId];
     CheckFloatEqual(*jacobian, 1.0f / totalSurfaceArea);
@@ -97,7 +97,7 @@ float Mesh::ComputePrimaryToSurfaceJacobian(const SurfacePoint& point) const {
 }
 
 template<typename VertArray, typename IdxArray>
-auto InterpolateOnTriangle(int primId, const Float2& barycentric,
+auto InterpolateOnTriangle(int primId, const Vector2& barycentric,
     const VertArray& vertexData, const IdxArray& indices)
 {
     auto& v1 = vertexData[indices[primId + 0]];
@@ -109,15 +109,15 @@ auto InterpolateOnTriangle(int primId, const Float2& barycentric,
          + (1 - barycentric.x - barycentric.y) * v3;
 }
 
-Float3 Mesh::PointFromBarycentric(int primId, const Float2& barycentric) const {
+Vector3 Mesh::PointFromBarycentric(int primId, const Vector2& barycentric) const {
     return InterpolateOnTriangle(primId, barycentric, vertices, indices);
 }
 
-Float2 Mesh::ComputeTextureCoordinates(int primId, const Float2& barycentric) const {
+Vector2 Mesh::ComputeTextureCoordinates(int primId, const Vector2& barycentric) const {
     return InterpolateOnTriangle(primId, barycentric, textureCoordinates, indices);
 }
 
-Float3 Mesh::ComputeShadingNormal(int primId, const Float2& barycentric) const {
+Vector3 Mesh::ComputeShadingNormal(int primId, const Vector2& barycentric) const {
     // TODO this frequent call to Normalize could possibly be optimized away
     return Normalize(InterpolateOnTriangle(primId, barycentric, shadingNormals, indices));
 }

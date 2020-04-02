@@ -18,6 +18,7 @@ include_directories(${CMAKE_CURRENT_SOURCE_DIR})
 
 target_sources(Ground
     PUBLIC
+        api/types.h
         api/api.h
         api/camera.h
         api/imageio.h
@@ -26,6 +27,7 @@ target_sources(Ground
         api/transforms.h
         api/cpputils.h
         api/scenefiles.h
+        api/pathcache.h
 
         renderground.h
 
@@ -38,13 +40,12 @@ target_sources(Ground
         api/transforms.cpp
         api/internal.h
         api/scenefiles.cpp
+        api/pathcache.cpp
 
         geometry/scene.h
         geometry/scene.cpp
         geometry/mesh.h
         geometry/mesh.cpp
-        geometry/ray.h
-        geometry/hit.h
         geometry/transform.h
         geometry/transform.cpp
 
@@ -53,7 +54,6 @@ target_sources(Ground
         image/tinyexr.h
 
         math/constants.h
-        math/float3.h
         math/float4.h
         math/float4x4.h
         math/distribution.h
@@ -66,6 +66,9 @@ target_sources(Ground
         shading/shading.h
         shading/generic.h
         shading/generic.cpp
+
+        utility/pathcache.h
+        utility/pathcache.cpp
 )
 
 target_link_libraries(Ground ${EMBREE_LIBRARY} TBB::tbb)

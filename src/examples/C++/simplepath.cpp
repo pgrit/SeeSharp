@@ -109,12 +109,15 @@ int main() {
 
     // tbb::parallel_for(tbb::blocked_range<int>(0, imageHeight),
         // [&](tbb::blocked_range<int> r) {
-    const int totalSpp = 1;
+    const int totalSpp = 2;
     for (int sampleIdx = 0; sampleIdx < totalSpp; ++sampleIdx) {
         for(int y = 0; y < imageHeight; ++y) {
         // for (int y = r.begin(); y < r.end(); ++y) {
             for (int x = 0; x < imageWidth; ++x) {
-                RNG rng(HashSeed(BaseSeed, (y * imageWidth + x) * totalSpp + sampleIdx));
+                auto h1 = HashSeed(BaseSeed, (y * imageWidth + x));
+                auto h2 = HashSeed(h1, sampleIdx);
+                RNG rng(h2);
+                // RNG rng(HashSeed(BaseSeed, (y * imageWidth + x) * totalSpp + sampleIdx));
 
                 CameraSampleInfo camSample;
                 camSample.filmSample = Vector2 { x + rng.NextFloat(), y + rng.NextFloat() };

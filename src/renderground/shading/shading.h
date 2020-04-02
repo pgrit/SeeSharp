@@ -1,9 +1,8 @@
 #pragma once
 
 #include "image/image.h"
-#include "geometry/hit.h"
 #include "geometry/scene.h"
-#include "math/float3.h"
+#include "api/cpputils.h"
 
 namespace ground
 {
@@ -18,19 +17,19 @@ public:
     Material(const Scene* scene) : scene(scene) {}
     virtual ~Material() {}
 
-    virtual Float3 EvaluateBsdf(const SurfacePoint& point,
-        const Float3& inDir, const Float3& outDir,
+    virtual Vector3 EvaluateBsdf(const SurfacePoint& point,
+        const Vector3& inDir, const Vector3& outDir,
         bool isOnLightSubpath) const = 0;
 
     virtual BsdfSampleInfo WrapPrimarySampleToBsdf(const SurfacePoint& point,
-        Float3* inDir, const Float3& outDir, bool isOnLightSubpath,
-        const Float2& primarySample) const = 0;
+        Vector3* inDir, const Vector3& outDir, bool isOnLightSubpath,
+        const Vector2& primarySample) const = 0;
 
-    virtual Float3 ComputeEmission(const SurfacePoint& point,
-        const Float3& outDir) const = 0;
+    virtual Vector3 ComputeEmission(const SurfacePoint& point,
+        const Vector3& outDir) const = 0;
 
     virtual BsdfSampleInfo ComputeJacobians(const SurfacePoint& point,
-        const Float3& inDir, const Float3& outDir,
+        const Vector3& inDir, const Vector3& outDir,
         bool isOnLightSubpath) const = 0;
 
     virtual bool IsEmissive() const = 0;

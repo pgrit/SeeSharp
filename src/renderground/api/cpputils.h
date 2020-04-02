@@ -1,33 +1,59 @@
 #pragma once
 
 #include <renderground/api/api.h>
+#include <cstdint>
+#include <cmath>
 
-inline Vector3 operator- (const Vector3& a) {
-    return Vector3 { -a.x, -a.y, -a.z };
+inline Vector3 operator/ (const Vector3& v, float s) {
+    return Vector3 {v.x / s, v.y / s, v.z / s };
+}
+
+inline Vector3 operator* (const Vector3& v, float s) {
+    return Vector3 {v.x * s, v.y * s, v.z * s};
+}
+
+inline Vector3 operator* (float s, const Vector3& v) {
+    return Vector3 {v.x * s, v.y * s, v.z * s};
 }
 
 inline Vector3 operator+ (const Vector3& a, const Vector3& b) {
-    return Vector3 { a.x + b.x, a.y + b.y, a.z + b.z };
+    return Vector3 {a.x + b.x, a.y + b.y, a.z + b.z};
 }
 
 inline Vector3 operator- (const Vector3& a, const Vector3& b) {
-    return a + (-b);
+    return Vector3 {a.x - b.x, a.y - b.y, a.z - b.z};
 }
 
-inline Vector3 operator* (const Vector3& a, float s) {
-    return Vector3 { a.x * s, a.y * s, a.z * s };
+inline Vector3 operator- (const Vector3& a) {
+    return Vector3 {-a.x, -a.y, -a.z};
 }
 
-inline Vector3 operator/ (const Vector3& a, float s) {
-    return a * (1.0f / s);
+inline Vector3 operator* (const Vector3& a, const Vector3& b) {
+    return Vector3 {a.x * b.x, a.y * b.y, a.z * b.z};
 }
 
-inline Vector3 operator* (float s, const Vector3& a) {
-    return a * s;
+inline float& GetAxis(Vector3& v, int i) {
+    if (i == 0) return v.x;
+    else if (i == 1) return v.y;
+    else return v.z;
 }
 
-inline float Dot (const Vector3& a, const Vector3& b) {
+inline const float& GetAxis(const Vector3& v, int i) {
+    if (i == 0) return v.x;
+    else if (i == 1) return v.y;
+    else return v.z;
+}
+
+inline float Dot(const Vector3& a, const Vector3& b) {
     return a.x * b.x + a.y * b.y + a.z * b.z;
+}
+
+inline Vector3 Cross(const Vector3 a, const Vector3 b) {
+    return Vector3{
+        a.y * b.z - a.z * b.y,
+        a.z * b.x - a.x * b.z,
+        a.x * b.y - a.y * b.x
+    };
 }
 
 inline float LengthSquared(const Vector3& v) {
@@ -36,6 +62,10 @@ inline float LengthSquared(const Vector3& v) {
 
 inline float Length(const Vector3& v) {
     return std::sqrt(LengthSquared(v));
+}
+
+inline Vector3 Normalize(const Vector3& v) {
+    return v * (1 / Length(v));
 }
 
 inline ColorRGB operator* (const ColorRGB& a, const ColorRGB& b) {
@@ -60,6 +90,18 @@ inline ColorRGB operator+ (const ColorRGB& a, float s) {
 
 inline ColorRGB operator+ (float s, const ColorRGB& a) {
     return a + s;
+}
+
+inline Vector2 operator+ (const Vector2& a, const Vector2& b) {
+    return Vector2 { a.x + b.x, a.y + b.y };
+}
+
+inline Vector2 operator* (const Vector2& v, float s) {
+    return Vector2 { v.x * s, v.y * s};
+}
+
+inline Vector2 operator* (float s, const Vector2& v) {
+    return v * s;
 }
 
 // Small and fast random number generator based on MWC64X

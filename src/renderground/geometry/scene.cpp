@@ -2,7 +2,6 @@
 #include <algorithm>
 
 #include "geometry/scene.h"
-#include "geometry/hit.h"
 
 namespace ground {
 
@@ -86,7 +85,7 @@ Hit Scene::Intersect(const Ray& ray) {
 
     rtcIntersect1(embreeScene, &context, &rayhit);
 
-    Float3 position = ray.origin + rayhit.ray.tfar * ray.direction;
+    Vector3 position = ray.origin + rayhit.ray.tfar * ray.direction;
 
     float errorOffset = std::max(
             std::max(std::abs(position.x),std::abs(position.y)),
@@ -96,8 +95,8 @@ Hit Scene::Intersect(const Ray& ray) {
     Hit hit {
         SurfacePoint {
             position,
-            Float3(rayhit.hit.Ng_x, rayhit.hit.Ng_y, rayhit.hit.Ng_z),
-            Float2(rayhit.hit.u, rayhit.hit.v),
+            Vector3 { rayhit.hit.Ng_x, rayhit.hit.Ng_y, rayhit.hit.Ng_z },
+            Vector2 { rayhit.hit.u, rayhit.hit.v },
             rayhit.hit.geomID,
             rayhit.hit.primID,
         },

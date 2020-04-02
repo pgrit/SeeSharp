@@ -4,8 +4,6 @@
 #include <embree3/rtcore.h>
 
 #include "geometry/mesh.h"
-#include "geometry/ray.h"
-#include "geometry/hit.h"
 
 namespace ground {
 

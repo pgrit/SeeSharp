@@ -2,7 +2,7 @@
 #include "api/internal.h"
 #include "api/cpputils.h"
 #include "geometry/scene.h"
-#include "math/float2.h"
+#include "api/cpputils.h"
 #include "math/constants.h"
 
 #include <tbb/parallel_for.h>
@@ -21,9 +21,9 @@ GROUND_API int AddTriangleMesh(const float* vertices, int numVerts,
     ApiCheck(numIdx % 3 == 0);
 
     return globalScene.AddMesh(ground::Mesh(
-        reinterpret_cast<const ground::Float3*>(vertices), numVerts,
-        indices, numIdx, reinterpret_cast<const ground::Float2*>(texCoords),
-        reinterpret_cast<const ground::Float3*>(shadingNormals)));
+        reinterpret_cast<const Vector3*>(vertices), numVerts,
+        indices, numIdx, reinterpret_cast<const Vector2*>(texCoords),
+        reinterpret_cast<const Vector3*>(shadingNormals)));
 }
 
 GROUND_API void FinalizeScene() {
@@ -37,8 +37,7 @@ GROUND_API void FinalizeScene() {
 }
 
 GROUND_API Hit TraceSingle(Ray ray) {
-    ground::Hit hit = globalScene.Intersect(ApiToInternal(ray));
-    return InternalToApi(hit);
+    return globalScene.Intersect(ray);
 }
 
 GROUND_API void TraceMulti(const Ray* rays, int num, Hit* hits) {
@@ -47,8 +46,7 @@ GROUND_API void TraceMulti(const Ray* rays, int num, Hit* hits) {
     tbb::parallel_for(tbb::blocked_range<int>(0, num),
         [&](tbb::blocked_range<int> r) {
         for (int i = r.begin(); i < r.end(); ++i) {
-            ground::Hit hit = globalScene.Intersect(ApiToInternal(rays[i]));
-            hits[i] = InternalToApi(hit);
+            hits[i] = globalScene.Intersect(rays[i]);
         }
     });
 }
@@ -60,18 +58,18 @@ GROUND_API SurfaceSample WrapPrimarySampleToSurface(int meshId, float u, float v
     auto& m = globalScene.GetMesh(meshId);
 
     float jacobian = 0;
-    auto point = m.PrimarySampleToSurface(ground::Float2(u, v), &jacobian);
-    point.geomId = meshId;
+    auto point = m.PrimarySampleToSurface(Vector2{u, v}, &jacobian);
+    point.meshId = meshId;
 
     return SurfaceSample {
-        InternalToApi(point),
+        point,
         jacobian
     };
 }
 
 GROUND_API float ComputePrimaryToSurfaceJacobian(const SurfacePoint* point) {
     auto& m = globalScene.GetMesh(point->meshId);
-    return m.ComputePrimaryToSurfaceJacobian(ApiToInternal(*point));
+    return m.ComputePrimaryToSurfaceJacobian(*point);
 }
 
 GROUND_API bool IsOccluded(const Hit* from, Vector3 to) {

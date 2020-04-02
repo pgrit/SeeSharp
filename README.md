@@ -1,3 +1,7 @@
+# Building the project
+
+You will need CMake and a C++14 compliant compiler to build the project.
+
 ## Dependencies
 
 The recommended method to install dependencies is using vcpkg on all platforms.
@@ -10,4 +14,21 @@ For example, for a 64-Bit build on Windows, install all dependencies via:
 
 ```
 vcpkg install embree3 tbb rapidjson --triplet=x64-windows
+```
+
+## Using CMake to build
+
+To build the project after installing the dependencies, first create a new folder, for example:
+
+```
+cd renderground
+mkdir build
+cd build
+```
+
+Now use CMake to generate the proper makefiles for your platform, don't forget to specify the vcpkg toolchain file:
+
+```
+cmake .. -DCMAKE_TOOLCHAIN_FILE=...
+cmake --build .
 ```

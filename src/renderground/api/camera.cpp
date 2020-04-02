@@ -14,8 +14,8 @@ GROUND_API int CreatePerspectiveCamera(int transformId, float verticalFieldOfVie
 }
 
 GROUND_API Ray GenerateCameraRay(int camera, CameraSampleInfo sampleInfo) {
-    return InternalToApi(globalCameras[camera]->GenerateRay(ApiToInternal(sampleInfo.filmSample),
-        ApiToInternal(sampleInfo.lensSample), sampleInfo.time));
+    return globalCameras[camera]->GenerateRay(sampleInfo.filmSample,
+        sampleInfo.lensSample, sampleInfo.time);
 }
 
 }

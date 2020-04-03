@@ -37,13 +37,6 @@ GROUND_API bool IsOccluded(const Hit* from, Vector3 to);
 // offsets for self-intersection handling.
 GROUND_API Ray SpawnRay(const Hit* from, Vector3 direction);
 
-struct GROUND_API GeometryTerms {
-    float cosineFrom;
-    float cosineTo;
-    float squaredDistance;
-    float geomTerm;
-};
-
 GROUND_API GeometryTerms ComputeGeometryTerms(const SurfacePoint* from, const SurfacePoint* to);
 
 }

@@ -108,7 +108,7 @@ inline Vector2 operator* (float s, const Vector2& v) {
 // http://cas.ee.ic.ac.uk/people/dt10/research/rngs-gpu-mwc64x.html
 class RNG {
 public:
-    RNG(uint64_t seed = 0) : state_(seed) {}
+    RNG(uint64_t seed = 0) : state(seed) {}
 
     float NextFloat(float min, float max) {
         const float r = NextFloat();
@@ -129,12 +129,12 @@ public:
     }
 
 private:
-    uint64_t state_;
+    uint64_t state;
 
     uint32_t MWC64X() {
-        const uint32_t c = (state_) >> 32;
-        const uint32_t x = (state_) & 0xFFFFFFFF;
-        state_ = x * ((uint64_t)4294883355U) + c;
+        const uint32_t c = (state) >> 32;
+        const uint32_t x = (state) & 0xFFFFFFFF;
+        state = x * ((uint64_t)4294883355U) + c;
         return x^c;
     }
 };

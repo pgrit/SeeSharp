@@ -8,13 +8,6 @@ extern "C" {
 // the z axis by default.
 GROUND_API int CreatePerspectiveCamera(int transformId, float verticalFieldOfView, int frameBufferId);
 
-// Stores primary space sample values for a camera sample query.
-struct GROUND_API CameraSampleInfo {
-    Vector2 filmSample;
-    Vector2 lensSample;
-    float time;
-};
-
 GROUND_API Ray GenerateCameraRay(int camera, CameraSampleInfo sampleInfo);
 
 }

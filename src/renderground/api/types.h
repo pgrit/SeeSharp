@@ -64,4 +64,18 @@ struct PathVertex {
     ColorRGB weight; // TODO support other spectral resolutions
 };
 
+// Stores primary space sample values for a camera sample query.
+struct CameraSampleInfo {
+    Vector2 filmSample;
+    Vector2 lensSample;
+    float time;
+};
+
+struct GeometryTerms {
+    float cosineFrom;
+    float cosineTo;
+    float squaredDistance;
+    float geomTerm;
+};
+
 }

@@ -107,12 +107,12 @@ int main() {
 
     const uint64_t BaseSeed = 0xC030114Ui64;
 
-    // tbb::parallel_for(tbb::blocked_range<int>(0, imageHeight),
-        // [&](tbb::blocked_range<int> r) {
-    const int totalSpp = 2;
+    tbb::parallel_for(tbb::blocked_range<int>(0, imageHeight),
+        [&](tbb::blocked_range<int> r) {
+    const int totalSpp = 8;
     for (int sampleIdx = 0; sampleIdx < totalSpp; ++sampleIdx) {
-        for(int y = 0; y < imageHeight; ++y) {
-        // for (int y = r.begin(); y < r.end(); ++y) {
+        // for(int y = 0; y < imageHeight; ++y) {
+        for (int y = r.begin(); y < r.end(); ++y) {
             for (int x = 0; x < imageWidth; ++x) {
                 auto h1 = HashSeed(BaseSeed, (y * imageWidth + x));
                 auto h2 = HashSeed(h1, sampleIdx);
@@ -178,7 +178,7 @@ int main() {
             }
         }
     }
-    // });
+    });
 
     WriteImage(frameBuffer, "render.exr");
 

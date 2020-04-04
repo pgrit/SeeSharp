@@ -93,8 +93,7 @@ GROUND_API ColorRGB EvaluateBsdf(const SurfacePoint* point,
 {
     auto material = LookupMaterial(point->meshId);
 
-    auto clr = material->EvaluateBsdf(*point, inDir,
-        outDir, isOnLightSubpath);
+    auto clr = material->EvaluateBsdf(*point, inDir, outDir, isOnLightSubpath);
     return ColorRGB {clr.x, clr.y, clr.z};
 }
 

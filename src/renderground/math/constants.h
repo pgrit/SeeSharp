@@ -28,8 +28,8 @@ inline float IntAsFloat(int i) {
 }
 
 template <typename T>
-T Clamp(T a, T b, T c) {
-    return (a < b) ? b : ((a > c) ? c : a);
+T Clamp(T value, T min, T max) {
+    return (value < min) ? min : ((value > max) ? max : value);
 }
 
 template <typename T, typename U>

@@ -1,4 +1,7 @@
 #include "image/image.h"
+#include "math/constants.h"
+
+#include <iostream>
 
 #define TINYEXR_IMPLEMENTATION
 #include "image/tinyexr.h"
@@ -13,6 +16,8 @@ Image::Image(int w, int h, int numChannels)
 }
 
 int Image::PixelToIndex(int row, int col) const {
+    row = Clamp(row, 0, width - 1);
+    col = Clamp(col, 0, height - 1);
     return (row * width + col) * numChannels;
 }
 
@@ -25,6 +30,7 @@ void Image::AddValue(float x, float y, const float* value) {
 }
 
 void Image::GetValue(float x, float y, float* out) const {
+    // TODO filtering support
     int first = PixelToIndex(int(y), int(x));
     for (int i = 0; i < numChannels; ++i) {
         out[i] = data[first + i];

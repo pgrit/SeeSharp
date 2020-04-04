@@ -56,7 +56,8 @@ namespace Experiments {
                 float pdfRatio = pdfBsdf / pdfNextEvt;
                 float misWeight = 1.0f / (pdfRatio * pdfRatio + 1);
 
-                return misWeight * emission * bsdfValue * (geometryTerms.geomTerm / lightSample.jacobian);
+                var value = misWeight * emission * bsdfValue * (geometryTerms.geomTerm / lightSample.jacobian);
+                return value;
             }
 
             return new ColorRGB { r=0, g=0, b=0 };
@@ -85,7 +86,8 @@ namespace Experiments {
                 float pdfRatio = pdfNextEvt / pdfBsdf;
                 float misWeight = 1 / (pdfRatio * pdfRatio + 1);
 
-                return misWeight * emission * bsdfValue * (geometryTerms.cosineFrom / bsdfSample.jacobian);
+                var value = misWeight * emission * bsdfValue * (geometryTerms.cosineFrom / bsdfSample.jacobian);
+                return value;
             }
             return new ColorRGB { r=0, g=0, b=0 };
         }

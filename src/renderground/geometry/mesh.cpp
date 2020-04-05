@@ -22,9 +22,9 @@ Mesh::Mesh(const Vector3* verts, int numVerts, const int* indices, int numIndice
     surfaceAreas.resize(numFaces);
     totalSurfaceArea = 0;
     for (int face = 0; face < numFaces; ++face) {
-        auto& v1 = vertices[indices[face + 0]];
-        auto& v2 = vertices[indices[face + 1]];
-        auto& v3 = vertices[indices[face + 2]];
+        auto& v1 = vertices[indices[face * 3 + 0]];
+        auto& v2 = vertices[indices[face * 3 + 1]];
+        auto& v3 = vertices[indices[face * 3 + 2]];
 
         // Compute the normal. Winding order is CCW always.
         Vector3 n = Cross(v2 - v1, v3 - v1);
@@ -49,9 +49,9 @@ Mesh::Mesh(const Vector3* verts, int numVerts, const int* indices, int numIndice
     this->shadingNormals.resize(numVerts);
     if (!shadingNormals) { // not given: default to face normals
         for (int face = 0; face < numFaces; ++face) {
-            this->shadingNormals[indices[face + 0]] = faceNormals[face];
-            this->shadingNormals[indices[face + 1]] = faceNormals[face];
-            this->shadingNormals[indices[face + 2]] = faceNormals[face];
+            this->shadingNormals[indices[face * 3 + 0]] = faceNormals[face];
+            this->shadingNormals[indices[face * 3 + 1]] = faceNormals[face];
+            this->shadingNormals[indices[face * 3 + 2]] = faceNormals[face];
         }
     } else {
         std::copy(shadingNormals, shadingNormals + numVerts, this->shadingNormals.begin());
@@ -100,13 +100,13 @@ template<typename VertArray, typename IdxArray>
 auto InterpolateOnTriangle(int primId, const Vector2& barycentric,
     const VertArray& vertexData, const IdxArray& indices)
 {
-    auto& v1 = vertexData[indices[primId + 0]];
-    auto& v2 = vertexData[indices[primId + 1]];
-    auto& v3 = vertexData[indices[primId + 2]];
+    auto& v1 = vertexData[indices[primId * 3 + 0]];
+    auto& v2 = vertexData[indices[primId * 3 + 1]];
+    auto& v3 = vertexData[indices[primId * 3 + 2]];
 
-    return barycentric.x * v1
-         + barycentric.y * v2
-         + (1 - barycentric.x - barycentric.y) * v3;
+    return barycentric.x * v2
+         + barycentric.y * v3
+         + (1 - barycentric.x - barycentric.y) * v1;
 }
 
 Vector3 Mesh::PointFromBarycentric(int primId, const Vector2& barycentric) const {

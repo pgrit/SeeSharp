@@ -7,6 +7,8 @@ extern "C" {
 // Initializes a new, empty scene
 GROUND_API void InitScene();
 
+GROUND_API void DeleteScene();
+
 // Adds a triangle mesh to the current scene.
 // Vertices should be an array of 3D vectors: "x1, y1, z1, x2, y2, z2, ..." and so on
 GROUND_API int AddTriangleMesh(const float* vertices, int numVerts,
@@ -25,6 +27,8 @@ GROUND_API void FinalizeScene();
 
 // Intersects the scene with a single ray.
 GROUND_API Hit TraceSingle(Ray ray);
+
+GROUND_API Vector3 ComputeShadingNormal(SurfacePoint point);
 
 // Intersects the scene with multiple rays (in parallel, using tbb)
 // The results are written to the passed buffer, assuming it is of correct size.

@@ -35,7 +35,7 @@ GROUND_API int AddUberMaterial(const UberShaderParams* params) {
             : globalImages[params->emissionTexture].get()
     };
 
-    globalMaterials.emplace_back(new ground::GenericMaterial(&globalScene, p));
+    globalMaterials.emplace_back(new ground::GenericMaterial(globalScene.get(), p));
     return int(globalMaterials.size()) - 1;
 }
 
@@ -43,7 +43,7 @@ GROUND_API int AddUberMaterial(const UberShaderParams* params) {
 //      could be done in a scene validation step?
 
 GROUND_API void AssignMaterial(int mesh, int material) {
-    ApiCheck(mesh < globalScene.GetNumMeshes());
+    ApiCheck(mesh < globalScene->GetNumMeshes());
     ApiCheck(material < globalMaterials.size());
 
     globalMeshToMaterial[mesh] = material;
@@ -95,6 +95,13 @@ GROUND_API ColorRGB EvaluateBsdf(const SurfacePoint* point,
 
     auto clr = material->EvaluateBsdf(*point, inDir, outDir, isOnLightSubpath);
     return ColorRGB {clr.x, clr.y, clr.z};
+}
+
+GROUND_API float ComputeShadingCosine(const SurfacePoint* point,
+    Vector3 outDir, Vector3 inDir, bool isOnLightSubpath)
+{
+    auto material = LookupMaterial(point->meshId);
+    return material->ShadingCosine(*point, inDir, outDir, isOnLightSubpath);
 }
 
 GROUND_API int GetNumberEmitters() {

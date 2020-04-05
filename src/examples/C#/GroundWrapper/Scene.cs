@@ -41,6 +41,10 @@ namespace Ground
             return TraceSingle(ray);
         }
 
+        public bool IsValid(Hit hit) {
+            return hit.point.meshId < uint.MaxValue;
+        }
+
         public bool IsOccluded(Hit from, Vector3 to) {
             return IsOccluded(ref from, to);
         }
@@ -67,10 +71,12 @@ namespace Ground
             return SpawnRay(ref from, direction);
         }
 
-        public ColorRGB EvaluateBsdf(SurfacePoint point,
+        public (ColorRGB, float) EvaluateBsdf(SurfacePoint point,
             Vector3 outDir, Vector3 inDir, bool isOnLightSubpath)
         {
-            return EvaluateBsdf(ref point, outDir, inDir, isOnLightSubpath);
+            var bsdfValue = EvaluateBsdf(ref point, outDir, inDir, isOnLightSubpath);
+            float shadingCosine = ComputeShadingCosine(ref point, outDir, inDir, isOnLightSubpath);
+            return (bsdfValue, shadingCosine);
         }
 
         public BsdfSample WrapPrimarySampleToBsdf(
@@ -128,6 +134,10 @@ namespace Ground
 
         [DllImport("Ground", CallingConvention=CallingConvention.Cdecl)]
         private static extern ColorRGB EvaluateBsdf([In] ref SurfacePoint point,
+            Vector3 outDir, Vector3 inDir, bool isOnLightSubpath);
+
+        [DllImport("Ground", CallingConvention=CallingConvention.Cdecl)]
+        private static extern float ComputeShadingCosine([In] ref SurfacePoint point,
             Vector3 outDir, Vector3 inDir, bool isOnLightSubpath);
 
         [DllImport("Ground", CallingConvention=CallingConvention.Cdecl)]

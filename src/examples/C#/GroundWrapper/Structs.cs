@@ -14,6 +14,13 @@ namespace Ground
 
         public static Vector3 operator -(Vector3 a, Vector3 b)
         => a + (-b);
+
+        public static float Dot(Vector3 a, Vector3 b)
+        => a.x * b.x + a.y * b.y + a.z * b.z;
+
+        public float LengthSquared() => Dot(this, this);
+
+        public float Length() => (float)System.Math.Sqrt(LengthSquared());
     }
 
     [StructLayout(LayoutKind.Sequential)]
@@ -72,6 +79,12 @@ namespace Ground
 
         public static ColorRGB operator +(ColorRGB a, ColorRGB b)
         => new ColorRGB {r = a.r + b.r, g = a.g + b.g, b = a.b + b.b};
+
+        public static ColorRGB Black =
+            new ColorRGB { r = 0.0f, g = 0.0f, b = 0.0f };
+
+        public static ColorRGB White =
+            new ColorRGB { r = 1.0f, g = 1.0f, b = 1.0f };
     }
 
     [StructLayout(LayoutKind.Sequential)]

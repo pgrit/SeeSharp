@@ -2,8 +2,8 @@
 
 #include <vector>
 
-#include "api/cpputils.h"
-#include "math/distribution.h"
+#include "renderground/api/cpputils.h"
+#include "renderground/math/distribution.h"
 
 namespace ground {
 

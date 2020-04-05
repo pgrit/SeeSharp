@@ -16,7 +16,14 @@ namespace Ground {
         }
 
         public float NextFloat() {
-            return (float)MWC64X() / (float)0xFFFFFFFF;
+            float val = (float)MWC64X() / (float)0xFFFFFFFF;
+
+            // Ensure that neither exact 0 nor exact 1 are ever returned.
+            // This avoids annoying checks everywhere in the renderer.
+            val = Math.Max(val, float.Epsilon);
+            val = Math.Min(val, 1.0f - float.Epsilon);
+
+            return val;
         }
 
         // Random number from min (inclusive) to max (exclusive)

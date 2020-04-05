@@ -16,6 +16,9 @@ public:
     Vector3 EvaluateBsdf(const SurfacePoint& point, const Vector3& inDir,
         const Vector3& outDir, bool isOnLightSubpath) const final;
 
+    float ShadingCosine(const SurfacePoint& point, const Vector3& inDir,
+        const Vector3& outDir, bool isOnLightSubpath) const final;
+
     BsdfSampleInfo WrapPrimarySampleToBsdf(const SurfacePoint& point,
         Vector3* inDir, const Vector3& outDir, bool isOnLightSubpath,
         const Vector2& primarySample) const final;

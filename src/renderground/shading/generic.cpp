@@ -19,7 +19,6 @@ Vector3 GenericMaterial::EvaluateBsdf(const SurfacePoint& point,
     auto shadingNormal = scene->GetMesh(point.meshId).ComputeShadingNormal(
         point.primId, point.barycentricCoords);
 
-    // TODO proper wavelength etc
     Vector3 reflectance { 0, 0, 0 };
     if (parameters.baseColor)
         // TODO this is unsafe as hell, use a GetValue that returns an RGB explicitely
@@ -27,6 +26,19 @@ Vector3 GenericMaterial::EvaluateBsdf(const SurfacePoint& point,
         parameters.baseColor->GetValue(texCoords.x, texCoords.y, &reflectance.x);
 
     return reflectance * 1.0f / PI;
+}
+
+float GenericMaterial::ShadingCosine(const SurfacePoint& point, const Vector3& inDir,
+        const Vector3& outDir, bool isOnLightSubpath) const
+{
+    auto shadingNormal = scene->GetMesh(point.meshId).ComputeShadingNormal(
+        point.primId, point.barycentricCoords);
+
+    // Flip the shading normal to be on the same hemisphere as the outgoing direction.
+    if (Dot(shadingNormal, outDir) < 0)
+        shadingNormal = -shadingNormal;
+
+    return Dot(shadingNormal, Normalize(inDir));
 }
 
 BsdfSampleInfo GenericMaterial::WrapPrimarySampleToBsdf(const SurfacePoint& point,
@@ -38,8 +50,9 @@ BsdfSampleInfo GenericMaterial::WrapPrimarySampleToBsdf(const SurfacePoint& poin
         point.primId, point.barycentricCoords);
 
     // Flip the shadingNormal to the same side of the surface as the outgoing direction
-    if (Dot(shadingNormal, outDir) < 0)
-        shadingNormal = -shadingNormal;
+    auto normal = point.normal;
+    if (Dot(normal, outDir) < 0)
+        normal = -normal; // TODO refactor code duplication
 
     // TODO MIS sample all active components once this is a proper combined shader
 
@@ -49,8 +62,8 @@ BsdfSampleInfo GenericMaterial::WrapPrimarySampleToBsdf(const SurfacePoint& poin
 
     // Transform the "shading space" hemisphere coordinates to world space.
     Vector3 tangent, binormal;
-    ComputeBasisVectors(shadingNormal, tangent, binormal);
-    *inDir = shadingNormal * dirSample.direction.z
+    ComputeBasisVectors(normal, tangent, binormal);
+    *inDir = normal * dirSample.direction.z
         + tangent * dirSample.direction.x
         + binormal * dirSample.direction.y;
 

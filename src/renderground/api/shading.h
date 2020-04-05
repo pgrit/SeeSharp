@@ -11,6 +11,9 @@ GROUND_API void AssignMaterial(int mesh, int material);
 GROUND_API ColorRGB EvaluateBsdf(const SurfacePoint* point,
     Vector3 outDir, Vector3 inDir, bool isOnLightSubpath);
 
+GROUND_API float ComputeShadingCosine(const SurfacePoint* point,
+    Vector3 outDir, Vector3 inDir, bool isOnLightSubpath);
+
 GROUND_API BsdfSample WrapPrimarySampleToBsdf(const SurfacePoint* point,
     Vector3 outDir, float u, float v, bool isOnLightSubpath);
 

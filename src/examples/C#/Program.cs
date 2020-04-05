@@ -7,6 +7,7 @@ namespace Experiments {
             var scene = new Ground.Scene();
             scene.SetupFrameBuffer(512, 512);
             scene.LoadSceneFile("../../data/scenes/cbox.json");
+            // scene.LoadSceneFile("../../data/scenes/furnacebox.json");
 
             var stopwatch = System.Diagnostics.Stopwatch.StartNew();
 

@@ -5,6 +5,7 @@ namespace Experiments {
 
     class PathTracer {
         public void Render(Scene scene) {
+            // RenderPixel(scene, 38, 244); return;
             System.Threading.Tasks.Parallel.For(0, scene.frameBuffer.height,
                 row => {
                     for (uint col = 0; col < scene.frameBuffer.width; ++col) {
@@ -22,14 +23,16 @@ namespace Experiments {
                 var rng = new RNG(seed);
 
                 // Sample a ray from the camera
-                (Ray primaryRay, Vector2 filmSample) = scene.SampleCamera(row, col,
-                    rng.NextFloat(), rng.NextFloat());
-                Hit primaryHit = scene.TraceRay(primaryRay);
+                float u = rng.NextFloat();
+                float v = rng.NextFloat();
+                (Ray primaryRay, Vector2 filmSample) = scene.SampleCamera(row, col, u, v);
 
-                var value = ComputeOutgoingRadiance(scene, primaryRay, primaryHit, rng);
+                var value = EstimateIncidentRadiance(scene, primaryRay, rng);
                 value = value * (1.0f / TotalSpp);
 
-                scene.frameBuffer.Splat(filmSample.x, filmSample.y, value);
+                // TODO we do nearest neighbor splatting manually here, to avoid numerical
+                //      issues if the primary samples are almost 1 (400 + 0.99999999f = 401)
+                scene.frameBuffer.Splat((float)col, (float)row, value);
             }
         }
 
@@ -42,69 +45,102 @@ namespace Experiments {
             var lightSample = light.WrapPrimarySample(rng.NextFloat(), rng.NextFloat());
 
             if (!scene.IsOccluded(hit, lightSample.point.position)) {
-                Vector3 lightDir = hit.point.position - lightSample.point.position;
-                var emission = light.ComputeEmission(lightSample.point, lightDir);
+                Vector3 lightToSurface = hit.point.position - lightSample.point.position;
+                var emission = light.ComputeEmission(lightSample.point, lightToSurface);
 
-                var bsdfValue = scene.EvaluateBsdf(hit.point, -ray.direction, lightDir, false);
+                (var bsdfValue, float shadingCosine) = scene.EvaluateBsdf(hit.point,
+                    -ray.direction, -lightToSurface, false);
+
                 var geometryTerms = scene.ComputeGeometryTerms(hit.point, lightSample.point);
 
-                // Compute MIS weights
-                // TODO refactor and put in utility function
+                // Compute surface area PDFs
                 float pdfNextEvt = lightSample.jacobian;
-                float pdfBsdf = scene.ComputePrimaryToBsdfJacobian(hit.point, -ray.direction,
-                    lightDir, false).jacobian * geometryTerms.cosineTo / geometryTerms.squaredDistance;
+                float pdfBsdfSolidAngle = scene.ComputePrimaryToBsdfJacobian(
+                    hit.point, -ray.direction, -lightToSurface, false).jacobian;
+                float pdfBsdf = pdfBsdfSolidAngle * geometryTerms.cosineTo / geometryTerms.squaredDistance;
+
+                // Compute the resulting power heuristic weights
                 float pdfRatio = pdfBsdf / pdfNextEvt;
                 float misWeight = 1.0f / (pdfRatio * pdfRatio + 1);
 
-                var value = misWeight * emission * bsdfValue * (geometryTerms.geomTerm / lightSample.jacobian);
+                var value = ColorRGB.Black;
+                if (geometryTerms.cosineFrom > 0) {
+                    value = misWeight * emission * bsdfValue
+                        * (geometryTerms.geomTerm / lightSample.jacobian)
+                        * (shadingCosine / geometryTerms.cosineFrom);
+                }
                 return value;
             }
 
             return new ColorRGB { r=0, g=0, b=0 };
         }
 
-        private ColorRGB DirectIllumBsdfSample(Scene scene, Ray ray, Hit hit, RNG rng) {
-            // Estimate DI via BSDF importance sampling
+        private (Ray, float, ColorRGB) BsdfSample(Scene scene, Ray ray, Hit hit, RNG rng) {
+            float u = rng.NextFloat();
+            float v = rng.NextFloat();
             var bsdfSample = scene.WrapPrimarySampleToBsdf(hit.point,
-                -ray.direction, rng.NextFloat(), rng.NextFloat(), false);
+                -ray.direction, u, v, false);
 
-            var bsdfValue = scene.EvaluateBsdf(hit.point, -ray.direction,
+            (var bsdfValue, float shadingCosine) = scene.EvaluateBsdf(hit.point, -ray.direction,
                 bsdfSample.direction, false);
 
             var bsdfRay = scene.SpawnRay(hit, bsdfSample.direction);
-            var bsdfhit = scene.TraceRay(bsdfRay);
 
-            var light = scene.QueryEmitter(bsdfhit.point);
-            if (light != null) { // The light source was hit.
-                var emission = light.ComputeEmission(bsdfhit.point, -bsdfRay.direction);
+            var weight = bsdfSample.jacobian == 0.0f ? ColorRGB.Black : bsdfValue * (shadingCosine / bsdfSample.jacobian);
 
-                var geometryTerms = scene.ComputeGeometryTerms(hit.point, bsdfhit.point);
-
-                // Compute MIS weights
-                float pdfNextEvt = light.Jacobian(bsdfhit.point);
-                float pdfBsdf = bsdfSample.jacobian * geometryTerms.cosineTo / geometryTerms.squaredDistance;
-                float pdfRatio = pdfNextEvt / pdfBsdf;
-                float misWeight = 1 / (pdfRatio * pdfRatio + 1);
-
-                var value = misWeight * emission * bsdfValue * (geometryTerms.cosineFrom / bsdfSample.jacobian);
-                return value;
-            }
-            return new ColorRGB { r=0, g=0, b=0 };
+            return (bsdfRay, bsdfSample.jacobian, weight);
         }
 
-        private ColorRGB ComputeOutgoingRadiance(Scene scene, Ray ray, Hit hit, RNG rng) {
-            ColorRGB value = new ColorRGB { r=0, g=0, b=0 };
-            if (hit.point.meshId < 0)
+        private ColorRGB EstimateIncidentRadiance(Scene scene, Ray ray, RNG rng, uint depth = 1,
+            Hit? previousHit = null, float previousPdf = 0.0f)
+        {
+            ColorRGB value = ColorRGB.Black;
+
+            // Did we reach the maximum depth?
+            if (depth > MaxDepth)
                 return value;
 
-            value = value + PerformNextEventEstimation(scene, ray, hit, rng);
-            value = value + DirectIllumBsdfSample(scene, ray, hit, rng);
+            var hit = scene.TraceRay(ray);
 
-            return value;
+            // Did the ray leave the scene?
+            if (!scene.IsValid(hit))
+                return ColorRGB.Black;
+
+            // Check if a light source was hit.
+            Emitter light = scene.QueryEmitter(hit.point);
+            if (light != null) {
+                float misWeight = 1.0f;
+                if (depth > 1) { // directly visible emitters are not explicitely connected
+                    // Compute the surface area PDFs.
+                    var geometryTerms = scene.ComputeGeometryTerms(previousHit.Value.point, hit.point);
+                    float pdfNextEvt = light.Jacobian(hit.point);
+                    float pdfBsdf = previousPdf * geometryTerms.cosineTo / geometryTerms.squaredDistance;
+
+                    // Compute MIS weights
+                    float pdfRatio = pdfNextEvt / pdfBsdf;
+                    misWeight = 1 / (pdfRatio * pdfRatio + 1);
+                }
+
+                var emission = light.ComputeEmission(hit.point, -ray.direction);
+                value += misWeight * emission;
+            }
+
+            value = value + PerformNextEventEstimation(scene, ray, hit, rng);
+
+            // Contine the random walk with a sample proportional to the BSDF
+            (var bsdfRay, float bsdfJacobian, var bsdfSampleWeight) =
+                BsdfSample(scene, ray, hit, rng);
+
+            var indirectRadiance = EstimateIncidentRadiance(scene, bsdfRay, rng,
+                depth + 1, hit, bsdfJacobian);
+
+            return value + indirectRadiance * bsdfSampleWeight;
         }
 
         const UInt32 BaseSeed = 0xC030114;
-        const int TotalSpp = 8;
+        const int TotalSpp = 1;
+
+        const uint MaxDepth = 3;
     }
 
 }

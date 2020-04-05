@@ -13,7 +13,7 @@
 extern std::vector<std::unique_ptr<ground::Transform>> globalTransforms;
 extern std::vector<std::unique_ptr<ground::Camera>> globalCameras;
 extern std::vector<std::unique_ptr<ground::Image>> globalImages;
-extern ground::Scene globalScene;
+extern std::unique_ptr<ground::Scene> globalScene;
 extern std::vector<std::unique_ptr<ground::Material>> globalMaterials;
 extern std::unordered_map<int, int> globalMeshToMaterial;
 extern std::vector<int> globalEmitterRecord;

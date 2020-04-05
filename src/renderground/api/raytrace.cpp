@@ -7,12 +7,17 @@
 
 #include <tbb/parallel_for.h>
 
-ground::Scene globalScene;
+std::unique_ptr<ground::Scene> globalScene;
 
 extern "C" {
 
 GROUND_API void InitScene() {
-    globalScene.Init();
+    globalScene.reset(new ground::Scene());
+    globalScene->Init();
+}
+
+GROUND_API void DeleteScene() {
+    globalScene.release();
 }
 
 GROUND_API int AddTriangleMesh(const float* vertices, int numVerts,
@@ -20,7 +25,7 @@ GROUND_API int AddTriangleMesh(const float* vertices, int numVerts,
 {
     ApiCheck(numIdx % 3 == 0);
 
-    return globalScene.AddMesh(ground::Mesh(
+    return globalScene->AddMesh(ground::Mesh(
         reinterpret_cast<const Vector3*>(vertices), numVerts,
         indices, numIdx, reinterpret_cast<const Vector2*>(texCoords),
         reinterpret_cast<const Vector3*>(shadingNormals)));
@@ -28,16 +33,16 @@ GROUND_API int AddTriangleMesh(const float* vertices, int numVerts,
 
 GROUND_API void FinalizeScene() {
     // Scan the scene for all emissive objects and keep track of them.
-    for (int meshId = 0; meshId < globalScene.GetNumMeshes(); ++meshId) {
+    for (int meshId = 0; meshId < globalScene->GetNumMeshes(); ++meshId) {
         if (globalMaterials[globalMeshToMaterial[meshId]]->IsEmissive())
             globalEmitterRecord.push_back(meshId);
     }
 
-    globalScene.Finalize();
+    globalScene->Finalize();
 }
 
 GROUND_API Hit TraceSingle(Ray ray) {
-    return globalScene.Intersect(ray);
+    return globalScene->Intersect(ray);
 }
 
 GROUND_API void TraceMulti(const Ray* rays, int num, Hit* hits) {
@@ -46,7 +51,7 @@ GROUND_API void TraceMulti(const Ray* rays, int num, Hit* hits) {
     tbb::parallel_for(tbb::blocked_range<int>(0, num),
         [&](tbb::blocked_range<int> r) {
         for (int i = r.begin(); i < r.end(); ++i) {
-            hits[i] = globalScene.Intersect(rays[i]);
+            hits[i] = globalScene->Intersect(rays[i]);
         }
     });
 }
@@ -55,7 +60,7 @@ GROUND_API SurfaceSample WrapPrimarySampleToSurface(int meshId, float u, float v
     ApiCheck(u >= 0 && u <= 1);
     ApiCheck(v >= 0 && v <= 1);
 
-    auto& m = globalScene.GetMesh(meshId);
+    auto& m = globalScene->GetMesh(meshId);
 
     float jacobian = 0;
     auto point = m.PrimarySampleToSurface(Vector2{u, v}, &jacobian);
@@ -68,7 +73,7 @@ GROUND_API SurfaceSample WrapPrimarySampleToSurface(int meshId, float u, float v
 }
 
 GROUND_API float ComputePrimaryToSurfaceJacobian(const SurfacePoint* point) {
-    auto& m = globalScene.GetMesh(point->meshId);
+    auto& m = globalScene->GetMesh(point->meshId);
     return m.ComputePrimaryToSurfaceJacobian(*point);
 }
 
@@ -114,6 +119,11 @@ GROUND_API GeometryTerms ComputeGeometryTerms(const SurfacePoint* from, const Su
         squaredDistance,
         geomTerm
     };
+}
+
+GROUND_API Vector3 ComputeShadingNormal(SurfacePoint point) {
+    return globalScene->GetMesh(point.meshId).ComputeShadingNormal(
+        point.primId, point.barycentricCoords);
 }
 
 }

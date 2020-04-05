@@ -3,7 +3,7 @@
 #include <vector>
 #include <embree3/rtcore.h>
 
-#include "geometry/mesh.h"
+#include "renderground/geometry/mesh.h"
 
 namespace ground {
 

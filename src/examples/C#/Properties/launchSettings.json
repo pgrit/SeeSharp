@@ -1,9 +1,0 @@
-{
-  "profiles": {
-    "C#": {
-      "commandName": "Project",
-      "workingDirectory": "C:\\Users\\pasca\\Documents\\renderground\\src\\dist",
-      "nativeDebugging": true
-    }
-  }
-}

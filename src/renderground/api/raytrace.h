@@ -22,6 +22,11 @@ GROUND_API SurfaceSample WrapPrimarySampleToSurface(int meshId, float u, float v
 // the surface of the triangle mesh on which the given point lies.
 GROUND_API float ComputePrimaryToSurfaceJacobian(const SurfacePoint* point);
 
+GROUND_API EmitterSample WrapPrimarySampleToEmitterRay(SurfacePoint origin,
+    Vector2 primaryPos, Vector2 primaryDir);
+
+GROUND_API Vector2 ComputePrimaryToEmitterRayJacobian(SurfacePoint origin, Vector3 direction);
+
 // Builds acceleration structures to prepare the scene for ray tracing.
 GROUND_API void FinalizeScene();
 

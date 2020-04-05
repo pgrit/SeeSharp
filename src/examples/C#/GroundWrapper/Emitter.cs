@@ -12,8 +12,12 @@ namespace Ground
             this.id = id;
         }
 
-        public SurfaceSample WrapPrimarySample(float u, float v) {
+        public SurfaceSample WrapPrimaryToSurface(float u, float v) {
             return WrapPrimarySampleToSurface(this.id, u, v);
+        }
+
+        public Ray WrapPrimaryToRay(Vector2 primaryPos, Vector2 primaryDir) {
+            return new Ray {};
         }
 
         public float Jacobian(SurfacePoint point) {

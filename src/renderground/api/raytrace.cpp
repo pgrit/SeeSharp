@@ -72,6 +72,16 @@ GROUND_API SurfaceSample WrapPrimarySampleToSurface(int meshId, float u, float v
     };
 }
 
+GROUND_API EmitterSample WrapPrimarySampleToEmitterRay(SurfacePoint origin,
+    Vector2 primaryPos, Vector2 primaryDir)
+{
+    return EmitterSample {};
+}
+
+GROUND_API Vector2 ComputePrimaryToEmitterRayJacobian(SurfacePoint origin, Vector3 direction) {
+    return Vector2 { 0, 0 };
+}
+
 GROUND_API float ComputePrimaryToSurfaceJacobian(const SurfacePoint* point) {
     auto& m = globalScene->GetMesh(point->meshId);
     return m.ComputePrimaryToSurfaceJacobian(*point);

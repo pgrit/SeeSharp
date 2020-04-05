@@ -41,7 +41,7 @@ namespace Experiments {
             var light = scene.Emitters[0];
 
             // Sample a point on the light source
-            var lightSample = light.WrapPrimarySample(rng.NextFloat(), rng.NextFloat());
+            var lightSample = light.WrapPrimaryToSurface(rng.NextFloat(), rng.NextFloat());
 
             if (!scene.IsOccluded(hit, lightSample.point.position)) {
                 Vector3 lightToSurface = hit.point.position - lightSample.point.position;

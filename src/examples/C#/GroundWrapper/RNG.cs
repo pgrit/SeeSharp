@@ -26,6 +26,9 @@ namespace Ground {
             return val;
         }
 
+        public Vector2 NextFloat2D()
+        => new Vector2 { x = NextFloat(), y = NextFloat() };
+
         // Random number from min (inclusive) to max (exclusive)
         public int NextInt(int min, int max) {
             if (max == min)

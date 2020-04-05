@@ -106,6 +106,8 @@ namespace Ground
         public float pdfToAncestor;
 
         public ColorRGB weight; // TODO support other spectral resolutions
+
+        public int ancestorId;
     }
 
     [StructLayout(LayoutKind.Sequential)]

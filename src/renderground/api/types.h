@@ -62,6 +62,8 @@ struct PathVertex {
     float pdfToAncestor;
 
     ColorRGB weight; // TODO support other spectral resolutions
+
+    int ancestorId;
 };
 
 // Stores primary space sample values for a camera sample query.
@@ -76,6 +78,12 @@ struct GeometryTerms {
     float cosineTo;
     float squaredDistance;
     float geomTerm;
+};
+
+struct EmitterSample {
+    SurfaceSample surface;
+    Ray ray;
+    float jacobian;
 };
 
 }

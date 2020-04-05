@@ -2,20 +2,30 @@ enable_testing()
 
 find_package(GTest CONFIG REQUIRED)
 
-add_executable(TestMain)
+# Adds a test executable for a named set of tests
+function(AddNamedTest TestName TestSources)
+    add_executable(${TestName})
 
-target_sources(TestMain
-PRIVATE
-    main.cpp
-    shadingnormals.cpp
-    diffuse.cpp
-    furnace.cpp
-    vertexattributes.cpp
+    target_sources(${TestName}
+    PRIVATE
+        main.cpp
+        ${TestSources}
+    )
+
+    target_link_libraries(${TestName} PRIVATE GTest::gtest GTest::gtest_main GTest::gmock GTest::gmock_main)
+    target_link_libraries(${TestName} PRIVATE Ground)
+
+    add_test(NAME ${TestName}
+            COMMAND ${TestName}
+            WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}/src/dist)
+endfunction()
+
+AddNamedTest(GeometryTests
+    geometry/shadingnormals.cpp
+    geometry/vertexattributes.cpp
 )
 
-target_link_libraries(TestMain PRIVATE GTest::gtest GTest::gtest_main GTest::gmock GTest::gmock_main)
-target_link_libraries(TestMain PRIVATE Ground)
-
-add_test(NAME TestMain
-         COMMAND TestMain
-         WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}/src/dist)
+AddNamedTest(ShadingTests
+    shading/diffuse.cpp
+    shading/furnace.cpp
+)

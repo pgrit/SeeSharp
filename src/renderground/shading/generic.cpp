@@ -5,6 +5,12 @@
 namespace ground
 {
 
+bool AreInSameHemisphere(const SurfacePoint& point,
+    const Vector3& inDir, const Vector3& outDir)
+{
+    return Dot(inDir, point.normal) * Dot(outDir, point.normal) > 0;
+}
+
 GenericMaterial::GenericMaterial(const Scene* scene,
     const GenericMaterialParameters& params)
 : Material(scene), parameters(params)
@@ -19,11 +25,14 @@ Vector3 GenericMaterial::EvaluateBsdf(const SurfacePoint& point,
     auto shadingNormal = scene->GetMesh(point.meshId).ComputeShadingNormal(
         point.primId, point.barycentricCoords);
 
+    bool isReflectance = AreInSameHemisphere(point, inDir, outDir);
+
     Vector3 reflectance { 0, 0, 0 };
-    if (parameters.baseColor)
+    if (parameters.baseColor && isReflectance) {
         // TODO this is unsafe as hell, use a GetValue that returns an RGB explicitely
         //      (and converts as necessary, handled by the image)
         parameters.baseColor->GetValue(texCoords.x, texCoords.y, &reflectance.x);
+    }
 
     return reflectance * 1.0f / PI;
 }

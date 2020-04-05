@@ -5,7 +5,6 @@ namespace Experiments {
 
     class PathTracer {
         public void Render(Scene scene) {
-            // RenderPixel(scene, 38, 244); return;
             System.Threading.Tasks.Parallel.For(0, scene.frameBuffer.height,
                 row => {
                     for (uint col = 0; col < scene.frameBuffer.width; ++col) {

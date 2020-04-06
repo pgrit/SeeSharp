@@ -34,8 +34,14 @@ GROUND_API int AddTriangleMesh(const float* vertices, int numVerts,
 GROUND_API void FinalizeScene() {
     // Scan the scene for all emissive objects and keep track of them.
     for (int meshId = 0; meshId < globalScene->GetNumMeshes(); ++meshId) {
-        if (globalMaterials[globalMeshToMaterial[meshId]]->IsEmissive())
-            globalEmitterRecord.push_back(meshId);
+        // Check if the mesh has a material
+        auto iter = globalMeshToMaterial.find(meshId);
+        if (iter == globalMeshToMaterial.end())
+            continue;
+
+        // Add to the registry if the material is emissive
+        if (globalMaterials[iter->second]->IsEmissive())
+            globalEmitterRegistry.push_back(meshId);
     }
 
     globalScene->Finalize();
@@ -59,23 +65,28 @@ GROUND_API void TraceMulti(const Ray* rays, int num, Hit* hits) {
 GROUND_API SurfaceSample WrapPrimarySampleToSurface(int meshId, float u, float v) {
     ApiCheck(u >= 0 && u <= 1);
     ApiCheck(v >= 0 && v <= 1);
+    ApiCheck(meshId < globalScene->GetNumMeshes());
+    ApiCheck(meshId >= 0);
 
+    // Get the mesh, wrap the sample to its surface, and set the correct meshId
     auto& m = globalScene->GetMesh(meshId);
+    auto sample = m.PrimarySampleToSurface(Vector2{u, v});
+    sample.point.meshId = meshId;
 
-    float jacobian = 0;
-    auto point = m.PrimarySampleToSurface(Vector2{u, v}, &jacobian);
-    point.meshId = meshId;
-
-    return SurfaceSample {
-        point,
-        jacobian
-    };
+    return sample;
 }
 
-GROUND_API EmitterSample WrapPrimarySampleToEmitterRay(SurfacePoint origin,
+GROUND_API EmitterSample WrapPrimarySampleToEmitterRay(int meshId,
     Vector2 primaryPos, Vector2 primaryDir)
 {
-    return EmitterSample {};
+    SurfaceSample sample = WrapPrimarySampleToSurface(meshId, primaryPos.x, primaryPos.y);
+
+    Ray ray;
+    float dirJacobian;
+
+    return EmitterSample{
+        sample, ray, dirJacobian
+    };
 }
 
 GROUND_API Vector2 ComputePrimaryToEmitterRayJacobian(SurfacePoint origin, Vector3 direction) {

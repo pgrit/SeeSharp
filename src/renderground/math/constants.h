@@ -71,4 +71,14 @@ inline void _CheckFloatEqual(float a, float b, const char* file, int line) {
 }
 #define CheckFloatEqual(a, b) _CheckFloatEqual(a, b, __FILE__, __LINE__)
 
+inline void _CheckTrue(bool condition, const char* file, int line) {
+#ifdef SANITY_CHECKS
+    if (!condition) {
+        std::cerr << "Condition not met in " << file << ", line " << line << std::endl;
+        abort();
+    }
+#endif
+}
+#define CheckTrue(c) _CheckTrue(c, __FILE__, __LINE__)
+
 } // namespace ground

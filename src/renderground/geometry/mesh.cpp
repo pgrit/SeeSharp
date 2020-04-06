@@ -60,9 +60,29 @@ Mesh::Mesh(const Vector3* verts, int numVerts, const int* indices, int numIndice
     // TODO pre-normalize shading normals here? Can that be problematic with interpolation?
 }
 
-SurfacePoint Mesh::PrimarySampleToSurface(const Vector2& primarySample, float* jacobian) const {
-    // TODO sanity check that both primary sample values
-    //      are in [0,1]
+float Mesh::ComputeErrorOffset(const SurfacePoint& point) const {
+    // Compute the error offset: approximated radius of the sphere within which the actual intersection lies
+    // This is used to avoid self-intersections throughout the renderer.
+    // The computations here are based on PBRTv3.
+    constexpr float epsilon = std::numeric_limits<float>::epsilon() * 0.5;
+    constexpr float gamma6 = (6 * epsilon) / (1 - 6 * epsilon);
+    
+    auto& v1 = vertices[indices[point.primId * 3 + 0]];
+    auto& v2 = vertices[indices[point.primId * 3 + 1]];
+    auto& v3 = vertices[indices[point.primId * 3 + 2]];
+    
+    Vector3 errorDiagonal = Abs(point.barycentricCoords.x * v2)
+        + Abs(point.barycentricCoords.y * v3)
+        + Abs((1 - point.barycentricCoords.x - point.barycentricCoords.y) * v1);
+
+    return Length(errorDiagonal) * gamma6;
+}
+
+SurfaceSample Mesh::PrimarySampleToSurface(const Vector2& primarySample) const {
+    CheckTrue(primarySample.x >= 0.0f);
+    CheckTrue(primarySample.y >= 0.0f);
+    CheckTrue(primarySample.x <= 1.0f);
+    CheckTrue(primarySample.y <= 1.0f);
 
     // Select a triangle proportionally to its surface area
     float selectionJacobian = 1.0f;
@@ -73,22 +93,30 @@ SurfacePoint Mesh::PrimarySampleToSurface(const Vector2& primarySample, float* j
     float lo = primId == 0 ? 0.0f : triangleDistribution.GetJacobian(primId - 1);
     float delta = selectionJacobian;
     float remapped = (primarySample.x - lo) * delta;
-    assert(remapped >= 0.0f && remapped <= 1.0f);
+    CheckTrue(remapped >= 0.0f && remapped <= 1.0f);
 
     // Remap to a uniform distribution of barycentric coordinates
     float u = 0, v = 0;
     WrapToUniformTriangle(remapped, primarySample.y, u, v);
     Vector2 barycentricCoords { u, v };
 
-    *jacobian = selectionJacobian / surfaceAreas[primId];
-    CheckFloatEqual(*jacobian, 1.0f / totalSurfaceArea);
+    // Compute the jacobian of this transform
+    float jacobian = selectionJacobian / surfaceAreas[primId];
+    CheckFloatEqual(jacobian, 1.0f / totalSurfaceArea);
 
-    return SurfacePoint {
+    // Compute the geometric configuration
+    SurfacePoint point{
         PointFromBarycentric(primId, barycentricCoords),
         faceNormals[primId],
         barycentricCoords,
-        0xFFFFFFFF, // To be filled by the caller, we don't know our own Id
+        INVALID_MESH_ID, // To be filled by the caller, we don't know our own Id
         primId,
+    };
+
+    float errorOffset = ComputeErrorOffset(point);
+
+    return SurfaceSample {
+        point, jacobian, errorOffset  
     };
 }
 

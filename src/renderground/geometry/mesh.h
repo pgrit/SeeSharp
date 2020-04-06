@@ -18,7 +18,7 @@ public:
     const float* GetVertexData() const { return (float*)vertices.data(); }
     const int* GetIndexData() const { return indices.data(); }
 
-    SurfacePoint PrimarySampleToSurface(const Vector2& primarySample, float* jacobian) const;
+    SurfaceSample PrimarySampleToSurface(const Vector2& primarySample) const;
     float ComputePrimaryToSurfaceJacobian(const SurfacePoint& point) const;
 
     Vector3 PointFromBarycentric(int primId, const Vector2& barycentric) const;
@@ -37,6 +37,8 @@ private:
 
     std::vector<Vector2> textureCoordinates;
     std::vector<Vector3> shadingNormals;
+
+    float ComputeErrorOffset(const SurfacePoint& point) const;
 };
 
 } // namespace ground

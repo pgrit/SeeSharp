@@ -55,6 +55,7 @@ namespace Ground
     public struct SurfaceSample {
         public SurfacePoint point;
         public float jacobian;
+        public float errorOffset;
     }
 
     [StructLayout(LayoutKind.Sequential)]

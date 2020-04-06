@@ -24,6 +24,8 @@ struct SurfacePoint {
     unsigned int primId;
 };
 
+#define INVALID_MESH_ID ((unsigned int) -1)
+
 struct Hit {
     SurfacePoint point;
     float distance;
@@ -33,6 +35,7 @@ struct Hit {
 struct SurfaceSample {
     SurfacePoint point;
     float jacobian;
+    float errorOffset;
 };
 
 struct BsdfSample {

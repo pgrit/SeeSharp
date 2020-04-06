@@ -101,7 +101,7 @@ TEST_F(DiffuseFurnace, AllWhite) {
             ColorRGB value { 0, 0, 0};
 
             if (hit.point.meshId < 0xFFFFFFFF) {
-                EXPECT_TRUE(false);
+                EXPECT_TRUE(false); // TODO something is broken in this test, never finding any intersections.
                 // Estimate DI via BSDF importance sampling
                 auto bsdfSample = WrapPrimarySampleToBsdf(&hit.point,
                     -ray.direction, rng.NextFloat(), rng.NextFloat(), false);

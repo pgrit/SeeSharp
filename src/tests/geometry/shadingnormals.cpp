@@ -23,6 +23,9 @@ protected:
 };
 
 TEST_F(ShadingNormalTests, CorrectCosineSigns) {
+    // Computes the shading normal cosine with incoming and outgoing directions
+    // from various sides of the hemisphere.
+
     EXPECT_TRUE(loaded);
 
     Ray r {
@@ -53,6 +56,9 @@ TEST_F(ShadingNormalTests, CorrectCosineSigns) {
 }
 
 TEST_F(ShadingNormalTests, CorrectSamplingSigns) {
+    // Asserts that a diffuse surface samples only directions on the hemisphere
+    // of the outgoing direction.
+
     EXPECT_TRUE(loaded);
 
     Ray r {
@@ -77,6 +83,9 @@ TEST_F(ShadingNormalTests, CorrectSamplingSigns) {
 }
 
 TEST_F(ShadingNormalTests, NormalizedCosines) {
+    // Asserts that the shading cosine is always correctly computed independent
+    // of the magnitude of the incoming direction.
+
     EXPECT_TRUE(loaded);
 
     Ray r {

@@ -16,7 +16,7 @@ extern std::vector<std::unique_ptr<ground::Image>> globalImages;
 extern std::unique_ptr<ground::Scene> globalScene;
 extern std::vector<std::unique_ptr<ground::Material>> globalMaterials;
 extern std::unordered_map<int, int> globalMeshToMaterial;
-extern std::vector<int> globalEmitterRecord;
+extern std::vector<int> globalEmitterRegistry;
 
 inline void _ApiCheck(bool cond, const char* file, int line, const char* func) {
     if (!cond) {

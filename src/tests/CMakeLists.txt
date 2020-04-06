@@ -8,7 +8,8 @@ function(AddNamedTest TestName TestSources)
 
     target_sources(${TestName}
     PRIVATE
-        main.cpp
+        "main.cpp"
+        "testutil.h"
         ${TestSources}
     )
 
@@ -21,11 +22,15 @@ function(AddNamedTest TestName TestSources)
 endfunction()
 
 AddNamedTest(GeometryTests
-    geometry/shadingnormals.cpp
-    geometry/vertexattributes.cpp
+    "geometry/shadingnormals.cpp"
+    "geometry/vertexattributes.cpp"
 )
 
 AddNamedTest(ShadingTests
-    shading/diffuse.cpp
-    shading/furnace.cpp
+    "shading/diffuse.cpp"
+    "shading/furnace.cpp"
+)
+
+AddNamedTest(EmitterTests
+    "emitter/diffuse.cpp"
 )

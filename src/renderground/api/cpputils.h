@@ -68,6 +68,12 @@ inline Vector3 Normalize(const Vector3& v) {
     return v * (1 / Length(v));
 }
 
+inline Vector3 Abs(const Vector3& v) {
+    return Vector3 {
+        std::abs(v.x), std::abs(v.y), std::abs(v.z)
+    };
+}
+
 inline ColorRGB operator* (const ColorRGB& a, const ColorRGB& b) {
     return ColorRGB { a.r * b.r, a.g * b.g, a.b * b.b };
 }

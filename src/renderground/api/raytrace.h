@@ -22,10 +22,11 @@ GROUND_API SurfaceSample WrapPrimarySampleToSurface(int meshId, float u, float v
 // the surface of the triangle mesh on which the given point lies.
 GROUND_API float ComputePrimaryToSurfaceJacobian(const SurfacePoint* point);
 
-GROUND_API EmitterSample WrapPrimarySampleToEmitterRay(SurfacePoint origin,
+GROUND_API EmitterSample WrapPrimarySampleToEmitterRay(int meshId,
     Vector2 primaryPos, Vector2 primaryDir);
 
-GROUND_API Vector2 ComputePrimaryToEmitterRayJacobian(SurfacePoint origin, Vector3 direction);
+GROUND_API Vector2 ComputePrimaryToEmitterRayJacobian(SurfacePoint origin,
+    Vector3 direction);
 
 // Builds acceleration structures to prepare the scene for ray tracing.
 GROUND_API void FinalizeScene();
@@ -46,6 +47,7 @@ GROUND_API bool IsOccluded(const Hit* from, Vector3 to);
 // offsets for self-intersection handling.
 GROUND_API Ray SpawnRay(const Hit* from, Vector3 direction);
 
-GROUND_API GeometryTerms ComputeGeometryTerms(const SurfacePoint* from, const SurfacePoint* to);
+GROUND_API GeometryTerms ComputeGeometryTerms(const SurfacePoint* from,
+    const SurfacePoint* to);
 
 }

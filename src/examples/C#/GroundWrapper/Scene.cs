@@ -52,7 +52,7 @@ namespace Ground
         private void FindEmitters() {
             int numEmitters = GetNumberEmitters();
             for (int i = 0; i < numEmitters; i++) {
-                emitters.Add(new Emitter(GetEmitterMesh(i)));
+                emitters.Add(new Emitter(GetEmitterMesh(i), i));
             }
         }
 

@@ -42,20 +42,19 @@ namespace Ground
         public Vector2 barycentricCoords;
         public uint meshId;
         public uint primId;
+        public float errorOffset;
     }
 
     [StructLayout(LayoutKind.Sequential)]
     public struct Hit {
         public SurfacePoint point;
         public float distance;
-        public float errorOffset;
     }
 
     [StructLayout(LayoutKind.Sequential)]
     public struct SurfaceSample {
         public SurfacePoint point;
         public float jacobian;
-        public float errorOffset;
     }
 
     [StructLayout(LayoutKind.Sequential)]
@@ -91,7 +90,6 @@ namespace Ground
     [StructLayout(LayoutKind.Sequential)]
     public struct UberShaderParams {
         public int baseColorTexture;
-        public int emissionTexture;
     }
 
     [StructLayout(LayoutKind.Sequential)]
@@ -124,5 +122,13 @@ namespace Ground
         public float cosineTo;
         public float squaredDistance;
         public float geomTerm;
+    };
+
+    [StructLayout(LayoutKind.Sequential)]
+    struct EmitterSample
+    {
+        public SurfaceSample surface;
+        public Vector3 direction;
+        public float jacobian;
     };
 }

@@ -4,6 +4,7 @@
     <OutputType>Exe</OutputType>
     <TargetFramework>netcoreapp3.0</TargetFramework>
     <RootNamespace>Experiments</RootNamespace>
+    <StartupObject>Experiments.Program</StartupObject>
   </PropertyGroup>
 
 </Project>

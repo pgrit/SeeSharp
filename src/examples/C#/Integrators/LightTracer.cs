@@ -26,6 +26,9 @@ namespace Experiments {
 
             var walker = new RandomWalk(scene, rng, pathCache, true, MaxDepth);
 
+            float directionPdf = 0;
+            var weight = ColorRGB.Black;
+
             var lastVertexId = walker.StartWalk(
                 initialPoint: emitterPosSample.point,
                 surfaceAreaPdf: emitterPosSample.jacobian,

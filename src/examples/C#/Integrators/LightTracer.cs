@@ -13,6 +13,29 @@ namespace Experiments {
                 var rng = new RNG(seed);
                 TraceLightPath(scene, rng, pathCache);
             });
+
+            Parallel.For(0, TotalPaths, idx => {
+                ConnectPathVerticesToCamera(endpointIds[idx], pathCache);
+            });
+
+            pathCache.Clear();
+
+            // TODO repeat for multiple iterations
+        }
+
+        void ConnectPathVerticesToCamera(int vertexId, PathCache pathCache)
+        {
+            var vertex = pathCache[vertexId];
+
+            // Compute image plane location
+
+            // Trace shadow ray
+
+            // Compute image contribution and splat
+
+            // Recurse: repeat with the ancestor unless it lies on the light source itself.
+            if (vertex.ancestorId >= 0)
+                ConnectPathVerticesToCamera(vertex.ancestorId, pathCache);
         }
 
         void TraceLightPath(Scene scene, RNG rng, PathCache pathCache) {
@@ -44,6 +67,8 @@ namespace Experiments {
         const int TotalPaths = 512 * 512;
         const UInt32 BaseSeed = 0xC030114;
         const int MaxDepth = 3;
+
+        int[] endpointIds = new int[TotalPaths];
     }
 
 }

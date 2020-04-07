@@ -9,8 +9,9 @@ namespace Ground {
         ~PathCache()
         => DeletePathCache(this.id);
 
-        public PathVertex GetVertex(int vertexId)
-        => GetPathVertex(this.id, vertexId);
+        public PathVertex this[int vertexId] {
+            get => GetPathVertex(this.id, vertexId);
+        }
 
         public int AddVertex(PathVertex vertex)
         => AddPathVertex(this.id, vertex);

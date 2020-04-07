@@ -69,6 +69,20 @@ int ReadColorOrTexture(T& elem) {
 }
 
 template <typename T>
+ColorRGB ReadColorRGB(T& elem) {
+    std::string type = elem["type"].GetString();
+
+    if (type != "rgb") {
+        std::cerr << "Error: Unsupported color type '" << type << "'. 'RGB' expected. Using black."
+            << std::endl;
+        return ColorRGB{ 0, 0, 0 };
+    }
+
+    auto rgbColor = ReadVector(elem["value"]);
+    return ColorRGB{ rgbColor.x, rgbColor.y, rgbColor.z };
+}
+
+template <typename T>
 void ReadFloatArray(T& elem, std::vector<float>& out) {
     auto data = elem.GetArray();
     out.reserve(data.Size());
@@ -158,7 +172,6 @@ GROUND_API bool LoadSceneFromFile(const char* filename, int frameBufferId) {
 
         UberShaderParams params {
             -1, // baseColor
-            -1  // emission
         };
 
         params.baseColorTexture = ReadColorOrTexture((*m)["baseColor"]);
@@ -188,16 +201,6 @@ GROUND_API bool LoadSceneFromFile(const char* filename, int frameBufferId) {
             return false;
         }
         auto materialId = materialIter->second;
-
-        if ((*m).HasMember("emission")) { // The object is an emitter
-            // Read the emission color or texture
-            auto emission = ReadColorOrTexture((*m)["emission"]);
-
-            // Instatiate a new material
-            UberShaderParams params = namedMaterialParameters[materialName];
-            params.emissionTexture = emission;
-            materialId = AddUberMaterial(&params);
-        }
 
         std::string type = (*m)["type"].GetString();
         if (type != "trimesh") {
@@ -247,6 +250,13 @@ GROUND_API bool LoadSceneFromFile(const char* filename, int frameBufferId) {
             normals.size() > 0 ? normals.data() : nullptr);
 
         AssignMaterial(meshId, materialId);
+
+        if ((*m).HasMember("emission")) { // The object is an emitter
+            // Read the emission color
+            // TODO add support for textured emitters and other types of emitters than just diffuse ones.
+            auto emission = ReadColorRGB((*m)["emission"]);
+            const int emitterId = AttachDiffuseEmitter(meshId, emission);
+        }
 
         namedMeshes[name] = meshId;
     }

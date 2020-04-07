@@ -26,17 +26,11 @@ extern "C" {
 GROUND_API int AddUberMaterial(const UberShaderParams* params) {
     ApiCheck(params->baseColorTexture < 0 ||
         params->baseColorTexture < globalImages.size());
-    ApiCheck(params->emissionTexture < 0 ||
-        params->emissionTexture < globalImages.size());
 
     ground::GenericMaterialParameters p {
         params->baseColorTexture < 0
             ? nullptr
             : globalImages[params->baseColorTexture].get(),
-
-        params->emissionTexture < 0
-            ? nullptr
-            : globalImages[params->emissionTexture].get()
     };
 
     globalMaterials.emplace_back(new ground::GenericMaterial(globalScene.get(), p));
@@ -51,13 +45,6 @@ GROUND_API void AssignMaterial(int mesh, int material) {
     ApiCheck(material < globalMaterials.size());
 
     globalMeshToMaterial[mesh] = material;
-}
-
-GROUND_API ColorRGB ComputeEmission(const SurfacePoint* point, Vector3 outDir)
-{
-    auto material = LookupMaterial(point->meshId);
-    auto clr = material->ComputeEmission(*point, outDir);
-    return ColorRGB {clr.x, clr.y, clr.z};
 }
 
 GROUND_API BsdfSample WrapPrimarySampleToBsdf(const SurfacePoint* point,
@@ -127,6 +114,11 @@ GROUND_API int GetNumberEmitters() {
 GROUND_API int GetEmitterMesh(int emitterId) {
     ApiCheck(emitterId >= 0 && emitterId < globalEmitters.size());
     return globalEmitterToMesh[emitterId];
+}
+
+GROUND_API ColorRGB ComputeEmission(const SurfacePoint* point, Vector3 outDir) {
+    const int emitterId = globalMeshToEmitter[point->meshId];
+    return globalEmitters[emitterId]->ComputeEmission(*point, outDir);
 }
 
 GROUND_API SurfaceSample WrapPrimarySampleToEmitterSurface(int emitterId, float u, float v) {

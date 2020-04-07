@@ -82,23 +82,6 @@ BsdfSampleInfo GenericMaterial::WrapPrimarySampleToBsdf(const SurfacePoint& poin
     };
 }
 
-Vector3 GenericMaterial::ComputeEmission(const SurfacePoint& point, const Vector3& outDir) const {
-    auto texCoords = scene->GetMesh(point.meshId)->ComputeTextureCoordinates(
-        point.primId, point.barycentricCoords);
-    auto shadingNormal = scene->GetMesh(point.meshId)->ComputeShadingNormal(
-        point.primId, point.barycentricCoords);
-
-    // Emission only occurs in the direction of the shading normal.
-    if (Dot(shadingNormal, outDir) <= 0)
-        return Vector3 { 0, 0, 0 };
-
-    Vector3 emission { 0, 0, 0};
-    if (parameters.emission)
-        parameters.emission->GetValue(texCoords.x, texCoords.y, &emission.x);
-
-    return emission;
-}
-
 BsdfSampleInfo GenericMaterial::ComputeJacobians(const SurfacePoint& point,
         const Vector3& inDir, const Vector3& outDir, bool isOnLightSubpath) const
 {

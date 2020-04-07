@@ -29,14 +29,9 @@ public:
         Vector3* inDir, const Vector3& outDir, bool isOnLightSubpath,
         const Vector2& primarySample) const = 0;
 
-    virtual Vector3 ComputeEmission(const SurfacePoint& point,
-        const Vector3& outDir) const = 0;
-
     virtual BsdfSampleInfo ComputeJacobians(const SurfacePoint& point,
         const Vector3& inDir, const Vector3& outDir,
         bool isOnLightSubpath) const = 0;
-
-    virtual bool IsEmissive() const = 0;
 
 protected:
     const Scene* scene;

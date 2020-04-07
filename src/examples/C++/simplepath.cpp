@@ -55,15 +55,13 @@ int SetupSimpleSceneGeometry() {
     AddSplatRGB(reflectTexture, 0, 0, reflectance);
 
     UberShaderParams lightMaterialParams {
-        blackTexture,
-        emitTexture
+        blackTexture
     };
     const auto lightMaterial = AddUberMaterial(&lightMaterialParams);
     AssignMaterial(lightId, lightMaterial);
 
     UberShaderParams diffuseMaterialParams {
-        reflectTexture,
-        -1
+        reflectTexture
     };
     const auto diffuseMaterial = AddUberMaterial(&diffuseMaterialParams);
     AssignMaterial(quadId, diffuseMaterial);

@@ -49,7 +49,6 @@ struct ColorRGB {
 
 struct UberShaderParams {
     int baseColorTexture;
-    int emissionTexture;
 };
 
 struct PathVertex {

@@ -86,6 +86,10 @@ inline ColorRGB operator* (float s, const ColorRGB& a) {
     return a * s;
 }
 
+inline ColorRGB operator/ (const ColorRGB& a, float s) {
+    return a * (1.0f / s);
+}
+
 inline ColorRGB operator+ (const ColorRGB& a, const ColorRGB& b) {
     return ColorRGB { a.r + b.r, a.g + b.g, a.b + b.b };
 }

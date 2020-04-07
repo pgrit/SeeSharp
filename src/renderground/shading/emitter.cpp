@@ -11,6 +11,12 @@ DiffuseSurfaceEmitter::DiffuseSurfaceEmitter(const Mesh* mesh, const ColorRGB& r
 ColorRGB DiffuseSurfaceEmitter::ComputeEmission(const SurfacePoint& point, 
     const Vector3& outDir) const  
 {
+    auto shadingNormal = mesh->ComputeShadingNormal(point.primId, point.barycentricCoords);
+    float cosine = Dot(outDir, shadingNormal);
+
+    // The light only emits in the hemisphere defined by the shading normal.
+    if (cosine <= 0) return ColorRGB{ 0, 0, 0 };
+
     return radiance;
 }
 

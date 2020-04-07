@@ -203,3 +203,40 @@ TEST_F(EmitterDiffuseTests, TotalPower) {
 
     // TODO implement this
 }
+
+TEST_F(EmitterDiffuseTests, SimpleScene) {
+    // Asserts that a simple scene loaded from file is correctly rendered with
+    // next event estimation, surface samples, and emitter samples
+
+    int frameBufferId = CreateImageRGB(1, 1);
+    InitScene();
+    bool loaded = LoadSceneFromFile("../../data/scenes/simpledi.json", frameBufferId);
+    FinalizeScene();
+
+    EXPECT_TRUE(loaded);
+
+    // Test "light tracing" aka sampling rays from the emitter
+    auto color = Quadrature<ColorRGB>(8, ColorRGB{ 0, 0, 0 }, 
+        [&] (Vector2 primaryPos) -> ColorRGB  
+    {
+        auto result = Quadrature<ColorRGB>(8, ColorRGB{ 0, 0, 0 },
+            [&](Vector2 primaryDir)->ColorRGB 
+        {
+            EmitterSample sample = WrapPrimarySampleToEmitterRay(0, primaryPos, primaryDir);
+            Ray ray = SpawnRay(sample.surface.point, sample.direction);
+            Hit hit = TraceSingle(ray);
+            if (hit.point.meshId != INVALID_MESH_ID) {
+                auto radiance = ComputeEmission(&sample.surface.point, sample.direction);
+                auto geomTerms = ComputeGeometryTerms(&hit.point, &sample.surface.point);
+                
+                return geomTerms.geomTerm * radiance / sample.jacobian / sample.surface.jacobian;
+            }
+            return ColorRGB{ 0, 0, 0 };
+        });
+        return result;
+    });
+
+    EXPECT_GT(color.r, 0);
+    EXPECT_GT(color.g, 0);
+    EXPECT_GT(color.b, 0);
+}

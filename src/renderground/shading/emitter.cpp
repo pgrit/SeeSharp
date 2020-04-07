@@ -46,10 +46,14 @@ EmitterSample DiffuseSurfaceEmitter::WrapPrimaryToRay(const Vector2& primaryPos,
         + tangent * dirSample.direction.x
         + binormal * dirSample.direction.y;
 
+    float cosine = Dot(shadingNormal, dir);
+    CheckTrue(cosine >= 0);
+
     EmitterSample sample{
         surfaceSample,
         dir,
-        dirSample.jacobian
+        dirSample.jacobian,
+        cosine
     };
 
     return sample;

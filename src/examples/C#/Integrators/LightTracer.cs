@@ -19,21 +19,21 @@ namespace Experiments {
             var emitter = SelectEmitter(scene, rng); // TODO once this is a proper selection: obtain and consider PDF
 
             var primaryPos = rng.NextFloat2D();
-            var emitterPosSample = emitter.WrapPrimaryToSurface(primaryPos.x, primaryPos.y);
-
             var primaryDir = rng.NextFloat2D();
-            Ray ray = emitter.WrapPrimaryToRay(primaryPos, primaryDir);
+            var emitterSample = emitter.WrapPrimaryToRay(primaryPos, primaryDir);
+            Ray ray = scene.SpawnRay(emitterSample.surface.point, emitterSample.direction);
+
+            var radiance = emitter.ComputeEmission(emitterSample.surface.point, emitterSample.direction);
+
+            float pdf = emitterSample.surface.jacobian * emitterSample.jacobian;
+            var weight = radiance * (emitterSample.shadingCosine / pdf);
 
             var walker = new RandomWalk(scene, rng, pathCache, true, MaxDepth);
-
-            float directionPdf = 0;
-            var weight = ColorRGB.Black;
-
             var lastVertexId = walker.StartWalk(
-                initialPoint: emitterPosSample.point,
-                surfaceAreaPdf: emitterPosSample.jacobian,
+                initialPoint: emitterSample.surface.point,
+                surfaceAreaPdf: emitterSample.surface.jacobian,
                 initialRay: ray,
-                directionPdf: directionPdf,
+                directionPdf: emitterSample.jacobian,
                 initialWeight: weight);
         }
 

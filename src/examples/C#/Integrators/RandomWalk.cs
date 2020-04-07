@@ -68,7 +68,7 @@ namespace Experiments
 
             // Continue the path with the next ray
             var weight = nextWeight * bsdfValue * (shadingCosine / bsdfSample.jacobian);
-            var bsdfRay = scene.SpawnRay(hit, bsdfSample.direction);
+            var bsdfRay = scene.SpawnRay(hit.point, bsdfSample.direction);
             return ContinueWalk(primaryId, hit.point, bsdfRay, weight, bsdfSample.jacobian, depth + 1);
         }
     }

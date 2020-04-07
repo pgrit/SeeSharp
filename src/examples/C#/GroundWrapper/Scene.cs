@@ -18,9 +18,12 @@ namespace Ground
             Debug.Assert(this.frameBuffer != null,
                 "Framebuffer needs to be initialized before loading the scene");
 
-            InitScene();
-            bool b = LoadSceneFromFile(filename, this.frameBuffer.id);
-            FinalizeScene();
+            CApiImports.InitScene();
+
+            bool loaded = CApiImports.LoadSceneFromFile(filename, this.frameBuffer.id);
+            Debug.Assert(loaded, "Error loading the scene.");
+
+            CApiImports.FinalizeScene();
 
             FindEmitters();
         }
@@ -33,12 +36,12 @@ namespace Ground
                 }
             };
             // TODO support multiple cameras, specified by id here
-            var ray = GenerateCameraRay(0, camSample);
+            var ray = CApiImports.GenerateCameraRay(0, camSample);
             return (ray, camSample.filmSample);
         }
 
         public Hit TraceRay(Ray ray) {
-            return TraceSingle(ray);
+            return CApiImports.TraceSingle(ray);
         }
 
         public bool IsValid(Hit hit) {
@@ -46,13 +49,13 @@ namespace Ground
         }
 
         public bool IsOccluded(Hit from, Vector3 to) {
-            return IsOccluded(ref from, to);
+            return CApiImports.IsOccluded(ref from, to);
         }
 
         private void FindEmitters() {
-            int numEmitters = GetNumberEmitters();
+            int numEmitters = CApiImports.GetNumberEmitters();
             for (int i = 0; i < numEmitters; i++) {
-                emitters.Add(new Emitter(GetEmitterMesh(i), i));
+                Emitters.Add(new Emitter(CApiImports.GetEmitterMesh(i), i));
             }
         }
 
@@ -63,19 +66,17 @@ namespace Ground
             return null;
         }
 
-        public List<Emitter> Emitters {
-            get => emitters;
-        }
+        public List<Emitter> Emitters { get; } = new List<Emitter>();
 
-        public Ray SpawnRay(Hit from, Vector3 direction) {
-            return SpawnRay(ref from, direction);
+        public Ray SpawnRay(SurfacePoint from, Vector3 direction) {
+            return CApiImports.SpawnRay(from, direction);
         }
 
         public (ColorRGB, float) EvaluateBsdf(SurfacePoint point,
             Vector3 outDir, Vector3 inDir, bool isOnLightSubpath)
         {
-            var bsdfValue = EvaluateBsdf(ref point, outDir, inDir, isOnLightSubpath);
-            float shadingCosine = ComputeShadingCosine(ref point, outDir, inDir, isOnLightSubpath);
+            var bsdfValue = CApiImports.EvaluateBsdf(ref point, outDir, inDir, isOnLightSubpath);
+            float shadingCosine = CApiImports.ComputeShadingCosine(ref point, outDir, inDir, isOnLightSubpath);
             return (bsdfValue, shadingCosine);
         }
 
@@ -83,77 +84,74 @@ namespace Ground
             SurfacePoint point, Vector3 outDir,
             float u, float v, bool isOnLightSubpath)
         {
-            return WrapPrimarySampleToBsdf(ref point, outDir, u, v, isOnLightSubpath);
+            return CApiImports.WrapPrimarySampleToBsdf(ref point, outDir, u, v, isOnLightSubpath);
         }
 
         public BsdfSample ComputePrimaryToBsdfJacobian(
             SurfacePoint point, Vector3 outDir, Vector3 inDir,
             bool isOnLightSubpath)
         {
-            return ComputePrimaryToBsdfJacobian(ref point, outDir, inDir,
+            return CApiImports.ComputePrimaryToBsdfJacobian(ref point, outDir, inDir,
                 isOnLightSubpath);
         }
 
         public GeometryTerms ComputeGeometryTerms(SurfacePoint from, SurfacePoint to) {
-            return ComputeGeometryTerms(ref from, ref to);
+            return CApiImports.ComputeGeometryTerms(ref from, ref to);
         }
 
-        private List<Emitter> emitters = new List<Emitter>();
+        struct CApiImports {
+            [DllImport("Ground", CallingConvention = CallingConvention.Cdecl)]
+            public static extern void InitScene();
 
-#region C-API-IMPORTS
-        [DllImport("Ground", CallingConvention=CallingConvention.Cdecl)]
-        private static extern void InitScene();
+            [DllImport("Ground", CallingConvention = CallingConvention.Cdecl)]
+            public static extern void FinalizeScene();
 
-        [DllImport("Ground", CallingConvention=CallingConvention.Cdecl)]
-        private static extern void FinalizeScene();
+            [DllImport("Ground", CallingConvention = CallingConvention.Cdecl)]
+            [return: MarshalAs(UnmanagedType.I1)]
+            public static extern bool LoadSceneFromFile([In] string filename,
+                int frameBufferId);
 
-        [DllImport("Ground", CallingConvention=CallingConvention.Cdecl)]
-        [return:MarshalAs(UnmanagedType.I1)]
-        private static extern bool LoadSceneFromFile([In] string filename,
-            int frameBufferId);
+            [DllImport("Ground", CallingConvention = CallingConvention.Cdecl)]
+            public static extern int GetNumberEmitters();
 
-        [DllImport("Ground", CallingConvention=CallingConvention.Cdecl)]
-        private static extern int GetNumberEmitters();
+            [DllImport("Ground", CallingConvention = CallingConvention.Cdecl)]
+            public static extern int GetEmitterMesh(int id);
 
-        [DllImport("Ground", CallingConvention=CallingConvention.Cdecl)]
-        private static extern int GetEmitterMesh(int id);
+            [DllImport("Ground", CallingConvention = CallingConvention.Cdecl)]
+            public static extern Ray GenerateCameraRay(int camera,
+                CameraSampleInfo sampleInfo);
 
-        [DllImport("Ground", CallingConvention=CallingConvention.Cdecl)]
-        private static extern Ray GenerateCameraRay(int camera,
-            CameraSampleInfo sampleInfo);
+            [DllImport("Ground", CallingConvention = CallingConvention.Cdecl)]
+            public static extern Hit TraceSingle(Ray ray);
 
-        [DllImport("Ground", CallingConvention=CallingConvention.Cdecl)]
-        private static extern Hit TraceSingle(Ray ray);
+            [DllImport("Ground", CallingConvention = CallingConvention.Cdecl)]
+            [return: MarshalAs(UnmanagedType.I1)]
+            public static extern bool IsOccluded([In] ref Hit from, Vector3 to);
 
-        [DllImport("Ground", CallingConvention=CallingConvention.Cdecl)]
-        [return:MarshalAs(UnmanagedType.I1)]
-        private static extern bool IsOccluded([In] ref Hit from, Vector3 to);
+            [DllImport("Ground", CallingConvention = CallingConvention.Cdecl)]
+            public static extern Ray SpawnRay(SurfacePoint from, Vector3 direction);
 
-        [DllImport("Ground", CallingConvention=CallingConvention.Cdecl)]
-        private static extern Ray SpawnRay([In] ref Hit from, Vector3 direction);
+            [DllImport("Ground", CallingConvention = CallingConvention.Cdecl)]
+            public static extern ColorRGB EvaluateBsdf([In] ref SurfacePoint point,
+                Vector3 outDir, Vector3 inDir, bool isOnLightSubpath);
 
-        [DllImport("Ground", CallingConvention=CallingConvention.Cdecl)]
-        private static extern ColorRGB EvaluateBsdf([In] ref SurfacePoint point,
-            Vector3 outDir, Vector3 inDir, bool isOnLightSubpath);
+            [DllImport("Ground", CallingConvention = CallingConvention.Cdecl)]
+            public static extern float ComputeShadingCosine([In] ref SurfacePoint point,
+                Vector3 outDir, Vector3 inDir, bool isOnLightSubpath);
 
-        [DllImport("Ground", CallingConvention=CallingConvention.Cdecl)]
-        private static extern float ComputeShadingCosine([In] ref SurfacePoint point,
-            Vector3 outDir, Vector3 inDir, bool isOnLightSubpath);
+            [DllImport("Ground", CallingConvention = CallingConvention.Cdecl)]
+            public static extern BsdfSample WrapPrimarySampleToBsdf(
+                [In] ref SurfacePoint point, Vector3 outDir,
+                float u, float v, bool isOnLightSubpath);
 
-        [DllImport("Ground", CallingConvention=CallingConvention.Cdecl)]
-        private static extern BsdfSample WrapPrimarySampleToBsdf(
-            [In] ref SurfacePoint point, Vector3 outDir,
-            float u, float v, bool isOnLightSubpath);
+            [DllImport("Ground", CallingConvention = CallingConvention.Cdecl)]
+            public static extern BsdfSample ComputePrimaryToBsdfJacobian(
+                [In] ref SurfacePoint point, Vector3 outDir, Vector3 inDir,
+                bool isOnLightSubpath);
 
-        [DllImport("Ground", CallingConvention=CallingConvention.Cdecl)]
-        private static extern BsdfSample ComputePrimaryToBsdfJacobian(
-            [In] ref SurfacePoint point, Vector3 outDir, Vector3 inDir,
-            bool isOnLightSubpath);
-
-        [DllImport("Ground", CallingConvention=CallingConvention.Cdecl)]
-        private static extern GeometryTerms ComputeGeometryTerms(
-            [In] ref SurfacePoint from, [In] ref SurfacePoint to);
-
-#endregion C-API-IMPORTS
+            [DllImport("Ground", CallingConvention = CallingConvention.Cdecl)]
+            public static extern GeometryTerms ComputeGeometryTerms(
+                [In] ref SurfacePoint from, [In] ref SurfacePoint to);
+        }
     }
 }

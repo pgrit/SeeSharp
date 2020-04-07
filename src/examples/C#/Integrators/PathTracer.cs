@@ -83,7 +83,7 @@ namespace Experiments {
             (var bsdfValue, float shadingCosine) = scene.EvaluateBsdf(hit.point, -ray.direction,
                 bsdfSample.direction, false);
 
-            var bsdfRay = scene.SpawnRay(hit, bsdfSample.direction);
+            var bsdfRay = scene.SpawnRay(hit.point, bsdfSample.direction);
 
             var weight = bsdfSample.jacobian == 0.0f ? ColorRGB.Black : bsdfValue * (shadingCosine / bsdfSample.jacobian);
 

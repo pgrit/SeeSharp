@@ -85,6 +85,7 @@ struct EmitterSample {
     SurfaceSample surface;
     Vector3 direction;
     float jacobian;
+    float shadingCosine;
 };
 
 }

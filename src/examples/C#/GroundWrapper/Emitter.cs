@@ -17,8 +17,8 @@ namespace Ground
             return WrapPrimarySampleToEmitterSurface(EmitterId, u, v);
         }
 
-        public Ray WrapPrimaryToRay(Vector2 primaryPos, Vector2 primaryDir) {
-            return new Ray {};
+        public EmitterSample WrapPrimaryToRay(Vector2 primaryPos, Vector2 primaryDir) {
+            return WrapPrimarySampleToEmitterRay(EmitterId, primaryPos, primaryDir);
         }
 
         public float Jacobian(SurfacePoint point) {
@@ -36,15 +36,19 @@ namespace Ground
         }
 
         [DllImport("Ground", CallingConvention=CallingConvention.Cdecl)]
-        private static extern SurfaceSample WrapPrimarySampleToEmitterSurface(
+        static extern SurfaceSample WrapPrimarySampleToEmitterSurface(
             int emitterId, float u, float v);
 
         [DllImport("Ground", CallingConvention=CallingConvention.Cdecl)]
-        private static extern float ComputePrimaryToEmitterSurfaceJacobian(
+        static extern float ComputePrimaryToEmitterSurfaceJacobian(
             [In] ref SurfacePoint point);
 
+        [DllImport("Ground", CallingConvention = CallingConvention.Cdecl)]
+        static extern EmitterSample WrapPrimarySampleToEmitterRay(int emitterId,
+            Vector2 primaryPos, Vector2 primaryDir);
+
         [DllImport("Ground", CallingConvention=CallingConvention.Cdecl)]
-        private static extern ColorRGB ComputeEmission([In] ref SurfacePoint point,
+        static extern ColorRGB ComputeEmission([In] ref SurfacePoint point,
             Vector3 outDir);
     }
 }

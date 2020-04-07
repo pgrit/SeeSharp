@@ -125,10 +125,11 @@ namespace Ground
     };
 
     [StructLayout(LayoutKind.Sequential)]
-    struct EmitterSample
+    public struct EmitterSample
     {
         public SurfaceSample surface;
         public Vector3 direction;
         public float jacobian;
+        public float shadingCosine;
     };
 }

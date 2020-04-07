@@ -4,6 +4,7 @@
 #include "cameras/camera.h"
 #include "image/image.h"
 #include "shading/shading.h"
+#include "shading/emitter.h"
 
 #include <vector>
 #include <memory>
@@ -14,9 +15,12 @@ extern std::vector<std::unique_ptr<ground::Transform>> globalTransforms;
 extern std::vector<std::unique_ptr<ground::Camera>> globalCameras;
 extern std::vector<std::unique_ptr<ground::Image>> globalImages;
 extern std::unique_ptr<ground::Scene> globalScene;
+
 extern std::vector<std::unique_ptr<ground::Material>> globalMaterials;
 extern std::unordered_map<int, int> globalMeshToMaterial;
-extern std::vector<int> globalEmitterRegistry;
+
+extern std::vector<std::unique_ptr<ground::Emitter>> globalEmitters;
+extern std::unordered_map<int, int> globalMeshToEmitter;
 
 inline void _ApiCheck(bool cond, const char* file, int line, const char* func) {
     if (!cond) {

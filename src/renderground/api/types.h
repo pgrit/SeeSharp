@@ -22,6 +22,7 @@ struct SurfacePoint {
     Vector2 barycentricCoords;
     unsigned int meshId;
     unsigned int primId;
+    float errorOffset;
 };
 
 #define INVALID_MESH_ID ((unsigned int) -1)
@@ -29,13 +30,11 @@ struct SurfacePoint {
 struct Hit {
     SurfacePoint point;
     float distance;
-    float errorOffset;
 };
 
 struct SurfaceSample {
     SurfacePoint point;
     float jacobian;
-    float errorOffset;
 };
 
 struct BsdfSample {
@@ -85,7 +84,7 @@ struct GeometryTerms {
 
 struct EmitterSample {
     SurfaceSample surface;
-    Ray ray;
+    Vector3 direction;
     float jacobian;
 };
 

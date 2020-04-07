@@ -2,12 +2,16 @@
 #include "api/internal.h"
 
 #include "shading/generic.h"
+#include "shading/emitter.h"
 
 #include <unordered_map>
 
 std::vector<std::unique_ptr<ground::Material>> globalMaterials;
 std::unordered_map<int, int> globalMeshToMaterial;
-std::vector<int> globalEmitterRegistry;
+
+std::vector<std::unique_ptr<ground::Emitter>> globalEmitters;
+std::unordered_map<int, int> globalMeshToEmitter;
+std::unordered_map<int, int> globalEmitterToMesh;
 
 inline ground::Material* LookupMaterial(int meshId) {
     auto matId = globalMeshToMaterial[meshId];
@@ -104,13 +108,59 @@ GROUND_API float ComputeShadingCosine(const SurfacePoint* point,
     return material->ShadingCosine(*point, inDir, outDir, isOnLightSubpath);
 }
 
+GROUND_API int AttachDiffuseEmitter(int meshId, ColorRGB radiance) {
+    auto mesh = globalScene->GetMesh(meshId);
+
+    globalEmitters.emplace_back(new ground::DiffuseSurfaceEmitter(mesh, radiance));
+    auto emitterId = int(globalEmitters.size()) - 1;
+
+    globalMeshToEmitter[meshId] = emitterId;
+    globalEmitterToMesh[emitterId] = meshId;
+
+    return emitterId;
+}
+
 GROUND_API int GetNumberEmitters() {
-    return globalEmitterRegistry.size();
+    return globalEmitters.size();
 }
 
 GROUND_API int GetEmitterMesh(int emitterId) {
-    ApiCheck(emitterId >= 0 && emitterId < globalEmitterRegistry.size());
-    return globalEmitterRegistry[emitterId];
+    ApiCheck(emitterId >= 0 && emitterId < globalEmitters.size());
+    return globalEmitterToMesh[emitterId];
+}
+
+GROUND_API SurfaceSample WrapPrimarySampleToEmitterSurface(int emitterId, float u, float v) {
+    ApiCheck(u >= 0 && u <= 1);
+    ApiCheck(v >= 0 && v <= 1);
+    ApiCheck(emitterId >= 0 && emitterId < globalEmitters.size());
+
+    const int meshId = GetEmitterMesh(emitterId);
+
+    auto sample = globalEmitters[emitterId]->WrapPrimaryToSurface(Vector2{ u, v });
+    sample.point.meshId = meshId;
+    return sample;
+}
+
+GROUND_API EmitterSample WrapPrimarySampleToEmitterRay(int emitterId,
+    Vector2 primaryPos, Vector2 primaryDir)
+{
+    ApiCheck(emitterId >= 0 && emitterId < globalEmitters.size());
+
+    const int meshId = GetEmitterMesh(emitterId);
+
+    auto sample = globalEmitters[emitterId]->WrapPrimaryToRay(primaryPos, primaryDir);
+    sample.surface.point.meshId = meshId;
+    return sample;
+}
+
+GROUND_API float ComputePrimaryToEmitterRayJacobian(SurfacePoint origin, Vector3 direction) {
+    int emitterId = globalMeshToEmitter[origin.meshId];
+    return globalEmitters[emitterId]->PrimaryToRayJacobian(origin, direction);
+}
+
+GROUND_API float ComputePrimaryToEmitterSurfaceJacobian(const SurfacePoint* point) {
+    int emitterId = globalMeshToEmitter[point->meshId];
+    return globalEmitters[emitterId]->PrimaryToSurfaceJacobian(*point);
 }
 
 }

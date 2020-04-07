@@ -17,7 +17,19 @@ GROUND_API void InitScene() {
 }
 
 GROUND_API void DeleteScene() {
+    globalCameras.clear();
+
+    globalEmitters.clear();
+    globalMeshToEmitter.clear();
+    
+    globalMaterials.clear();
+    globalMeshToMaterial.clear();
+    
+    globalTransforms.clear();
+
     globalScene.release();
+
+    globalImages.clear();
 }
 
 GROUND_API int AddTriangleMesh(const float* vertices, int numVerts,
@@ -32,18 +44,6 @@ GROUND_API int AddTriangleMesh(const float* vertices, int numVerts,
 }
 
 GROUND_API void FinalizeScene() {
-    // Scan the scene for all emissive objects and keep track of them.
-    for (int meshId = 0; meshId < globalScene->GetNumMeshes(); ++meshId) {
-        // Check if the mesh has a material
-        auto iter = globalMeshToMaterial.find(meshId);
-        if (iter == globalMeshToMaterial.end())
-            continue;
-
-        // Add to the registry if the material is emissive
-        if (globalMaterials[iter->second]->IsEmissive())
-            globalEmitterRegistry.push_back(meshId);
-    }
-
     globalScene->Finalize();
 }
 
@@ -62,59 +62,23 @@ GROUND_API void TraceMulti(const Ray* rays, int num, Hit* hits) {
     });
 }
 
-GROUND_API SurfaceSample WrapPrimarySampleToSurface(int meshId, float u, float v) {
-    ApiCheck(u >= 0 && u <= 1);
-    ApiCheck(v >= 0 && v <= 1);
-    ApiCheck(meshId < globalScene->GetNumMeshes());
-    ApiCheck(meshId >= 0);
-
-    // Get the mesh, wrap the sample to its surface, and set the correct meshId
-    auto& m = globalScene->GetMesh(meshId);
-    auto sample = m.PrimarySampleToSurface(Vector2{u, v});
-    sample.point.meshId = meshId;
-
-    return sample;
-}
-
-GROUND_API EmitterSample WrapPrimarySampleToEmitterRay(int meshId,
-    Vector2 primaryPos, Vector2 primaryDir)
-{
-    SurfaceSample sample = WrapPrimarySampleToSurface(meshId, primaryPos.x, primaryPos.y);
-
-    Ray ray;
-    float dirJacobian;
-
-    return EmitterSample{
-        sample, ray, dirJacobian
-    };
-}
-
-GROUND_API Vector2 ComputePrimaryToEmitterRayJacobian(SurfacePoint origin, Vector3 direction) {
-    return Vector2 { 0, 0 };
-}
-
-GROUND_API float ComputePrimaryToSurfaceJacobian(const SurfacePoint* point) {
-    auto& m = globalScene->GetMesh(point->meshId);
-    return m.ComputePrimaryToSurfaceJacobian(*point);
-}
-
 GROUND_API bool IsOccluded(const Hit* from, Vector3 to) {
     // TODO this function could (and should) call a special variant of "TraceSingle"
     //      that only checks occlusion for performance.
 
     auto shadowDir = to - from->point.position;
-    auto shadowHit = TraceSingle(Ray{from->point.position, shadowDir, from->errorOffset});
-    if (shadowHit.point.meshId >= 0 && shadowHit.distance < 1.0f - from->errorOffset)
+    auto shadowHit = TraceSingle(Ray{from->point.position, shadowDir, from->point.errorOffset});
+    if (shadowHit.point.meshId >= 0 && shadowHit.distance < 1.0f - from->point.errorOffset)
         return true;
     return false;
 }
 
-GROUND_API Ray SpawnRay(const Hit* from, Vector3 direction) {
-    float sign = Dot(direction, from->point.normal) < 0.0f ? -1.0f : 1.0f;
+GROUND_API Ray SpawnRay(SurfacePoint from, Vector3 direction) {
+    float sign = Dot(direction, from.normal) < 0.0f ? -1.0f : 1.0f;
     return Ray {
-        from->point.position + sign * from->errorOffset * from->point.normal,
+        from.position + sign * from.errorOffset * from.normal,
         direction,
-        from->errorOffset
+        from.errorOffset
     };
 }
 
@@ -143,7 +107,7 @@ GROUND_API GeometryTerms ComputeGeometryTerms(const SurfacePoint* from, const Su
 }
 
 GROUND_API Vector3 ComputeShadingNormal(SurfacePoint point) {
-    return globalScene->GetMesh(point.meshId).ComputeShadingNormal(
+    return globalScene->GetMesh(point.meshId)->ComputeShadingNormal(
         point.primId, point.barycentricCoords);
 }
 

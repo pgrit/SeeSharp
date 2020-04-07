@@ -27,8 +27,8 @@ void Scene::Init() {
 
 int Scene::AddMesh(Mesh&& mesh) {
     // Add the mesh data to our internal storage, used for sampling etc.
-    meshes.emplace_back(mesh);
-    const auto& m = meshes.back();
+    meshes.emplace_back(new Mesh(mesh));
+    const auto& m = *meshes.back();
     const int meshId = meshes.size() - 1;
 
     // Create the Embree buffers
@@ -99,9 +99,9 @@ Hit Scene::Intersect(const Ray& ray) {
             Vector2 { rayhit.hit.u, rayhit.hit.v },
             rayhit.hit.geomID,
             rayhit.hit.primID,
+            errorOffset,
         },
-        rayhit.ray.tfar,
-        errorOffset
+        rayhit.ray.tfar
     };
 
     // Embree does not normalize the face normal

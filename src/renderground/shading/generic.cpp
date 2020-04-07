@@ -20,9 +20,9 @@ GenericMaterial::GenericMaterial(const Scene* scene,
 Vector3 GenericMaterial::EvaluateBsdf(const SurfacePoint& point,
     const Vector3& inDir, const Vector3& outDir, bool isOnLightSubpath) const
 {
-    auto texCoords = scene->GetMesh(point.meshId).ComputeTextureCoordinates(
+    auto texCoords = scene->GetMesh(point.meshId)->ComputeTextureCoordinates(
         point.primId, point.barycentricCoords);
-    auto shadingNormal = scene->GetMesh(point.meshId).ComputeShadingNormal(
+    auto shadingNormal = scene->GetMesh(point.meshId)->ComputeShadingNormal(
         point.primId, point.barycentricCoords);
 
     bool isReflectance = AreInSameHemisphere(point, inDir, outDir);
@@ -40,7 +40,7 @@ Vector3 GenericMaterial::EvaluateBsdf(const SurfacePoint& point,
 float GenericMaterial::ShadingCosine(const SurfacePoint& point, const Vector3& inDir,
         const Vector3& outDir, bool isOnLightSubpath) const
 {
-    auto shadingNormal = scene->GetMesh(point.meshId).ComputeShadingNormal(
+    auto shadingNormal = scene->GetMesh(point.meshId)->ComputeShadingNormal(
         point.primId, point.barycentricCoords);
 
     // Flip the shading normal to be on the same hemisphere as the outgoing direction.
@@ -53,9 +53,9 @@ float GenericMaterial::ShadingCosine(const SurfacePoint& point, const Vector3& i
 BsdfSampleInfo GenericMaterial::WrapPrimarySampleToBsdf(const SurfacePoint& point,
     Vector3* inDir, const Vector3& outDir, bool isOnLightSubpath, const Vector2& primarySample) const
 {
-    auto texCoords = scene->GetMesh(point.meshId).ComputeTextureCoordinates(
+    auto texCoords = scene->GetMesh(point.meshId)->ComputeTextureCoordinates(
         point.primId, point.barycentricCoords);
-    auto shadingNormal = scene->GetMesh(point.meshId).ComputeShadingNormal(
+    auto shadingNormal = scene->GetMesh(point.meshId)->ComputeShadingNormal(
         point.primId, point.barycentricCoords);
 
     // Flip the shadingNormal to the same side of the surface as the outgoing direction
@@ -83,9 +83,9 @@ BsdfSampleInfo GenericMaterial::WrapPrimarySampleToBsdf(const SurfacePoint& poin
 }
 
 Vector3 GenericMaterial::ComputeEmission(const SurfacePoint& point, const Vector3& outDir) const {
-    auto texCoords = scene->GetMesh(point.meshId).ComputeTextureCoordinates(
+    auto texCoords = scene->GetMesh(point.meshId)->ComputeTextureCoordinates(
         point.primId, point.barycentricCoords);
-    auto shadingNormal = scene->GetMesh(point.meshId).ComputeShadingNormal(
+    auto shadingNormal = scene->GetMesh(point.meshId)->ComputeShadingNormal(
         point.primId, point.barycentricCoords);
 
     // Emission only occurs in the direction of the shading normal.
@@ -102,7 +102,7 @@ Vector3 GenericMaterial::ComputeEmission(const SurfacePoint& point, const Vector
 BsdfSampleInfo GenericMaterial::ComputeJacobians(const SurfacePoint& point,
         const Vector3& inDir, const Vector3& outDir, bool isOnLightSubpath) const
 {
-    auto shadingNormal = scene->GetMesh(point.meshId).ComputeShadingNormal(
+    auto shadingNormal = scene->GetMesh(point.meshId)->ComputeShadingNormal(
         point.primId, point.barycentricCoords);
     CheckNormalized(shadingNormal);
 

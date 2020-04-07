@@ -1,6 +1,7 @@
 #pragma once
 
 #include <vector>
+#include <memory>
 #include <embree3/rtcore.h>
 
 #include "renderground/geometry/mesh.h"
@@ -19,7 +20,7 @@ public:
     void Init();
 
     int AddMesh(Mesh&& mesh);
-    const Mesh& GetMesh(int meshId) const { return meshes[meshId]; }
+    const Mesh* GetMesh(int meshId) const { return meshes[meshId].get(); }
     int GetNumMeshes() const { return meshes.size(); }
 
     void Finalize();
@@ -27,7 +28,7 @@ public:
     Hit Intersect(const Ray& ray);
 
 private:
-    std::vector<Mesh> meshes;
+    std::vector<std::unique_ptr<Mesh>> meshes;
     bool isInit = false;
     bool isFinal = false;
 

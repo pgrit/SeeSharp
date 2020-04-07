@@ -85,106 +85,106 @@ int SetupCamera(int frameBuffer) {
 }
 
 int main() {
-    const int imageWidth = 512;
-    const int imageHeight = 512;
-    const int frameBuffer = CreateImageRGB(imageWidth, imageHeight);
-    InitScene();
-    LoadCornellBox();
-    FinalizeScene();
+    //const int imageWidth = 512;
+    //const int imageHeight = 512;
+    //const int frameBuffer = CreateImageRGB(imageWidth, imageHeight);
+    //InitScene();
+    //LoadCornellBox();
+    //FinalizeScene();
 
-    int numEmitter = GetNumberEmitters();
-    const int lightMesh = GetEmitterMesh(0); // TODO get them all and build a light selection structure
+    //int numEmitter = GetNumberEmitters();
+    //const int lightMesh = GetEmitterMesh(0); // TODO get them all and build a light selection structure
 
-    const int camId = 0;
+    //const int camId = 0;
 
-    // return 0;
+    //// return 0;
 
-    auto startTime = std::chrono::high_resolution_clock::now();
+    //auto startTime = std::chrono::high_resolution_clock::now();
 
-    // const int lightMesh = SetupSimpleSceneGeometry();
+    //// const int lightMesh = SetupSimpleSceneGeometry();
 
-    // const int camId = SetupCamera(frameBuffer);
+    //// const int camId = SetupCamera(frameBuffer);
 
-    const uint64_t BaseSeed = 0xC030114Ui64;
+    //const uint64_t BaseSeed = 0xC030114Ui64;
 
-    tbb::parallel_for(tbb::blocked_range<int>(0, imageHeight),
-        [&](tbb::blocked_range<int> r) {
-    const int totalSpp = 8;
-    for (int sampleIdx = 0; sampleIdx < totalSpp; ++sampleIdx) {
-        // for(int y = 0; y < imageHeight; ++y) {
-        for (int y = r.begin(); y < r.end(); ++y) {
-            for (int x = 0; x < imageWidth; ++x) {
-                auto h1 = HashSeed(BaseSeed, (y * imageWidth + x));
-                auto h2 = HashSeed(h1, sampleIdx);
-                RNG rng(h2);
-                // RNG rng(HashSeed(BaseSeed, (y * imageWidth + x) * totalSpp + sampleIdx));
+    //tbb::parallel_for(tbb::blocked_range<int>(0, imageHeight),
+    //    [&](tbb::blocked_range<int> r) {
+    //const int totalSpp = 8;
+    //for (int sampleIdx = 0; sampleIdx < totalSpp; ++sampleIdx) {
+    //    // for(int y = 0; y < imageHeight; ++y) {
+    //    for (int y = r.begin(); y < r.end(); ++y) {
+    //        for (int x = 0; x < imageWidth; ++x) {
+    //            auto h1 = HashSeed(BaseSeed, (y * imageWidth + x));
+    //            auto h2 = HashSeed(h1, sampleIdx);
+    //            RNG rng(h2);
+    //            // RNG rng(HashSeed(BaseSeed, (y * imageWidth + x) * totalSpp + sampleIdx));
 
-                CameraSampleInfo camSample;
-                camSample.filmSample = Vector2 { x + rng.NextFloat(), y + rng.NextFloat() };
+    //            CameraSampleInfo camSample;
+    //            camSample.filmSample = Vector2 { x + rng.NextFloat(), y + rng.NextFloat() };
 
-                auto ray = GenerateCameraRay(camId, camSample);
-                auto hit = TraceSingle(ray);
+    //            auto ray = GenerateCameraRay(camId, camSample);
+    //            auto hit = TraceSingle(ray);
 
-                ColorRGB value { 0, 0, 0};
-                if (hit.point.meshId < 0) continue;
+    //            ColorRGB value { 0, 0, 0};
+    //            if (hit.point.meshId < 0) continue;
 
-                // Estimate DI via next event shadow ray
-                auto lightSample = WrapPrimarySampleToSurface(lightMesh, rng.NextFloat(), rng.NextFloat());
-                if (!IsOccluded(&hit, lightSample.point.position)) {
-                    Vector3 lightDir = hit.point.position - lightSample.point.position;
-                    auto emission = ComputeEmission(&lightSample.point,
-                        lightDir);
+    //            // Estimate DI via next event shadow ray
+    //            auto lightSample = WrapPrimarySampleToSurface(lightMesh, rng.NextFloat(), rng.NextFloat());
+    //            if (!IsOccluded(&hit, lightSample.point.position)) {
+    //                Vector3 lightDir = hit.point.position - lightSample.point.position;
+    //                auto emission = ComputeEmission(&lightSample.point,
+    //                    lightDir);
 
-                    auto bsdfValue = EvaluateBsdf(&hit.point, -ray.direction, lightDir, false);
-                    auto geometryTerms = ComputeGeometryTerms(&hit.point, &lightSample.point);
+    //                auto bsdfValue = EvaluateBsdf(&hit.point, -ray.direction, lightDir, false);
+    //                auto geometryTerms = ComputeGeometryTerms(&hit.point, &lightSample.point);
 
-                    // Compute MIS weights
-                    float pdfNextEvt = lightSample.jacobian;
-                    float pdfBsdf = ComputePrimaryToBsdfJacobian(&hit.point, -ray.direction,
-                        lightDir, false).jacobian * geometryTerms.cosineTo / geometryTerms.squaredDistance;
-                    float pdfRatio = pdfBsdf / pdfNextEvt;
-                    float misWeight = 1 / (pdfRatio * pdfRatio + 1);
+    //                // Compute MIS weights
+    //                float pdfNextEvt = lightSample.jacobian;
+    //                float pdfBsdf = ComputePrimaryToBsdfJacobian(&hit.point, -ray.direction,
+    //                    lightDir, false).jacobian * geometryTerms.cosineTo / geometryTerms.squaredDistance;
+    //                float pdfRatio = pdfBsdf / pdfNextEvt;
+    //                float misWeight = 1 / (pdfRatio * pdfRatio + 1);
 
-                    value = value + misWeight * emission * bsdfValue
-                        * (geometryTerms.geomTerm / lightSample.jacobian);
-                }
+    //                value = value + misWeight * emission * bsdfValue
+    //                    * (geometryTerms.geomTerm / lightSample.jacobian);
+    //            }
 
-                // Estimate DI via BSDF importance sampling
-                auto bsdfSample = WrapPrimarySampleToBsdf(&hit.point,
-                    -ray.direction, rng.NextFloat(), rng.NextFloat(), false);
-                auto bsdfValue = EvaluateBsdf(&hit.point, -ray.direction,
-                    bsdfSample.direction, false);
+    //            // Estimate DI via BSDF importance sampling
+    //            auto bsdfSample = WrapPrimarySampleToBsdf(&hit.point,
+    //                -ray.direction, rng.NextFloat(), rng.NextFloat(), false);
+    //            auto bsdfValue = EvaluateBsdf(&hit.point, -ray.direction,
+    //                bsdfSample.direction, false);
 
-                auto bsdfRay = SpawnRay(&hit, bsdfSample.direction);
-                auto bsdfhit = TraceSingle(bsdfRay);
+    //            auto bsdfRay = SpawnRay(&hit, bsdfSample.direction);
+    //            auto bsdfhit = TraceSingle(bsdfRay);
 
-                if (bsdfhit.point.meshId == lightMesh) { // The light source was hit.
-                    auto emission = ComputeEmission(&bsdfhit.point, -bsdfRay.direction);
+    //            if (bsdfhit.point.meshId == lightMesh) { // The light source was hit.
+    //                auto emission = ComputeEmission(&bsdfhit.point, -bsdfRay.direction);
 
-                    auto geometryTerms = ComputeGeometryTerms(&hit.point, &bsdfhit.point);
+    //                auto geometryTerms = ComputeGeometryTerms(&hit.point, &bsdfhit.point);
 
-                    // Compute MIS weights
-                    float pdfNextEvt = ComputePrimaryToSurfaceJacobian(&bsdfhit.point);
-                    float pdfBsdf = bsdfSample.jacobian * geometryTerms.cosineTo / geometryTerms.squaredDistance;
-                    float pdfRatio = pdfNextEvt / pdfBsdf;
-                    float misWeight = 1 / (pdfRatio * pdfRatio + 1);
+    //                // Compute MIS weights
+    //                float pdfNextEvt = ComputePrimaryToSurfaceJacobian(&bsdfhit.point);
+    //                float pdfBsdf = bsdfSample.jacobian * geometryTerms.cosineTo / geometryTerms.squaredDistance;
+    //                float pdfRatio = pdfNextEvt / pdfBsdf;
+    //                float misWeight = 1 / (pdfRatio * pdfRatio + 1);
 
-                    value = value + misWeight * emission * bsdfValue
-                        * (geometryTerms.cosineFrom / bsdfSample.jacobian);
-                }
+    //                value = value + misWeight * emission * bsdfValue
+    //                    * (geometryTerms.cosineFrom / bsdfSample.jacobian);
+    //            }
 
-                value = value * (1.0f / totalSpp);
-                AddSplatRGB(frameBuffer, camSample.filmSample.x, camSample.filmSample.y, value);
-            }
-        }
-    }
-    });
+    //            value = value * (1.0f / totalSpp);
+    //            AddSplatRGB(frameBuffer, camSample.filmSample.x, camSample.filmSample.y, value);
+    //        }
+    //    }
+    //}
+    //});
 
-    WriteImage(frameBuffer, "render.exr");
+    //WriteImage(frameBuffer, "render.exr");
 
-    auto endTime = std::chrono::high_resolution_clock::now();
-    auto deltaTime = std::chrono::duration_cast<std::chrono::milliseconds>(endTime - startTime).count();
-    std::cout << deltaTime << "ms" << std::endl;
+    //auto endTime = std::chrono::high_resolution_clock::now();
+    //auto deltaTime = std::chrono::duration_cast<std::chrono::milliseconds>(endTime - startTime).count();
+    //std::cout << deltaTime << "ms" << std::endl;
 
     return 0;
 }

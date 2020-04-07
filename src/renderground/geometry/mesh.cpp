@@ -111,12 +111,13 @@ SurfaceSample Mesh::PrimarySampleToSurface(const Vector2& primarySample) const {
         barycentricCoords,
         INVALID_MESH_ID, // To be filled by the caller, we don't know our own Id
         primId,
+        0.0f
     };
 
-    float errorOffset = ComputeErrorOffset(point);
+    point.errorOffset = ComputeErrorOffset(point);
 
     return SurfaceSample {
-        point, jacobian, errorOffset  
+        point, jacobian  
     };
 }
 

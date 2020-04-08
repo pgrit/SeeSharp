@@ -11,3 +11,11 @@
 #ifdef __cplusplus
 #include <renderground/api/cpputils.h>
 #endif
+
+/**
+\mainpage Renderground
+
+\section Camera
+\see camera.h
+
+*/

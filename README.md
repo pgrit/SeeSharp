@@ -35,3 +35,7 @@ cmake --build .
 ```
 
 Or, alternatively, simply open the folder in Visual Studio 2019 and it should be automatically configured correctly.
+
+# Generating the documentation
+
+Run doxygen in the root folder and use `docs/doxyfile` as the configuration file. The output will be in the `docs` folder.

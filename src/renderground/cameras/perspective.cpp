@@ -21,7 +21,7 @@ PerspectiveCamera::PerspectiveCamera(const Transform* transform,
                  * Scale(2.0f / frameBuffer->width, 2.0f / frameBuffer->height, 0.0f);
 }
 
-Ray PerspectiveCamera::GenerateRay(const Vector2& filmSample, const Vector2& lensSample, float time) {
+Ray PerspectiveCamera::GenerateRay(const Vector2& filmSample, const Vector2& lensSample, float time) const {
     Vector3 origin{ 0, 0, 0 };
 
     // Map pixel coordinates to the local space of the camera
@@ -41,6 +41,18 @@ Ray PerspectiveCamera::GenerateRay(const Vector2& filmSample, const Vector2& len
         Normalize(direction),
         0.0f
     };
+}
+
+Vector2 PerspectiveCamera::WorldToFilm(const Vector3& worldSpacePoint) const {
+    // Apply the inverse world space transformation
+    Vector3 localPoint = transform->InvApplyToPoint(worldSpacePoint);
+
+    Float4 local(localPoint, 1.0f);
+    local.z = -local.z;
+    Float4 view = localToView * local;
+    Float4 raster = viewToRaster * view;
+
+    return Vector2{ raster.x / raster.w, raster.y / raster.w };
 }
 
 } // namespace ground

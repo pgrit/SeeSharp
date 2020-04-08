@@ -33,4 +33,12 @@ Generates a ray from the camera for a given pixel and primary sample on the lens
 */
 GROUND_API Ray GenerateCameraRay(int camera, CameraSampleInfo sampleInfo);
 
+/**
+Transforms a point in world space to camera space and projects it on the image plane.
+Returns the position on the camera film.
+
+\see CameraSampleInfo for the conventions the returned vector is following.
+*/
+GROUND_API Vector2 MapWorldSpaceToCameraFilm(int camera, Vector3 worldSpacePoint);
+
 }

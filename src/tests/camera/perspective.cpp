@@ -165,7 +165,18 @@ TEST_F(PerspectiveCameraTests, WorldToRaster) {
 
     int camId = CreatePerspectiveCamera(camTransform, fov, frameBufferId);
 
-    // TODO implement this
+    // Test a point in the very center
+    Vector2 rasterPos = MapWorldSpaceToCameraFilm(camId, Vector3{ 0, 0, 10 });
+    EXPECT_FLOAT_EQ(rasterPos.x, 1.5f);
+    EXPECT_FLOAT_EQ(rasterPos.y, 1.5f);
+
+    // Test a point in the bottom left corner
+
+    // Test a point in the top right corner
+
+    // Test a point in the top left corner
+
+    // Test a point in the bottom right corner
 }
 
 TEST_F(PerspectiveCameraTests, ClippingPlanes) {

@@ -18,4 +18,8 @@ GROUND_API Ray GenerateCameraRay(int camera, CameraSampleInfo sampleInfo) {
         sampleInfo.lensSample, sampleInfo.time);
 }
 
+GROUND_API Vector2 MapWorldSpaceToCameraFilm(int camera, Vector3 worldSpacePoint) {
+    return globalCameras[camera]->WorldToFilm(worldSpacePoint);
+}
+
 }

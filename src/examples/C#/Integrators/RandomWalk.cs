@@ -2,7 +2,7 @@ using Ground;
 
 namespace Experiments
 {
-    readonly struct RandomWalk {
+    public readonly struct RandomWalk {
         public readonly Scene scene;
         public readonly RNG rng;
         public readonly PathCache cache;

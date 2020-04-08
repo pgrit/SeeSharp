@@ -4,7 +4,9 @@
 
 extern "C" {
 
-// Creates a new HDR image buffer, initialized to black. Returns its ID.
+/// Creates a new HDR image buffer, initialized to black. Returns its ID.
+/// \param  width   The width of the image (number of pixel columns).
+/// \param  height  The height of the image (number of pixel rows).
 GROUND_API int CreateImageRGB(int width, int height);
 
 // Splats a value into the image buffer with the given ID.

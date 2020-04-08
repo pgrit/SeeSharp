@@ -3,7 +3,7 @@ using Ground;
 
 namespace Experiments {
 
-    class PathTracer {
+    public class PathTracer {
         public void Render(Scene scene) {
             System.Threading.Tasks.Parallel.For(0, scene.frameBuffer.height,
                 row => {

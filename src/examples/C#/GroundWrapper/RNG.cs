@@ -5,7 +5,7 @@ namespace Ground {
     /// Small and fast random number generator based on MWC64X
     /// http://cas.ee.ic.ac.uk/people/dt10/research/rngs-gpu-mwc64x.html
     /// </summary>
-    class RNG {
+    public class RNG {
         public RNG(UInt64 seed = 0) {
             this.state = seed;
         }

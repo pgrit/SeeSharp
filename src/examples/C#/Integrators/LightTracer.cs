@@ -4,7 +4,7 @@ using Ground;
 
 namespace Experiments {
 
-    class LightTracer {
+    public class LightTracer {
         public void Render(Scene scene) {
             PathCache pathCache = new PathCache(TotalPaths * MaxDepth);
 

@@ -34,3 +34,7 @@ AddNamedTest(ShadingTests
 AddNamedTest(EmitterTests
     "emitter/diffuse.cpp"
 )
+
+AddNamedTest(CameraTests
+    "camera/perspective.cpp"
+)

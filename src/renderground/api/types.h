@@ -67,11 +67,19 @@ struct PathVertex {
     int ancestorId;
 };
 
-// Stores primary space sample values for a camera sample query.
+/** Stores primary space sample values for a camera sample query.
+
+The primary sample space of the film (\see filmSample) is the pixel raster of the rendered image.
+The coordinate system spans the image plane as follows:
+(0,0) is the bottom left corner of the bottom left pixel.
+The x axis points to the right, hence (1,0) is the bottom right corner of the bottom right pixel.
+The y axis points upwards, hence (0,1) is the top left corner of the top left pixel.
+
+*/
 struct CameraSampleInfo {
-    Vector2 filmSample;
-    Vector2 lensSample;
-    float time;
+    Vector2 filmSample; // TODO should probably be renamed to "filmPOSITION"
+    Vector2 lensSample; // TODO should probably be more verbose: lensPrimarySample
+    float time; // TODO decide on conventions once this is actually used.
 };
 
 struct GeometryTerms {

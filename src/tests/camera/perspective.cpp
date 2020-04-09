@@ -167,20 +167,57 @@ TEST_F(PerspectiveCameraTests, WorldToRaster) {
 
     // Test a point in the very center
     Vector2 rasterPos = MapWorldSpaceToCameraFilm(camId, Vector3{ 0, 0, 10 });
-    EXPECT_FLOAT_EQ(rasterPos.x, 1.5f);
-    EXPECT_FLOAT_EQ(rasterPos.y, 1.5f);
+    EXPECT_NEAR(rasterPos.x, 1.5f, 1e-4f);
+    EXPECT_NEAR(rasterPos.y, 1.5f, 1e-4f);
 
     // Test a point in the bottom left corner
+    rasterPos = MapWorldSpaceToCameraFilm(camId, Vector3{ -10, -10, 10 });
+    EXPECT_NEAR(rasterPos.x, 0.0f, 1e-4f);
+    EXPECT_NEAR(rasterPos.y, 0.0f, 1e-4f);
 
     // Test a point in the top right corner
+    rasterPos = MapWorldSpaceToCameraFilm(camId, Vector3{ 10, 10, 10 });
+    EXPECT_NEAR(rasterPos.x, 3.0f, 1e-4f);
+    EXPECT_NEAR(rasterPos.y, 3.0f, 1e-4f);
 
     // Test a point in the top left corner
+    rasterPos = MapWorldSpaceToCameraFilm(camId, Vector3{ -10, 10, 10 });
+    EXPECT_NEAR(rasterPos.x, 0.0f, 1e-4f);
+    EXPECT_NEAR(rasterPos.y, 3.0f, 1e-4f);
 
     // Test a point in the bottom right corner
+    rasterPos = MapWorldSpaceToCameraFilm(camId, Vector3{ 10, -10, 10 });
+    EXPECT_NEAR(rasterPos.x, 3.0f, 1e-4f);
+    EXPECT_NEAR(rasterPos.y, 0.0f, 1e-4f);
 }
 
 TEST_F(PerspectiveCameraTests, ClippingPlanes) {
     // Test behaviour for points before the near plane or after the far plane
 
-    // TODO implement this
+    int frameBufferId = CreateImageRGB(3, 3);
+
+    int camTransform = CreateTransform(
+        Vector3{ 0, 0, 0 },  // pos
+        Vector3{ 0, 0, 0 },  // rot
+        Vector3{ 1, 1, 1 }); // scale
+
+    const float fov = 90.0f;
+
+    int camId = CreatePerspectiveCamera(camTransform, fov, frameBufferId);
+
+    // Test a point in the very center
+    // typical distance
+    Vector2 rasterPos = MapWorldSpaceToCameraFilm(camId, Vector3{ 0, 0, 10 });
+    EXPECT_NEAR(rasterPos.x, 1.5f, 1e-4f);
+    EXPECT_NEAR(rasterPos.y, 1.5f, 1e-4f);
+
+    // very far away
+    rasterPos = MapWorldSpaceToCameraFilm(camId, Vector3{ 0, 0, 1e19f });
+    EXPECT_NEAR(rasterPos.x, 1.5f, 1e-4f);
+    EXPECT_NEAR(rasterPos.y, 1.5f, 1e-4f);
+
+    // very close
+    rasterPos = MapWorldSpaceToCameraFilm(camId, Vector3{ 0, 0, 1e-19f });
+    EXPECT_NEAR(rasterPos.x, 1.5f, 1e-4f);
+    EXPECT_NEAR(rasterPos.y, 1.5f, 1e-4f);
 }

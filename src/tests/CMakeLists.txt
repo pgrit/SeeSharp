@@ -38,3 +38,7 @@ AddNamedTest(EmitterTests
 AddNamedTest(CameraTests
     "camera/perspective.cpp"
 )
+
+AddNamedTest(UtilityTests
+    "utility/pathcache.cpp"
+)

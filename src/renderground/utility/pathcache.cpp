@@ -9,6 +9,8 @@ namespace ground
 PathCache::PathCache(int initialSize)
 : vertexCache(initialSize)
 {
+    next = 0;
+    overflow = 0;
     Clear();
 }
 

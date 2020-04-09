@@ -8,6 +8,8 @@
 
 #include <renderground/api/scenefiles.h>
 
+#include <renderground/api/pathcache.h>
+
 #ifdef __cplusplus
 #include <renderground/api/cpputils.h>
 #endif

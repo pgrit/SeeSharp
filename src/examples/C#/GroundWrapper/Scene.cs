@@ -28,6 +28,8 @@ namespace Ground
             FindEmitters();
         }
 
+        public Vector3 CameraPosition => SampleCamera(0, 0, 0.0f, 0.0f).Item1.origin;
+
         public (Ray, Vector2) SampleCamera(uint row, uint col, float u, float v) {
             CameraSampleInfo camSample = new CameraSampleInfo() {
                 filmSample = new Vector2 {
@@ -40,6 +42,22 @@ namespace Ground
             return (ray, camSample.filmSample);
         }
 
+        /// <summary>
+        /// Projects the given world space coordinates onto the active camera's film.
+        /// </summary>
+        /// <param name="worldPos">A position in world space to project.</param>
+        /// <returns>The (possibly imaginary) raster position and a bool indicating whether the point is within the view frustum.</returns>
+        public (Vector2, bool) ProjectOntoFilm(Vector3 worldPos) {
+            // TODO support multiple cameras, specified by id here
+            Vector3 projected = CApiImports.MapWorldSpaceToCameraFilm(0, worldPos);
+
+            bool isOutside =  projected.x < 0 || projected.x > frameBuffer.width  ||
+                projected.y < 0 || projected.y > frameBuffer.height ||
+                projected.z < 0;
+
+            return (new Vector2{ x=projected.x, y=projected.y}, !isOutside);
+        }
+
         public Hit TraceRay(Ray ray) {
             return CApiImports.TraceSingle(ray);
         }
@@ -48,7 +66,7 @@ namespace Ground
             return hit.point.meshId < uint.MaxValue;
         }
 
-        public bool IsOccluded(Hit from, Vector3 to) {
+        public bool IsOccluded(SurfacePoint from, Vector3 to) {
             return CApiImports.IsOccluded(ref from, to);
         }
 
@@ -122,11 +140,14 @@ namespace Ground
                 CameraSampleInfo sampleInfo);
 
             [DllImport("Ground", CallingConvention = CallingConvention.Cdecl)]
+            public static extern Vector3 MapWorldSpaceToCameraFilm(int camera, Vector3 worldSpacePoint);
+
+            [DllImport("Ground", CallingConvention = CallingConvention.Cdecl)]
             public static extern Hit TraceSingle(Ray ray);
 
             [DllImport("Ground", CallingConvention = CallingConvention.Cdecl)]
             [return: MarshalAs(UnmanagedType.I1)]
-            public static extern bool IsOccluded([In] ref Hit from, Vector3 to);
+            public static extern bool IsOccluded([In] ref SurfacePoint from, Vector3 to);
 
             [DllImport("Ground", CallingConvention = CallingConvention.Cdecl)]
             public static extern Ray SpawnRay(SurfacePoint from, Vector3 direction);

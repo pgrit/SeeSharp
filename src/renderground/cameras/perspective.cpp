@@ -43,7 +43,7 @@ Ray PerspectiveCamera::GenerateRay(const Vector2& filmSample, const Vector2& len
     };
 }
 
-Vector2 PerspectiveCamera::WorldToFilm(const Vector3& worldSpacePoint) const {
+Vector3 PerspectiveCamera::WorldToFilm(const Vector3& worldSpacePoint) const {
     // Apply the inverse world space transformation
     Vector3 localPoint = transform->InvApplyToPoint(worldSpacePoint);
 
@@ -52,7 +52,11 @@ Vector2 PerspectiveCamera::WorldToFilm(const Vector3& worldSpacePoint) const {
     Float4 view = localToView * local;
     Float4 raster = viewToRaster * view;
 
-    return Vector2{ raster.x / raster.w, raster.y / raster.w };
+    return Vector3{ 
+        raster.x / raster.w, 
+        raster.y / raster.w,
+        Length(localPoint) * (view.z < 0 ? -1 : 1)
+    };
 }
 
 } // namespace ground

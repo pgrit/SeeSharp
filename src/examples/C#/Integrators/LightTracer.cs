@@ -6,39 +6,45 @@ namespace Experiments {
 
     public class LightTracer {
         public void Render(Scene scene) {
-            PathCache pathCache = new PathCache(TotalPaths * MaxDepth);
+            for (int iter = 0; iter < NumIterations; ++iter) {
+                PathCache pathCache = new PathCache(TotalPaths * MaxDepth);
 
-            Parallel.For(0, TotalPaths, idx => {
-                var seed = RNG.HashSeed(BaseSeed, (uint)idx, (uint)idx);
-                var rng = new RNG(seed);
-                TraceLightPath(scene, rng, pathCache);
-            });
+                Parallel.For(0, TotalPaths, idx => {
+                    var seed = RNG.HashSeed(BaseSeed, (uint)idx, (uint)iter);
+                    var rng = new RNG(seed);
+                    TraceLightPath(scene, rng, pathCache, idx);
+                });
 
-            Parallel.For(0, TotalPaths, idx => {
-                ConnectPathVerticesToCamera(endpointIds[idx], pathCache);
-            });
+                Parallel.For(0, TotalPaths, idx => {
+                    ConnectPathVerticesToCamera(scene, endpointIds[idx], pathCache);
+                });
 
-            pathCache.Clear();
-
-            // TODO repeat for multiple iterations
+                pathCache.Clear();
+            }
         }
 
-        void ConnectPathVerticesToCamera(int vertexId, PathCache pathCache)
-        {
-            var vertex = pathCache[vertexId];
+        void ConnectPathVerticesToCamera(Scene scene, int vertexId, PathCache pathCache) {
+            while (vertexId > 0) { // >0 because we do not connect to the light source directly
+                var vertex = pathCache[vertexId];
 
-            // Compute image plane location
+                // Compute image plane location
+                var (raster, isVisible) = scene.ProjectOntoFilm(vertex.point.position);
+                if (!isVisible)
+                    goto Next;
 
-            // Trace shadow ray
+                // Trace shadow ray
+                if (scene.IsOccluded(vertex.point, scene.CameraPosition))
+                    goto Next;
 
-            // Compute image contribution and splat
+                // Compute image contribution and splat
+                scene.frameBuffer.Splat(raster.x, raster.y, ColorRGB.White * (1.0f / NumIterations));
 
-            // Recurse: repeat with the ancestor unless it lies on the light source itself.
-            if (vertex.ancestorId >= 0)
-                ConnectPathVerticesToCamera(vertex.ancestorId, pathCache);
+            Next:
+                vertexId = vertex.ancestorId;
+            }
         }
 
-        void TraceLightPath(Scene scene, RNG rng, PathCache pathCache) {
+        void TraceLightPath(Scene scene, RNG rng, PathCache pathCache, int pathIdx) {
             var emitter = SelectEmitter(scene, rng); // TODO once this is a proper selection: obtain and consider PDF
 
             var primaryPos = rng.NextFloat2D();
@@ -58,6 +64,9 @@ namespace Experiments {
                 initialRay: ray,
                 directionPdf: emitterSample.jacobian,
                 initialWeight: weight);
+
+            // keep track of the endpoint
+            endpointIds[pathIdx] = lastVertexId;
         }
 
         Emitter SelectEmitter(Scene scene, RNG rng) {
@@ -67,6 +76,7 @@ namespace Experiments {
         const int TotalPaths = 512 * 512;
         const UInt32 BaseSeed = 0xC030114;
         const int MaxDepth = 3;
+        const int NumIterations = 2;
 
         int[] endpointIds = new int[TotalPaths];
     }

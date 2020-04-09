@@ -62,13 +62,13 @@ GROUND_API void TraceMulti(const Ray* rays, int num, Hit* hits) {
     });
 }
 
-GROUND_API bool IsOccluded(const Hit* from, Vector3 to) {
+GROUND_API bool IsOccluded(const SurfacePoint* from, Vector3 to) {
     // TODO this function could (and should) call a special variant of "TraceSingle"
     //      that only checks occlusion for performance.
 
-    auto shadowDir = to - from->point.position;
-    auto shadowHit = TraceSingle(Ray{from->point.position, shadowDir, from->point.errorOffset});
-    if (shadowHit.point.meshId >= 0 && shadowHit.distance < 1.0f - from->point.errorOffset)
+    auto shadowDir = to - from->position;
+    auto shadowHit = TraceSingle(Ray{from->position, shadowDir, from->errorOffset});
+    if (shadowHit.point.meshId >= 0 && shadowHit.distance < 1.0f - from->errorOffset)
         return true;
     return false;
 }

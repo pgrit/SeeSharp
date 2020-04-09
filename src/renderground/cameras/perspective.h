@@ -10,7 +10,7 @@ public:
         Image* frameBuffer, float nearClip=0.1f, float farClip=10000.0f);
 
     Ray GenerateRay(const Vector2& filmSample, const Vector2& lensSample, float time) const final;
-    Vector2 WorldToFilm(const Vector3& worldSpacePoint) const final;
+    Vector3 WorldToFilm(const Vector3& worldSpacePoint) const final;
 
 private:
     Float4x4 localToView;

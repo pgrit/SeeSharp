@@ -3,21 +3,16 @@ using System.Runtime.InteropServices;
 namespace Ground {
     public class PathCache {
         public PathCache(int capacity) {
-            this.id = CreatePathCache(capacity);
+            id = CreatePathCache(capacity);
         }
 
-        ~PathCache()
-        => DeletePathCache(this.id);
+        ~PathCache() => DeletePathCache(id);
 
-        public PathVertex this[int vertexId] {
-            get => GetPathVertex(this.id, vertexId);
-        }
+        public PathVertex this[int vertexId] => GetPathVertex(id, vertexId);
 
-        public int AddVertex(PathVertex vertex)
-        => AddPathVertex(this.id, vertex);
+        public int AddVertex(PathVertex vertex) => AddPathVertex(id, vertex);
 
-        public void Clear()
-        => ClearPathCache(this.id);
+        public void Clear() => ClearPathCache(id);
 
         readonly int id;
 

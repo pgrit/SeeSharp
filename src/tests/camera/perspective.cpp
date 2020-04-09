@@ -149,6 +149,7 @@ TEST_F(PerspectiveCameraTests, Location) {
     int camId = CreatePerspectiveCamera(camTransform, 45.0f, frameBufferId);
 
     // TODO implement this
+    // TODO this needs additional logic in the implementation!
 }
 
 TEST_F(PerspectiveCameraTests, WorldToRaster) {
@@ -166,9 +167,16 @@ TEST_F(PerspectiveCameraTests, WorldToRaster) {
     int camId = CreatePerspectiveCamera(camTransform, fov, frameBufferId);
 
     // Test a point in the very center
-    Vector2 rasterPos = MapWorldSpaceToCameraFilm(camId, Vector3{ 0, 0, 10 });
+    Vector3 rasterPos = MapWorldSpaceToCameraFilm(camId, Vector3{ 0, 0, 10 });
     EXPECT_NEAR(rasterPos.x, 1.5f, 1e-4f);
     EXPECT_NEAR(rasterPos.y, 1.5f, 1e-4f);
+    EXPECT_NEAR(rasterPos.z, 10, 1e-4f);
+
+    // Test a point in the very center behind the camera
+    rasterPos = MapWorldSpaceToCameraFilm(camId, Vector3{ 0, 0, -10 });
+    EXPECT_NEAR(rasterPos.x, 1.5f, 1e-4f);
+    EXPECT_NEAR(rasterPos.y, 1.5f, 1e-4f);
+    EXPECT_NEAR(rasterPos.z, -10, 1e-4f);
 
     // Test a point in the bottom left corner
     rasterPos = MapWorldSpaceToCameraFilm(camId, Vector3{ -10, -10, 10 });
@@ -207,7 +215,7 @@ TEST_F(PerspectiveCameraTests, ClippingPlanes) {
 
     // Test a point in the very center
     // typical distance
-    Vector2 rasterPos = MapWorldSpaceToCameraFilm(camId, Vector3{ 0, 0, 10 });
+    Vector3 rasterPos = MapWorldSpaceToCameraFilm(camId, Vector3{ 0, 0, 10 });
     EXPECT_NEAR(rasterPos.x, 1.5f, 1e-4f);
     EXPECT_NEAR(rasterPos.y, 1.5f, 1e-4f);
 

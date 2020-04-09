@@ -27,7 +27,7 @@ GROUND_API Vector3 ComputeShadingNormal(SurfacePoint point);
 GROUND_API void TraceMulti(const Ray* rays, int num, Hit* hits);
 
 // Checks wether the point "to" is visible from the surface point "from".
-GROUND_API bool IsOccluded(const Hit* from, Vector3 to);
+GROUND_API bool IsOccluded(const SurfacePoint* from, Vector3 to);
 
 // Creates and returns a ray starting at the surface point "from" with proper
 // offsets for self-intersection handling.

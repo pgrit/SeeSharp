@@ -24,8 +24,10 @@ namespace Experiments {
         }
 
         void ConnectPathVerticesToCamera(Scene scene, int vertexId, PathCache pathCache) {
-            while (vertexId > 0) { // >0 because we do not connect to the light source directly
+            while (pathCache[vertexId].ancestorId != -1) { // iterate over all vertices that have an ancestor
                 var vertex = pathCache[vertexId];
+                var ancestor = pathCache[vertex.ancestorId];
+                var dirToAncestor = ancestor.point.position - vertex.point.position;
 
                 // Compute image plane location
                 var (raster, isVisible) = scene.ProjectOntoFilm(vertex.point.position);
@@ -36,8 +38,28 @@ namespace Experiments {
                 if (scene.IsOccluded(vertex.point, scene.CameraPosition))
                     goto Next;
 
+                // Perform a change of variables from scene surface to pixel area.
+                // First: map the scene surface to the solid angle about the camera
+                var dirToCam = scene.CameraPosition - vertex.point.position;
+                float distToCam = dirToCam.Length();
+                float cosToCam = Math.Abs(Vector3.Dot(vertex.point.normal, dirToCam)) / distToCam;
+                float surfaceToSolidAngle = cosToCam / (distToCam * distToCam);
+
+                if (distToCam == 0 || cosToCam == 0)
+                    goto Next;
+
+                // Second: map the solid angle to the pixel area
+                float solidAngleToPixel = scene.ComputeCamaraSolidAngleToPixelJacobian(vertex.point.position);
+
+                // Third: combine to get the full jacobian 
+                float surfaceToPixelJacobian = surfaceToSolidAngle * solidAngleToPixel;
+
+                var (bsdfWeight, _) = scene.EvaluateBsdf(vertex.point, dirToAncestor, dirToCam, true);
+
+                ColorRGB weight = vertex.weight * bsdfWeight * surfaceToPixelJacobian * (1.0f / TotalPaths);
+
                 // Compute image contribution and splat
-                scene.frameBuffer.Splat(raster.x, raster.y, ColorRGB.White * (1.0f / NumIterations));
+                scene.frameBuffer.Splat(raster.x, raster.y, weight * (1.0f / NumIterations));
 
             Next:
                 vertexId = vertex.ancestorId;
@@ -75,7 +97,7 @@ namespace Experiments {
 
         const int TotalPaths = 512 * 512;
         const UInt32 BaseSeed = 0xC030114;
-        const int MaxDepth = 3;
+        const int MaxDepth = 2;
         const int NumIterations = 2;
 
         int[] endpointIds = new int[TotalPaths];

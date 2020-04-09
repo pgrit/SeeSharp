@@ -58,6 +58,11 @@ namespace Ground
             return (new Vector2{ x=projected.x, y=projected.y}, !isOutside);
         }
 
+        public float ComputeCamaraSolidAngleToPixelJacobian(Vector3 worldPos) {
+            // TODO support multiple cameras, specified by id here
+            return CApiImports.ComputeSolidAngleToPixelJacobian(0, worldPos);
+        }
+
         public Hit TraceRay(Ray ray) {
             return CApiImports.TraceSingle(ray);
         }
@@ -141,6 +146,9 @@ namespace Ground
 
             [DllImport("Ground", CallingConvention = CallingConvention.Cdecl)]
             public static extern Vector3 MapWorldSpaceToCameraFilm(int camera, Vector3 worldSpacePoint);
+
+            [DllImport("Ground", CallingConvention = CallingConvention.Cdecl)]
+            public static extern float ComputeSolidAngleToPixelJacobian(int camera, Vector3 worldSpacePoint);
 
             [DllImport("Ground", CallingConvention = CallingConvention.Cdecl)]
             public static extern Hit TraceSingle(Ray ray);

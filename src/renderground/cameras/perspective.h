@@ -11,6 +11,7 @@ public:
 
     Ray GenerateRay(const Vector2& filmSample, const Vector2& lensSample, float time) const final;
     Vector3 WorldToFilm(const Vector3& worldSpacePoint) const final;
+    float ComputeSolidAngleToPixelJacobian(const Vector3& worldSpacePoint) const final;
 
 private:
     Float4x4 localToView;
@@ -18,6 +19,8 @@ private:
 
     Float4x4 viewToRaster;
     Float4x4 rasterToView;
+
+    float imgPlaneDistance;
 };
 
 } // namespace ground

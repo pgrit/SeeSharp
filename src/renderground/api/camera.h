@@ -44,4 +44,16 @@ Transforms a point in world space to camera space and projects it on the image p
 */
 GROUND_API Vector3 MapWorldSpaceToCameraFilm(int camera, Vector3 worldSpacePoint);
 
+/**
+Computes the jacobian of the mapping from solid angle to pixel area.
+
+This mapping is computed, for example, when light paths are splatted on the film:
+Light path vertices are distributed on the scene surface area, to compute the sensor response
+a change of variables needs to be performed to obtain a pixel integral.
+That change of variables consists of two steps: mapping the surface area to the sphere about the camera,
+and mapping the resulting solid angle to the image plane.
+This function computes the jacobian of the latter.
+*/
+GROUND_API float ComputeSolidAngleToPixelJacobian(int camera, Vector3 worldSpacePoint);
+
 }

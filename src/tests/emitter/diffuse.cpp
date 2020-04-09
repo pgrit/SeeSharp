@@ -181,11 +181,45 @@ TEST_F(EmitterDiffuseTests, SelfIntersection) {
     // Also expects correct intersections to be reported on a surface
     // very close to the light source (i.e. rays are not offsetted too much).
 
-    MakeTestScene(0.001f, 1.0f, 1.0f, 1000.0f);
-    VerifyIntersections(true); 
+    {
+        float distance = 0.001f;
+        float lightSize = 1.0f;
+        MakeTestScene(distance, lightSize, 1.0f, 1000.0f);
+        VerifyIntersections(true);
 
-    MakeTestScene(0.001f, 1.0f, -1.0f, 1000.0f);
-    VerifyIntersections(false);
+        MakeTestScene(distance, lightSize, -1.0f, 1000.0f);
+        VerifyIntersections(false);
+    }
+
+    {
+        float distance = 0.001f;
+        float lightSize = 0.001f;
+        MakeTestScene(distance, lightSize, 1.0f, 1000.0f);
+        VerifyIntersections(true);
+
+        MakeTestScene(distance, lightSize, -1.0f, 1000.0f);
+        VerifyIntersections(false);
+    }
+
+    {
+        float distance = 10.001f;
+        float lightSize = 0.001f;
+        MakeTestScene(distance, lightSize, 1.0f, 1000.0f);
+        VerifyIntersections(true);
+
+        MakeTestScene(distance, lightSize, -1.0f, 1000.0f);
+        VerifyIntersections(false);
+    }
+
+    {
+        float distance = 0.001f;
+        float lightSize = 100.0f;
+        MakeTestScene(distance, lightSize, 1.0f, 1000.0f);
+        VerifyIntersections(true);
+
+        MakeTestScene(distance, lightSize, -1.0f, 1000.0f);
+        VerifyIntersections(false);
+    }
 }
 
 TEST_F(EmitterDiffuseTests, Sidedness) {
@@ -239,4 +273,34 @@ TEST_F(EmitterDiffuseTests, SimpleScene) {
     EXPECT_GT(color.r, 0);
     EXPECT_GT(color.g, 0);
     EXPECT_GT(color.b, 0);
+}
+
+TEST_F(EmitterDiffuseTests, CornellSelfIntersect) {
+    int frameBufferId = CreateImageRGB(1, 1);
+    InitScene();
+    bool loaded = LoadSceneFromFile("../../data/scenes/cbox.json", frameBufferId);
+    FinalizeScene();
+
+    EXPECT_TRUE(loaded);
+
+    int lightMesh = GetEmitterMesh(0);
+
+    EXPECT_GE(lightMesh, 0);
+
+    auto color = Quadrature<ColorRGB>(16, ColorRGB{ 0, 0, 0 },
+        [&](Vector2 primaryPos) -> ColorRGB
+        {
+            return Quadrature<ColorRGB>(16, ColorRGB{ 0, 0, 0 },
+                [&](Vector2 primaryDir)->ColorRGB
+                {
+                    EmitterSample sample = WrapPrimarySampleToEmitterRay(0, primaryPos, primaryDir);
+                    Ray ray = SpawnRay(sample.surface.point, sample.direction);
+                    Hit hit = TraceSingle(ray);
+
+                    EXPECT_NE(hit.point.meshId, lightMesh);
+
+                    return ColorRGB{ 0, 0, 0 };
+                }
+            );
+        });
 }

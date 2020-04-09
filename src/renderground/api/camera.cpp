@@ -22,4 +22,8 @@ GROUND_API Vector3 MapWorldSpaceToCameraFilm(int camera, Vector3 worldSpacePoint
     return globalCameras[camera]->WorldToFilm(worldSpacePoint);
 }
 
+GROUND_API float ComputeSolidAngleToPixelJacobian(int camera, Vector3 worldSpacePoint) {
+    return globalCameras[camera]->ComputeSolidAngleToPixelJacobian(worldSpacePoint);
+}
+
 }

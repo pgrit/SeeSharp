@@ -15,6 +15,7 @@ public:
 
     virtual Ray GenerateRay(const Vector2& filmSample, const Vector2& lensSample, float time) const = 0;
     virtual Vector3 WorldToFilm(const Vector3& worldSpacePoint) const = 0;
+    virtual float ComputeSolidAngleToPixelJacobian(const Vector3& worldSpacePoint) const = 0;
 
 protected:
     const Transform* transform;

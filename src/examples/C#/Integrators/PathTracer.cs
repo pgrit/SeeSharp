@@ -96,7 +96,7 @@ namespace Experiments {
             ColorRGB value = ColorRGB.Black;
 
             // Did we reach the maximum depth?
-            if (depth > MaxDepth)
+            if (depth >= MaxDepth)
                 return value;
 
             var hit = scene.TraceRay(ray);
@@ -139,7 +139,7 @@ namespace Experiments {
         const UInt32 BaseSeed = 0xC030114;
         const int TotalSpp = 1;
 
-        const uint MaxDepth = 3;
+        const uint MaxDepth = 2;
     }
 
 }

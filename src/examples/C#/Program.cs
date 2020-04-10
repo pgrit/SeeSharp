@@ -5,7 +5,7 @@ namespace Experiments {
     class Program {
         static void Main(string[] args) {
             var scene = new Ground.Scene();
-            scene.SetupFrameBuffer(512, 512);
+            scene.SetupFrameBuffer(1024, 1024);
             scene.LoadSceneFile("../../data/scenes/cbox.json");
             // scene.LoadSceneFile("../../data/scenes/furnacebox.json");
 

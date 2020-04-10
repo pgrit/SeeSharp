@@ -137,9 +137,9 @@ namespace Experiments {
         }
 
         const UInt32 BaseSeed = 0xC030114;
-        const int TotalSpp = 1;
+        const int TotalSpp = 2;
 
-        const uint MaxDepth = 2;
+        const uint MaxDepth = 10;
     }
 
 }

@@ -6,9 +6,9 @@ namespace Experiments {
 
     public class LightTracer {
         public void Render(Scene scene) {
-            for (int iter = 0; iter < NumIterations; ++iter) {
-                PathCache pathCache = new PathCache(TotalPaths * MaxDepth);
+            ManagedPathCache pathCache = new ManagedPathCache(TotalPaths * MaxDepth);
 
+            for (int iter = 0; iter < NumIterations; ++iter) {
                 Parallel.For(0, TotalPaths, idx => {
                     var seed = RNG.HashSeed(BaseSeed, (uint)idx, (uint)iter);
                     var rng = new RNG(seed);
@@ -23,7 +23,7 @@ namespace Experiments {
             }
         }
 
-        void ConnectPathVerticesToCamera(Scene scene, int vertexId, PathCache pathCache) {
+        void ConnectPathVerticesToCamera(Scene scene, int vertexId, ManagedPathCache pathCache) {
             while (pathCache[vertexId].ancestorId != -1) { // iterate over all vertices that have an ancestor
                 var vertex = pathCache[vertexId];
                 var ancestor = pathCache[vertex.ancestorId];
@@ -66,7 +66,7 @@ namespace Experiments {
             }
         }
 
-        void TraceLightPath(Scene scene, RNG rng, PathCache pathCache, int pathIdx) {
+        void TraceLightPath(Scene scene, RNG rng, ManagedPathCache pathCache, int pathIdx) {
             var emitter = SelectEmitter(scene, rng); // TODO once this is a proper selection: obtain and consider PDF
 
             var primaryPos = rng.NextFloat2D();
@@ -95,9 +95,9 @@ namespace Experiments {
             return scene.Emitters[0]; // TODO proper selection
         }
 
-        const int TotalPaths = 512 * 512;
+        const int TotalPaths = 512 * 512 * 4;
         const UInt32 BaseSeed = 0xC030114;
-        const int MaxDepth = 2;
+        const int MaxDepth = 10;
         const int NumIterations = 2;
 
         int[] endpointIds = new int[TotalPaths];

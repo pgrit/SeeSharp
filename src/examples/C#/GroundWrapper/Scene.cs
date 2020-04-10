@@ -28,7 +28,17 @@ namespace Ground
             FindEmitters();
         }
 
-        public Vector3 CameraPosition => SampleCamera(0, 0, 0.0f, 0.0f).Item1.origin;
+        public Vector3 CameraPosition {
+            get {
+                if (cameraPosition.HasValue)
+                    return cameraPosition.Value;
+
+                cameraPosition = SampleCamera(0, 0, 0.0f, 0.0f).Item1.origin;
+                return cameraPosition.Value;
+            }
+        }
+
+        private Vector3? cameraPosition;
 
         public (Ray, Vector2) SampleCamera(uint row, uint col, float u, float v) {
             CameraSampleInfo camSample = new CameraSampleInfo() {

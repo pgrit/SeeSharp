@@ -1,6 +1,8 @@
 using System.Runtime.InteropServices;
+using System.Collections.Generic;
 
 namespace Ground {
+
     public class PathCache {
         public PathCache(int capacity) {
             id = CreatePathCache(capacity);
@@ -33,4 +35,36 @@ namespace Ground {
         extern static void DeletePathCache(int cacheId);
 #endregion C-API-IMPORTS
     }
+
+    public class ManagedPathCache {
+        public ManagedPathCache(int capacity) {
+            vertices = new PathVertex[capacity];
+        }
+
+        public PathVertex this[int vertexId] => vertices[vertexId];
+
+        public int AddVertex(PathVertex vertex) {
+            int idx = System.Threading.Interlocked.Increment(ref next);
+
+            if (idx > vertices.Length) 
+                return -1;
+
+            vertices[idx] = vertex;
+            return idx;
+        }
+
+        public void Clear() {
+            int overflow = next - vertices.Length;
+            if (overflow > 0) {
+                System.Console.WriteLine($"Overflow detected. Resizing to fit {overflow * 2} additional vertices.");
+                vertices = new PathVertex[vertices.Length + overflow * 2];
+            }
+
+            next = 0;
+        }
+
+        PathVertex[] vertices;
+        int next = 0;
+    }
+
 }

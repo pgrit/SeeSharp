@@ -10,8 +10,8 @@ namespace Ground
             get; private set;
         }
 
-        public void SetupFrameBuffer(uint width, uint height) {
-            this.frameBuffer = new Image(width, height);
+        public void SetupFrameBuffer(int width, int height) {
+            frameBuffer = new Image(width, height);
         }
 
         public void LoadSceneFile(string filename) {
@@ -110,7 +110,7 @@ namespace Ground
         {
             var bsdfValue = CApiImports.EvaluateBsdf(ref point, outDir, inDir, isOnLightSubpath);
             float shadingCosine = CApiImports.ComputeShadingCosine(ref point, outDir, inDir, isOnLightSubpath);
-            return (bsdfValue, shadingCosine);
+            return (bsdfValue, Math.Abs(shadingCosine));
         }
 
         public BsdfSample WrapPrimarySampleToBsdf(

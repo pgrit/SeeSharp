@@ -4,8 +4,8 @@ using Ground;
 
 namespace Experiments {
 
-    public class LightTracer {
-        public void Render(Scene scene) {
+    public class LightTracer : Integrator {
+        public override void Render(Scene scene) {
             ManagedPathCache pathCache = new ManagedPathCache(TotalPaths * MaxDepth);
 
             for (int iter = 0; iter < NumIterations; ++iter) {
@@ -79,7 +79,7 @@ namespace Experiments {
             float pdf = emitterSample.surface.jacobian * emitterSample.jacobian;
             var weight = radiance * (emitterSample.shadingCosine / pdf);
 
-            var walker = new RandomWalk(scene, rng, pathCache, true, MaxDepth);
+            var walker = new CachedRandomWalk(scene, rng, pathCache, true, MaxDepth);
             var lastVertexId = walker.StartWalk(
                 initialPoint: emitterSample.surface.point,
                 surfaceAreaPdf: emitterSample.surface.jacobian,

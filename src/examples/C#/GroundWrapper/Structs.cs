@@ -15,6 +15,12 @@ namespace Ground
         public static Vector3 operator -(Vector3 a, Vector3 b)
         => a + (-b);
 
+        public static Vector3 operator *(Vector3 a, float s)
+        => new Vector3 { x = a.x * s, y = a.y * s, z = a.z * s };
+
+        public static Vector3 operator /(Vector3 a, float s)
+        => a * (1 / s);
+
         public static float Dot(Vector3 a, Vector3 b)
         => a.x * b.x + a.y * b.y + a.z * b.z;
 

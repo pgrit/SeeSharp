@@ -2,14 +2,14 @@ using Ground;
 
 namespace Experiments
 {
-    public readonly struct RandomWalk {
+    public readonly struct CachedRandomWalk {
         public readonly Scene scene;
         public readonly RNG rng;
         public readonly ManagedPathCache cache;
         public readonly bool isOnLightSubpath;
         public readonly int maxDepth;
 
-        public RandomWalk(Scene scene, RNG rng, ManagedPathCache cache,
+        public CachedRandomWalk(Scene scene, RNG rng, ManagedPathCache cache,
             bool isOnLightSubpath, int maxDepth)
         {
             this.scene = scene;
@@ -56,6 +56,9 @@ namespace Experiments
             (var bsdfValue, float shadingCosine) = scene.EvaluateBsdf(hit.point, -nextRay.direction,
                 bsdfSample.direction, false);
 
+            // TODO the separated Wrap-Eval can cause severe outliers when grazing angles are sampled.
+            //      Since we explicitely divide by the jacobian later on...
+
             // Store the vertex
             var primaryVertex = new PathVertex {
                 point = hit.point,
@@ -68,6 +71,7 @@ namespace Experiments
 
             // Continue the path with the next ray
             var weight = nextWeight * bsdfValue * (shadingCosine / bsdfSample.jacobian);
+
             var bsdfRay = scene.SpawnRay(hit.point, bsdfSample.direction);
             return ContinueWalk(primaryId, hit.point, bsdfRay, weight, bsdfSample.jacobian, depth + 1);
         }

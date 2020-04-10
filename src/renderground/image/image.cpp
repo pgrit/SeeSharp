@@ -99,9 +99,9 @@ void WriteImageToFileEXR(const Image& img, const std::string& filename) {
     header.pixel_types = (int*) alloca(sizeof(int) * header.num_channels);
     header.requested_pixel_types = (int*) alloca(sizeof(int) * header.num_channels);
     for (int i = 0; i < header.num_channels; i++) {
-        // From float to half
+        // From float to float
         header.pixel_types[i] = TINYEXR_PIXELTYPE_FLOAT;
-        header.requested_pixel_types[i] = TINYEXR_PIXELTYPE_HALF;
+        header.requested_pixel_types[i] = TINYEXR_PIXELTYPE_FLOAT;
     }
 
     // Save the file

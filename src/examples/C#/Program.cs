@@ -12,7 +12,7 @@ namespace Experiments {
             var stopwatch = System.Diagnostics.Stopwatch.StartNew();
 
             //var algorithm = new PathTracer();
-            var algorithm = new LightTracer();
+            Integrator algorithm = new ClassicBidir();
             algorithm.Render(scene);
 
             stopwatch.Stop();

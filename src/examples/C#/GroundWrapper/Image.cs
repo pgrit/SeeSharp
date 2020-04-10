@@ -3,11 +3,11 @@ using System.Runtime.InteropServices;
 namespace Ground {
     public class Image {
 
-        public uint width {
+        public int width {
             get; private set;
         }
 
-        public uint height {
+        public int height {
             get; private set;
         }
 
@@ -15,8 +15,8 @@ namespace Ground {
             get; private set;
         }
 
-        public Image(uint width, uint height) {
-            this.id = CreateImageRGB((int)width, (int)height);
+        public Image(int width, int height) {
+            id = CreateImageRGB(width, height);
             this.width = width;
             this.height = height;
         }

@@ -3,8 +3,8 @@ using Ground;
 
 namespace Experiments {
 
-    public class PathTracer {
-        public void Render(Scene scene) {
+    public class PathTracer : Integrator {
+        public override void Render(Scene scene) {
             System.Threading.Tasks.Parallel.For(0, scene.frameBuffer.height,
                 row => {
                     for (uint col = 0; col < scene.frameBuffer.width; ++col) {
@@ -17,7 +17,7 @@ namespace Experiments {
         private void RenderPixel(Scene scene, uint row, uint col) {
             for (uint sampleIndex = 0; sampleIndex < TotalSpp; ++sampleIndex) {
                 // Seed the random number generator
-                uint pixelIndex = row * scene.frameBuffer.width + col;
+                uint pixelIndex = row * (uint)scene.frameBuffer.width + col;
                 var seed = RNG.HashSeed(BaseSeed, pixelIndex, sampleIndex);
                 var rng = new RNG(seed);
 

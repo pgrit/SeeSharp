@@ -1,6 +1,7 @@
 add_library(Ground SHARED)
 
-find_package(embree 3.0 REQUIRED)
+find_package(embree 3.0 CONFIG REQUIRED)
+
 target_include_directories(Ground PRIVATE ${EMBREE_INCLUDE_DIRS})
 
 find_package(TBB CONFIG REQUIRED)
@@ -73,7 +74,7 @@ target_sources(Ground
         "utility/pathcache.cpp"
 )
 
-target_link_libraries(Ground ${EMBREE_LIBRARY} TBB::tbb)
+target_link_libraries(Ground ${EMBREE_LIBRARIES} TBB::tbb)
 
 set_target_properties(Ground PROPERTIES
                       RUNTIME_OUTPUT_DIRECTORY_DEBUG ${CMAKE_CURRENT_SOURCE_DIR}/../dist

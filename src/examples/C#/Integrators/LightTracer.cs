@@ -6,7 +6,7 @@ namespace Experiments {
 
     public class LightTracer : Integrator {
         public override void Render(Scene scene) {
-            ManagedPathCache pathCache = new ManagedPathCache(TotalPaths * MaxDepth);
+            PathCache pathCache = new PathCache(TotalPaths * MaxDepth);
 
             for (int iter = 0; iter < NumIterations; ++iter) {
                 Parallel.For(0, TotalPaths, idx => {
@@ -23,7 +23,7 @@ namespace Experiments {
             }
         }
 
-        void ConnectPathVerticesToCamera(Scene scene, int vertexId, ManagedPathCache pathCache) {
+        void ConnectPathVerticesToCamera(Scene scene, int vertexId, PathCache pathCache) {
             while (pathCache[vertexId].ancestorId != -1) { // iterate over all vertices that have an ancestor
                 var vertex = pathCache[vertexId];
                 var ancestor = pathCache[vertex.ancestorId];
@@ -66,7 +66,7 @@ namespace Experiments {
             }
         }
 
-        void TraceLightPath(Scene scene, RNG rng, ManagedPathCache pathCache, int pathIdx) {
+        void TraceLightPath(Scene scene, RNG rng, PathCache pathCache, int pathIdx) {
             var emitter = SelectEmitter(scene, rng); // TODO once this is a proper selection: obtain and consider PDF
 
             var primaryPos = rng.NextFloat2D();

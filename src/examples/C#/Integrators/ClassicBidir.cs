@@ -1,13 +1,48 @@
 ﻿using Ground;
 using System;
-using System.Collections.Generic;
 using System.Threading.Tasks;
 
 namespace Experiments {
+
     class ClassicBidir : BidirBase {
 
-        public override List<int> TraceLightPath(Scene scene, RNG rng, ManagedPathCache pathCache, uint pathIndex) {
-            var emitter = SelectEmitter(scene, rng); // TODO once this is a proper selection: obtain and consider PDF
+        public ref struct CameraPath {
+            // TODO compare performance with stackalloc vs new
+            public Span<PathVertex> vertices;
+        }
+
+        public ref struct MisWeightComputer {
+            public Span<float> pdfsLightToCamera;
+            public Span<float> pdfsCameraToLight;
+
+            public PathCache lightPathCache;
+            
+            public float LightTracer(PathVertex lightVertex, float pdfCamToPrimary, float pdfReverse) {
+                return 0;
+            }
+
+            public float NextEvent(CameraPath cameraPath, float pdfEmit, float pdfNextEvent, float pdfHit) {
+                return 0;
+            }
+
+            public float BidirConnect(CameraPath cameraPath, PathVertex lightVertex, 
+                float pdfCameraReverse, float pdfCameraToLight, float pdfLightReverse, float pdfLightToCamera) 
+            {
+                return 0;
+            }
+        };
+
+
+        public override void Render(Scene scene) {
+            MaxDepth = 2;
+
+            // Classic Bidir requires exactly one light path for every camera path.
+            NumLightPaths = scene.frameBuffer.width * scene.frameBuffer.height;
+            base.Render(scene);
+        }
+
+        public override int TraceLightPath(Scene scene, RNG rng, PathCache pathCache, uint pathIndex) {
+            var emitter = SelectEmitterForBidir(scene, rng); // TODO once this is a proper selection: obtain and consider PDF
 
             var primaryPos = rng.NextFloat2D();
             var primaryDir = rng.NextFloat2D();
@@ -27,17 +62,17 @@ namespace Experiments {
                 directionPdf: emitterSample.jacobian,
                 initialWeight: weight);
 
-            return new List<int> { lastVertexId };
+            return lastVertexId;
         }
 
-        public override void ProcessPathCache(Scene scene, ManagedPathCache pathCache, List<int> endpoints) {
-            //Parallel.For(0, endpoints.Count, idx => {
-            //    ConnectPathVerticesToCamera(scene, endpoints[idx], pathCache);
-            //});
+        public override void ProcessPathCache(Scene scene, PathCache pathCache, int[] endpoints) {
+            Parallel.For(0, endpoints.Length, idx => {
+                ConnectPathVerticesToCamera(scene, endpoints[idx], pathCache);
+            });
         }
 
-        public override ColorRGB EstimatePixelValue(Scene scene, ManagedPathCache pathCache, 
-            List<int> endpoints, Vector2 filmPosition, Ray primaryRay, RNG rng) 
+        public override ColorRGB EstimatePixelValue(Scene scene, PathCache pathCache, 
+            int[] endpoints, Vector2 filmPosition, Ray primaryRay, RNG rng) 
         {
             var hit = scene.TraceRay(primaryRay);
 
@@ -67,11 +102,7 @@ namespace Experiments {
             return value;
         }
 
-        Emitter SelectEmitter(Scene scene, RNG rng) {
-            return scene.Emitters[0]; // TODO proper selection
-        }
-
-        void ConnectPathVerticesToCamera(Scene scene, int vertexId, ManagedPathCache pathCache) {
+        public void ConnectPathVerticesToCamera(Scene scene, int vertexId, PathCache pathCache) {
             ForEachVertex(pathCache, vertexId, (vertex, ancestor, dirToAncestor) => {
                 // Compute image plane location
                 var (raster, isVisible) = scene.ProjectOntoFilm(vertex.point.position);
@@ -107,7 +138,7 @@ namespace Experiments {
             });
         }
 
-        ColorRGB BidirConnections(Scene scene, ManagedPathCache pathCache, int lightEndpoint, SurfacePoint cameraPoint, Vector3 outDir) {
+        public ColorRGB BidirConnections(Scene scene, PathCache pathCache, int lightEndpoint, SurfacePoint cameraPoint, Vector3 outDir) {
             ColorRGB result = ColorRGB.Black;
             ForEachVertex(pathCache, lightEndpoint, (vertex, ancestor, dirToAncestor) => {
                 // Trace shadow ray
@@ -133,12 +164,9 @@ namespace Experiments {
             return result;
         }
 
-        private ColorRGB PerformNextEventEstimation(Scene scene, Ray ray, Hit hit, RNG rng) {
-            // Select a light source
-            // TODO implement multi-light support
-            var light = scene.Emitters[0];
-
+        public ColorRGB PerformNextEventEstimation(Scene scene, Ray ray, Hit hit, RNG rng) {
             // Sample a point on the light source
+            var light = SelectEmitterForNextEvent(scene, rng, ray, hit);
             var lightSample = light.WrapPrimaryToSurface(rng.NextFloat(), rng.NextFloat());
 
             if (!scene.IsOccluded(hit.point, lightSample.point.position)) {

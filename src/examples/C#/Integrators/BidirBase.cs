@@ -15,24 +15,22 @@ namespace Experiments {
         /// Called for each light path, used to populate the path cache.
         /// </summary>
         /// <returns>
-        ///     A list of indexes, one for each endpoint of the path.
-        ///     If no splitting occured, this list should contain exactly one element: the last vertex along the path.
-        ///     If splitting occured, all endpoints of the correlated paths should be returned.
+        /// The index of the last vertex along the path.
         /// </returns>
-        public abstract List<int> TraceLightPath(Scene scene, RNG rng, ManagedPathCache pathCache, uint pathIndex);
+        public abstract int TraceLightPath(Scene scene, RNG rng, PathCache pathCache, uint pathIndex);
 
         /// <summary>
         /// Called once per iteration after the light paths have been traced.
         /// Use this to create acceleration structures etc.
         /// </summary>
-        public abstract void ProcessPathCache(Scene scene, ManagedPathCache pathCache, List<int> endpoints);
+        public abstract void ProcessPathCache(Scene scene, PathCache pathCache, int[] endpoints);
 
         /// <summary>
         /// Called once for each pixel per iteration. Expected to perform some sort of path tracing,
         /// possibly connecting vertices with those from the light path cache.
         /// </summary>
         /// <returns>The estimated pixel value.</returns>
-        public abstract ColorRGB EstimatePixelValue(Scene scene, ManagedPathCache pathCache, List<int> endpoints, 
+        public abstract ColorRGB EstimatePixelValue(Scene scene, PathCache pathCache, int[] endpoints, 
             Vector2 filmPosition, Ray primaryRay, RNG rng);
 
         protected delegate void ProcessVertex(PathVertex vertex, PathVertex ancestor, Vector3 dirToAncestor);
@@ -40,7 +38,7 @@ namespace Experiments {
         /// <summary>
         /// Utility function that iterates over a light path, starting on the end point, excluding the point on the light itself.
         /// </summary>
-        protected void ForEachVertex(ManagedPathCache pathCache, int endpoint, ProcessVertex func) {
+        protected void ForEachVertex(PathCache pathCache, int endpoint, ProcessVertex func) {
             int vertexId = endpoint;
             while (pathCache[vertexId].ancestorId != -1) { // iterate over all vertices that have an ancestor
                 var vertex = pathCache[vertexId];
@@ -53,37 +51,39 @@ namespace Experiments {
             }
         }
 
+        protected virtual Emitter SelectEmitterForBidir(Scene scene, RNG rng) {
+            return scene.Emitters[0]; // TODO proper selection
+        }
+
+        protected virtual Emitter SelectEmitterForNextEvent(Scene scene, RNG rng, Ray ray, Hit hit) {
+            return scene.Emitters[0]; // TODO proper selection
+        }
+
         public override void Render(Scene scene) {
             if (NumLightPaths <= 0) {
                 NumLightPaths = scene.frameBuffer.width * scene.frameBuffer.height;
             }
 
-            ManagedPathCache pathCache = new ManagedPathCache(NumLightPaths * MaxDepth);
-            List<int> endpointIds = new List<int>((int)NumLightPaths);
+            PathCache pathCache = new PathCache(NumLightPaths * MaxDepth);
+            int[] endpointIds = new int[NumLightPaths];
 
             for (uint iter = 0; iter < NumIterations; ++iter) {
                 TraceAllLightPaths(scene, pathCache, iter, endpointIds);
                 ProcessPathCache(scene, pathCache, endpointIds);
                 TraceAllCameraPaths(scene, pathCache, endpointIds, iter);
                 pathCache.Clear();
-                endpointIds.Clear();
             }
         }
 
-        private void TraceAllLightPaths(Scene scene, ManagedPathCache pathCache, uint iter, List<int> endpointIds) {
+        private void TraceAllLightPaths(Scene scene, PathCache pathCache, uint iter, int[] endpointIds) {
             Parallel.For(0, NumLightPaths, idx => {
                 var seed = RNG.HashSeed(BaseSeedLight, (uint)idx, (uint)iter);
                 var rng = new RNG(seed);
-
-                var pathEndpoints = TraceLightPath(scene, rng, pathCache, (uint)idx);
-
-                lock (endpointIds) {
-                    endpointIds.AddRange(pathEndpoints);
-                }
+                endpointIds[idx] = TraceLightPath(scene, rng, pathCache, (uint)idx);
             });
         }
 
-        private void TraceAllCameraPaths(Scene scene, ManagedPathCache pathCache, List<int> endpoints, uint iter) {
+        private void TraceAllCameraPaths(Scene scene, PathCache pathCache, int[] endpoints, uint iter) {
             Parallel.For(0, scene.frameBuffer.height,
                 row => {
                     for (uint col = 0; col < scene.frameBuffer.width; ++col) {
@@ -96,7 +96,7 @@ namespace Experiments {
             );
         }
 
-        private void RenderPixel(Scene scene, ManagedPathCache pathCache, List<int> endpoints, uint row, uint col, RNG rng) {
+        private void RenderPixel(Scene scene, PathCache pathCache, int[] endpoints, uint row, uint col, RNG rng) {
             // Sample a ray from the camera
             float u = rng.NextFloat();
             float v = rng.NextFloat();

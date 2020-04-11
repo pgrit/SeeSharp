@@ -5,11 +5,11 @@ namespace Experiments
     public readonly struct CachedRandomWalk {
         public readonly Scene scene;
         public readonly RNG rng;
-        public readonly ManagedPathCache cache;
+        public readonly PathCache cache;
         public readonly bool isOnLightSubpath;
         public readonly int maxDepth;
 
-        public CachedRandomWalk(Scene scene, RNG rng, ManagedPathCache cache,
+        public CachedRandomWalk(Scene scene, RNG rng, PathCache cache,
             bool isOnLightSubpath, int maxDepth)
         {
             this.scene = scene;

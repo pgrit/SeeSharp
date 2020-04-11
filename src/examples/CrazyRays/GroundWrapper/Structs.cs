@@ -1,6 +1,6 @@
 using System.Runtime.InteropServices;
 
-namespace Ground
+namespace GroundWrapper
 {
     [StructLayout(LayoutKind.Sequential)]
     public struct Vector3 {
@@ -27,6 +27,8 @@ namespace Ground
         public float LengthSquared() => Dot(this, this);
 
         public float Length() => (float)System.Math.Sqrt(LengthSquared());
+
+        public Vector3 Normalized() => this / Length();
     }
 
     [StructLayout(LayoutKind.Sequential)]

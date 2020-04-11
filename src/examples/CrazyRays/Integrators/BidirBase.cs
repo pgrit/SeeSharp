@@ -1,8 +1,7 @@
-﻿using Ground;
+﻿using GroundWrapper;
 using System.Threading.Tasks;
-using System.Collections.Generic;
 
-namespace Experiments {
+namespace Integrators {
     public abstract class BidirBase : Integrator {
         public int NumIterations = 2;
         public int NumLightPaths = 0;

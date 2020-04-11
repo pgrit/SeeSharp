@@ -1,10 +1,11 @@
 ﻿using System;
+using Integrators;
 
-namespace Experiments {
+namespace Renderer {
 
     class Program {
         static void Main(string[] args) {
-            var scene = new Ground.Scene();
+            var scene = new GroundWrapper.Scene();
             scene.SetupFrameBuffer(1024, 1024);
             scene.LoadSceneFile("../../data/scenes/cbox.json");
             // scene.LoadSceneFile("../../data/scenes/furnacebox.json");

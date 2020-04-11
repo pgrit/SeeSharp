@@ -1,6 +1,6 @@
-using Ground;
+using GroundWrapper;
 
-namespace Experiments
+namespace Integrators
 {
     public readonly struct CachedRandomWalk {
         public readonly Scene scene;

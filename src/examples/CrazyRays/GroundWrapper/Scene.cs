@@ -3,7 +3,7 @@ using System.Diagnostics;
 using System.Runtime.InteropServices;
 using System.Collections.Generic;
 
-namespace Ground
+namespace GroundWrapper
 {
     public class Scene {
         public Image frameBuffer {

@@ -1,8 +1,8 @@
 using System;
 using System.Threading.Tasks;
-using Ground;
+using GroundWrapper;
 
-namespace Experiments {
+namespace Integrators {
 
     public class LightTracer : Integrator {
         public override void Render(Scene scene) {

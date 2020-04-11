@@ -1,7 +1,7 @@
 using System;
-using Ground;
+using GroundWrapper;
 
-namespace Experiments {
+namespace Integrators {
 
     public class PathTracer : Integrator {
         public override void Render(Scene scene) {

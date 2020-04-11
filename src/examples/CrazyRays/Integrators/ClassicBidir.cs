@@ -1,10 +1,10 @@
-﻿using Ground;
+﻿using GroundWrapper;
 using System;
 using System.Threading.Tasks;
 
-namespace Experiments {
+namespace Integrators {
 
-    class ClassicBidir : BidirBase {
+    public class ClassicBidir : BidirBase {
 
         public ref struct CameraPath {
             // TODO compare performance with stackalloc vs new
@@ -12,16 +12,66 @@ namespace Experiments {
         }
 
         public ref struct MisWeightComputer {
+            public int numLightPaths;
+
             public Span<float> pdfsLightToCamera;
             public Span<float> pdfsCameraToLight;
 
             public PathCache lightPathCache;
             
+            /// <summary>
+            /// Computes the balance heuristic value for the light tracer technique
+            /// (splatting a light path vertex onto the image).
+            /// </summary>
+            /// <param name="lightVertex">The vertex that got splatte</param>
+            /// <param name="pdfCamToPrimary">
+            ///     The pdf value of sampling the light vertex as the primary vertex of a camera path.
+            ///     Measure: surface area [m^2]
+            /// </param>
+            /// <param name="pdfReverse">
+            ///     The pdf value of sampling the ancestor of the light vertex when coming from the camera.
+            ///     Measure: surface area [m^2]
+            /// </param>
+            /// <returns>Balance heuristic weight</returns>
             public float LightTracer(PathVertex lightVertex, float pdfCamToPrimary, float pdfReverse) {
                 return 0;
             }
 
+            /// <summary>
+            /// Computes the balance heuristic value for the next event technique.
+            /// </summary>
+            /// <param name="cameraPath">The camera path at the end of which next event estimation happened.</param>
+            /// <param name="pdfEmit">
+            ///     The probability of sampling the next event edge bidirectionally. 
+            ///     Measure: product surface area [m^4]
+            /// </param>
+            /// <param name="pdfNextEvent">
+            ///     The probability of sampling the vertex on the light for next event estimation (current technique). 
+            ///     Measure: surface area [m^2]
+            /// </param>
+            /// <param name="pdfHit">
+            ///     The probability of sampling the vertex on the light by importance sampling the BSDF.
+            ///     Measure: surface area [m^2]
+            /// </param>
+            /// <returns>Balance heuristic weight</returns>
             public float NextEvent(CameraPath cameraPath, float pdfEmit, float pdfNextEvent, float pdfHit) {
+                return 0;
+            }
+
+            /// <summary>
+            /// Computes the balance heuristic value for hitting the light with a BSDF sample.
+            /// </summary>
+            /// <param name="cameraPath">The camera path, the last vertex of which found the light</param>
+            /// <param name="pdfEmit">
+            ///     The pdf value of sampling the vertex on the light and the previous one bidirectionally.
+            ///     Measure: product surface area [m^4]
+            /// </param>
+            /// <param name="pdfNextEvent">
+            ///     The pdf value of sampling the vertex on the light via next event estimation.
+            ///     Measure: surface area [m^2]
+            /// </param>
+            /// <returns>Balance heuristic weight</returns>
+            public float Hit(CameraPath cameraPath, float pdfEmit, float pdfNextEvent) {
                 return 0;
             }
 

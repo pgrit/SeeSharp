@@ -1,6 +1,6 @@
 using System.Threading;
 
-namespace Ground {
+namespace GroundWrapper {
 
     public class PathCache {
         public PathCache(int capacity) {

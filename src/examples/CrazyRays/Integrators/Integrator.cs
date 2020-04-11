@@ -1,6 +1,6 @@
-﻿using Ground;
+﻿using GroundWrapper;
 
-namespace Experiments {
+namespace Integrators {
     public abstract class Integrator {
         public abstract void Render(Scene scene);
     }

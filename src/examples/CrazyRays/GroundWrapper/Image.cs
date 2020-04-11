@@ -1,6 +1,6 @@
 using System.Runtime.InteropServices;
 
-namespace Ground {
+namespace GroundWrapper {
     public class Image {
 
         public int width {
@@ -21,7 +21,7 @@ namespace Ground {
             this.height = height;
         }
 
-        public void Splat(float x, float y, Ground.ColorRGB value) {
+        public void Splat(float x, float y, GroundWrapper.ColorRGB value) {
             AddSplatRGB(this.id, x, y, value);
         }
 

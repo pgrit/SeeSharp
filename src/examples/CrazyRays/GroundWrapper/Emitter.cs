@@ -1,7 +1,7 @@
 using System.Diagnostics;
 using System.Runtime.InteropServices;
 
-namespace Ground
+namespace GroundWrapper
 {
     public class Emitter {
         public int MeshId { get; }

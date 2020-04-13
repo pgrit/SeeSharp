@@ -4,39 +4,42 @@ using System;
 using GroundWrapper;
 
 namespace Integrators.Tests {
-    public class ClassicBidir_Mis_DirectIllum {
+
+    public class ClassicBidir_Mis_SingleBounce  {
 
         Helpers.MisDummyPath dummyPath = new Helpers.MisDummyPath(
             lightArea: 2.0f,
             numLightPaths: 500,
             positions: new Vector3[] {
                 new Vector3 { x = 0, y = 2, z = 0 }, // light
-                new Vector3 { x = 0, y = 0, z = 0 }, // surface
+                new Vector3 { x = 0, y = 0, z = 0 }, // surface A
+                new Vector3 { x = 2, y = 1, z = 0 }, // surface B
                 new Vector3 { x = 2, y = 0, z = 0 }  // camera
             },
             normals: new Vector3[] {
                 new Vector3 { x = 0, y = -1, z = 0 }.Normalized(), // light
-                new Vector3 { x = 0, y = 1, z = 0 }.Normalized(), // surface
+                new Vector3 { x = 0, y = 1, z = 0 }.Normalized(), // surface A
+                new Vector3 { x = -1, y = -1, z = 0 }.Normalized(), // surface B
             });
 
         float NextEventWeight() {
-            var computer = new ClassicBidirMisComputer (
+            var computer = new ClassicBidirMisComputer(
                 lightPathCache: dummyPath.pathCache,
                 numLightPaths: dummyPath.numLightPaths
             );
 
             var cameraPath = new CameraPath {
-                vertices = dummyPath.cameraVertices.AsSpan(0, 2)
+                vertices = dummyPath.cameraVertices.AsSpan(0, 3)
             };
 
             return computer.NextEvent(cameraPath,
                 pdfEmit: dummyPath.pathCache[0].pdfFromAncestor * dummyPath.pathCache[1].pdfFromAncestor,
                 pdfNextEvent: 1.0f / dummyPath.lightArea,
-                pdfHit: dummyPath.cameraVertices[2].pdfFromAncestor);
+                pdfHit: dummyPath.cameraVertices[^1].pdfFromAncestor);
         }
 
         float LightTracerWeight() {
-            var computer = new ClassicBidirMisComputer (
+            var computer = new ClassicBidirMisComputer(
                 lightPathCache: dummyPath.pathCache,
                 numLightPaths: dummyPath.numLightPaths
             );
@@ -47,18 +50,41 @@ namespace Integrators.Tests {
         }
 
         float HitWeight() {
-            var computer = new ClassicBidirMisComputer (
+            var computer = new ClassicBidirMisComputer(
                 lightPathCache: dummyPath.pathCache,
-                numLightPaths: 500
+                numLightPaths: dummyPath.numLightPaths
             );
 
             var cameraPath = new CameraPath {
-                vertices = dummyPath.cameraVertices.AsSpan(0, 3)
+                vertices = dummyPath.cameraVertices.AsSpan(0, 4)
             };
 
             return computer.Hit(cameraPath,
                 pdfEmit: dummyPath.pathCache[0].pdfFromAncestor * dummyPath.pathCache[1].pdfFromAncestor,
                 pdfNextEvent: 1.0f / dummyPath.lightArea);
+        }
+
+        float ConnectFirstToSecondWeight() {
+            var computer = new ClassicBidirMisComputer(
+                lightPathCache: dummyPath.pathCache,
+                numLightPaths: dummyPath.numLightPaths
+            );
+
+            var cameraPath = new CameraPath {
+                vertices = dummyPath.cameraVertices.AsSpan(0, 2)
+            };
+
+            var lightVertex = dummyPath.pathCache[dummyPath.pathCache[dummyPath.lightEndpointIdx].ancestorId];
+
+            // scramble the reverse pdf in the light path, to make sure it is not inadvertently used
+            float lightReverse = lightVertex.pdfToAncestor;
+            lightVertex.pdfToAncestor = -100000.0f;
+
+            return computer.BidirConnect(cameraPath, lightVertex,
+                pdfCameraReverse: 1, // light tracer connections are deterministic
+                pdfCameraToLight: dummyPath.cameraVertices[2].pdfFromAncestor, 
+                pdfLightReverse: lightReverse,
+                pdfLightToCamera: dummyPath.cameraVertices[2].pdfToAncestor);
         }
 
         [Fact]
@@ -83,12 +109,20 @@ namespace Integrators.Tests {
         }
 
         [Fact]
+        public void ConnectFirst_ShouldBeValid() {
+            float weightConnect = ConnectFirstToSecondWeight();
+            Assert.True(weightConnect <= 1.0f);
+            Assert.True(weightConnect >= 0.0f);
+        }
+
+        [Fact]
         public void ShouldSumToOne() {
             float weightNextEvt = NextEventWeight();
             float weightLightTracer = LightTracerWeight();
             float weightBsdf = HitWeight();
+            float weightConnect = ConnectFirstToSecondWeight();
 
-            float weightSum = weightNextEvt + weightBsdf + weightLightTracer;
+            float weightSum = weightNextEvt + weightBsdf + weightLightTracer + weightConnect;
 
             Assert.Equal(1.0f, weightSum, 2);
         }
@@ -98,25 +132,31 @@ namespace Integrators.Tests {
             float weightNextEvt = NextEventWeight();
             float weightLightTracer = LightTracerWeight();
             float weightBsdf = HitWeight();
+            float weightConnect = ConnectFirstToSecondWeight();
 
             // Compute the ground truth values
             var verts = dummyPath.cameraVertices;
-            float pdfHit = verts[1].pdfFromAncestor * verts[2].pdfFromAncestor;
-            float pdfNextEvt = verts[1].pdfFromAncestor * (1.0f / dummyPath.lightArea);
+            float pdfHit = verts[1].pdfFromAncestor * verts[2].pdfFromAncestor * verts[3].pdfFromAncestor;
+            float pdfNextEvt = verts[1].pdfFromAncestor * verts[2].pdfFromAncestor *  (1.0f / dummyPath.lightArea);
 
             var lightVerts = dummyPath.pathCache;
-            float pdfLightTracer = lightVerts[0].pdfFromAncestor 
-                * lightVerts[1].pdfFromAncestor * dummyPath.numLightPaths;
+            float pdfLightTracer = lightVerts[0].pdfFromAncestor
+                * lightVerts[1].pdfFromAncestor * lightVerts[2].pdfFromAncestor * dummyPath.numLightPaths;
 
-            float pdfSum = pdfHit + pdfNextEvt + pdfLightTracer;
+            float pdfConnectFirst = verts[1].pdfFromAncestor * lightVerts[0].pdfFromAncestor
+                * lightVerts[1].pdfFromAncestor;
+
+            float pdfSum = pdfHit + pdfNextEvt + pdfLightTracer + pdfConnectFirst;
 
             float expectedWeightNextEvt = pdfNextEvt / pdfSum;
             float expectedWeightHit = pdfHit / pdfSum;
             float expectedWeightLightTracer = pdfLightTracer / pdfSum;
+            float expectedWeightConnect = pdfConnectFirst / pdfSum;
 
-            Assert.Equal(weightNextEvt, expectedWeightNextEvt, 3);
-            Assert.Equal(weightBsdf, expectedWeightHit, 3);
-            Assert.Equal(weightLightTracer, expectedWeightLightTracer, 3);
+            Assert.Equal(expectedWeightHit, weightBsdf, 3);
+            Assert.Equal(expectedWeightNextEvt, weightNextEvt, 3);
+            Assert.Equal(expectedWeightConnect, weightConnect, 3);
+            Assert.Equal(expectedWeightLightTracer, weightLightTracer, 3);
         }
     }
 }

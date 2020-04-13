@@ -101,23 +101,6 @@ namespace GroundWrapper
     }
 
     [StructLayout(LayoutKind.Sequential)]
-    public struct PathVertex {
-        public SurfacePoint point; // TODO could be a "CompressedSurfacePoint"
-
-        // Surface area pdf to sample this vertex from the previous one,
-        // i.e., the actual density this vertex was sampled from
-        public float pdfFromAncestor;
-
-        // Surface area pdf to sample the previous vertex from this one,
-        // i.e., the reverse direction of the path.
-        public float pdfToAncestor;
-
-        public ColorRGB weight; // TODO support other spectral resolutions
-
-        public int ancestorId;
-    }
-
-    [StructLayout(LayoutKind.Sequential)]
     public struct CameraSampleInfo {
         public Vector2 filmSample;
         public Vector2 lensSample;

@@ -32,12 +32,12 @@ namespace Integrators {
         public abstract ColorRGB EstimatePixelValue(Scene scene, PathCache pathCache, int[] endpoints, 
             Vector2 filmPosition, Ray primaryRay, RNG rng);
 
-        protected delegate void ProcessVertex(PathVertex vertex, PathVertex ancestor, Vector3 dirToAncestor);
+        public delegate void ProcessVertex(PathVertex vertex, PathVertex ancestor, Vector3 dirToAncestor);
 
         /// <summary>
         /// Utility function that iterates over a light path, starting on the end point, excluding the point on the light itself.
         /// </summary>
-        protected void ForEachVertex(PathCache pathCache, int endpoint, ProcessVertex func) {
+        public static void ForEachVertex(PathCache pathCache, int endpoint, ProcessVertex func) {
             int vertexId = endpoint;
             while (pathCache[vertexId].ancestorId != -1) { // iterate over all vertices that have an ancestor
                 var vertex = pathCache[vertexId];
@@ -50,11 +50,11 @@ namespace Integrators {
             }
         }
 
-        protected virtual Emitter SelectEmitterForBidir(Scene scene, RNG rng) {
+        public virtual Emitter SelectEmitterForBidir(Scene scene, RNG rng) {
             return scene.Emitters[0]; // TODO proper selection
         }
 
-        protected virtual Emitter SelectEmitterForNextEvent(Scene scene, RNG rng, Ray ray, Hit hit) {
+        public virtual Emitter SelectEmitterForNextEvent(Scene scene, RNG rng, Ray ray, Hit hit) {
             return scene.Emitters[0]; // TODO proper selection
         }
 

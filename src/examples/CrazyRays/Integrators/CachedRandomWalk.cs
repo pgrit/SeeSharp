@@ -27,9 +27,11 @@ namespace Integrators
             var originVertex = new PathVertex {
                 point = initialPoint,
                 pdfFromAncestor = surfaceAreaPdf,
-                pdfToAncestor = 0.0f, // cannot continue beyond an end-point
+                pdfToAncestor = -1110.0f, // cannot continue beyond an end-point (guard value used to detect this more easily)
+                                          // TODO refactor: none of these values need to be stored, except for the pdf and maybe position!
                 weight = ColorRGB.Black, // the first known weight is that at the first hit point
-                ancestorId = -1
+                ancestorId = -1,
+                depth = 0
             };
             var originId = cache.AddVertex(originVertex);
 
@@ -59,13 +61,23 @@ namespace Integrators
             // TODO the separated Wrap-Eval can cause severe outliers when grazing angles are sampled.
             //      Since we explicitely divide by the jacobian later on...
 
+
+            // Compute and incorporate the pdf of next event estimation, if this is the first bounce.
+            float pdfToAncestor = bsdfSample.reverseJacobian * geometryTerms.cosineFrom / geometryTerms.squaredDistance;
+            if (depth == 1) { // Add the next event pdf
+                // TODO this is assumes that Next Event and emission are sampled exactly the same way.
+                //      find a way to separate this nicely!
+                pdfToAncestor += cache[previousVertexId].pdfFromAncestor; 
+            }
+
             // Store the vertex
             var primaryVertex = new PathVertex {
                 point = hit.point,
                 pdfFromAncestor = pdfNextSurfaceArea,
-                pdfToAncestor = bsdfSample.reverseJacobian * geometryTerms.cosineFrom / geometryTerms.squaredDistance,
+                pdfToAncestor = pdfToAncestor,
                 weight = nextWeight,
-                ancestorId = previousVertexId
+                ancestorId = previousVertexId,
+                depth = (byte)depth
             };
             var primaryId = cache.AddVertex(primaryVertex);
 

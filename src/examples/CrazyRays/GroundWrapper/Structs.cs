@@ -73,26 +73,36 @@ namespace GroundWrapper
     }
 
     [StructLayout(LayoutKind.Sequential)]
+#pragma warning disable CS0660 // Type defines operator == or operator != but does not override Object.Equals(object o)
+#pragma warning disable CS0661 // Type defines operator == or operator != but does not override Object.GetHashCode()
     public struct ColorRGB {
+#pragma warning restore CS0661 // Type defines operator == or operator != but does not override Object.GetHashCode()
+#pragma warning restore CS0660 // Type defines operator == or operator != but does not override Object.Equals(object o)
         public float r, g, b;
 
         public static ColorRGB operator *(ColorRGB a, ColorRGB b)
-        => new ColorRGB {r = a.r * b.r, g = a.g * b.g, b = a.b * b.b};
+            => new ColorRGB {r = a.r * b.r, g = a.g * b.g, b = a.b * b.b};
 
         public static ColorRGB operator *(ColorRGB a, float b)
-        => new ColorRGB {r = a.r * b, g = a.g * b, b = a.b * b};
+            => new ColorRGB {r = a.r * b, g = a.g * b, b = a.b * b};
 
         public static ColorRGB operator *(float a, ColorRGB b)
-        => b * a;
+            => b * a;
 
         public static ColorRGB operator +(ColorRGB a, ColorRGB b)
-        => new ColorRGB {r = a.r + b.r, g = a.g + b.g, b = a.b + b.b};
+            => new ColorRGB {r = a.r + b.r, g = a.g + b.g, b = a.b + b.b};
 
         public static ColorRGB Black =
             new ColorRGB { r = 0.0f, g = 0.0f, b = 0.0f };
 
         public static ColorRGB White =
             new ColorRGB { r = 1.0f, g = 1.0f, b = 1.0f };
+
+        public static bool operator ==(ColorRGB a, ColorRGB b)
+            => a.r == b.r && a.g == b.g && a.b == b.b;
+
+        public static bool operator !=(ColorRGB a, ColorRGB b)
+            => !(a == b);
     }
 
     [StructLayout(LayoutKind.Sequential)]

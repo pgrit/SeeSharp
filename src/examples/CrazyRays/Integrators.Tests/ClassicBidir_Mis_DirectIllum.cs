@@ -1,6 +1,7 @@
 ﻿using Xunit;
 using Integrators;
 using System;
+using System.Collections.Generic;
 using GroundWrapper;
 
 namespace Integrators.Tests {
@@ -16,7 +17,7 @@ namespace Integrators.Tests {
             },
             normals: new Vector3[] {
                 new Vector3 { x = 0, y = -1, z = 0 }.Normalized(), // light
-                new Vector3 { x = 0, y = 1, z = 0 }.Normalized(), // surface
+                new Vector3 { x = 1, y = 1, z = 0 }.Normalized(), // surface
             });
 
         float NextEventWeight() {
@@ -26,13 +27,20 @@ namespace Integrators.Tests {
             );
 
             var cameraPath = new CameraPath {
-                vertices = dummyPath.cameraVertices.AsSpan(0, 2)
+                vertices = new List<PathPdfPair>(dummyPath.cameraVertices[1..2])
             };
+
+            float pdfReverse = dummyPath.cameraVertices[^2].pdfToAncestor;
+            // Set a guard value to make sure that the correct pdf is used!
+            var dummyVert = cameraPath.vertices[^1];
+            dummyVert.pdfToAncestor = -1000.0f;
+            cameraPath.vertices[^1] = dummyVert;
 
             return computer.NextEvent(cameraPath,
                 pdfEmit: dummyPath.pathCache[0].pdfFromAncestor * dummyPath.pathCache[1].pdfFromAncestor,
                 pdfNextEvent: 1.0f / dummyPath.lightArea,
-                pdfHit: dummyPath.cameraVertices[2].pdfFromAncestor);
+                pdfHit: dummyPath.cameraVertices[2].pdfFromAncestor,
+                pdfReverse: pdfReverse);
         }
 
         float LightTracerWeight() {
@@ -53,7 +61,7 @@ namespace Integrators.Tests {
             );
 
             var cameraPath = new CameraPath {
-                vertices = dummyPath.cameraVertices.AsSpan(0, 3)
+                vertices = new List<PathPdfPair>(dummyPath.cameraVertices[1..3])
             };
 
             return computer.Hit(cameraPath,

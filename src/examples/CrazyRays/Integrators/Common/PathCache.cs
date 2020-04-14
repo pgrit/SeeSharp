@@ -1,6 +1,7 @@
 using System.Threading;
+using GroundWrapper;
 
-namespace GroundWrapper {
+namespace Integrators.Common {
 
     // TODO try to refactor this: most of these values are not necessary for the root vertex
     //      separating the root vertex would also allow to avoid the double meaning of

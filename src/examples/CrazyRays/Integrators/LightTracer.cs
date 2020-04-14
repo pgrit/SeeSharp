@@ -1,6 +1,7 @@
 using System;
 using System.Threading.Tasks;
 using GroundWrapper;
+using Integrators.Common;
 
 namespace Integrators {
 
@@ -69,26 +70,22 @@ namespace Integrators {
         void TraceLightPath(Scene scene, RNG rng, PathCache pathCache, int pathIdx) {
             var emitter = SelectEmitter(scene, rng); // TODO once this is a proper selection: obtain and consider PDF
 
+            // Sample a ray from the emitter
             var primaryPos = rng.NextFloat2D();
             var primaryDir = rng.NextFloat2D();
             var emitterSample = emitter.WrapPrimaryToRay(primaryPos, primaryDir);
-            Ray ray = scene.SpawnRay(emitterSample.surface.point, emitterSample.direction);
-
             var radiance = emitter.ComputeEmission(emitterSample.surface.point, emitterSample.direction);
 
+            // Compute the initial weight of the path
             float pdf = emitterSample.surface.jacobian * emitterSample.jacobian;
             var weight = radiance * (emitterSample.shadingCosine / pdf);
 
-            var walker = new CachedRandomWalk(scene, rng, pathCache, true, MaxDepth);
-            var lastVertexId = walker.StartWalk(
-                initialPoint: emitterSample.surface.point,
-                surfaceAreaPdf: emitterSample.surface.jacobian,
-                initialRay: ray,
-                directionPdf: emitterSample.jacobian,
-                initialWeight: weight);
+            // Perform a random walk, caching the vertices as we go.
+            var walker = new CachedRandomWalk(scene, rng, MaxDepth, pathCache);
+            walker.StartFromEmitter(emitterSample, weight);
 
             // keep track of the endpoint
-            endpointIds[pathIdx] = lastVertexId;
+            endpointIds[pathIdx] = walker.lastId;
         }
 
         Emitter SelectEmitter(Scene scene, RNG rng) {
@@ -97,8 +94,8 @@ namespace Integrators {
 
         const int TotalPaths = 512 * 512 * 4;
         const UInt32 BaseSeed = 0xC030114;
-        const int MaxDepth = 10;
-        const int NumIterations = 2;
+        const int MaxDepth = 2;
+        const int NumIterations = 200;
 
         int[] endpointIds = new int[TotalPaths];
     }

@@ -137,9 +137,9 @@ namespace Integrators {
         }
 
         const UInt32 BaseSeed = 0xC030114;
-        const int TotalSpp = 2;
+        const int TotalSpp = 20;
 
-        const uint MaxDepth = 10;
+        const uint MaxDepth = 2;
     }
 
 }

@@ -1,5 +1,7 @@
 ﻿using System;
 using GroundWrapper;
+using Integrators.Common;
+using Integrators;
 
 namespace Integrators.Tests.Helpers {
     public struct MisDummyPath {
@@ -9,9 +11,7 @@ namespace Integrators.Tests.Helpers {
         public Vector3[] normals;
         public PathCache pathCache;
         public int lightEndpointIdx;
-        public PathVertex[] cameraVertices;
-
-        
+        public PathPdfPair[] cameraVertices;
 
         public MisDummyPath(float lightArea, int numLightPaths, Vector3[] positions, Vector3[] normals) {
             this.lightArea = lightArea;
@@ -71,27 +71,18 @@ namespace Integrators.Tests.Helpers {
             }
 
             { // Create the camera path
-                cameraVertices = new PathVertex[positions.Length];
+                cameraVertices = new PathPdfPair[positions.Length];
 
                 // sampling the camera itself / a point on the lens 
-                cameraVertices[0] = new PathVertex {
+                cameraVertices[0] = new PathPdfPair {
                     pdfFromAncestor = 1.0f, // lens / sensor sampling is deterministic
-                    pdfToAncestor = 0.0f,
-                    point = new SurfacePoint {
-                        position = positions[^1]
-                    },
-                    depth = 0
+                    pdfToAncestor = 0.0f
                 };
 
                 // primary surface vertex
-                cameraVertices[1] = new PathVertex {
+                cameraVertices[1] = new PathPdfPair {
                     pdfFromAncestor = numLightPaths * 0.8f, // surface area pdf of sampling this vertex from the camera
-                    pdfToAncestor = 1.0f, // lens / sensor sampling is deterministic
-                    point = new SurfacePoint {
-                        position = positions[^2],
-                        normal = normals[^1]
-                    },
-                    depth = 1
+                    pdfToAncestor = 1.0f
                 };
 
                 // All other surface vertices
@@ -99,14 +90,9 @@ namespace Integrators.Tests.Helpers {
                 for (int idx = 2; idx < positions.Length; ++idx) {
                     var lightVert = pathCache[lightVertIdx];
 
-                    cameraVertices[idx] = new PathVertex {
-                        point = new SurfacePoint {
-                            position = positions[^(idx + 1)],
-                            normal = normals[^idx],
-                        },
+                    cameraVertices[idx] = new PathPdfPair {
                         pdfFromAncestor = lightVert.pdfToAncestor,
-                        pdfToAncestor = lightVert.pdfFromAncestor,
-                        depth = (byte)idx
+                        pdfToAncestor = lightVert.pdfFromAncestor
                     };
 
                     lightVertIdx = lightVert.ancestorId;

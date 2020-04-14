@@ -8,8 +8,8 @@ DiffuseSurfaceEmitter::DiffuseSurfaceEmitter(const Mesh* mesh, const ColorRGB& r
 {
 }
 
-ColorRGB DiffuseSurfaceEmitter::ComputeEmission(const SurfacePoint& point, 
-    const Vector3& outDir) const  
+ColorRGB DiffuseSurfaceEmitter::ComputeEmission(const SurfacePoint& point,
+    const Vector3& outDir) const
 {
     auto shadingNormal = mesh->ComputeShadingNormal(point.primId, point.barycentricCoords);
     float cosine = Dot(outDir, shadingNormal);
@@ -28,7 +28,7 @@ float DiffuseSurfaceEmitter::PrimaryToSurfaceJacobian(const SurfacePoint& sample
     return mesh->ComputePrimaryToSurfaceJacobian(sample);
 }
 
-EmitterSample DiffuseSurfaceEmitter::WrapPrimaryToRay(const Vector2& primaryPos, 
+EmitterSample DiffuseSurfaceEmitter::WrapPrimaryToRay(const Vector2& primaryPos,
     const Vector2& primaryDir) const
 {
     auto surfaceSample = WrapPrimaryToSurface(primaryPos);
@@ -59,16 +59,20 @@ EmitterSample DiffuseSurfaceEmitter::WrapPrimaryToRay(const Vector2& primaryPos,
     return sample;
 }
 
-float DiffuseSurfaceEmitter::PrimaryToRayJacobian(const SurfacePoint& point, 
+float DiffuseSurfaceEmitter::PrimaryToRayJacobian(const SurfacePoint& point,
     const Vector3& dir) const
 {
-    auto shadingNormal = mesh->ComputeShadingNormal(point.primId, point.barycentricCoords);    
+    auto shadingNormal = mesh->ComputeShadingNormal(point.primId, point.barycentricCoords);
     float cosine = Dot(dir, shadingNormal);
 
     // The light only emits in the hemisphere defined by the shading normal.
     if (cosine <= 0) return 0.0f;
 
-    return ComputeCosHemisphereJacobian(cosine);
+    float dirPdf = ComputeCosHemisphereJacobian(cosine);
+
+    float posPdf = PrimaryToSurfaceJacobian(point);
+
+    return posPdf * dirPdf;
 }
 
 } // namespace Ground

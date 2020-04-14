@@ -9,11 +9,15 @@ namespace Renderer {
             scene.SetupFrameBuffer(1024, 1024);
             scene.LoadSceneFile("../../data/scenes/cbox.json");
             // scene.LoadSceneFile("../../data/scenes/furnacebox.json");
+            //scene.LoadSceneFile("../../data/scenes/simpledi.json");
 
             var stopwatch = System.Diagnostics.Stopwatch.StartNew();
 
+            //Integrator algorithm;
             //var algorithm = new PathTracer();
-            Integrator algorithm = new ClassicBidir();
+            var algorithm = new ClassicBidir();
+            algorithm.NumIterations = 2;
+            //var algorithm = new LightTracer();
             algorithm.Render(scene);
 
             stopwatch.Stop();

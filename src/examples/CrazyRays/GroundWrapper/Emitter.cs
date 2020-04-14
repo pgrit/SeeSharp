@@ -1,3 +1,4 @@
+using System;
 using System.Diagnostics;
 using System.Runtime.InteropServices;
 
@@ -35,6 +36,9 @@ namespace GroundWrapper
             return ComputeEmission(ref point, outDir);
         }
 
+        public float RayJacobian(SurfacePoint origin, Vector3 direction)
+            => ComputePrimaryToEmitterRayJacobian(origin, direction);
+
         [DllImport("Ground", CallingConvention=CallingConvention.Cdecl)]
         static extern SurfaceSample WrapPrimarySampleToEmitterSurface(
             int emitterId, float u, float v);
@@ -50,5 +54,9 @@ namespace GroundWrapper
         [DllImport("Ground", CallingConvention=CallingConvention.Cdecl)]
         static extern ColorRGB ComputeEmission([In] ref SurfacePoint point,
             Vector3 outDir);
+
+        [DllImport("Ground", CallingConvention = CallingConvention.Cdecl)]
+        static extern float ComputePrimaryToEmitterRayJacobian(SurfacePoint origin,
+            Vector3 direction);
     }
 }

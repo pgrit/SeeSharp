@@ -38,7 +38,19 @@ namespace GroundWrapper
             }
         }
 
+        public Vector3 CameraDirection {
+            get {
+                if (cameraDirection.HasValue)
+                    return cameraDirection.Value;
+
+                cameraDirection = SampleCamera((uint)frameBuffer.width / 2, (uint)frameBuffer.height / 2, 0.0f, 0.0f)
+                    .Item1.direction;
+                return cameraDirection.Value;
+            }
+        }
+
         private Vector3? cameraPosition;
+        private Vector3? cameraDirection;
 
         public (Ray, Vector2) SampleCamera(uint row, uint col, float u, float v) {
             CameraSampleInfo camSample = new CameraSampleInfo() {

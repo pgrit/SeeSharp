@@ -21,8 +21,12 @@ namespace GroundWrapper {
             this.height = height;
         }
 
-        public void Splat(float x, float y, GroundWrapper.ColorRGB value) {
-            AddSplatRGB(this.id, x, y, value);
+        public void Splat(float x, float y, ColorRGB value) {
+            AddSplatRGB(id, x, y, value);
+        }
+
+        public ColorRGB Get(float x, float y) {
+            return ColorRGB.Black;
         }
 
         public void WriteToFile(string filename) {

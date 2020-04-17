@@ -1,37 +1,10 @@
 using System.Runtime.InteropServices;
-using GroundWrapper.GroundMath;
+using System.Numerics;
 
 namespace GroundWrapper
 {
 
-    [StructLayout(LayoutKind.Sequential)]
-    public struct Ray {
-        public Vector3 origin;
-        public Vector3 direction;
-        public float minDistance;
-    }
-
-    [StructLayout(LayoutKind.Sequential)]
-    public struct SurfacePoint {
-        public Vector3 position;
-        public Vector3 normal;
-        public Vector2 barycentricCoords;
-        public uint meshId;
-        public uint primId;
-        public float errorOffset;
-    }
-
-    [StructLayout(LayoutKind.Sequential)]
-    public struct Hit {
-        public SurfacePoint point;
-        public float distance;
-    }
-
-    [StructLayout(LayoutKind.Sequential)]
-    public struct SurfaceSample {
-        public SurfacePoint point;
-        public float jacobian;
-    }
+    
 
     [StructLayout(LayoutKind.Sequential)]
     public struct UberShaderParams {

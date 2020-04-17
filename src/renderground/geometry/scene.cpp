@@ -92,20 +92,26 @@ Hit Scene::Intersect(const Ray& ray) {
             std::max(std::abs(position.z),rayhit.ray.tfar)
         ) * 32.0f * 1.19209e-07f;
 
+    // Hit hit {
+    //     SurfacePoint {
+    //         position,
+    //         Vector3 { rayhit.hit.Ng_x, rayhit.hit.Ng_y, rayhit.hit.Ng_z },
+    //         Vector2 { rayhit.hit.u, rayhit.hit.v },
+    //         rayhit.hit.geomID,
+    //         rayhit.hit.primID,
+    //         errorOffset,
+    //     },
+    //     rayhit.ray.tfar
+    // };
+
     Hit hit {
-        SurfacePoint {
-            position,
-            Vector3 { rayhit.hit.Ng_x, rayhit.hit.Ng_y, rayhit.hit.Ng_z },
-            Vector2 { rayhit.hit.u, rayhit.hit.v },
-            rayhit.hit.geomID,
-            rayhit.hit.primID,
-            errorOffset,
-        },
+        rayhit.hit.geomID, rayhit.hit.primID,
+        rayhit.hit.u, rayhit.hit.v,
         rayhit.ray.tfar
     };
 
     // Embree does not normalize the face normal
-    hit.point.normal = Normalize(hit.point.normal);
+    // hit.point.normal = Normalize(hit.point.normal);
 
     return hit;
 }

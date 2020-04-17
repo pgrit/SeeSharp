@@ -1,6 +1,8 @@
 ﻿using GroundWrapper;
 using System.Threading.Tasks;
 using Integrators.Common;
+using GroundWrapper.GroundMath;
+using GroundWrapper.Geometry;
 
 namespace Integrators {
     public abstract class BidirBase : Integrator {
@@ -69,7 +71,7 @@ namespace Integrators {
             this.scene = scene;
 
             if (NumLightPaths <= 0) {
-                NumLightPaths = scene.frameBuffer.width * scene.frameBuffer.height;
+                NumLightPaths = scene.frameBuffer.Width * scene.frameBuffer.Height;
             }
 
             pathCache = new PathCache(NumLightPaths * MaxDepth);
@@ -92,10 +94,10 @@ namespace Integrators {
         }
 
         private void TraceAllCameraPaths(uint iter) {
-            Parallel.For(0, scene.frameBuffer.height,
+            Parallel.For(0, scene.frameBuffer.Height,
                 row => {
-                    for (uint col = 0; col < scene.frameBuffer.width; ++col) {
-                        uint pixelIndex = (uint)(row * scene.frameBuffer.width + col);
+                    for (uint col = 0; col < scene.frameBuffer.Width; ++col) {
+                        uint pixelIndex = (uint)(row * scene.frameBuffer.Width + col);
                         var seed = RNG.HashSeed(BaseSeedCamera, pixelIndex, (uint)iter);
                         var rng = new RNG(seed);
                         RenderPixel((uint)row, col, rng);

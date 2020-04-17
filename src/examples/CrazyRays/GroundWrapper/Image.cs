@@ -1,48 +1,58 @@
-using System.Runtime.InteropServices;
-
 namespace GroundWrapper {
     public class Image {
-
-        public int width {
+        public int Width {
             get; private set;
         }
 
-        public int height {
-            get; private set;
-        }
-
-        public int id {
+        public int Height {
             get; private set;
         }
 
         public Image(int width, int height) {
-            id = CreateImageRGB(width, height);
-            this.width = width;
-            this.height = height;
+            if (width < 1 || height < 1)
+                throw new System.ArgumentOutOfRangeException("width / height", 
+                    "Cannot create an image smaller than 1x1 pixels.");
+
+            Width = width;
+            Height = height;
+
+            data = new ColorRGB[width, height];
         }
 
-        public void Splat(float x, float y, ColorRGB value) {
-            AddSplatRGB(id, x, y, value);
-        }
+        public ColorRGB this[float x, float y] {
+            get {
+                int row = (int)y;
+                int col = (int)x;
+                
+                row = System.Math.Clamp(row, 0, Height - 1);
+                col = System.Math.Clamp(col, 0, Width - 1);
+                
+                return data[col, row];
+            }
+            set {
+                int row = (int)y;
+                int col = (int)x;
 
-        public ColorRGB Get(float x, float y) {
-            return ColorRGB.Black;
+                row = System.Math.Clamp(row, 0, Height - 1);
+                col = System.Math.Clamp(col, 0, Width - 1);
+
+                data[col, row] = value;
+            }
         }
 
         public void WriteToFile(string filename) {
-            WriteImage(this.id, filename);
         }
 
-#region C-API-IMPORTS
-        [DllImport("Ground", CallingConvention=CallingConvention.Cdecl)]
-        protected static extern int CreateImageRGB(int width, int height);
+        public static Image LoadFromFile(string filename) {
+            return new Image(1, 1);
+        }
 
-        [DllImport("Ground", CallingConvention=CallingConvention.Cdecl)]
-        protected static extern void AddSplatRGB(int imgId, float x, float y,
-            [In] ColorRGB value);
+        public static Image Constant(ColorRGB color) {
+            var img = new Image(1, 1);
+            img[0, 0] = color;
+            return img;
+        }
 
-        [DllImport("Ground", CallingConvention=CallingConvention.Cdecl)]
-        protected static extern void WriteImage(int imgId, string filename);
-#endregion C-API-IMPORTS
+        readonly ColorRGB[,] data;
     }
 }

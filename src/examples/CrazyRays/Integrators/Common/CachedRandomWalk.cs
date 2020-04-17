@@ -1,5 +1,6 @@
 ﻿using GroundWrapper;
-
+using GroundWrapper.GroundMath;
+using GroundWrapper.Geometry;
 namespace Integrators.Common {
     public class CachedRandomWalk : RandomWalk {
         PathCache cache;

@@ -1,6 +1,7 @@
 ﻿using Xunit;
 using GroundWrapper.GroundMath;
 using System;
+using System.Numerics;
 
 namespace GroundWrapper.Tests.Geometry {
     public class Mesh_Attributes {
@@ -36,13 +37,13 @@ namespace GroundWrapper.Tests.Geometry {
             var n1 = mesh.ComputeShadingNormal(0, new Vector2(0.5f, 0.5f));
             var n2 = mesh.ComputeShadingNormal(1, new Vector2(0.5f, 0.5f));
 
-            Assert.Equal(1, n1.x, 3);
-            Assert.Equal(0, n1.y, 3);
-            Assert.Equal(0, n1.z, 3);
+            Assert.Equal(1, n1.X, 3);
+            Assert.Equal(0, n1.Y, 3);
+            Assert.Equal(0, n1.Z, 3);
 
-            Assert.Equal(1.0f / MathF.Sqrt(2), n2.x, 3);
-            Assert.Equal(0, n2.y, 3);
-            Assert.Equal(-1.0f / MathF.Sqrt(2), n2.z, 3);
+            Assert.Equal(1.0f / MathF.Sqrt(2), n2.X, 3);
+            Assert.Equal(0, n2.Y, 3);
+            Assert.Equal(-1.0f / MathF.Sqrt(2), n2.Z, 3);
         }
 
         [Fact]
@@ -64,13 +65,13 @@ namespace GroundWrapper.Tests.Geometry {
             var n1 = mesh.ComputeShadingNormal(0, new Vector2(0.5f, 0.25f));
             var n2 = mesh.ComputeShadingNormal(0, new Vector2(0.25f, 0.5f));
 
-            Assert.Equal(0, n1.x, 3);
-            Assert.Equal(-1, n1.y, 3);
-            Assert.Equal(0, n1.z, 3);
+            Assert.Equal(0, n1.X, 3);
+            Assert.Equal(-1, n1.Y, 3);
+            Assert.Equal(0, n1.Z, 3);
 
-            Assert.Equal(0, n2.x, 3);
-            Assert.Equal(-1, n2.y, 3);
-            Assert.Equal(0, n2.z, 3);
+            Assert.Equal(0, n2.X, 3);
+            Assert.Equal(-1, n2.Y, 3);
+            Assert.Equal(0, n2.Z, 3);
         }
     }
 }

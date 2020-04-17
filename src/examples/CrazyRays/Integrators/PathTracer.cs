@@ -1,13 +1,15 @@
 using System;
 using GroundWrapper;
+using GroundWrapper.GroundMath;
+using GroundWrapper.Geometry;
 
 namespace Integrators {
 
     public class PathTracer : Integrator {
         public override void Render(Scene scene) {
-            System.Threading.Tasks.Parallel.For(0, scene.frameBuffer.height,
+            System.Threading.Tasks.Parallel.For(0, scene.frameBuffer.Height,
                 row => {
-                    for (uint col = 0; col < scene.frameBuffer.width; ++col) {
+                    for (uint col = 0; col < scene.frameBuffer.Width; ++col) {
                         this.RenderPixel(scene, (uint)row, col);
                     }
                 }
@@ -17,7 +19,7 @@ namespace Integrators {
         private void RenderPixel(Scene scene, uint row, uint col) {
             for (uint sampleIndex = 0; sampleIndex < TotalSpp; ++sampleIndex) {
                 // Seed the random number generator
-                uint pixelIndex = row * (uint)scene.frameBuffer.width + col;
+                uint pixelIndex = row * (uint)scene.frameBuffer.Width + col;
                 var seed = RNG.HashSeed(BaseSeed, pixelIndex, sampleIndex);
                 var rng = new RNG(seed);
 
@@ -55,7 +57,7 @@ namespace Integrators {
                 // Compute surface area PDFs
                 float pdfNextEvt = lightSample.jacobian;
                 float pdfBsdfSolidAngle = scene.ComputePrimaryToBsdfJacobian(
-                    hit.point, -ray.direction, -lightToSurface, false).jacobian;
+                    hit.point, -ray.direction, -lightToSurface, false).pdf;
                 float pdfBsdf = pdfBsdfSolidAngle * geometryTerms.cosineTo / geometryTerms.squaredDistance;
 
                 // Compute the resulting power heuristic weights
@@ -85,9 +87,9 @@ namespace Integrators {
 
             var bsdfRay = scene.SpawnRay(hit.point, bsdfSample.direction);
 
-            var weight = bsdfSample.jacobian == 0.0f ? ColorRGB.Black : bsdfValue * (shadingCosine / bsdfSample.jacobian);
+            var weight = bsdfSample.pdf == 0.0f ? ColorRGB.Black : bsdfValue * (shadingCosine / bsdfSample.pdf);
 
-            return (bsdfRay, bsdfSample.jacobian, weight);
+            return (bsdfRay, bsdfSample.pdf, weight);
         }
 
         private ColorRGB EstimateIncidentRadiance(Scene scene, Ray ray, RNG rng, uint depth = 1,

@@ -1,4 +1,6 @@
-﻿using GroundWrapper.GroundMath;
+﻿using System.Numerics;
+using System;
+using GroundWrapper.Geometry;
 
 namespace GroundWrapper {
     public struct BsdfSample {
@@ -13,26 +15,76 @@ namespace GroundWrapper {
         public ColorRGB weight;
     }
 
-    public interface Material {
-        ColorRGB Evaluate(SurfacePoint point, Vector3 outDir, Vector3 inDir, bool isOnLightSubpath);
-        ColorRGB Sample(SurfacePoint point, Vector3 outDir, Vector3 inDir, bool isOnLightSubpath, Vector2 primarySample);
-        (float, float) Pdf(SurfacePoint point, Vector3 outDir, Vector3 inDir, bool isOnLightSubpath);
+    public interface Bsdf {
+        ColorRGB Evaluate(Vector3 outDir, Vector3 inDir, bool isOnLightSubpath);
+        BsdfSample Sample(Vector3 outDir, bool isOnLightSubpath, Vector2 primarySample);
+        (float, float) Pdf(Vector3 outDir, Vector3 inDir, bool isOnLightSubpath);
     }
 
-    public struct DiffuseBsdf {
+    public struct DiffuseBsdf : Bsdf {
         public ColorRGB reflectance;
+        public Hit point;
 
-        public ColorRGB Evaluate(SurfacePoint point, Vector3 outDir, Vector3 inDir, bool isOnLightSubpath) {
-            return ColorRGB.Black;
+        ColorRGB Bsdf.Evaluate(Vector3 outDir, Vector3 inDir, bool isOnLightSubpath) {
+            // Normalize the directions
+            outDir = Vector3.Normalize(outDir);
+            inDir = Vector3.Normalize(inDir);
+
+            // Flip the normal to the correct hemisphere
+            var normal = point.ShadingNormal;
+            if (Vector3.Dot(outDir, normal) < 0) normal *= -1.0f;
+
+            var cos = Vector3.Dot(normal, inDir);
+            cos = MathF.Max(cos, 0); // Only reflection is possible (i.e. same hemisphere)
+            return reflectance * (cos / MathF.PI);
         }
 
-        public ColorRGB Sample(SurfacePoint point, Vector3 outDir, Vector3 inDir, bool isOnLightSubpath, Vector2 primarySample) {
-            return ColorRGB.Black;
+        BsdfSample Bsdf.Sample(Vector3 outDir, bool isOnLightSubpath, Vector2 primarySample) {
+            // Normalize the directions
+            outDir = Vector3.Normalize(outDir);
+
+            // Flip the normal to the correct hemisphere
+            var normal = point.ShadingNormal;
+            if (Vector3.Dot(outDir, normal) < 0) normal *= -1.0f;
+
+            // Transform primary to cosine hemisphere (z is up)
+            var local = GroundMath.SampleWrap.ToCosHemisphere(primarySample);
+
+            // Transform to world space direction
+            var (tangent, binormal) = GroundMath.SampleWrap.ComputeBasisVectors(normal);
+            Vector3 dir = local.direction.Z * normal 
+                        + local.direction.X * tangent 
+                        + local.direction.Y * binormal;
+
+            // Compute weights and pdfs
+            float pdf = local.jacobian;
+            float pdfReverse = Vector3.Dot(normal, outDir) / MathF.PI;
+            var weight = reflectance; // cosine and PI cancel out with the pdf
+
+            return new BsdfSample { direction = dir, pdf = pdf, pdfReverse = pdfReverse, weight = weight };
         }
 
-        public (float, float) Pdf(SurfacePoint point, Vector3 outDir, Vector3 inDir, bool isOnLightSubpath) {
-            return (0, 0);
+        (float, float) Bsdf.Pdf(Vector3 outDir, Vector3 inDir, bool isOnLightSubpath) {
+            // Normalize the directions
+            outDir = Vector3.Normalize(outDir);
+            inDir = Vector3.Normalize(inDir);
+
+            // Flip the normal to the correct hemisphere
+            var normal = point.ShadingNormal;
+            if (Vector3.Dot(outDir, normal) < 0) normal *= -1.0f;
+
+            float pdf = Vector3.Dot(normal, inDir) / MathF.PI;
+            float pdfReverse = Vector3.Dot(normal, outDir) / MathF.PI;
+
+            // Check that the directions are in the same hemisphere
+            if (pdf * pdfReverse < 0) return (0, 0);
+
+            return (pdf, pdfReverse);
         }
+    }
+
+    public interface Material {
+        Bsdf GetBsdf(Hit hit);
     }
 
     /// <summary>
@@ -40,17 +92,15 @@ namespace GroundWrapper {
     /// </summary>
     public class GenericMaterial : Material {
         public struct Parameters {
-            Image baseColor;
+            public Image baseColor;
         }
 
         public GenericMaterial(Parameters parameters) => this.parameters = parameters;
 
-        ColorRGB Material.Evaluate(SurfacePoint point, Vector3 outDir, Vector3 inDir, bool isOnLightSubpath) 
-            => throw new System.NotImplementedException();
-        (float, float) Material.Pdf(SurfacePoint point, Vector3 outDir, Vector3 inDir, bool isOnLightSubpath) 
-            => throw new System.NotImplementedException();
-        ColorRGB Material.Sample(SurfacePoint point, Vector3 outDir, Vector3 inDir, bool isOnLightSubpath, Vector2 primarySample) 
-            => throw new System.NotImplementedException();
+        Bsdf Material.GetBsdf(Hit hit) {
+            var tex = hit.TextureCoordinates;
+            return new DiffuseBsdf { point = hit, reflectance = parameters.baseColor[tex.X, tex.Y] };
+        }
 
         Parameters parameters;
     }

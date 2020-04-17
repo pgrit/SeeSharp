@@ -1,4 +1,6 @@
 ﻿using GroundWrapper;
+using GroundWrapper.GroundMath;
+using GroundWrapper.Geometry;
 
 namespace Integrators.Common {
     public class RandomWalk {
@@ -43,9 +45,9 @@ namespace Integrators.Common {
                 scene.EvaluateBsdf(hit.point, -ray.direction, bsdfSample.direction, isOnLightSubpath);
 
             return (
-                bsdfSample.jacobian, 
-                bsdfSample.reverseJacobian,
-                bsdfValue * (shadingCosine / bsdfSample.jacobian),
+                bsdfSample.pdf, 
+                bsdfSample.pdfReverse,
+                bsdfValue * (shadingCosine / bsdfSample.pdf),
                 bsdfSample.direction
             );
         }

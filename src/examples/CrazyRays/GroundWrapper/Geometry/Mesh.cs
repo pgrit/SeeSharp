@@ -1,7 +1,22 @@
 ﻿using GroundWrapper.GroundMath;
 using System.Diagnostics;
+using System.Numerics;
 
 namespace GroundWrapper {
+    public struct SurfacePoint {
+        public Vector3 position;
+        public Vector3 normal;
+        public Vector2 barycentricCoords;
+        public uint meshId;
+        public uint primId;
+        public float errorOffset;
+    }
+
+    public struct SurfaceSample {
+        public SurfacePoint point;
+        public float jacobian;
+    }
+
     public class Mesh {
         public Mesh(Vector3[] vertices, int[] indices, Vector3[] shadingNormals = null,
                     Vector2[] textureCoordinates = null) {
@@ -9,13 +24,14 @@ namespace GroundWrapper {
             Indices = indices;
 
             Debug.Assert(indices.Length % 3 == 0, "Triangle mesh indices must be a multiple of three.");
-            int numFaces = indices.Length / 3;
+            NumFaces = indices.Length / 3;
+            NumVertices = vertices.Length;
 
             // Compute face normals and triangle areas
-            FaceNormals = new Vector3[numFaces];
-            var surfaceAreas = new float[numFaces];
+            FaceNormals = new Vector3[NumFaces];
+            var surfaceAreas = new float[NumFaces];
             SurfaceArea = 0;
-            for (int face = 0; face < numFaces; ++face) {
+            for (int face = 0; face < NumFaces; ++face) {
                 var v1 = vertices[indices[face * 3 + 0]];
                 var v2 = vertices[indices[face * 3 + 1]];
                 var v3 = vertices[indices[face * 3 + 2]];
@@ -37,7 +53,7 @@ namespace GroundWrapper {
             // Compute shading normals from face normals if not set
             if (this.shadingNormals == null) {
                 this.shadingNormals = new Vector3[vertices.Length];
-                for (int face = 0; face < numFaces; ++face) {
+                for (int face = 0; face < NumFaces; ++face) {
                     this.shadingNormals[indices[face * 3 + 0]] = FaceNormals[face];
                     this.shadingNormals[indices[face * 3 + 1]] = FaceNormals[face];
                     this.shadingNormals[indices[face * 3 + 2]] = FaceNormals[face];
@@ -45,7 +61,7 @@ namespace GroundWrapper {
             } else {
                 // Ensure normalization
                 for (int i = 0; i < this.shadingNormals.Length; ++i)
-                    this.shadingNormals[i] = this.shadingNormals[i].Normalized();
+                    this.shadingNormals[i] = Vector3.Normalize(this.shadingNormals[i]);
             }
         }
 
@@ -60,16 +76,16 @@ namespace GroundWrapper {
             var v2 = Vertices[Indices[faceIdx * 3 + 1]];
             var v3 = Vertices[Indices[faceIdx * 3 + 2]];
 
-            Vector3 errorDiagonal = Vector3.Abs(barycentricCoords.x * v2)
-                + Vector3.Abs(barycentricCoords.y * v3)
-                + Vector3.Abs((1 - barycentricCoords.x - barycentricCoords.y) * v1);
+            Vector3 errorDiagonal = Vector3.Abs(barycentricCoords.X * v2)
+                + Vector3.Abs(barycentricCoords.Y * v3)
+                + Vector3.Abs((1 - barycentricCoords.X - barycentricCoords.Y) * v1);
 
             return errorDiagonal.Length() * gamma6;
         }
 
         public SurfaceSample Sample(Vector2 primarySample) {
-            var (faceIdx, newX) = triangleDistribution.Sample(primarySample.x);
-            var barycentric = SampleWrap.ToUniformTriangle(new Vector2(newX, primarySample.y));
+            var (faceIdx, newX) = triangleDistribution.Sample(primarySample.X);
+            var barycentric = SampleWrap.ToUniformTriangle(new Vector2(newX, primarySample.Y));
 
             return new SurfaceSample {
                 point = new SurfacePoint {
@@ -95,9 +111,9 @@ namespace GroundWrapper {
             var v2 = textureCoordinates[Indices[faceIdx * 3 + 1]];
             var v3 = textureCoordinates[Indices[faceIdx * 3 + 2]];
 
-            return barycentric.x * v2
-                +  barycentric.y * v3
-                + (1 - barycentric.x - barycentric.y) * v1;
+            return barycentric.X * v2
+                +  barycentric.Y * v3
+                + (1 - barycentric.X - barycentric.Y) * v1;
         }
 
         public Vector3 ComputeShadingNormal(int faceIdx, Vector2 barycentric) {
@@ -105,9 +121,9 @@ namespace GroundWrapper {
             var v2 = shadingNormals[Indices[faceIdx * 3 + 1]];
             var v3 = shadingNormals[Indices[faceIdx * 3 + 2]];
 
-            return barycentric.x * v2
-                +  barycentric.y * v3
-                + (1 - barycentric.x - barycentric.y) * v1;
+            return barycentric.X * v2
+                +  barycentric.Y * v3
+                + (1 - barycentric.X - barycentric.Y) * v1;
         }
 
         public Vector3 ComputePosition(int faceIdx, Vector2 barycentric) {
@@ -115,15 +131,18 @@ namespace GroundWrapper {
             var v2 = Vertices[Indices[faceIdx * 3 + 1]];
             var v3 = Vertices[Indices[faceIdx * 3 + 2]];
 
-            return barycentric.x * v2
-                +  barycentric.y * v3 
-                + (1 - barycentric.x - barycentric.y) * v1;
+            return barycentric.X * v2
+                +  barycentric.Y * v3 
+                + (1 - barycentric.X - barycentric.Y) * v1;
         }
 
         public Vector3[] Vertices;
         public int[] Indices;
         public Vector3[] FaceNormals;
         public float SurfaceArea;
+
+        public int NumVertices { get; private set; }
+        public int NumFaces { get; private set; }
 
         Sampling.PiecewiseConstant triangleDistribution;
 

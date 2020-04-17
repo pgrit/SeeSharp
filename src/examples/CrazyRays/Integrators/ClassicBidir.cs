@@ -3,6 +3,8 @@ using System;
 using System.Threading.Tasks;
 using Integrators.Common;
 using System.Collections.Generic;
+using GroundWrapper.GroundMath;
+using GroundWrapper.Geometry;
 
 namespace Integrators {
 
@@ -12,7 +14,7 @@ namespace Integrators {
             MaxDepth = 11;
 
             // Classic Bidir requires exactly one light path for every camera path.
-            NumLightPaths = scene.frameBuffer.width * scene.frameBuffer.height;
+            NumLightPaths = scene.frameBuffer.Width * scene.frameBuffer.Height;
             base.Render(scene);
         }
 
@@ -91,7 +93,7 @@ namespace Integrators {
         public override ColorRGB EstimatePixelValue(SurfacePoint cameraPoint, Vector2 filmPosition, Ray primaryRay,
                                                     float pdfFromCamera, ColorRGB initialWeight, RNG rng) {
             // The pixel index determines which light path we connect to
-            int pixelIndex = (int)filmPosition.y * scene.frameBuffer.width + (int)filmPosition.x;
+            int pixelIndex = (int)filmPosition.y * scene.frameBuffer.Width + (int)filmPosition.x;
             if ((int)filmPosition.y != 20 || (int)filmPosition.x != 170) return ColorRGB.Black;
             var walk = new CameraRandomWalk(rng, pixelIndex, this);
             return walk.StartFromCamera(filmPosition, cameraPoint, pdfFromCamera, primaryRay, initialWeight);
@@ -126,9 +128,9 @@ namespace Integrators {
 
             var bsdfRay = scene.SpawnRay(hit.point, bsdfSample.direction);
 
-            var weight = bsdfSample.jacobian == 0.0f ? ColorRGB.Black : bsdfValue * (shadingCosine / bsdfSample.jacobian);
+            var weight = bsdfSample.pdf == 0.0f ? ColorRGB.Black : bsdfValue * (shadingCosine / bsdfSample.pdf);
 
-            return (bsdfRay, bsdfSample.jacobian, weight);
+            return (bsdfRay, bsdfSample.pdf, weight);
         }
 
         public void ConnectPathVerticesToCamera(int vertexId) {
@@ -162,7 +164,7 @@ namespace Integrators {
                 var (bsdfWeight, _) = scene.EvaluateBsdf(vertex.point, dirToAncestor, dirToCam, true);
 
                 // Compute the surface area pdf of sampling the previous vertex instead
-                float pdfReverse = scene.ComputePrimaryToBsdfJacobian(vertex.point, dirToCam, dirToAncestor, false).jacobian;
+                float pdfReverse = scene.ComputePrimaryToBsdfJacobian(vertex.point, dirToCam, dirToAncestor, false).pdf;
                 var geomTerms = scene.ComputeGeometryTerms(vertex.point, ancestor.point);
                 pdfReverse *= geomTerms.cosineTo / geomTerms.squaredDistance;
 
@@ -208,13 +210,13 @@ namespace Integrators {
 
                 // Compute the missing pdfs
                 var camJacobians = scene.ComputePrimaryToBsdfJacobian(cameraPoint, outDir, dirFromCamToLight, false);
-                float pdfCameraReverse = camJacobians.reverseJacobian * reversePdfJacobian;
-                float pdfCameraToLight = camJacobians.jacobian * geomTerms.cosineTo / geomTerms.squaredDistance;
+                float pdfCameraReverse = camJacobians.pdfReverse * reversePdfJacobian;
+                float pdfCameraToLight = camJacobians.pdf * geomTerms.cosineTo / geomTerms.squaredDistance;
 
                 var lightJacobians = scene.ComputePrimaryToBsdfJacobian(vertex.point, dirToAncestor, -dirFromCamToLight, true);
                 var geomTermsToAncestor = scene.ComputeGeometryTerms(vertex.point, ancestor.point);
-                float pdfLightReverse = lightJacobians.reverseJacobian * geomTermsToAncestor.cosineTo / geomTermsToAncestor.squaredDistance;
-                float pdfLightToCamera = lightJacobians.jacobian * geomTerms.cosineFrom / geomTerms.squaredDistance;
+                float pdfLightReverse = lightJacobians.pdfReverse * geomTermsToAncestor.cosineTo / geomTermsToAncestor.squaredDistance;
+                float pdfLightToCamera = lightJacobians.pdf * geomTerms.cosineFrom / geomTerms.squaredDistance;
 
                 if (vertex.depth == 1) {
                     pdfLightReverse += NextEventPdf(vertex.point, ancestor.point);
@@ -252,8 +254,8 @@ namespace Integrators {
 
                 // Compute the missing pdf terms
                 var bsdfPdfs = scene.ComputePrimaryToBsdfJacobian(hit.point, -ray.direction, -lightToSurface, false);
-                float pdfHit = bsdfPdfs.jacobian * geometryTerms.cosineTo / geometryTerms.squaredDistance;
-                float pdfReverse = bsdfPdfs.reverseJacobian * reversePdfJacobian;
+                float pdfHit = bsdfPdfs.pdf * geometryTerms.cosineTo / geometryTerms.squaredDistance;
+                float pdfReverse = bsdfPdfs.pdfReverse * reversePdfJacobian;
 
                 float pdfEmit = light.RayJacobian(lightSample.point, lightToSurface);
                 pdfEmit *= geometryTerms.cosineFrom / geometryTerms.squaredDistance;

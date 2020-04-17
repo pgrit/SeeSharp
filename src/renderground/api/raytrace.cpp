@@ -21,10 +21,10 @@ GROUND_API void DeleteScene() {
 
     globalEmitters.clear();
     globalMeshToEmitter.clear();
-    
+
     globalMaterials.clear();
     globalMeshToMaterial.clear();
-    
+
     globalTransforms.clear();
 
     globalScene.release();
@@ -68,7 +68,7 @@ GROUND_API bool IsOccluded(const SurfacePoint* from, Vector3 to) {
 
     auto shadowDir = to - from->position;
     auto shadowHit = TraceSingle(Ray{from->position, shadowDir, from->errorOffset});
-    if (shadowHit.point.meshId >= 0 && shadowHit.distance < 1.0f - from->errorOffset)
+    if (shadowHit.meshId >= 0 && shadowHit.distance < 1.0f - from->errorOffset)
         return true;
     return false;
 }

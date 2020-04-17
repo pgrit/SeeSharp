@@ -2,7 +2,8 @@ using System;
 using System.Diagnostics;
 using System.Runtime.InteropServices;
 using System.Collections.Generic;
-using GroundWrapper.GroundMath;
+using System.Numerics;
+using GroundWrapper.Geometry;
 
 namespace GroundWrapper
 {
@@ -21,8 +22,8 @@ namespace GroundWrapper
 
             CApiImports.InitScene();
 
-            bool loaded = CApiImports.LoadSceneFromFile(filename, this.frameBuffer.id);
-            Debug.Assert(loaded, "Error loading the scene.");
+            //bool loaded = CApiImports.LoadSceneFromFile(filename, this.frameBuffer.id);
+            //Debug.Assert(loaded, "Error loading the scene.");
 
             CApiImports.FinalizeScene();
 
@@ -44,7 +45,7 @@ namespace GroundWrapper
                 if (cameraDirection.HasValue)
                     return cameraDirection.Value;
 
-                cameraDirection = SampleCamera((uint)frameBuffer.width / 2, (uint)frameBuffer.height / 2, 0.0f, 0.0f)
+                cameraDirection = SampleCamera((uint)frameBuffer.Width / 2, (uint)frameBuffer.Height / 2, 0.0f, 0.0f)
                     .Item1.direction;
                 return cameraDirection.Value;
             }
@@ -55,10 +56,7 @@ namespace GroundWrapper
 
         public (Ray, Vector2) SampleCamera(uint row, uint col, float u, float v) {
             CameraSampleInfo camSample = new CameraSampleInfo() {
-                filmSample = new Vector2 {
-                    x = col + u,
-                    y = row + v
-                }
+                filmSample = new Vector2(col + u, row + v)
             };
             // TODO support multiple cameras, specified by id here
             var ray = CApiImports.GenerateCameraRay(0, camSample);
@@ -74,11 +72,11 @@ namespace GroundWrapper
             // TODO support multiple cameras, specified by id here
             Vector3 projected = CApiImports.MapWorldSpaceToCameraFilm(0, worldPos);
 
-            bool isOutside =  projected.x < 0 || projected.x > frameBuffer.width  ||
-                projected.y < 0 || projected.y > frameBuffer.height ||
-                projected.z < 0;
+            bool isOutside =  projected.X < 0 || projected.X > frameBuffer.Width  ||
+                projected.Y < 0 || projected.Y > frameBuffer.Height ||
+                projected.Z < 0;
 
-            return (new Vector2{ x=projected.x, y=projected.y}, !isOutside);
+            return (new Vector2(projected.X, projected.Y), !isOutside);
         }
 
         public float ComputeCamaraSolidAngleToPixelJacobian(Vector3 worldPos) {
@@ -91,7 +89,7 @@ namespace GroundWrapper
         }
 
         public bool IsValid(Hit hit) {
-            return hit.point.meshId < uint.MaxValue;
+            return hit;
         }
 
         public bool IsOccluded(SurfacePoint from, Vector3 to) {

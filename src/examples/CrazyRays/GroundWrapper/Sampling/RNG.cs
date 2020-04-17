@@ -1,5 +1,5 @@
 using System;
-using GroundWrapper.GroundMath;
+using System.Numerics;
 
 namespace GroundWrapper {
     /// <summary>
@@ -28,7 +28,7 @@ namespace GroundWrapper {
         }
 
         public Vector2 NextFloat2D()
-        => new Vector2 { x = NextFloat(), y = NextFloat() };
+        => new Vector2(NextFloat(), NextFloat());
 
         // Random number from min (inclusive) to max (exclusive)
         public int NextInt(int min, int max) {

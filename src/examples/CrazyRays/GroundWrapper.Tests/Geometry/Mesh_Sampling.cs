@@ -1,6 +1,6 @@
 ﻿using Xunit;
 using System;
-using GroundWrapper.GroundMath;
+using System.Numerics;
 
 namespace GroundWrapper.Tests.Geometry {
     public class Mesh_Sampling {
@@ -96,10 +96,10 @@ namespace GroundWrapper.Tests.Geometry {
             int res = 10;
             var grid = new int[res, res];
             void Splat(SurfaceSample s) {
-                var relX = (s.point.position.x + 1.0f) / 2.0f;
+                var relX = (s.point.position.X + 1.0f) / 2.0f;
                 var xIdx = (int)Math.Max(Math.Min(relX * res, res - 1), 0);
 
-                var relY = (s.point.position.z + 1.0f) / 2.0f;
+                var relY = (s.point.position.Z + 1.0f) / 2.0f;
                 var yIdx = (int)Math.Max(Math.Min(relY * res, res - 1), 0);
 
                 grid[xIdx, yIdx]++;

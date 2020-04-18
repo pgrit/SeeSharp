@@ -15,7 +15,7 @@ namespace Integrators.Common {
             // Add the vertex on the light source
             lastId = cache.AddVertex(new PathVertex {
                 point = emitterSample.surface.point,
-                pdfFromAncestor = emitterSample.surface.jacobian,
+                pdfFromAncestor = emitterSample.surface.pdf,
                 pdfToAncestor = 0.0f, // cannot continue beyond an end-point (guard value used to detect this more easily)
                 weight = ColorRGB.Black, // the first known weight is that at the first hit point
                 ancestorId = -1,
@@ -24,7 +24,7 @@ namespace Integrators.Common {
             return base.StartFromEmitter(emitterSample, initialWeight);
         }
 
-        protected override ColorRGB OnHit(Ray ray, Hit hit, float pdfFromAncestor, float pdfToAncestor,
+        protected override ColorRGB OnHit(Ray ray, SurfacePoint hit, float pdfFromAncestor, float pdfToAncestor,
                                           ColorRGB throughput, int depth, GeometryTerms geometryTerms) {
             // Add the next vertex
             lastId = cache.AddVertex(new PathVertex {

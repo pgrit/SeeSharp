@@ -22,7 +22,7 @@ namespace GroundWrapper.Tests {
                 0, 2, 3
             });
 
-            Hit hit = new Hit {
+            SurfacePoint hit = new SurfacePoint {
                 barycentricCoords = new Vector2(0.5f, 0.2f),
                 normal = new Vector3(0, 0, 1),
                 mesh = mesh,
@@ -61,7 +61,7 @@ namespace GroundWrapper.Tests {
                 0, 2, 3
             });
 
-            Hit hit = new Hit {
+            SurfacePoint hit = new SurfacePoint {
                 barycentricCoords = new Vector2(0.5f, 0.2f),
                 normal = new Vector3(0, 0, 1),
                 mesh = mesh,
@@ -103,7 +103,7 @@ namespace GroundWrapper.Tests {
                 0, 2, 3
             });
 
-            Hit hit = new Hit {
+            SurfacePoint hit = new SurfacePoint {
                 barycentricCoords = new Vector2(0.5f, 0.2f),
                 normal = new Vector3(0, 0, 1),
                 mesh = mesh, primId = 0,
@@ -144,7 +144,7 @@ namespace GroundWrapper.Tests {
                 0, 2, 3
             });
 
-            Hit hit = new Hit {
+            SurfacePoint hit = new SurfacePoint {
                 barycentricCoords = new Vector2(0.5f, 0.2f),
                 normal = new Vector3(0, 0, 1),
                 mesh = mesh,
@@ -186,7 +186,7 @@ namespace GroundWrapper.Tests {
                 0, 2, 3
             });
 
-            Hit hit = new Hit {
+            SurfacePoint hit = new SurfacePoint {
                 barycentricCoords = new Vector2(0.5f, 0.2f),
                 normal = new Vector3(0, 0, 1),
                 mesh = mesh,

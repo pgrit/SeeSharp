@@ -65,7 +65,7 @@ namespace GroundWrapper.Tests.Geometry {
                     var sample = mesh.Sample(new Vector2(u, v));
                     if (sample.point.primId == 0)
                         samplesOnFirst++;
-                    Assert.Equal(1.0f / 2.5f, sample.jacobian, 2);
+                    Assert.Equal(1.0f / 2.5f, sample.pdf, 2);
                 }
             }
 
@@ -109,7 +109,7 @@ namespace GroundWrapper.Tests.Geometry {
                 for (float v = 0.0f; v <= 1.0f; v += 1.0f / numSteps) {
                     var sample = mesh.Sample(new Vector2(u, v));
                     Splat(sample);
-                    Assert.Equal(0.25f, sample.jacobian, 3);
+                    Assert.Equal(0.25f, sample.pdf, 3);
                 }
             }
 

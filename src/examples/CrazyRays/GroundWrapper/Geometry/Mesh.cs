@@ -1,23 +1,17 @@
-﻿using GroundWrapper.GroundMath;
+﻿using GroundWrapper.Geometry;
+using GroundWrapper.GroundMath;
 using System.Diagnostics;
 using System.Numerics;
 
 namespace GroundWrapper {
-    public struct SurfacePoint {
-        public Vector3 position;
-        public Vector3 normal;
-        public Vector2 barycentricCoords;
-        public uint meshId;
-        public uint primId;
-        public float errorOffset;
-    }
-
     public struct SurfaceSample {
         public SurfacePoint point;
-        public float jacobian;
+        public float pdf;
     }
 
     public class Mesh {
+        public Material Material;
+
         public Mesh(Vector3[] vertices, int[] indices, Vector3[] shadingNormals = null,
                     Vector2[] textureCoordinates = null) {
             Vertices = vertices;
@@ -93,9 +87,10 @@ namespace GroundWrapper {
                     primId = (uint)faceIdx,
                     normal = FaceNormals[faceIdx],
                     position = ComputePosition(faceIdx, barycentric),
-                    errorOffset = ComputeErrorOffset(faceIdx, barycentric)
+                    errorOffset = ComputeErrorOffset(faceIdx, barycentric),
+                    mesh = this
                 },
-                jacobian = 1.0f / SurfaceArea
+                pdf = 1.0f / SurfaceArea
             };
         }
 

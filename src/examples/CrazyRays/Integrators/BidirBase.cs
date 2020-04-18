@@ -63,7 +63,7 @@ namespace Integrators {
             return scene.Emitters[0]; // TODO proper selection
         }
 
-        public virtual Emitter SelectEmitterForNextEvent(RNG rng, Ray ray, Hit hit) {
+        public virtual Emitter SelectEmitterForNextEvent(RNG rng, Ray ray, SurfacePoint hit) {
             return scene.Emitters[0]; // TODO proper selection
         }
 

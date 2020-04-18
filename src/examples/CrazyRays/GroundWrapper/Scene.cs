@@ -1,207 +1,81 @@
-using System;
-using System.Diagnostics;
-using System.Runtime.InteropServices;
-using System.Collections.Generic;
-using System.Numerics;
 using GroundWrapper.Geometry;
+using System.Collections.Generic;
 
-namespace GroundWrapper
-{
+namespace GroundWrapper {
     public class Scene {
-        public Image frameBuffer {
-            get; private set;
+        public Image FrameBuffer;
+        public Cameras.Camera Camera;
+
+        public List<Mesh> Meshes = new List<Mesh>();
+        public Raytracer Raytracer { get; private set; }
+
+        public List<Emitter> Emitters { get; private set; } = new List<Emitter>();
+
+        public List<string> ValidationErrorMessages { get; private set; } = new List<string>();
+
+        public static Scene LoadFromFile(string path) {
+            return new Scene();
         }
 
-        public void SetupFrameBuffer(int width, int height) {
-            frameBuffer = new Image(width, height);
-        }
+        public void Prepare() {
+            if (!IsValid)
+                throw new System.InvalidOperationException("Cannot finalize an invalid scene.");
 
-        public void LoadSceneFile(string filename) {
-            Debug.Assert(this.frameBuffer != null,
-                "Framebuffer needs to be initialized before loading the scene");
-
-            CApiImports.InitScene();
-
-            //bool loaded = CApiImports.LoadSceneFromFile(filename, this.frameBuffer.id);
-            //Debug.Assert(loaded, "Error loading the scene.");
-
-            CApiImports.FinalizeScene();
-
-            FindEmitters();
-        }
-
-        public Vector3 CameraPosition {
-            get {
-                if (cameraPosition.HasValue)
-                    return cameraPosition.Value;
-
-                cameraPosition = SampleCamera(0, 0, 0.0f, 0.0f).Item1.origin;
-                return cameraPosition.Value;
+            // Prepare the scene geometry for ray tracing.
+            Raytracer = new Raytracer();
+            for (int idx = 0; idx < Meshes.Count; ++idx) {
+                Raytracer.AddMesh(Meshes[idx]);
             }
-        }
+            Raytracer.CommitScene();
 
-        public Vector3 CameraDirection {
-            get {
-                if (cameraDirection.HasValue)
-                    return cameraDirection.Value;
+            // Make sure the camera is set for the correct resolution.
+            Camera.UpdateFrameBuffer(FrameBuffer);
 
-                cameraDirection = SampleCamera((uint)frameBuffer.Width / 2, (uint)frameBuffer.Height / 2, 0.0f, 0.0f)
-                    .Item1.direction;
-                return cameraDirection.Value;
+            // Build the mesh to emitter mapping
+            meshToEmitter.Clear();
+            foreach (var emitter in Emitters) {
+                meshToEmitter.Add(emitter.Mesh, emitter);
             }
-        }
-
-        private Vector3? cameraPosition;
-        private Vector3? cameraDirection;
-
-        public (Ray, Vector2) SampleCamera(uint row, uint col, float u, float v) {
-            CameraSampleInfo camSample = new CameraSampleInfo() {
-                filmSample = new Vector2(col + u, row + v)
-            };
-            // TODO support multiple cameras, specified by id here
-            var ray = CApiImports.GenerateCameraRay(0, camSample);
-            return (ray, camSample.filmSample);
         }
 
         /// <summary>
-        /// Projects the given world space coordinates onto the active camera's film.
+        /// True, if the scene is valid. Any errors found whil accessing the property will be
+        /// reported in the <see cref="ValidationErrorMessages"/> list.
         /// </summary>
-        /// <param name="worldPos">A position in world space to project.</param>
-        /// <returns>The (possibly imaginary) raster position and a bool indicating whether the point is within the view frustum.</returns>
-        public (Vector2, bool) ProjectOntoFilm(Vector3 worldPos) {
-            // TODO support multiple cameras, specified by id here
-            Vector3 projected = CApiImports.MapWorldSpaceToCameraFilm(0, worldPos);
+        public bool IsValid {
+            get {
+                ValidationErrorMessages.Clear();
 
-            bool isOutside =  projected.X < 0 || projected.X > frameBuffer.Width  ||
-                projected.Y < 0 || projected.Y > frameBuffer.Height ||
-                projected.Z < 0;
+                if (FrameBuffer == null)
+                    ValidationErrorMessages.Add("Framebuffer not set.");
+                if (Camera == null)
+                    ValidationErrorMessages.Add("Camera not set.");
+                if (Meshes == null || Meshes.Count == 0)
+                    ValidationErrorMessages.Add("No meshes in the scene.");
 
-            return (new Vector2(projected.X, projected.Y), !isOutside);
-        }
+                int idx = 0;
+                foreach (var m in Meshes) {
+                    if (m.Material == null)
+                        ValidationErrorMessages.Add($"Mesh[{idx}] does not have a material.");
+                    idx++;
+                }
 
-        public float ComputeCamaraSolidAngleToPixelJacobian(Vector3 worldPos) {
-            // TODO support multiple cameras, specified by id here
-            return CApiImports.ComputeSolidAngleToPixelJacobian(0, worldPos);
-        }
-
-        public Hit TraceRay(Ray ray) {
-            return CApiImports.TraceSingle(ray);
-        }
-
-        public bool IsValid(Hit hit) {
-            return hit;
-        }
-
-        public bool IsOccluded(SurfacePoint from, Vector3 to) {
-            return CApiImports.IsOccluded(ref from, to);
-        }
-
-        private void FindEmitters() {
-            int numEmitters = CApiImports.GetNumberEmitters();
-            for (int i = 0; i < numEmitters; i++) {
-                Emitters.Add(new Emitter(CApiImports.GetEmitterMesh(i), i));
+                return ValidationErrorMessages.Count == 0;
             }
         }
 
+        /// <summary>
+        /// Returns the emitter attached to the mesh on which a <see cref="SurfacePoint"/> lies.
+        /// </summary>
+        /// <param name="point">A point on a mesh surface.</param>
+        /// <returns>The attached emitter reference, or null.</returns>
         public Emitter QueryEmitter(SurfacePoint point) {
-            // TODO implement a mesh to emitter map
-            if (point.meshId == Emitters[0].MeshId)
-                return Emitters[0];
-            return null;
+            Emitter emitter;
+            if (!meshToEmitter.TryGetValue(point.mesh, out emitter))
+                return null;
+            return emitter;
         }
 
-        public List<Emitter> Emitters { get; } = new List<Emitter>();
-
-        public Ray SpawnRay(SurfacePoint from, Vector3 direction) {
-            return CApiImports.SpawnRay(from, direction);
-        }
-
-        public (ColorRGB, float) EvaluateBsdf(SurfacePoint point,
-            Vector3 outDir, Vector3 inDir, bool isOnLightSubpath)
-        {
-            var bsdfValue = CApiImports.EvaluateBsdf(ref point, outDir, inDir, isOnLightSubpath);
-            float shadingCosine = CApiImports.ComputeShadingCosine(ref point, outDir, inDir, isOnLightSubpath);
-            return (bsdfValue, Math.Abs(shadingCosine));
-        }
-
-        public BsdfSample WrapPrimarySampleToBsdf(
-            SurfacePoint point, Vector3 outDir,
-            float u, float v, bool isOnLightSubpath)
-        {
-            return CApiImports.WrapPrimarySampleToBsdf(ref point, outDir, u, v, isOnLightSubpath);
-        }
-
-        public BsdfSample ComputePrimaryToBsdfJacobian(
-            SurfacePoint point, Vector3 outDir, Vector3 inDir,
-            bool isOnLightSubpath)
-        {
-            return CApiImports.ComputePrimaryToBsdfJacobian(ref point, outDir, inDir,
-                isOnLightSubpath);
-        }
-
-        public GeometryTerms ComputeGeometryTerms(SurfacePoint from, SurfacePoint to) {
-            return CApiImports.ComputeGeometryTerms(ref from, ref to);
-        }
-
-        struct CApiImports {
-            [DllImport("Ground", CallingConvention = CallingConvention.Cdecl)]
-            public static extern void InitScene();
-
-            [DllImport("Ground", CallingConvention = CallingConvention.Cdecl)]
-            public static extern void FinalizeScene();
-
-            [DllImport("Ground", CallingConvention = CallingConvention.Cdecl)]
-            [return: MarshalAs(UnmanagedType.I1)]
-            public static extern bool LoadSceneFromFile([In] string filename,
-                int frameBufferId);
-
-            [DllImport("Ground", CallingConvention = CallingConvention.Cdecl)]
-            public static extern int GetNumberEmitters();
-
-            [DllImport("Ground", CallingConvention = CallingConvention.Cdecl)]
-            public static extern int GetEmitterMesh(int id);
-
-            [DllImport("Ground", CallingConvention = CallingConvention.Cdecl)]
-            public static extern Ray GenerateCameraRay(int camera,
-                CameraSampleInfo sampleInfo);
-
-            [DllImport("Ground", CallingConvention = CallingConvention.Cdecl)]
-            public static extern Vector3 MapWorldSpaceToCameraFilm(int camera, Vector3 worldSpacePoint);
-
-            [DllImport("Ground", CallingConvention = CallingConvention.Cdecl)]
-            public static extern float ComputeSolidAngleToPixelJacobian(int camera, Vector3 worldSpacePoint);
-
-            [DllImport("Ground", CallingConvention = CallingConvention.Cdecl)]
-            public static extern Hit TraceSingle(Ray ray);
-
-            [DllImport("Ground", CallingConvention = CallingConvention.Cdecl)]
-            [return: MarshalAs(UnmanagedType.I1)]
-            public static extern bool IsOccluded([In] ref SurfacePoint from, Vector3 to);
-
-            [DllImport("Ground", CallingConvention = CallingConvention.Cdecl)]
-            public static extern Ray SpawnRay(SurfacePoint from, Vector3 direction);
-
-            [DllImport("Ground", CallingConvention = CallingConvention.Cdecl)]
-            public static extern ColorRGB EvaluateBsdf([In] ref SurfacePoint point,
-                Vector3 outDir, Vector3 inDir, bool isOnLightSubpath);
-
-            [DllImport("Ground", CallingConvention = CallingConvention.Cdecl)]
-            public static extern float ComputeShadingCosine([In] ref SurfacePoint point,
-                Vector3 outDir, Vector3 inDir, bool isOnLightSubpath);
-
-            [DllImport("Ground", CallingConvention = CallingConvention.Cdecl)]
-            public static extern BsdfSample WrapPrimarySampleToBsdf(
-                [In] ref SurfacePoint point, Vector3 outDir,
-                float u, float v, bool isOnLightSubpath);
-
-            [DllImport("Ground", CallingConvention = CallingConvention.Cdecl)]
-            public static extern BsdfSample ComputePrimaryToBsdfJacobian(
-                [In] ref SurfacePoint point, Vector3 outDir, Vector3 inDir,
-                bool isOnLightSubpath);
-
-            [DllImport("Ground", CallingConvention = CallingConvention.Cdecl)]
-            public static extern GeometryTerms ComputeGeometryTerms(
-                [In] ref SurfacePoint from, [In] ref SurfacePoint to);
-        }
+        Dictionary<Mesh, Emitter> meshToEmitter = new Dictionary<Mesh, Emitter>();
     }
 }

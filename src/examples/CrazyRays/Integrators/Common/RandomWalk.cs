@@ -31,12 +31,12 @@ namespace Integrators.Common {
             return ColorRGB.Black;
         }
 
-        protected virtual ColorRGB OnHit(Ray ray, Hit hit, float pdfFromAncestor, float pdfToAncestor, 
+        protected virtual ColorRGB OnHit(Ray ray, SurfacePoint hit, float pdfFromAncestor, float pdfToAncestor, 
                                          ColorRGB throughput, int depth, GeometryTerms geometryTerms) {
             return ColorRGB.Black;
         }
 
-        protected virtual (float, float, ColorRGB, Vector3) SampleNextDirection(Hit hit, Ray ray) {
+        protected virtual (float, float, ColorRGB, Vector3) SampleNextDirection(SurfacePoint hit, Ray ray) {
             // Sample the next direction from the BSDF
             float u = rng.NextFloat();
             float v = rng.NextFloat();

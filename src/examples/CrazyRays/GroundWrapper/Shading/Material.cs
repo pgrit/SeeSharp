@@ -23,7 +23,7 @@ namespace GroundWrapper {
 
     public struct DiffuseBsdf : Bsdf {
         public ColorRGB reflectance;
-        public Hit point;
+        public SurfacePoint point;
 
         ColorRGB Bsdf.Evaluate(Vector3 outDir, Vector3 inDir, bool isOnLightSubpath) {
             // Normalize the directions
@@ -87,7 +87,7 @@ namespace GroundWrapper {
     }
 
     public interface Material {
-        Bsdf GetBsdf(Hit hit);
+        Bsdf GetBsdf(SurfacePoint hit);
     }
 
     /// <summary>
@@ -100,7 +100,7 @@ namespace GroundWrapper {
 
         public GenericMaterial(Parameters parameters) => this.parameters = parameters;
 
-        Bsdf Material.GetBsdf(Hit hit) {
+        Bsdf Material.GetBsdf(SurfacePoint hit) {
             var tex = hit.TextureCoordinates;
             return new DiffuseBsdf { point = hit, reflectance = parameters.baseColor[tex.X, tex.Y] };
         }

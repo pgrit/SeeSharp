@@ -73,7 +73,7 @@ namespace GroundWrapper {
             return img;
         }
 
-        ColorRGB[] data;
+        readonly ColorRGB[] data;
 
         private static class TinyExr {
             [DllImport("Ground", CallingConvention = CallingConvention.Cdecl)]

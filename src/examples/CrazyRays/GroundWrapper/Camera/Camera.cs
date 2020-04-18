@@ -12,6 +12,8 @@ namespace GroundWrapper.Cameras {
                 throw new System.ArgumentException("World to camera transform must be invertible.", "worldToCamera");
         }
 
+        public abstract void UpdateFrameBuffer(Image value);
+
         public abstract Ray GenerateRay(Vector2 filmPos);
 
         /// <summary>
@@ -34,6 +36,9 @@ namespace GroundWrapper.Cameras {
     }
 
     public class PerspectiveCamera : Camera {
+        public int Width { get => width; }
+        public int Height { get => height; }
+
         /// <summary>
         /// Creates a new perspective camera.
         /// </summary>
@@ -44,10 +49,16 @@ namespace GroundWrapper.Cameras {
         /// <param name="verticalFieldOfView">The full vertical opening angle in degrees.</param>
         /// <param name="frameBuffer">Frame buffer that will be used for rendering (only resolution is relevant).</param>
         public PerspectiveCamera(Matrix4x4 worldToCamera, float verticalFieldOfView, Image frameBuffer) : base(worldToCamera) {
+            fovRadians = verticalFieldOfView * MathF.PI / 180;
+            UpdateFrameBuffer(frameBuffer);
+        }
+
+        public override void UpdateFrameBuffer(Image frameBuffer) {
+            if (frameBuffer == null) return;
+
             width = frameBuffer.Width;
             height = frameBuffer.Height;
             aspectRatio = width / (float)height;
-            float fovRadians = verticalFieldOfView * MathF.PI / 180;
 
             cameraToView = Matrix4x4.CreatePerspectiveFieldOfView(fovRadians, aspectRatio, 0.001f, 1000.0f);
             Matrix4x4.Invert(cameraToView, out viewToCamera);
@@ -94,6 +105,7 @@ namespace GroundWrapper.Cameras {
         Matrix4x4 viewToCamera;
         int width, height;
         float aspectRatio;
+        float fovRadians;
 
         // Distance from the camera position to the virtual image plane s.t. each pixel has area one
         float imagePlaneDistance;

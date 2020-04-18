@@ -68,7 +68,7 @@ namespace Integrators {
                 path.vertices = new List<PathPdfPair>(integrator.MaxDepth);
             }
 
-            protected override ColorRGB OnHit(Ray ray, Hit hit, float pdfFromAncestor, float pdfToAncestor,
+            protected override ColorRGB OnHit(Ray ray, SurfacePoint hit, float pdfFromAncestor, float pdfToAncestor,
                                               ColorRGB throughput, int depth, GeometryTerms geometryTerms) {
                 var value = ColorRGB.Black;
 
@@ -99,7 +99,7 @@ namespace Integrators {
             return walk.StartFromCamera(filmPosition, cameraPoint, pdfFromCamera, primaryRay, initialWeight);
         }
 
-        public ColorRGB OnEmitterHit(Emitter emitter, Hit hit, Ray ray, CameraPath path, float reversePdfJacobian) {
+        public ColorRGB OnEmitterHit(Emitter emitter, SurfacePoint hit, Ray ray, CameraPath path, float reversePdfJacobian) {
             var emission = emitter.ComputeEmission(hit.point, -ray.direction);
 
             // Compute pdf values
@@ -117,7 +117,7 @@ namespace Integrators {
             return misWeight * emission;
         }
 
-        public (Ray, float, ColorRGB) BsdfSample(Scene scene, Ray ray, Hit hit, RNG rng) { // TODO this can and should be re-used in the base and for both directions!
+        public (Ray, float, ColorRGB) BsdfSample(Scene scene, Ray ray, SurfacePoint hit, RNG rng) { // TODO this can and should be re-used in the base and for both directions!
             float u = rng.NextFloat();
             float v = rng.NextFloat();
             var bsdfSample = scene.WrapPrimarySampleToBsdf(hit.point,
@@ -238,7 +238,7 @@ namespace Integrators {
             return result;
         }
 
-        public ColorRGB PerformNextEventEstimation(Ray ray, Hit hit, RNG rng, CameraPath path, float reversePdfJacobian) {
+        public ColorRGB PerformNextEventEstimation(Ray ray, SurfacePoint hit, RNG rng, CameraPath path, float reversePdfJacobian) {
             // Sample a point on the light source
             var light = SelectEmitterForNextEvent(rng, ray, hit);
             var lightSample = light.WrapPrimaryToSurface(rng.NextFloat(), rng.NextFloat());

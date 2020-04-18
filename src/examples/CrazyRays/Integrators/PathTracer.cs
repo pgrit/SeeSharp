@@ -37,7 +37,7 @@ namespace Integrators {
             }
         }
 
-        private ColorRGB PerformNextEventEstimation(Scene scene, Ray ray, Hit hit, RNG rng) {
+        private ColorRGB PerformNextEventEstimation(Scene scene, Ray ray, SurfacePoint hit, RNG rng) {
             // Select a light source
             // TODO implement multi-light support
             var light = scene.Emitters[0];
@@ -76,7 +76,7 @@ namespace Integrators {
             return new ColorRGB { r=0, g=0, b=0 };
         }
 
-        private (Ray, float, ColorRGB) BsdfSample(Scene scene, Ray ray, Hit hit, RNG rng) {
+        private (Ray, float, ColorRGB) BsdfSample(Scene scene, Ray ray, SurfacePoint hit, RNG rng) {
             float u = rng.NextFloat();
             float v = rng.NextFloat();
             var bsdfSample = scene.WrapPrimarySampleToBsdf(hit.point,
@@ -93,7 +93,7 @@ namespace Integrators {
         }
 
         private ColorRGB EstimateIncidentRadiance(Scene scene, Ray ray, RNG rng, uint depth = 1,
-            Hit? previousHit = null, float previousPdf = 0.0f)
+            SurfacePoint? previousHit = null, float previousPdf = 0.0f)
         {
             ColorRGB value = ColorRGB.Black;
 

@@ -10,7 +10,7 @@ namespace GroundWrapper.Geometry {
         public float minDistance;
     }
 
-    public struct Hit {
+    public struct SurfacePoint {
         public Vector3 position;
         public Vector3 normal;
         public Vector2 barycentricCoords;
@@ -19,7 +19,7 @@ namespace GroundWrapper.Geometry {
         public float errorOffset;
         public float distance;
 
-        public static implicit operator bool(Hit hit)
+        public static implicit operator bool(SurfacePoint hit)
             => hit.mesh != null;
 
         public Vector3 ShadingNormal => mesh.ComputeShadingNormal((int)primId, barycentricCoords);
@@ -40,13 +40,13 @@ namespace GroundWrapper.Geometry {
             GroundApi.FinalizeScene();
         }
 
-        public Hit Intersect(Ray ray) {
+        public SurfacePoint Intersect(Ray ray) {
             var minHit = GroundApi.TraceSingle(ray);
 
             if (minHit.meshId == uint.MaxValue)
-                return new Hit();
+                return new SurfacePoint();
 
-            Hit hit = new Hit {
+            SurfacePoint hit = new SurfacePoint {
                 barycentricCoords = new Vector2(minHit.u, minHit.v),
                 distance = minHit.distance,
                 mesh = meshMap[minHit.meshId],

@@ -63,7 +63,7 @@ namespace GroundWrapper {
             // Compute the error offset: approximated radius of the sphere within which the actual intersection lies
             // This is used to avoid self-intersections throughout the renderer.
             // The computations here are based on PBRTv3.
-            const float epsilon = float.Epsilon * 0.5f;
+            const float epsilon = float.Epsilon;
             const float gamma6 = (6 * epsilon) / (1 - 6 * epsilon);
 
             var v1 = Vertices[Indices[faceIdx * 3 + 0]];

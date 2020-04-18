@@ -1,3 +1,4 @@
+using System;
 using System.Numerics;
 using GroundWrapper.Geometry;
 
@@ -7,10 +8,10 @@ namespace GroundWrapper
         public Mesh Mesh;
 
         public abstract SurfaceSample SampleArea(Vector2 primary);
-        public abstract float PdfArea(SurfacePoint hit);
-        public abstract Ray SampleRay(Vector2 primaryPos, Vector2 primaryDir);
-        public abstract float PdfRay(SurfacePoint hit, Vector3 direction);
-        public abstract ColorRGB EmittedRadiance(SurfacePoint hit, Vector3 direction);
+        public abstract float PdfArea(SurfacePoint point);
+        public abstract (Ray, float) SampleRay(Vector2 primaryPos, Vector2 primaryDir);
+        public abstract float PdfRay(SurfacePoint point, Vector3 direction);
+        public abstract ColorRGB EmittedRadiance(SurfacePoint point, Vector3 direction);
     }
 
     public class DiffuseEmitter : Emitter {
@@ -19,11 +20,42 @@ namespace GroundWrapper
             this.radiance = radiance;
         }
 
-        public override ColorRGB EmittedRadiance(SurfacePoint hit, Vector3 direction) => radiance;
-        public override float PdfArea(SurfacePoint hit) => throw new System.NotImplementedException();
-        public override float PdfRay(SurfacePoint hit, Vector3 direction) => throw new System.NotImplementedException();
-        public override SurfaceSample SampleArea(Vector2 primary) => throw new System.NotImplementedException();
-        public override Ray SampleRay(Vector2 primaryPos, Vector2 primaryDir) => throw new System.NotImplementedException();
+        public override ColorRGB EmittedRadiance(SurfacePoint point, Vector3 direction) {
+            if (Vector3.Dot(point.ShadingNormal, direction) < 0)
+                return ColorRGB.Black;
+            return radiance;
+        }
+
+        public override float PdfArea(SurfacePoint point) => Mesh.Pdf(point);
+        public override SurfaceSample SampleArea(Vector2 primary) => Mesh.Sample(primary);
+
+        public override float PdfRay(SurfacePoint point, Vector3 direction) {
+            float cosine = Vector3.Dot(point.ShadingNormal, direction) / direction.Length();
+            return PdfArea(point) * MathF.Max(cosine, 0) / MathF.PI;
+        }
+
+        public override (Ray, float) SampleRay(Vector2 primaryPos, Vector2 primaryDir) {
+            var posSample = SampleArea(primaryPos);
+
+            // Transform primary to cosine hemisphere (z is up)
+            var local = GroundMath.SampleWrap.ToCosHemisphere(primaryDir);
+
+            // Transform to world space direction
+            var normal = posSample.point.ShadingNormal;
+            var (tangent, binormal) = GroundMath.SampleWrap.ComputeBasisVectors(normal);
+            Vector3 dir = local.direction.Z * normal
+                        + local.direction.X * tangent
+                        + local.direction.Y * binormal;
+
+            return (
+                new Ray { 
+                    origin = posSample.point.position, 
+                    minDistance = posSample.point.errorOffset, 
+                    direction = dir 
+                }, 
+                local.pdf * posSample.pdf
+            );
+        }
 
         ColorRGB radiance;
     }

@@ -57,7 +57,7 @@ namespace GroundWrapper {
                         + local.direction.Y * binormal;
 
             // Compute weights and pdfs
-            float pdf = local.jacobian;
+            float pdf = local.pdf;
             float pdfReverse = Vector3.Dot(normal, outDir) / MathF.PI;
             var weight = reflectance; // cosine and PI cancel out with the pdf
 

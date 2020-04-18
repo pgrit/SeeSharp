@@ -13,10 +13,6 @@ namespace GroundWrapper {
 
         public List<string> ValidationErrorMessages { get; private set; } = new List<string>();
 
-        public static Scene LoadFromFile(string path) {
-            return new Scene();
-        }
-
         public void Prepare() {
             if (!IsValid)
                 throw new System.InvalidOperationException("Cannot finalize an invalid scene.");
@@ -74,6 +70,10 @@ namespace GroundWrapper {
             if (!meshToEmitter.TryGetValue(point.mesh, out emitter))
                 return null;
             return emitter;
+        }
+
+        public static Scene LoadFromFile(string path) {
+            return new Scene();
         }
 
         Dictionary<Mesh, Emitter> meshToEmitter = new Dictionary<Mesh, Emitter>();

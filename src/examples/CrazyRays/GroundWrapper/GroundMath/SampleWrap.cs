@@ -52,7 +52,7 @@ namespace GroundWrapper.GroundMath {
 
         public struct DirectionSample {
             public Vector3 direction;
-            public float jacobian;
+            public float pdf;
         }
 
         // Wraps the primary sample space on the cosine weighted hemisphere.
@@ -63,7 +63,7 @@ namespace GroundWrapper.GroundMath {
                 MathF.Sqrt(primary.Y),
                 2.0f * MathF.PI * primary.X);
 
-            return new DirectionSample { direction = local_dir, jacobian = local_dir.Z / MathF.PI };
+            return new DirectionSample { direction = local_dir, pdf = local_dir.Z / MathF.PI };
         }
 
         public static float ToCosHemisphereJacobian(float cosine) {

@@ -1,5 +1,11 @@
+using GroundWrapper.Cameras;
 using GroundWrapper.Geometry;
+using System;
 using System.Collections.Generic;
+using System.IO;
+using System.Numerics;
+using System.Text;
+using System.Text.Json;
 
 namespace GroundWrapper {
     public class Scene {
@@ -72,8 +78,161 @@ namespace GroundWrapper {
             return emitter;
         }
 
+        /// <summary>
+        /// Loads a .json file and parses it as a scene. Assumes the file has been validated against the correct schema.
+        /// </summary>
+        /// <param name="path">Path to the .json scene file.</param>
+        /// <returns>The scene created from the file.</returns>
         public static Scene LoadFromFile(string path) {
-            return new Scene();
+            string jsonString = File.ReadAllText(path);
+
+            Vector3 ReadVector(JsonElement json) {
+                return new Vector3(
+                    json[0].GetSingle(), 
+                    json[1].GetSingle(), 
+                    json[2].GetSingle());
+            }
+
+            ColorRGB ReadColorRGB(JsonElement json) {
+                var vec = ReadVector(json.GetProperty("value"));
+                return new ColorRGB(vec.X, vec.Y, vec.Z);
+            }
+
+            Image ReadColorOrTexture(JsonElement json) {
+                string type = json.GetProperty("type").GetString();
+                if (type == "rgb") {
+                    var rgb = ReadColorRGB(json);
+                    return Image.Constant(rgb);
+                } else
+                    return null;
+            }
+
+            var resultScene = new Scene();
+
+            using (JsonDocument document = JsonDocument.Parse(jsonString)) {
+                var root = document.RootElement;
+
+                // Parse all transforms
+                var namedTransforms = new Dictionary<string, Matrix4x4>();
+                var transforms = root.GetProperty("transforms");
+                foreach (var t in transforms.EnumerateArray()) {
+                    string name = t.GetProperty("name").GetString();
+
+                    Matrix4x4 result = Matrix4x4.Identity;
+                    
+                    JsonElement scale;
+                    if (t.TryGetProperty("scale", out scale)) {
+                        var sc = ReadVector(scale);
+                        result = Matrix4x4.CreateScale(sc) * result;
+                    }
+
+                    JsonElement rotation;
+                    if (t.TryGetProperty("rotation", out rotation)) {
+                        var rot = ReadVector(rotation);
+                        result = Matrix4x4.CreateFromYawPitchRoll(rot.Y, rot.X, rot.Z) * result;
+                    }
+
+                    JsonElement position;
+                    if (t.TryGetProperty("position", out position)) {
+                        var pos = ReadVector(position);
+                        result = Matrix4x4.CreateTranslation(pos) * result;
+                    }
+
+                    namedTransforms[name] = result;
+                }
+
+                // Parse all cameras
+                var namedCameras = new Dictionary<string, Camera>();
+                var cameras = root.GetProperty("cameras");
+                foreach (var c in cameras.EnumerateArray()) {
+                    string name = c.GetProperty("name").GetString();
+                    string type = c.GetProperty("type").GetString();
+                    float fov = c.GetProperty("fov").GetSingle();
+                    string transform = c.GetProperty("transform").GetString();
+                    var worldToCam = namedTransforms[transform];
+                    namedCameras[name] = new PerspectiveCamera(worldToCam, fov, null);
+                    resultScene.Camera = namedCameras[name]; // TODO allow loading of multiple cameras? (and selecting one by name later)
+                }                
+
+                // Parse all materials
+                var namedMaterials = new Dictionary<string, Material>();
+                var materials = root.GetProperty("materials");
+                foreach (var m in materials.EnumerateArray()) {
+                    string name = m.GetProperty("name").GetString();
+                    var parameters = new GenericMaterial.Parameters {
+                        baseColor = ReadColorOrTexture(m.GetProperty("baseColor"))
+                    };
+                    namedMaterials[name] = new GenericMaterial(parameters);
+                }
+
+                // Parse all triangle meshes
+                var namedMeshes = new Dictionary<string, Mesh>();
+                var meshes = root.GetProperty("objects");
+                foreach (var m in meshes.EnumerateArray()) {
+                    string name = m.GetProperty("name").GetString();
+                    string materialName = m.GetProperty("material").GetString();
+                    var material = namedMaterials[materialName];
+
+                    string type = m.GetProperty("type").GetString();
+                    if (type != "trimesh") continue; // TODO support "obj" and "ply"
+
+                    Vector3[] ReadVec3Array (JsonElement json) {
+                        var result = new Vector3[json.GetArrayLength()];
+                        for (int idx = 0; idx < json.GetArrayLength(); idx += 3) {
+                            result[idx / 3].X = json[idx + 0].GetSingle();
+                            result[idx / 3].Y = json[idx + 1].GetSingle();
+                            result[idx / 3].Z = json[idx + 2].GetSingle();
+                        }
+                        return result;
+                    }
+
+                    Vector2[] ReadVec2Array(JsonElement json) {
+                        var result = new Vector2[json.GetArrayLength()];
+                        for (int idx = 0; idx < json.GetArrayLength(); idx += 2) {
+                            result[idx / 2].X = json[idx + 0].GetSingle();
+                            result[idx / 2].Y = json[idx + 1].GetSingle();
+                        }
+                        return result;
+                    }
+
+                    int[] ReadIntArray(JsonElement json) {
+                        var result = new int[json.GetArrayLength()];
+                        int idx = 0;
+                        foreach (var v in json.EnumerateArray())
+                            result[idx++] = v.GetInt32();
+                        return result;
+                    }
+
+                    Vector3[] vertices = ReadVec3Array(m.GetProperty("vertices"));
+                    int[] indices = ReadIntArray(m.GetProperty("indices"));
+
+                    JsonElement normalsJson;
+                    Vector3[] normals = null;
+                    if (m.TryGetProperty("normals", out normalsJson))
+                        normals = ReadVec3Array(m.GetProperty("normals"));
+
+                    JsonElement uvJson;
+                    Vector2[] uvs = null;
+                    if (m.TryGetProperty("uv", out uvJson))
+                        uvs = ReadVec2Array(m.GetProperty("uv"));
+
+                    var mesh = new Mesh(vertices, indices, normals, uvs);
+                    mesh.Material = material;
+
+                    Emitter emitter;
+                    JsonElement emissionJson;
+                    if (m.TryGetProperty("emission", out emissionJson)) { // The object is an emitter
+                        // TODO update schema to allow different types of emitters here
+                        var emission = ReadColorRGB(emissionJson);
+                        emitter = new DiffuseEmitter(mesh, emission);
+                        resultScene.Emitters.Add(emitter);
+                    }
+                    namedMeshes[name] = mesh;
+                    resultScene.Meshes.Add(mesh);
+                }
+            }
+
+            return resultScene;
         }
 
         Dictionary<Mesh, Emitter> meshToEmitter = new Dictionary<Mesh, Emitter>();

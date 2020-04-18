@@ -169,5 +169,60 @@ namespace GroundWrapper.Tests {
             Assert.Equal(0.0f, sample.weight.g, 3);
             Assert.Equal(0.0f, sample.weight.b, 3);
         }
+
+        [Fact]
+        public void EdgeCases_ShouldNotCauseOutliers() {
+            Material mtl = new GenericMaterial(new GenericMaterial.Parameters {
+                baseColor = Image.Constant(new ColorRGB(1, 1, 1))
+            });
+
+            var mesh = new Mesh(new Vector3[] {
+                new Vector3(-1, -1, 0),
+                new Vector3( 1, -1, 0),
+                new Vector3( 1,  1, 0),
+                new Vector3(-1,  1, 0)
+            }, new int[] {
+                0, 1, 2,
+                0, 2, 3
+            });
+
+            Hit hit = new Hit {
+                barycentricCoords = new Vector2(0.5f, 0.2f),
+                normal = new Vector3(0, 0, 1),
+                mesh = mesh,
+                primId = 0,
+                position = new Vector3(0, 0, 0),
+            };
+
+            var bsdf = mtl.GetBsdf(hit);
+
+            var outDir = new Vector3(0, 0, 1);
+
+            var prims = new Vector2[] {
+                new Vector2(0,0),
+                new Vector2(0,1),
+                new Vector2(1,0),
+                new Vector2(1,1),
+
+                new Vector2(float.Epsilon,float.Epsilon),
+                new Vector2(float.Epsilon,1-float.Epsilon),
+                new Vector2(1-float.Epsilon,float.Epsilon),
+                new Vector2(1-float.Epsilon,1-float.Epsilon),
+            };
+
+            foreach (var prim in prims) {
+                var sample = bsdf.Sample(outDir, false, prim);
+
+                if (sample.pdf == 0) {
+                    Assert.Equal(0.0f, sample.weight.r, 3);
+                    Assert.Equal(0.0f, sample.weight.g, 3);
+                    Assert.Equal(0.0f, sample.weight.b, 3);
+                } else {
+                    Assert.Equal(1.0f, sample.weight.r, 3);
+                    Assert.Equal(1.0f, sample.weight.g, 3);
+                    Assert.Equal(1.0f, sample.weight.b, 3);
+                }
+            }
+        }
     }
 }

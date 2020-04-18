@@ -87,7 +87,31 @@ namespace GroundWrapper.Tests {
 
         [Fact]
         public void WrittenFile_ShouldBeReadBack() {
+            Image image = new Image(2, 2);
+            image[0, 0] = new ColorRGB(0, 0, 0);
+            image[1, 0] = new ColorRGB(1, 0, 0);
+            image[0, 1] = new ColorRGB(0, 1, 0);
+            image[1, 1] = new ColorRGB(0, 0, 1);
 
+            image.WriteToFile("test.exr");
+            Image read = Image.LoadFromFile("test.exr");
+
+            Assert.NotNull(read);
+            Assert.Equal(0, read[0, 0].r);
+            Assert.Equal(0, read[0, 0].g);
+            Assert.Equal(0, read[0, 0].b);
+
+            Assert.Equal(1, read[1, 0].r);
+            Assert.Equal(0, read[1, 0].g);
+            Assert.Equal(0, read[1, 0].b);
+
+            Assert.Equal(0, read[0, 1].r);
+            Assert.Equal(1, read[0, 1].g);
+            Assert.Equal(0, read[0, 1].b);
+
+            Assert.Equal(0, read[1, 1].r);
+            Assert.Equal(0, read[1, 1].g);
+            Assert.Equal(1, read[1, 1].b);
         }
     }
 }

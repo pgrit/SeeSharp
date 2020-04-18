@@ -61,6 +61,9 @@ namespace GroundWrapper {
             float pdfReverse = Vector3.Dot(normal, outDir) / MathF.PI;
             var weight = reflectance; // cosine and PI cancel out with the pdf
 
+            // Catch corner cases if the primary sample should be exactly 0 or 1
+            if (pdf == 0) weight = ColorRGB.Black;
+
             return new BsdfSample { direction = dir, pdf = pdf, pdfReverse = pdfReverse, weight = weight };
         }
 

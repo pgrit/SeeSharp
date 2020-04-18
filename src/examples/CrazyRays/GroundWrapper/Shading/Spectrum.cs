@@ -11,6 +11,9 @@
         public static ColorRGB operator *(float a, ColorRGB b)
             => b * a;
 
+        public static ColorRGB operator /(ColorRGB a, float b)
+            => new ColorRGB { r = a.r / b, g = a.g / b, b = a.b / b };
+
         public static ColorRGB operator +(ColorRGB a, ColorRGB b)
             => new ColorRGB { r = a.r + b.r, g = a.g + b.g, b = a.b + b.b };
 

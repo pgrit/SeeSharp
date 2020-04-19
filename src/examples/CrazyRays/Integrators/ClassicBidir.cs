@@ -166,9 +166,6 @@ namespace Integrators {
 
                 ColorRGB weight = misWeight * vertex.weight * bsdfValue * surfaceToPixelJacobian / NumLightPaths;
 
-                if (float.IsNaN(weight.r))
-                    System.Console.WriteLine("hi lt");
-
                 // Compute image contribution and splat
                 scene.FrameBuffer.Splat(raster.Value.X, raster.Value.Y, weight * (1.0f / NumIterations));
             });
@@ -215,9 +212,6 @@ namespace Integrators {
                 ColorRGB weight = misWeight * vertex.weight * bsdfWeightLight * bsdfWeightCam * SampleWrap.SurfaceAreaToSolidAngle(cameraPoint, vertex.point);
 
                 result += weight;
-
-                if (float.IsNaN(weight.r))
-                    System.Console.WriteLine("hi connect");
             });
 
             return result;
@@ -254,9 +248,6 @@ namespace Integrators {
                 float misWeight = computer.NextEvent(path, pdfEmit, lightSample.pdf, bsdfForwardPdf, bsdfReversePdf);
 
                 var value = misWeight * emission * bsdfTimesCosine * (jacobian / lightSample.pdf);
-
-                if (float.IsNaN(value.r))
-                    System.Console.WriteLine("hi nee");
 
                 return value;
             }

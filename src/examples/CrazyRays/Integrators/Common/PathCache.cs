@@ -7,7 +7,7 @@ namespace Integrators.Common {
     // TODO try to refactor this: most of these values are not necessary for the root vertex
     //      separating the root vertex would also allow to avoid the double meaning of
     //      "pdfToAncestor" which holds the NextEvent pdf in the root.
-    public struct PathVertex {
+    public class PathVertex {
         public SurfacePoint point; // TODO could be a "CompressedSurfacePoint"
 
         // Surface area pdf to sample this vertex from the previous one,
@@ -27,12 +27,15 @@ namespace Integrators.Common {
         public byte depth;
     }
 
-    public class PathCache {
+    public class PathCache { // TODO no need for all the fancy pre-alloc if we are using class anyway
         public PathCache(int capacity) {
             vertices = new PathVertex[capacity];
         }
 
-        public PathVertex this[int vertexId] => vertices[vertexId];
+        public PathVertex this[int vertexId] {
+            get => vertices[vertexId];
+            set => vertices[vertexId] = value;
+        }
 
         public int AddVertex(PathVertex vertex) {
             int idx = Interlocked.Increment(ref next) - 1;

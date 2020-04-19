@@ -10,6 +10,7 @@ namespace Integrators {
         public UInt32 BaseSeed = 0xC030114;
         public int TotalSpp = 20;
         public uint MaxDepth = 2;
+        public uint MinDepth = 1;
 
         public override void Render(Scene scene) {
             System.Threading.Tasks.Parallel.For(0, scene.FrameBuffer.Height,
@@ -105,7 +106,7 @@ namespace Integrators {
 
             // Check if a light source was hit.
             Emitter light = scene.QueryEmitter(hit);
-            if (light != null) {
+            if (light != null && depth >= MinDepth) {
                 float misWeight = 1.0f;
                 if (depth > 1) { // directly visible emitters are not explicitely connected
                     // Compute the surface area PDFs.
@@ -122,7 +123,8 @@ namespace Integrators {
                 value += misWeight * emission;
             }
 
-            value = value + PerformNextEventEstimation(scene, ray, hit, rng);
+            if (depth + 1 >= MinDepth)
+                value += PerformNextEventEstimation(scene, ray, hit, rng);
 
             // Contine the random walk with a sample proportional to the BSDF
             (var bsdfRay, float bsdfPdf, var bsdfSampleWeight) =

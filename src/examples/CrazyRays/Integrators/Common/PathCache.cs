@@ -1,5 +1,6 @@
 using System.Threading;
 using GroundWrapper;
+using GroundWrapper.Geometry;
 
 namespace Integrators.Common {
 

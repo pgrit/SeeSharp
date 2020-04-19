@@ -8,52 +8,26 @@ namespace Renderer {
 
     class Program {
         static void Main(string[] args) {
+            var scene = Scene.LoadFromFile("../../data/scenes/cbox.json");
+            scene.FrameBuffer = new Image(512, 512);
+            scene.Prepare();
 
-            var vertices = new Vector3[] {
-                new Vector3(-1, 0, -1),
-                new Vector3( 1, 0, -1),
-                new Vector3( 1, 0,  1),
-                new Vector3(-1, 0,  1)
-            };
+            var stopwatch = System.Diagnostics.Stopwatch.StartNew();
 
-            var indices = new int[] {
-                0, 1, 2,
-                0, 2, 3
-            };
+            //var algorithm = new PathTracer();
+            //algorithm.TotalSpp = 10;
+            //algorithm.MaxDepth = 3;
 
-            Mesh mesh = new Mesh(vertices, indices);
+            var algorithm = new ClassicBidir();
+            algorithm.NumIterations = 10;
+            algorithm.MaxDepth = 3;
 
-            var rt = new Raytracer();
-            rt.AddMesh(mesh);
-            rt.CommitScene();
+            algorithm.Render(scene);
 
-            SurfacePoint hit = rt.Intersect(new Ray {
-                origin = new Vector3(-0.5f, -10, 0),
-                direction = new Vector3(0, 1, 0),
-                minDistance = 1.0f
-            });
+            stopwatch.Stop();
+            Console.WriteLine(stopwatch.ElapsedMilliseconds);
 
-            System.Console.WriteLine(hit.distance);
-
-            //var scene = new GroundWrapper.Scene();
-            //scene.SetupFrameBuffer(1024, 1024);
-            //scene.LoadSceneFile("../../data/scenes/cbox.json");
-            //// scene.LoadSceneFile("../../data/scenes/furnacebox.json");
-            ////scene.LoadSceneFile("../../data/scenes/simpledi.json");
-
-            //var stopwatch = System.Diagnostics.Stopwatch.StartNew();
-
-            ////Integrator algorithm;
-            ////var algorithm = new PathTracer();
-            //var algorithm = new ClassicBidir();
-            //algorithm.NumIterations = 2;
-            ////var algorithm = new LightTracer();
-            //algorithm.Render(scene);
-
-            //stopwatch.Stop();
-            //Console.WriteLine(stopwatch.ElapsedMilliseconds);
-
-            //scene.frameBuffer.WriteToFile("renderCS.exr");
+            scene.FrameBuffer.WriteToFile("renderCS.exr");
         }
     }
 

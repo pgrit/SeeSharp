@@ -4,10 +4,6 @@ using System.Diagnostics;
 using System.Numerics;
 
 namespace GroundWrapper {
-    public struct SurfaceSample {
-        public SurfacePoint point;
-        public float pdf;
-    }
 
     public class Mesh {
         public Material Material;
@@ -60,12 +56,6 @@ namespace GroundWrapper {
         }
 
         float ComputeErrorOffset(int faceIdx, Vector2 barycentricCoords) {
-            // Compute the error offset: approximated radius of the sphere within which the actual intersection lies
-            // This is used to avoid self-intersections throughout the renderer.
-            // The computations here are based on PBRTv3.
-            const float epsilon = float.Epsilon;
-            const float gamma6 = (6 * epsilon) / (1 - 6 * epsilon);
-
             var v1 = Vertices[Indices[faceIdx * 3 + 0]];
             var v2 = Vertices[Indices[faceIdx * 3 + 1]];
             var v3 = Vertices[Indices[faceIdx * 3 + 2]];
@@ -74,7 +64,7 @@ namespace GroundWrapper {
                 + Vector3.Abs(barycentricCoords.Y * v3)
                 + Vector3.Abs((1 - barycentricCoords.X - barycentricCoords.Y) * v1);
 
-            return errorDiagonal.Length() * gamma6;
+            return errorDiagonal.Length() * 32.0f * 1.19209e-07f;
         }
 
         public SurfaceSample Sample(Vector2 primarySample) {

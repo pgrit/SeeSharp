@@ -4,28 +4,6 @@ using System.Numerics;
 using System.Runtime.InteropServices;
 
 namespace GroundWrapper.Geometry {
-    public struct Ray {
-        public Vector3 origin;
-        public Vector3 direction;
-        public float minDistance;
-    }
-
-    public struct SurfacePoint {
-        public Vector3 position;
-        public Vector3 normal;
-        public Vector2 barycentricCoords;
-        public Mesh mesh;
-        public uint primId;
-        public float errorOffset;
-        public float distance;
-
-        public static implicit operator bool(SurfacePoint hit)
-            => hit.mesh != null;
-
-        public Vector3 ShadingNormal => mesh.ComputeShadingNormal((int)primId, barycentricCoords);
-        public Vector2 TextureCoordinates => mesh.ComputeTextureCoordinates((int)primId, barycentricCoords);
-    }
-
     public class Raytracer {
         public Raytracer() {
             GroundApi.InitScene();
@@ -40,7 +18,7 @@ namespace GroundWrapper.Geometry {
             GroundApi.FinalizeScene();
         }
 
-        public SurfacePoint Intersect(Ray ray) {
+        public SurfacePoint Trace(Ray ray) {
             var minHit = GroundApi.TraceSingle(ray);
 
             if (minHit.meshId == uint.MaxValue)
@@ -64,6 +42,49 @@ namespace GroundWrapper.Geometry {
             ) * 32.0f * 1.19209e-07f;
 
             return hit;
+        }
+
+        public bool IsOccluded(SurfacePoint from, SurfacePoint to) {
+            // Compute the ray with proper offsets
+            var dir = to.position - from.position;
+            var dist = dir.Length();
+            dir /= dist;
+
+            var ray = SpawnRay(from, dir);
+
+            // TODO use a proper optimized method here that does not compute the actual closest hit.
+            var p = Trace(ray);
+
+            bool occluded = p.mesh != null 
+                && p.distance < dist - to.errorOffset - from.errorOffset;
+
+            return occluded;
+        }
+
+        public bool IsOccluded(SurfacePoint from, Vector3 target) {
+            // Compute the ray with proper offsets
+            var dir = target - from.position;
+            var dist = dir.Length();
+            dir /= dist;
+
+            var ray = SpawnRay(from, dir);
+
+            // TODO use a proper optimized method here that does not compute the actual closest hit.
+            var p = Trace(ray);
+
+            bool occluded = p.mesh != null
+                && p.distance < dist - from.errorOffset;
+
+            return occluded;
+        }
+
+        public Ray SpawnRay(SurfacePoint from, Vector3 dir) {
+            float sign = Vector3.Dot(dir, from.normal) < 0.0f ? -1.0f : 1.0f;
+            return new Ray {
+                origin = from.position + sign * from.errorOffset * from.normal,
+                direction = dir,
+                minDistance = from.errorOffset,
+            };
         }
 
         Dictionary<uint, Mesh> meshMap = new Dictionary<uint, Mesh>();

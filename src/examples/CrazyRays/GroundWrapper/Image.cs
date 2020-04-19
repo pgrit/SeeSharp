@@ -1,4 +1,5 @@
 using System.Runtime.InteropServices;
+using System.Threading;
 
 namespace GroundWrapper {
     public class Image {
@@ -21,31 +22,46 @@ namespace GroundWrapper {
             data = new ColorRGB[width * height];
         }
 
+        float AtomicAddFloat(ref float target, float addend) {
+            float initialValue, computedValue;
+            do {
+                initialValue = target;
+                computedValue = initialValue + addend;
+            } while (initialValue != 
+                Interlocked.CompareExchange(ref target, computedValue, initialValue));
+            return computedValue;
+        }
+
+        public void Splat(float x, float y, ColorRGB value) {
+            int idx = IndexOf(x, y);
+            lock (this) {
+                this[x, y] += value;
+            }
+            //AtomicAddFloat(ref data[idx].r, value.r);
+            //AtomicAddFloat(ref data[idx].g, value.g);
+            //AtomicAddFloat(ref data[idx].b, value.b);
+        }
+
+        int IndexOf(float x, float y) {
+            int row = (int)y;
+            int col = (int)x;
+
+            row = System.Math.Clamp(row, 0, Height - 1);
+            col = System.Math.Clamp(col, 0, Width - 1);
+
+            return col + row * Width;
+        }
+
         /// <summary>
         /// Allows access to a pixel in the image. (0,0) is the top left corner.
+        /// Not thread-safe unless read-only. Use <see cref="Splat(float, float)"/> for thread-safe writing.
         /// </summary>
         /// <param name="x">Horizontal coordinate [0,width], left to right.</param>
         /// <param name="y">Vertical coordinate [0, height], top to bottom.</param>
         /// <returns>The pixel color.</returns>
         public ColorRGB this[float x, float y] {
-            get {
-                int row = (int)y;
-                int col = (int)x;
-                
-                row = System.Math.Clamp(row, 0, Height - 1);
-                col = System.Math.Clamp(col, 0, Width - 1);
-                
-                return data[col + row * Width];
-            }
-            set {
-                int row = (int)y;
-                int col = (int)x;
-
-                row = System.Math.Clamp(row, 0, Height - 1);
-                col = System.Math.Clamp(col, 0, Width - 1);
-
-                data[col + row * Width] = value;
-            }
+            get => data[IndexOf(x, y)];
+            set => data[IndexOf(x, y)] = value;
         }
 
         public void WriteToFile(string filename) {

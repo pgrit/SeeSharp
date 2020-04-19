@@ -36,7 +36,7 @@ namespace GroundWrapper.Tests {
             var inDir = new Vector3(0, 0, -1);
 
             var (fwd, rev) = bsdf.Pdf(outDir, inDir, false);
-            var val = bsdf.Evaluate(outDir, inDir, false);
+            var val = bsdf.EvaluateWithCosine(outDir, inDir, false);
 
             Assert.Equal(0, rev);
             Assert.Equal(0, fwd);
@@ -114,7 +114,7 @@ namespace GroundWrapper.Tests {
 
             var outDir = new Vector3(0, 0, 1);
             var inDir = new Vector3(0, 0, 1);
-            var retro = bsdf.Evaluate(outDir, inDir, false);
+            var retro = bsdf.EvaluateWithCosine(outDir, inDir, false);
 
             var primary = new Vector2(0.25f, 0.8f);
             var sample = bsdf.Sample(outDir, false, primary);
@@ -156,7 +156,7 @@ namespace GroundWrapper.Tests {
 
             var outDir = new Vector3(0, 0, 1);
             var inDir = new Vector3(0, 0, 1);
-            var retro = bsdf.Evaluate(outDir, inDir, false);
+            var retro = bsdf.EvaluateWithCosine(outDir, inDir, false);
 
             var primary = new Vector2(0.25f, 0.8f);
             var sample = bsdf.Sample(outDir, false, primary);

@@ -4,6 +4,7 @@ using System;
 using GroundWrapper;
 using System.Collections.Generic;
 using GroundWrapper.GroundMath;
+using System.Numerics;
 
 namespace Integrators.Tests {
 
@@ -13,15 +14,15 @@ namespace Integrators.Tests {
             lightArea: 2.0f,
             numLightPaths: 500,
             positions: new Vector3[] {
-                new Vector3 { x = 0, y = 2, z = 0 }, // light
-                new Vector3 { x = 0, y = 0, z = 0 }, // surface A
-                new Vector3 { x = 2, y = 1, z = 0 }, // surface B
-                new Vector3 { x = 2, y = 0, z = 0 }  // camera
+                new Vector3 { X = 0, Y = 2, Z = 0 }, // light
+                new Vector3 { X = 0, Y = 0, Z = 0 }, // surface A
+                new Vector3 { X = 2, Y = 1, Z = 0 }, // surface B
+                new Vector3 { X = 2, Y = 0, Z = 0 }  // camera
             },
             normals: new Vector3[] {
-                new Vector3 { x = 0, y = -1, z = 0 }.Normalized(), // light
-                new Vector3 { x = 0.3f, y = 1, z = 0.2f }.Normalized(), // surface A
-                new Vector3 { x = -1, y = -1, z = 0 }.Normalized(), // surface B
+                Vector3.Normalize(new Vector3 { X =    0, Y = -1, Z = 0 }), // light
+                Vector3.Normalize(new Vector3 { X = 0.3f, Y =  1, Z = 0.2f }), // surface A
+                Vector3.Normalize(new Vector3 { X =   -1, Y = -1, Z = 0 }), // surface B
             });
 
         float NextEventWeight() {
@@ -41,7 +42,7 @@ namespace Integrators.Tests {
             cameraPath.vertices[^1] = dummyVert;
 
             return computer.NextEvent(cameraPath,
-                pdfEmit: dummyPath.pathCache[0].pdfFromAncestor * dummyPath.pathCache[1].pdfFromAncestor,
+                pdfEmit: dummyPath.pathCache[1].pdfFromAncestor,
                 pdfNextEvent: 1.0f / dummyPath.lightArea,
                 pdfHit: dummyPath.cameraVertices[^1].pdfFromAncestor,
                 pdfReverse: pdfReverse);
@@ -69,7 +70,7 @@ namespace Integrators.Tests {
             };
 
             return computer.Hit(cameraPath,
-                pdfEmit: dummyPath.pathCache[0].pdfFromAncestor * dummyPath.pathCache[1].pdfFromAncestor,
+                pdfEmit: dummyPath.pathCache[1].pdfFromAncestor,
                 pdfNextEvent: 1.0f / dummyPath.lightArea);
         }
 
@@ -149,11 +150,9 @@ namespace Integrators.Tests {
             float pdfNextEvt = verts[1].pdfFromAncestor * verts[2].pdfFromAncestor *  (1.0f / dummyPath.lightArea);
 
             var lightVerts = dummyPath.pathCache;
-            float pdfLightTracer = lightVerts[0].pdfFromAncestor
-                * lightVerts[1].pdfFromAncestor * lightVerts[2].pdfFromAncestor * dummyPath.numLightPaths;
+            float pdfLightTracer = lightVerts[1].pdfFromAncestor * lightVerts[2].pdfFromAncestor * dummyPath.numLightPaths;
 
-            float pdfConnectFirst = verts[1].pdfFromAncestor * lightVerts[0].pdfFromAncestor
-                * lightVerts[1].pdfFromAncestor;
+            float pdfConnectFirst = verts[1].pdfFromAncestor * lightVerts[1].pdfFromAncestor;
 
             float pdfSum = pdfHit + pdfNextEvt + pdfLightTracer + pdfConnectFirst;
 

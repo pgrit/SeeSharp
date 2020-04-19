@@ -4,7 +4,6 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Numerics;
-using System.Text;
 using System.Text.Json;
 
 namespace GroundWrapper {
@@ -123,19 +122,20 @@ namespace GroundWrapper {
                     JsonElement scale;
                     if (t.TryGetProperty("scale", out scale)) {
                         var sc = ReadVector(scale);
-                        result = Matrix4x4.CreateScale(sc) * result;
+                        result = result * Matrix4x4.CreateScale(sc);
                     }
 
                     JsonElement rotation;
                     if (t.TryGetProperty("rotation", out rotation)) {
                         var rot = ReadVector(rotation);
-                        result = Matrix4x4.CreateFromYawPitchRoll(rot.Y, rot.X, rot.Z) * result;
+                        rot *= MathF.PI / 180.0f;
+                        result = result * Matrix4x4.CreateFromYawPitchRoll(rot.Y, rot.X, rot.Z);
                     }
 
                     JsonElement position;
                     if (t.TryGetProperty("position", out position)) {
                         var pos = ReadVector(position);
-                        result = Matrix4x4.CreateTranslation(pos) * result;
+                        result = result * Matrix4x4.CreateTranslation(pos);
                     }
 
                     namedTransforms[name] = result;
@@ -149,7 +149,9 @@ namespace GroundWrapper {
                     string type = c.GetProperty("type").GetString();
                     float fov = c.GetProperty("fov").GetSingle();
                     string transform = c.GetProperty("transform").GetString();
-                    var worldToCam = namedTransforms[transform];
+                    var camToWorld = namedTransforms[transform];
+                    Matrix4x4 worldToCam;
+                    Matrix4x4.Invert(camToWorld, out worldToCam);
                     namedCameras[name] = new PerspectiveCamera(worldToCam, fov, null);
                     resultScene.Camera = namedCameras[name]; // TODO allow loading of multiple cameras? (and selecting one by name later)
                 }                
@@ -177,7 +179,7 @@ namespace GroundWrapper {
                     if (type != "trimesh") continue; // TODO support "obj" and "ply"
 
                     Vector3[] ReadVec3Array (JsonElement json) {
-                        var result = new Vector3[json.GetArrayLength()];
+                        var result = new Vector3[json.GetArrayLength() / 3];
                         for (int idx = 0; idx < json.GetArrayLength(); idx += 3) {
                             result[idx / 3].X = json[idx + 0].GetSingle();
                             result[idx / 3].Y = json[idx + 1].GetSingle();
@@ -187,7 +189,7 @@ namespace GroundWrapper {
                     }
 
                     Vector2[] ReadVec2Array(JsonElement json) {
-                        var result = new Vector2[json.GetArrayLength()];
+                        var result = new Vector2[json.GetArrayLength() / 2];
                         for (int idx = 0; idx < json.GetArrayLength(); idx += 2) {
                             result[idx / 2].X = json[idx + 0].GetSingle();
                             result[idx / 2].Y = json[idx + 1].GetSingle();

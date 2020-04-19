@@ -25,7 +25,7 @@ namespace GroundWrapper.Tests.Geometry {
             rt.AddMesh(mesh);
             rt.CommitScene();
 
-            SurfacePoint hit = rt.Intersect(new Ray {
+            SurfacePoint hit = rt.Trace(new Ray {
                 origin = new Vector3(-0.5f, -10, 0),
                 direction = new Vector3(0, 1, 0),
                 minDistance = 1.0f
@@ -56,7 +56,7 @@ namespace GroundWrapper.Tests.Geometry {
             rt.AddMesh(mesh);
             rt.CommitScene();
 
-            SurfacePoint hit = rt.Intersect(new Ray {
+            SurfacePoint hit = rt.Trace(new Ray {
                 origin = new Vector3(-0.5f, -10, 0),
                 direction = new Vector3(0, -1, 0),
                 minDistance = 1.0f

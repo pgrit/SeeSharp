@@ -3,18 +3,17 @@ using System;
 using System.Threading.Tasks;
 using Integrators.Common;
 using System.Collections.Generic;
-using GroundWrapper.GroundMath;
+using System.Numerics;
 using GroundWrapper.Geometry;
+using GroundWrapper.GroundMath;
 
 namespace Integrators {
 
     public class ClassicBidir : BidirBase {
 
         public override void Render(Scene scene) {
-            MaxDepth = 11;
-
             // Classic Bidir requires exactly one light path for every camera path.
-            NumLightPaths = scene.frameBuffer.Width * scene.frameBuffer.Height;
+            NumLightPaths = scene.FrameBuffer.Width * scene.FrameBuffer.Height;
             base.Render(scene);
         }
 
@@ -23,21 +22,17 @@ namespace Integrators {
 
             var primaryPos = rng.NextFloat2D();
             var primaryDir = rng.NextFloat2D();
-            var emitterSample = emitter.WrapPrimaryToRay(primaryPos, primaryDir);
-            var radiance = emitter.ComputeEmission(emitterSample.surface.point, emitterSample.direction);
-
-            float pdf = emitterSample.surface.jacobian * emitterSample.jacobian;
-            var weight = radiance * (emitterSample.shadingCosine / pdf);
+            var emitterSample = emitter.SampleRay(primaryPos, primaryDir);;
 
             var walker = new CachedRandomWalk(scene, rng, MaxDepth, pathCache);
-            walker.StartFromEmitter(emitterSample, weight);
+            walker.StartFromEmitter(emitterSample, emitterSample.weight);
 
             return walker.lastId;
         }
 
         public float NextEventPdf(SurfacePoint from, SurfacePoint to) {
             // TODO account for light selection probability once we do proper multi-light support!
-            float pdf = scene.Emitters[0].Jacobian(to);
+            float pdf = scene.QueryEmitter(to).PdfArea(to);
             return pdf;
         }
 
@@ -69,20 +64,18 @@ namespace Integrators {
             }
 
             protected override ColorRGB OnHit(Ray ray, SurfacePoint hit, float pdfFromAncestor, float pdfToAncestor,
-                                              ColorRGB throughput, int depth, GeometryTerms geometryTerms) {
+                                              ColorRGB throughput, int depth, float toAncestorJacobian) {
                 var value = ColorRGB.Black;
 
                 path.vertices.Add(new PathPdfPair { pdfFromAncestor = pdfFromAncestor, pdfToAncestor = pdfToAncestor });
 
-                float reverseJacobian = geometryTerms.cosineFrom / geometryTerms.squaredDistance;
-
                 // Was a light hit?
-                Emitter light = scene.QueryEmitter(hit.point);
+                Emitter light = scene.QueryEmitter(hit);
                 if (light != null) {
-                    value += throughput * integrator.OnEmitterHit(light, hit, ray, path, reverseJacobian);
+                    value += throughput * integrator.OnEmitterHit(light, hit, ray, path, toAncestorJacobian);
                 }
-                value += throughput * integrator.BidirConnections(integrator.endpoints[pixelIndex], hit.point, -ray.direction, path, reverseJacobian);
-                value += throughput * integrator.PerformNextEventEstimation(ray, hit, rng, path, reverseJacobian);
+                value += throughput * integrator.BidirConnections(integrator.endpoints[pixelIndex], hit, -ray.direction, path, toAncestorJacobian);
+                value += throughput * integrator.PerformNextEventEstimation(ray, hit, rng, path, toAncestorJacobian);
 
                 return value;
             }
@@ -93,19 +86,18 @@ namespace Integrators {
         public override ColorRGB EstimatePixelValue(SurfacePoint cameraPoint, Vector2 filmPosition, Ray primaryRay,
                                                     float pdfFromCamera, ColorRGB initialWeight, RNG rng) {
             // The pixel index determines which light path we connect to
-            int pixelIndex = (int)filmPosition.y * scene.frameBuffer.Width + (int)filmPosition.x;
-            if ((int)filmPosition.y != 20 || (int)filmPosition.x != 170) return ColorRGB.Black;
+            int pixelIndex = (int)filmPosition.Y * scene.FrameBuffer.Width + (int)filmPosition.X;
             var walk = new CameraRandomWalk(rng, pixelIndex, this);
             return walk.StartFromCamera(filmPosition, cameraPoint, pdfFromCamera, primaryRay, initialWeight);
         }
 
         public ColorRGB OnEmitterHit(Emitter emitter, SurfacePoint hit, Ray ray, CameraPath path, float reversePdfJacobian) {
-            var emission = emitter.ComputeEmission(hit.point, -ray.direction);
+            var emission = emitter.EmittedRadiance(hit, -ray.direction);
 
             // Compute pdf values
-            float pdfEmit = emitter.RayJacobian(hit.point, -ray.direction);
+            float pdfEmit = emitter.PdfRay(hit, -ray.direction);
             pdfEmit *= reversePdfJacobian;
-            float pdfNextEvent = emitter.Jacobian(hit.point);
+            float pdfNextEvent = emitter.PdfArea(hit); // TODO use NextEventPdf() and the previous hit point!
 
             // MIS weight
             var computer = new ClassicBidirMisComputer(
@@ -113,41 +105,34 @@ namespace Integrators {
                 numLightPaths: NumLightPaths
             );
             float misWeight = computer.Hit(path, pdfEmit, pdfNextEvent);
+            var value = misWeight * emission;
 
-            return misWeight * emission;
+            if (float.IsNaN(value.r))
+                System.Console.WriteLine("hi hit");
+
+            return value;
         }
 
         public (Ray, float, ColorRGB) BsdfSample(Scene scene, Ray ray, SurfacePoint hit, RNG rng) { // TODO this can and should be re-used in the base and for both directions!
-            float u = rng.NextFloat();
-            float v = rng.NextFloat();
-            var bsdfSample = scene.WrapPrimarySampleToBsdf(hit.point,
-                -ray.direction, u, v, false);
-
-            (var bsdfValue, float shadingCosine) = scene.EvaluateBsdf(hit.point, -ray.direction,
-                bsdfSample.direction, false);
-
-            var bsdfRay = scene.SpawnRay(hit.point, bsdfSample.direction);
-
-            var weight = bsdfSample.pdf == 0.0f ? ColorRGB.Black : bsdfValue * (shadingCosine / bsdfSample.pdf);
-
-            return (bsdfRay, bsdfSample.pdf, weight);
+            var bsdfSample = hit.Bsdf.Sample(-ray.direction, false, rng.NextFloat2D());
+            var bsdfRay = scene.Raytracer.SpawnRay(hit, bsdfSample.direction);
+            return (bsdfRay, bsdfSample.pdf, bsdfSample.weight);
         }
 
         public void ConnectPathVerticesToCamera(int vertexId) {
             ForEachVertex(vertexId, (vertex, ancestor, dirToAncestor) => {
                 // Compute image plane location
-                var (raster, isVisible) = scene.ProjectOntoFilm(vertex.point.position);
-                if (!isVisible)
-                    return;
+                var raster = scene.Camera.WorldToFilm(vertex.point.position);
+                if (!raster.HasValue) return;
 
                 // Trace shadow ray
-                if (scene.IsOccluded(vertex.point, scene.CameraPosition))
+                if (scene.Raytracer.IsOccluded(vertex.point, scene.Camera.Position))
                     return;
 
                 // Perform a change of variables from scene surface to pixel area.
                 // TODO this could be computed by the camera itself...
                 // First: map the scene surface to the solid angle about the camera
-                var dirToCam = scene.CameraPosition - vertex.point.position;
+                var dirToCam = scene.Camera.Position - vertex.point.position;
                 float distToCam = dirToCam.Length();
                 float cosToCam = Math.Abs(Vector3.Dot(vertex.point.normal, dirToCam)) / distToCam;
                 float surfaceToSolidAngle = cosToCam / (distToCam * distToCam);
@@ -156,17 +141,17 @@ namespace Integrators {
                     return;
 
                 // Second: map the solid angle to the pixel area
-                float solidAngleToPixel = scene.ComputeCamaraSolidAngleToPixelJacobian(vertex.point.position);
+                float solidAngleToPixel = scene.Camera.SolidAngleToPixelJacobian(vertex.point.position);
 
                 // Third: combine to get the full jacobian 
                 float surfaceToPixelJacobian = surfaceToSolidAngle * solidAngleToPixel;
 
-                var (bsdfWeight, _) = scene.EvaluateBsdf(vertex.point, dirToAncestor, dirToCam, true);
+                var bsdf = vertex.point.Bsdf;
+                var bsdfValue = bsdf.EvaluateBsdfOnly(dirToAncestor, dirToCam, true);
 
                 // Compute the surface area pdf of sampling the previous vertex instead
-                float pdfReverse = scene.ComputePrimaryToBsdfJacobian(vertex.point, dirToCam, dirToAncestor, false).pdf;
-                var geomTerms = scene.ComputeGeometryTerms(vertex.point, ancestor.point);
-                pdfReverse *= geomTerms.cosineTo / geomTerms.squaredDistance;
+                float pdfReverse = bsdf.Pdf(dirToCam, dirToAncestor, false).Item1;
+                pdfReverse *= SampleWrap.SurfaceAreaToSolidAngle(vertex.point, ancestor.point);
 
                 if (vertex.depth == 1) {
                     pdfReverse += NextEventPdf(vertex.point, ancestor.point);
@@ -179,10 +164,13 @@ namespace Integrators {
                 );
                 float misWeight = computer.LightTracer(vertex, surfaceToPixelJacobian, pdfReverse);
 
-                ColorRGB weight = misWeight * vertex.weight * bsdfWeight * surfaceToPixelJacobian * (1.0f / NumLightPaths);
+                ColorRGB weight = misWeight * vertex.weight * bsdfValue * surfaceToPixelJacobian / NumLightPaths;
+
+                if (float.IsNaN(weight.r))
+                    System.Console.WriteLine("hi lt");
 
                 // Compute image contribution and splat
-                scene.frameBuffer.Splat(raster.x, raster.y, weight * (1.0f / NumIterations));
+                scene.FrameBuffer.Splat(raster.Value.X, raster.Value.Y, weight * (1.0f / NumIterations));
             });
         }
 
@@ -195,28 +183,23 @@ namespace Integrators {
                 if (depth > MaxDepth) return;
 
                 // Trace shadow ray
-                if (scene.IsOccluded(vertex.point, cameraPoint.position))
-                    return;
-
-                var geomTerms = scene.ComputeGeometryTerms(cameraPoint, vertex.point);
-                if (geomTerms.geomTerm <= float.Epsilon)
+                if (scene.Raytracer.IsOccluded(vertex.point, cameraPoint))
                     return;
 
                 // Compute connection direction
                 var dirFromCamToLight = vertex.point.position - cameraPoint.position;
 
-                var (bsdfWeightLight, _) = scene.EvaluateBsdf(vertex.point, dirToAncestor, -dirFromCamToLight, true);
-                var (bsdfWeightCam, shadingCosine) = scene.EvaluateBsdf(cameraPoint, outDir, dirFromCamToLight, false);
+                var bsdfWeightLight = vertex.point.Bsdf.EvaluateBsdfOnly(dirToAncestor, -dirFromCamToLight, true);
+                var bsdfWeightCam = cameraPoint.Bsdf.EvaluateWithCosine(outDir, dirFromCamToLight, false);
 
                 // Compute the missing pdfs
-                var camJacobians = scene.ComputePrimaryToBsdfJacobian(cameraPoint, outDir, dirFromCamToLight, false);
-                float pdfCameraReverse = camJacobians.pdfReverse * reversePdfJacobian;
-                float pdfCameraToLight = camJacobians.pdf * geomTerms.cosineTo / geomTerms.squaredDistance;
+                var (pdfCameraToLight, pdfCameraReverse) = cameraPoint.Bsdf.Pdf(outDir, dirFromCamToLight, false);
+                pdfCameraReverse *= reversePdfJacobian;
+                pdfCameraToLight *= SampleWrap.SurfaceAreaToSolidAngle(cameraPoint, vertex.point);
 
-                var lightJacobians = scene.ComputePrimaryToBsdfJacobian(vertex.point, dirToAncestor, -dirFromCamToLight, true);
-                var geomTermsToAncestor = scene.ComputeGeometryTerms(vertex.point, ancestor.point);
-                float pdfLightReverse = lightJacobians.pdfReverse * geomTermsToAncestor.cosineTo / geomTermsToAncestor.squaredDistance;
-                float pdfLightToCamera = lightJacobians.pdf * geomTerms.cosineFrom / geomTerms.squaredDistance;
+                var (pdfLightToCamera, pdfLightReverse) = vertex.point.Bsdf.Pdf(dirToAncestor, -dirFromCamToLight, true);
+                pdfLightReverse  *= SampleWrap.SurfaceAreaToSolidAngle(vertex.point, ancestor.point);
+                pdfLightToCamera *= SampleWrap.SurfaceAreaToSolidAngle(vertex.point, cameraPoint);
 
                 if (vertex.depth == 1) {
                     pdfLightReverse += NextEventPdf(vertex.point, ancestor.point);
@@ -229,54 +212,56 @@ namespace Integrators {
                 );
                 float misWeight = computer.BidirConnect(path, vertex, pdfCameraReverse, pdfCameraToLight, pdfLightReverse, pdfLightToCamera);
 
-                // TODO use shading cosine here
-                ColorRGB weight = misWeight * vertex.weight * bsdfWeightLight * bsdfWeightCam * geomTerms.geomTerm;
+                ColorRGB weight = misWeight * vertex.weight * bsdfWeightLight * bsdfWeightCam * SampleWrap.SurfaceAreaToSolidAngle(cameraPoint, vertex.point);
 
                 result += weight;
+
+                if (float.IsNaN(weight.r))
+                    System.Console.WriteLine("hi connect");
             });
 
             return result;
         }
 
         public ColorRGB PerformNextEventEstimation(Ray ray, SurfacePoint hit, RNG rng, CameraPath path, float reversePdfJacobian) {
-            // Sample a point on the light source
+            // Sample a point on the light source TODO should be one function & account for the selection probability
             var light = SelectEmitterForNextEvent(rng, ray, hit);
-            var lightSample = light.WrapPrimaryToSurface(rng.NextFloat(), rng.NextFloat());
+            var lightSample = light.SampleArea(rng.NextFloat2D());
 
-            if (!scene.IsOccluded(hit.point, lightSample.point.position)) {
-                Vector3 lightToSurface = hit.point.position - lightSample.point.position;
-                var emission = light.ComputeEmission(lightSample.point, lightToSurface);
+            if (!scene.Raytracer.IsOccluded(hit, lightSample.point)) {
+                Vector3 lightToSurface = hit.position - lightSample.point.position;
+                var emission = light.EmittedRadiance(lightSample.point, lightToSurface);
 
-                (var bsdfValue, float shadingCosine) = scene.EvaluateBsdf(hit.point,
-                    -ray.direction, -lightToSurface, false);
+                var bsdf = hit.Bsdf;
+                var bsdfTimesCosine = bsdf.EvaluateWithCosine(-ray.direction, -lightToSurface, false);
 
-                var geometryTerms = scene.ComputeGeometryTerms(hit.point, lightSample.point);
+                // Compute the jacobian for surface area -> solid angle
+                // (Inverse of the jacobian for solid angle pdf -> surface area pdf)
+                float jacobian = SampleWrap.SurfaceAreaToSolidAngle(hit, lightSample.point);
 
                 // Compute the missing pdf terms
-                var bsdfPdfs = scene.ComputePrimaryToBsdfJacobian(hit.point, -ray.direction, -lightToSurface, false);
-                float pdfHit = bsdfPdfs.pdf * geometryTerms.cosineTo / geometryTerms.squaredDistance;
-                float pdfReverse = bsdfPdfs.pdfReverse * reversePdfJacobian;
+                var (bsdfForwardPdf, bsdfReversePdf) = bsdf.Pdf(-ray.direction, -lightToSurface, false);
+                bsdfForwardPdf *= SampleWrap.SurfaceAreaToSolidAngle(hit, lightSample.point);
+                bsdfReversePdf *= reversePdfJacobian;
 
-                float pdfEmit = light.RayJacobian(lightSample.point, lightToSurface);
-                pdfEmit *= geometryTerms.cosineFrom / geometryTerms.squaredDistance;
+                float pdfEmit = light.PdfRay(lightSample.point, lightToSurface);
+                pdfEmit *= SampleWrap.SurfaceAreaToSolidAngle(lightSample.point, hit);
 
                 var computer = new ClassicBidirMisComputer(
                     lightPathCache: pathCache,
                     numLightPaths: NumLightPaths
                 );
-                float misWeight = computer.NextEvent(path, pdfEmit, lightSample.jacobian, pdfHit, pdfReverse);
+                float misWeight = computer.NextEvent(path, pdfEmit, lightSample.pdf, bsdfForwardPdf, bsdfReversePdf);
 
-                var value = ColorRGB.Black;
-                if (geometryTerms.cosineFrom > 0) {
-                    value = misWeight * emission * bsdfValue
-                        * (geometryTerms.geomTerm / lightSample.jacobian)
-                        * (shadingCosine / geometryTerms.cosineFrom);
-                }
+                var value = misWeight * emission * bsdfTimesCosine * (jacobian / lightSample.pdf);
+
+                if (float.IsNaN(value.r))
+                    System.Console.WriteLine("hi nee");
 
                 return value;
             }
 
-            return new ColorRGB { r=0, g=0, b=0 };
+            return ColorRGB.Black;
         }
     }
 }

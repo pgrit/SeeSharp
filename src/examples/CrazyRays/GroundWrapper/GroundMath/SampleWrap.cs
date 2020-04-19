@@ -1,4 +1,5 @@
-﻿using System;
+﻿using GroundWrapper.Geometry;
+using System;
 using System.Numerics;
 
 namespace GroundWrapper.GroundMath {
@@ -68,6 +69,28 @@ namespace GroundWrapper.GroundMath {
 
         public static float ToCosHemisphereJacobian(float cosine) {
             return Math.Abs(cosine) / MathF.PI;
+        }
+
+        /// <summary>
+        /// Computes the inverse jacobian for the mapping from surface area around "to" to the sphere around "from". 
+        /// 
+        /// Required for integrals that perform this change of variables (e.g., next event estimation).
+        /// 
+        /// Multiplying solid angle pdfs by this value computes the corresponding surface area density.
+        /// Dividing surface area pdfs by this value computes the corresponding solid angle density.
+        /// 
+        /// This function simply computes the cosine formed by the normal at "to" and the direction from "to" to "from".
+        /// The absolute value of that cosine is then divided by the squared distance between the two points:
+        /// 
+        /// result = cos(normal_to, from - to) / ||from - to||^2
+        /// </summary>
+        /// <param name="from">The position at which the hemispherical distribution is defined.</param>
+        /// <param name="to">The point on the surface area that is projected onto the hemisphere.</param>
+        /// <returns>Inverse jacobian, multiply solid angle densities by this value.</returns>
+        public static float SurfaceAreaToSolidAngle(SurfacePoint from, SurfacePoint to) {
+            var dir = to.position - from.position;
+            var distSqr = dir.LengthSquared();
+            return MathF.Abs(Vector3.Dot(to.normal, -dir)) / (distSqr * MathF.Sqrt(distSqr));
         }
     }
 }

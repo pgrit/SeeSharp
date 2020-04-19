@@ -19,7 +19,7 @@ namespace GroundWrapper.Tests.Camera {
         [Fact]
         public void Center_CorrectPixel() {
             var cam = MakeTestCamera();
-            var raster = cam.WorldToFilm(new Vector3(0, 0, 3.5f));
+            var raster = cam.WorldToFilm(new Vector3(0, 0, 3.5f)).Value;
 
             Assert.Equal(1.5f, raster.X, 4);
             Assert.Equal(1.5f, raster.Y, 4);
@@ -34,11 +34,18 @@ namespace GroundWrapper.Tests.Camera {
             var len = MathF.Sqrt(c * c * 3);
             var xyz = c / len;
 
-            var raster = cam.WorldToFilm(new Vector3(xyz, -xyz, xyz));
+            var raster = cam.WorldToFilm(new Vector3(xyz, -xyz, xyz)).Value;
 
             Assert.Equal(0.0f, raster.X, 4);
             Assert.Equal(0.0f, raster.Y, 4);
             Assert.Equal(1.0f, raster.Z, 4);
+        }
+
+        [Fact]
+        public void Center_Behind_ShouldBeNull() {
+            var cam = MakeTestCamera();
+            var result = cam.WorldToFilm(new Vector3(0, 0, -3.5f));
+            Assert.False(result.HasValue);
         }
     }
 }

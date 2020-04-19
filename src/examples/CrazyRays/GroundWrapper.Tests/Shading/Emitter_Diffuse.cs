@@ -20,9 +20,9 @@ namespace GroundWrapper.Tests.Shading {
             );
             var emitter = new DiffuseEmitter(mesh, ColorRGB.White);
 
-            var (ray, _) = emitter.SampleRay(new Vector2(0.3f, 0.8f), new Vector2(0.56f, 0.03f));
+            var sample = emitter.SampleRay(new Vector2(0.3f, 0.8f), new Vector2(0.56f, 0.03f));
 
-            Assert.True(ray.minDistance > 0);
+            Assert.True(sample.point.errorOffset > 0);
         }
 
         [Fact]
@@ -46,9 +46,9 @@ namespace GroundWrapper.Tests.Shading {
             );
             var emitter = new DiffuseEmitter(mesh, ColorRGB.White);
 
-            var (ray, _) = emitter.SampleRay(new Vector2(0.3f, 0.8f), new Vector2(0.56f, 0.03f));
+            var sample = emitter.SampleRay(new Vector2(0.3f, 0.8f), new Vector2(0.56f, 0.03f));
 
-            Assert.True(ray.direction.Y > 0);
+            Assert.True(sample.direction.Y > 0);
         }
 
         [Fact]
@@ -72,9 +72,9 @@ namespace GroundWrapper.Tests.Shading {
             );
             var emitter = new DiffuseEmitter(mesh, ColorRGB.White);
 
-            var (ray, _) = emitter.SampleRay(new Vector2(0.3f, 0.8f), new Vector2(0.56f, 0.03f));
+            var sample = emitter.SampleRay(new Vector2(0.3f, 0.8f), new Vector2(0.56f, 0.03f));
 
-            Assert.True(ray.direction.Y < 0);
+            Assert.True(sample.direction.Y < 0);
         }
 
         [Fact]
@@ -162,10 +162,45 @@ namespace GroundWrapper.Tests.Shading {
             );
             var emitter = new DiffuseEmitter(mesh, ColorRGB.White);
 
-            var (ray, pdf) = emitter.SampleRay(new Vector2(0.3f, 0.8f), new Vector2(0.56f, 0.03f));
+            var sample = emitter.SampleRay(new Vector2(0.3f, 0.8f), new Vector2(0.56f, 0.03f));
 
-            float c = Vector3.Dot(ray.direction, new Vector3(0, 1, 0));
-            Assert.Equal(0.25f * c / MathF.PI, pdf);
+            float c = Vector3.Dot(sample.direction, new Vector3(0, 1, 0));
+            Assert.Equal(0.25f * c / MathF.PI, sample.pdf);
+        }
+
+        [Fact]
+        public void EmittedRays_Weight_ShouldBeRadianceOverPdf() {
+            var mesh = new Mesh(
+                new Vector3[] {
+                    new Vector3(-1, 10, -1),
+                    new Vector3( 1, 10, -1),
+                    new Vector3( 1, 10,  1),
+                    new Vector3(-1, 10,  1)
+                }, new int[] {
+                    0, 1, 2,
+                    0, 2, 3
+                },
+                shadingNormals: new Vector3[] {
+                    new Vector3(0, 1, 0),
+                    new Vector3(0, 1, 0),
+                    new Vector3(0, 1, 0),
+                    new Vector3(0, 1, 0)
+                }
+            );
+            var emitter = new DiffuseEmitter(mesh, ColorRGB.White);
+
+            var sample = emitter.SampleRay(new Vector2(0.3f, 0.8f), new Vector2(0.56f, 0.03f));
+
+            float c = Vector3.Dot(sample.direction, new Vector3(0, 1, 0));
+            float expectedPdf = 0.25f * c / MathF.PI;
+            Assert.Equal(expectedPdf, sample.pdf);
+
+            var expectedWeight = 
+                emitter.EmittedRadiance(sample.point, sample.direction) * c
+                / expectedPdf;
+            Assert.Equal(expectedWeight.r, sample.weight.r);
+            Assert.Equal(expectedWeight.g, sample.weight.g);
+            Assert.Equal(expectedWeight.b, sample.weight.b);
         }
     }
 }

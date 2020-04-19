@@ -3,6 +3,7 @@ using System.Threading.Tasks;
 using Integrators.Common;
 using GroundWrapper.GroundMath;
 using GroundWrapper.Geometry;
+using System.Numerics;
 
 namespace Integrators {
     public abstract class BidirBase : Integrator {
@@ -71,7 +72,7 @@ namespace Integrators {
             this.scene = scene;
 
             if (NumLightPaths <= 0) {
-                NumLightPaths = scene.frameBuffer.Width * scene.frameBuffer.Height;
+                NumLightPaths = scene.FrameBuffer.Width * scene.FrameBuffer.Height;
             }
 
             pathCache = new PathCache(NumLightPaths * MaxDepth);
@@ -94,10 +95,10 @@ namespace Integrators {
         }
 
         private void TraceAllCameraPaths(uint iter) {
-            Parallel.For(0, scene.frameBuffer.Height,
+            Parallel.For(0, scene.FrameBuffer.Height,
                 row => {
-                    for (uint col = 0; col < scene.frameBuffer.Width; ++col) {
-                        uint pixelIndex = (uint)(row * scene.frameBuffer.Width + col);
+                    for (uint col = 0; col < scene.FrameBuffer.Width; ++col) {
+                        uint pixelIndex = (uint)(row * scene.FrameBuffer.Width + col);
                         var seed = RNG.HashSeed(BaseSeedCamera, pixelIndex, (uint)iter);
                         var rng = new RNG(seed);
                         RenderPixel((uint)row, col, rng);
@@ -108,22 +109,24 @@ namespace Integrators {
 
         private void RenderPixel(uint row, uint col, RNG rng) {
             // Sample a ray from the camera
-            float u = rng.NextFloat();
-            float v = rng.NextFloat();
-            (Ray primaryRay, Vector2 filmSample) = scene.SampleCamera(row, col, u, v);
-            float pdfFromCamera = scene.ComputeCamaraSolidAngleToPixelJacobian(primaryRay.origin + primaryRay.direction);
+            var offset = rng.NextFloat2D();
+            var filmSample = new Vector2(col, row) + offset;
+            Ray primaryRay = scene.Camera.GenerateRay(filmSample);
+
+            // Compute the corresponding solid angle pdf (required for MIS)
+            float pdfFromCamera = scene.Camera.SolidAngleToPixelJacobian(primaryRay.direction); // TODO this should be returned by Camera.Sample() which should replace GenerateRay() to follow conventions similar to the BSDF system
             var initialWeight = ColorRGB.White; // TODO this should be computed by the camera and returned by SampleCamera()
             var cameraPoint = new SurfacePoint { 
-                position = scene.CameraPosition,
-                normal = scene.CameraDirection
+                position = scene.Camera.Position,
+                normal = scene.Camera.Direction
             };
-            
+
             var value = EstimatePixelValue(cameraPoint, filmSample, primaryRay, pdfFromCamera, initialWeight, rng);
             value = value * (1.0f / NumIterations);
 
             // TODO we do nearest neighbor splatting manually here, to avoid numerical
             //      issues if the primary samples are almost 1 (400 + 0.99999999f = 401)
-            scene.frameBuffer.Splat((float)col, (float)row, value);
+            scene.FrameBuffer.Splat((float)col, (float)row, value);
         }
     }
 }

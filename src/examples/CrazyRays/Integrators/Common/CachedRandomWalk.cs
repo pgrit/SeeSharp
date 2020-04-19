@@ -1,6 +1,6 @@
 ﻿using GroundWrapper;
-using GroundWrapper.GroundMath;
 using GroundWrapper.Geometry;
+
 namespace Integrators.Common {
     public class CachedRandomWalk : RandomWalk {
         PathCache cache;
@@ -14,9 +14,10 @@ namespace Integrators.Common {
         public override ColorRGB StartFromEmitter(EmitterSample emitterSample, ColorRGB initialWeight) {
             // Add the vertex on the light source
             lastId = cache.AddVertex(new PathVertex {
-                point = emitterSample.surface.point,
-                pdfFromAncestor = emitterSample.surface.pdf,
-                pdfToAncestor = 0.0f, // cannot continue beyond an end-point (guard value used to detect this more easily)
+                // TODO is any of these actually useful?
+                point = emitterSample.point,
+                pdfFromAncestor = 0.0f, // unused
+                pdfToAncestor = 0.0f, // unused
                 weight = ColorRGB.Black, // the first known weight is that at the first hit point
                 ancestorId = -1,
                 depth = 0
@@ -25,10 +26,10 @@ namespace Integrators.Common {
         }
 
         protected override ColorRGB OnHit(Ray ray, SurfacePoint hit, float pdfFromAncestor, float pdfToAncestor,
-                                          ColorRGB throughput, int depth, GeometryTerms geometryTerms) {
+                                          ColorRGB throughput, int depth, float toAncestorJacobian) {
             // Add the next vertex
             lastId = cache.AddVertex(new PathVertex {
-                point = hit.point,
+                point = hit,
                 pdfFromAncestor = pdfFromAncestor,
                 pdfToAncestor = pdfToAncestor,
                 weight = throughput,

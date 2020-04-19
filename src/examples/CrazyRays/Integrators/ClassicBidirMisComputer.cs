@@ -57,7 +57,7 @@ namespace Integrators {
                 nextVert = lightPathCache[nextVert.ancestorId];
             }
 
-            pdfsLightToCamera[numPdfs - 1] = nextVert.pdfFromAncestor;
+            pdfsLightToCamera[^1] = 1;//nextVert.pdfFromAncestor;
 
             // Compute the actual weight
             float sumReciprocals = 1.0f;
@@ -234,7 +234,7 @@ namespace Integrators {
 
                 nextVert = lightPathCache[nextVert.ancestorId];
             }
-            pdfsLightToCamera[numPdfs - 1] = nextVert.pdfFromAncestor;
+            pdfsLightToCamera[^1] = 1;//nextVert.pdfFromAncestor;
 
             // Set the pdf values that are unique to this combination of paths
             if (lastCameraVertexIdx > 0) // only if this is not the primary hit point

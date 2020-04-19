@@ -3,6 +3,8 @@ using GroundWrapper;
 using GroundWrapper.GroundMath;
 using Integrators.Common;
 using Integrators;
+using System.Numerics;
+using GroundWrapper.Geometry;
 
 namespace Integrators.Tests.Helpers {
     public struct MisDummyPath {
@@ -28,7 +30,7 @@ namespace Integrators.Tests.Helpers {
                         position = positions[0],
                         normal = normals[0],
                     },
-                    pdfFromAncestor = 1.0f / lightArea,
+                    pdfFromAncestor = -10000.0f,
                     pdfToAncestor = -10000.0f, // Guard value: this is unused!
                     ancestorId = -1,
                     depth = 0
@@ -52,15 +54,17 @@ namespace Integrators.Tests.Helpers {
                     // Compute the geometry terms
                     Vector3 dirToLight = prevLightVertex.point.position - surfaceVertex.point.position;
                     float distSqr = dirToLight.LengthSquared();
-                    dirToLight = dirToLight.Normalized();
+                    dirToLight = Vector3.Normalize(dirToLight);
                     float cosSurfToLight = Vector3.Dot(dirToLight, surfaceVertex.point.normal);
                     float cosLightToSurf = Vector3.Dot(-dirToLight, prevLightVertex.point.normal);
 
                     // pdf for diffuse sampling of the emission direction
                     surfaceVertex.pdfFromAncestor = (cosLightToSurf / MathF.PI) * (cosSurfToLight / distSqr);
                     surfaceVertex.pdfToAncestor = (cosSurfToLight / MathF.PI) * (cosLightToSurf / distSqr);
-                    if (idx == 1)
+                    if (idx == 1) {
+                        surfaceVertex.pdfFromAncestor *= 1.0f / lightArea;
                         surfaceVertex.pdfToAncestor += 1.0f / lightArea; // Next event
+                    }
 
                     int lightVertexIndex = pathCache.AddVertex(surfaceVertex);
 
@@ -99,8 +103,13 @@ namespace Integrators.Tests.Helpers {
                     lightVertIdx = lightVert.ancestorId;
                 }
 
-                // The camera path does not add the next event weight!
-                cameraVertices[^1].pdfFromAncestor -= (1 / lightArea);
+                // The last camera path vertex is special
+                var dir = pathCache[0].point.position - pathCache[1].point.position;
+                var cossurf = Vector3.Dot(Vector3.Normalize(dir), pathCache[1].point.normal);
+                var coslight = Vector3.Dot(Vector3.Normalize(-dir), pathCache[0].point.normal);
+                var distsqr = dir.LengthSquared();
+                cameraVertices[^1].pdfFromAncestor = cossurf * coslight / distsqr / MathF.PI;
+                cameraVertices[^1].pdfToAncestor = -100000.0f;
             }
         }
     }

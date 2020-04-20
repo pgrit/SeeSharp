@@ -65,7 +65,12 @@ namespace GroundWrapper {
         }
 
         public void WriteToFile(string filename) {
-            TinyExr.WriteImageToExr(data, Width, Height, 3, filename);
+            var ext = System.IO.Path.GetExtension(filename);
+            if (ext == "exr")
+                TinyExr.WriteImageToExr(data, Width, Height, 3, filename);
+            else {
+                WriteImageToLDR(this, filename);
+            }
         }
 
         public static Image LoadFromFile(string filename) {
@@ -101,6 +106,22 @@ namespace GroundWrapper {
 
             [DllImport("Ground", CallingConvention = CallingConvention.Cdecl)]
             public static extern void CopyCachedImage(int id, [Out] ColorRGB[] buffer); 
+        }
+
+        static void WriteImageToLDR(Image img, string filename) {
+            int width = img.Width;
+            int height = img.Height;
+            using (System.Drawing.Bitmap b = new System.Drawing.Bitmap(width, height)) {
+                for (int x = 0; x < width; ++x) for (int y = 0; y < height; ++y) {
+                        var px = img[x,y];
+                        int ToInt(float chan) {
+                            chan = System.MathF.Pow(chan, 1/2.2f);
+                            return System.Math.Clamp((int)(chan * 255), 0, 255);
+                        }
+                        b.SetPixel(x, y, System.Drawing.Color.FromArgb(ToInt(px.r), ToInt(px.g), ToInt(px.b)));
+                    }
+                b.Save(filename);
+            }
         }
     }
 }

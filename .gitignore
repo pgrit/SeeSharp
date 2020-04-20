@@ -32,3 +32,9 @@ output.json
 # Doxygen output
 docs/*
 !docs/doxyfile
+
+# temporary jupyter experiment stuff
+/src/examples/CrazyRays/.ipynb_checkpoints
+/src/examples/CrazyRays/Untitled1.ipynb
+/src/examples/CrazyRays/Untitled.ipynb
+/src/examples/CrazyRays/shell.log

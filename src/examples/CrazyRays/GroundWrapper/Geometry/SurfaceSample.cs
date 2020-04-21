@@ -1,6 +1,4 @@
-﻿using GroundWrapper.Geometry;
-
-namespace GroundWrapper {
+﻿namespace GroundWrapper.Geometry {
     public struct SurfaceSample {
         public SurfacePoint point;
         public float pdf;

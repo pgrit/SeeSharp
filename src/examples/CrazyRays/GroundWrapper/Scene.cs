@@ -1,5 +1,8 @@
 using GroundWrapper.Cameras;
 using GroundWrapper.Geometry;
+using GroundWrapper.Shading;
+using GroundWrapper.Shading.Emitters;
+using GroundWrapper.Shading.Materials;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -87,8 +90,8 @@ namespace GroundWrapper {
 
             Vector3 ReadVector(JsonElement json) {
                 return new Vector3(
-                    json[0].GetSingle(), 
-                    json[1].GetSingle(), 
+                    json[0].GetSingle(),
+                    json[1].GetSingle(),
                     json[2].GetSingle());
             }
 
@@ -118,7 +121,7 @@ namespace GroundWrapper {
                     string name = t.GetProperty("name").GetString();
 
                     Matrix4x4 result = Matrix4x4.Identity;
-                    
+
                     JsonElement scale;
                     if (t.TryGetProperty("scale", out scale)) {
                         var sc = ReadVector(scale);
@@ -154,7 +157,7 @@ namespace GroundWrapper {
                     Matrix4x4.Invert(camToWorld, out worldToCam);
                     namedCameras[name] = new PerspectiveCamera(worldToCam, fov, null);
                     resultScene.Camera = namedCameras[name]; // TODO allow loading of multiple cameras? (and selecting one by name later)
-                }                
+                }
 
                 // Parse all materials
                 var namedMaterials = new Dictionary<string, Material>();
@@ -178,7 +181,7 @@ namespace GroundWrapper {
                     string type = m.GetProperty("type").GetString();
                     if (type != "trimesh") continue; // TODO support "obj" and "ply"
 
-                    Vector3[] ReadVec3Array (JsonElement json) {
+                    Vector3[] ReadVec3Array(JsonElement json) {
                         var result = new Vector3[json.GetArrayLength() / 3];
                         for (int idx = 0; idx < json.GetArrayLength(); idx += 3) {
                             result[idx / 3].X = json[idx + 0].GetSingle();

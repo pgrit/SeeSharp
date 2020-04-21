@@ -1,7 +1,8 @@
-﻿using System;
+﻿using GroundWrapper.Sampling;
+using System;
 using System.Numerics;
 
-namespace GroundWrapper {
+namespace GroundWrapper.Shading {
     /// <summary>
     /// Defines useful functions and operations on directions in shading space.
     /// This is where all conventions of the shading space are defined.
@@ -11,7 +12,7 @@ namespace GroundWrapper {
             shadingNormal = Vector3.Normalize(shadingNormal);
             worldDirection = Vector3.Normalize(worldDirection);
 
-            var (tangent, binormal) = GroundMath.SampleWrap.ComputeBasisVectors(shadingNormal);
+            var (tangent, binormal) = SampleWrap.ComputeBasisVectors(shadingNormal);
 
             float z = Vector3.Dot(shadingNormal, worldDirection);
             float x = Vector3.Dot(tangent, worldDirection);
@@ -24,42 +25,42 @@ namespace GroundWrapper {
             shadingNormal = Vector3.Normalize(shadingNormal);
             shadingDirection = Vector3.Normalize(shadingDirection);
 
-            var (tangent, binormal) = GroundMath.SampleWrap.ComputeBasisVectors(shadingNormal);
+            var (tangent, binormal) = SampleWrap.ComputeBasisVectors(shadingNormal);
             Vector3 dir = shadingDirection.Z * shadingNormal
                         + shadingDirection.X * tangent
                         + shadingDirection.Y * binormal;
             return dir;
         }
 
-        public static float CosTheta(Vector3 direction) 
+        public static float CosTheta(Vector3 direction)
             => direction.Z;
-        public static float CosThetaSqr(Vector3 direction) 
+        public static float CosThetaSqr(Vector3 direction)
             => direction.Z * direction.Z;
-        public static float AbsCosTheta(Vector3 direction) 
+        public static float AbsCosTheta(Vector3 direction)
             => MathF.Abs(direction.Z);
 
-        public static float SinThetaSqr(Vector3 direction) 
+        public static float SinThetaSqr(Vector3 direction)
             => MathF.Max(0, 1 - CosThetaSqr(direction));
-        public static float SinTheta(Vector3 direction) 
+        public static float SinTheta(Vector3 direction)
             => MathF.Sqrt(SinThetaSqr(direction));
-        public static float TanTheta(Vector3 direction) 
+        public static float TanTheta(Vector3 direction)
             => SinTheta(direction) / CosTheta(direction);
-        public static float TanThetaSqr(Vector3 direction) 
+        public static float TanThetaSqr(Vector3 direction)
             => SinThetaSqr(direction) / CosThetaSqr(direction);
 
         public static float CosPhi(Vector3 direction) {
             float sinTheta = SinTheta(direction);
-            return (sinTheta == 0) ? 1 : Math.Clamp(direction.X / sinTheta, -1, 1);
+            return sinTheta == 0 ? 1 : Math.Clamp(direction.X / sinTheta, -1, 1);
         }
         public static float SinPhi(Vector3 direction) {
             float sinTheta = SinTheta(direction);
-            return (sinTheta == 0) ? 0 : Math.Clamp(direction.Y / sinTheta, -1, 1);
+            return sinTheta == 0 ? 0 : Math.Clamp(direction.Y / sinTheta, -1, 1);
         }
 
-        public static float CosPhiSqr(Vector3 direction) 
+        public static float CosPhiSqr(Vector3 direction)
             => CosPhi(direction) * CosPhi(direction);
 
-        public static float SinPhiSqr(Vector3 direction) 
+        public static float SinPhiSqr(Vector3 direction)
             => SinPhi(direction) * SinPhi(direction);
 
         /// <summary>
@@ -81,7 +82,7 @@ namespace GroundWrapper {
                 -1, 1);
         }
 
-        public static Vector3 Reflect(Vector3 outDir, Vector3 normal) 
+        public static Vector3 Reflect(Vector3 outDir, Vector3 normal)
             => -outDir + 2 * Vector3.Dot(outDir, normal) * normal;
 
         /// <summary>
@@ -104,7 +105,7 @@ namespace GroundWrapper {
             return wt;
         }
 
-        public static bool SameHemisphere(Vector3 direction, Vector3 directionp) 
+        public static bool SameHemisphere(Vector3 direction, Vector3 directionp)
             => direction.Z * directionp.Z > 0;
     }
 }

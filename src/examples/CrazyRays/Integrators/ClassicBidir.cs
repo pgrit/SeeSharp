@@ -1,11 +1,13 @@
 ﻿using GroundWrapper;
-using System;
-using System.Threading.Tasks;
+using GroundWrapper.Geometry;
+using GroundWrapper.Sampling;
+using GroundWrapper.Shading;
+using GroundWrapper.Shading.Emitters;
 using Integrators.Common;
+using System;
 using System.Collections.Generic;
 using System.Numerics;
-using GroundWrapper.Geometry;
-using GroundWrapper.GroundMath;
+using System.Threading.Tasks;
 
 namespace Integrators {
 
@@ -22,7 +24,7 @@ namespace Integrators {
 
             var primaryPos = rng.NextFloat2D();
             var primaryDir = rng.NextFloat2D();
-            var emitterSample = emitter.SampleRay(primaryPos, primaryDir);;
+            var emitterSample = emitter.SampleRay(primaryPos, primaryDir); ;
 
             var walker = new CachedRandomWalk(scene, rng, MaxDepth, pathCache);
             walker.StartFromEmitter(emitterSample, emitterSample.weight);
@@ -156,7 +158,7 @@ namespace Integrators {
                 if (vertex.depth == 1) {
                     pdfReverse += NextEventPdf(vertex.point, ancestor.point);
                 }
-                
+
                 // Compute MIS weight
                 var computer = new ClassicBidirMisComputer(
                     lightPathCache: pathCache,

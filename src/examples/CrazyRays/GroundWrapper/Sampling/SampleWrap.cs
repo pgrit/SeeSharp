@@ -2,13 +2,13 @@
 using System;
 using System.Numerics;
 
-namespace GroundWrapper.GroundMath {
+namespace GroundWrapper.Sampling {
     public static class SampleWrap {
         public static (Vector3, Vector3) ComputeBasisVectors(Vector3 normal) {
             int   id0 = (Math.Abs(normal.X) > Math.Abs(normal.Y)) ?     0 : 1;
             int   id1 = (Math.Abs(normal.X) > Math.Abs(normal.Y)) ?     1 : 0;
             float sig = (Math.Abs(normal.X) > Math.Abs(normal.Y)) ? -1.0f : 1.0f;
-            
+
             ref float GetByIdx(ref Vector3 v, int idx) {
                 if (idx == 0) return ref v.X;
                 else if (idx == 1) return ref v.Y;

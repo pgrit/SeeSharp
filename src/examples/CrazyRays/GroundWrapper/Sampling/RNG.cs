@@ -1,7 +1,7 @@
 using System;
 using System.Numerics;
 
-namespace GroundWrapper {
+namespace GroundWrapper.Sampling {
     /// <summary>
     /// Small and fast random number generator based on MWC64X
     /// http://cas.ee.ic.ac.uk/people/dt10/research/rngs-gpu-mwc64x.html
@@ -54,7 +54,7 @@ namespace GroundWrapper {
 
         /// <summary> Hashes 4 bytes using FNV </summary>
         private static UInt32 FnvHash(UInt32 h, UInt32 d) {
-            h = (h * 16777619) ^ ( d        & 0xFF);
+            h = (h * 16777619) ^ (d        & 0xFF);
             h = (h * 16777619) ^ ((d >>  8) & 0xFF);
             h = (h * 16777619) ^ ((d >> 16) & 0xFF);
             h = (h * 16777619) ^ ((d >> 24) & 0xFF);
@@ -65,8 +65,7 @@ namespace GroundWrapper {
         /// <param name="chainIndex">e.g., a pixel index</param>
         /// <param name="sampleIndex">current sample within the, e.g., pixel</param>
         public static UInt32 HashSeed(UInt32 BaseSeed,
-            UInt32 chainIndex, UInt32 sampleIndex)
-        {
+            UInt32 chainIndex, UInt32 sampleIndex) {
             var h1 = FnvHash(FnvHash(0x811C9DC5, BaseSeed), chainIndex);
             var h2 = FnvHash(FnvHash(0x811C9DC5, h1), sampleIndex);
             return h2;

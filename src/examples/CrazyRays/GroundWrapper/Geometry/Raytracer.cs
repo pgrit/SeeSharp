@@ -55,7 +55,7 @@ namespace GroundWrapper.Geometry {
             // TODO use a proper optimized method here that does not compute the actual closest hit.
             var p = Trace(ray);
 
-            bool occluded = p.mesh != null 
+            bool occluded = p.mesh != null
                 && p.distance < dist - to.errorOffset - from.errorOffset;
 
             return occluded;

@@ -1,14 +1,10 @@
-﻿using Xunit;
-using Integrators;
-using System;
-using GroundWrapper;
-using System.Collections.Generic;
-using GroundWrapper.GroundMath;
+﻿using System.Collections.Generic;
 using System.Numerics;
+using Xunit;
 
 namespace Integrators.Tests {
 
-    public class ClassicBidir_Mis_SingleBounce  {
+    public class ClassicBidir_Mis_SingleBounce {
 
         Helpers.MisDummyPath dummyPath = new Helpers.MisDummyPath(
             lightArea: 2.0f,
@@ -92,7 +88,7 @@ namespace Integrators.Tests {
 
             return computer.BidirConnect(cameraPath, lightVertex,
                 pdfCameraReverse: 1, // light tracer connections are deterministic
-                pdfCameraToLight: dummyPath.cameraVertices[2].pdfFromAncestor, 
+                pdfCameraToLight: dummyPath.cameraVertices[2].pdfFromAncestor,
                 pdfLightReverse: lightReverse,
                 pdfLightToCamera: dummyPath.cameraVertices[2].pdfToAncestor);
         }

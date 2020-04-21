@@ -2,7 +2,7 @@
 using System.Diagnostics;
 using System.Numerics;
 
-namespace GroundWrapper {
+namespace GroundWrapper.Shading.MicrofacetDistributions {
     public class TrowbridgeReitzDistribution : MicrofacetDistribution {
         public float AlphaX;
         public float AlphaY;
@@ -36,11 +36,11 @@ namespace GroundWrapper {
             float absTanTheta = MathF.Abs(ShadingSpace.TanTheta(normal));
             if (float.IsInfinity(absTanTheta)) return 0;
             float alpha = MathF.Sqrt(ShadingSpace.CosPhiSqr(normal) * AlphaX * AlphaX + ShadingSpace.SinPhiSqr(normal) * AlphaY * AlphaY);
-            float alpha2Tan2Theta = (alpha * absTanTheta) * (alpha * absTanTheta);
+            float alpha2Tan2Theta = alpha * absTanTheta * (alpha * absTanTheta);
             return (-1 + MathF.Sqrt(1 + alpha2Tan2Theta)) / 2;
         }
 
-        
+
         public static void TrowbridgeReitzSample11(float cosTheta, float U1, float U2,
                                             out float slope_x, out float slope_y) {
             // special case (normal incidence)
@@ -52,7 +52,7 @@ namespace GroundWrapper {
                 return;
             }
 
-            float sinTheta = MathF.Sqrt(Math.Max((float)0, (float)1 - cosTheta * cosTheta));
+            float sinTheta = MathF.Sqrt(Math.Max(0, 1 - cosTheta * cosTheta));
             float tanTheta = sinTheta / cosTheta;
             float a = 1 / tanTheta;
             float G1 = 2 / (1 + MathF.Sqrt(1 + 1 / (a * a)));
@@ -65,7 +65,7 @@ namespace GroundWrapper {
             float D = MathF.Sqrt(Math.Max(B * B * tmp * tmp - (A * A - B * B) * tmp, 0));
             float slope_x_1 = B * tmp - D;
             float slope_x_2 = B * tmp + D;
-            slope_x = (A < 0 || slope_x_2 > 1 / tanTheta) ? slope_x_1 : slope_x_2;
+            slope_x = A < 0 || slope_x_2 > 1 / tanTheta ? slope_x_1 : slope_x_2;
 
             // sample slope_y
             float S;
@@ -76,7 +76,7 @@ namespace GroundWrapper {
                 S = -1;
                 U2 = 2 * (.5f - U2);
             }
-            float z = (U2 * (U2 * (U2 * 0.27385f - 0.73369f) + 0.46341f)) 
+            float z = U2 * (U2 * (U2 * 0.27385f - 0.73369f) + 0.46341f)
                 / (U2 * (U2 * (U2 * 0.093073f + 0.309420f) - 1.000000f) + 0.597999f);
             slope_y = S * z * MathF.Sqrt(1 + slope_x * slope_x);
 

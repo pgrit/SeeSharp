@@ -1,5 +1,8 @@
 ﻿using GroundWrapper.Cameras;
 using GroundWrapper.Geometry;
+using GroundWrapper.Shading;
+using GroundWrapper.Shading.Emitters;
+using GroundWrapper.Shading.Materials;
 using System;
 using System.IO;
 using System.Numerics;
@@ -23,8 +26,8 @@ namespace GroundWrapper.Tests {
                 }
             ));
 
-            scene.Meshes[^1].Material = new GenericMaterial(new GenericMaterial.Parameters { 
-                baseColor = Image.Constant(new ColorRGB(0, 0, 1)) 
+            scene.Meshes[^1].Material = new GenericMaterial(new GenericMaterial.Parameters {
+                baseColor = Image.Constant(new ColorRGB(0, 0, 1))
             });
 
             scene.Meshes.Add(new Mesh(
@@ -44,7 +47,7 @@ namespace GroundWrapper.Tests {
             });
 
             scene.Camera = new PerspectiveCamera(Matrix4x4.CreateLookAt(new Vector3(0, 0, 0),
-                new Vector3(0,5,0), new Vector3(0, 0, 1)), 90, null);
+                new Vector3(0, 5, 0), new Vector3(0, 0, 1)), 90, null);
             scene.FrameBuffer = new Image(1, 1);
 
             return scene;
@@ -53,7 +56,7 @@ namespace GroundWrapper.Tests {
         [Fact]
         public void TwoQuads_CorrectIntersections() {
             var scene = MakeDummyScene();
-            
+
             scene.Prepare();
             var hit = scene.Raytracer.Trace(scene.Camera.GenerateRay(new Vector2(0.5f, 0.5f)));
 
@@ -64,7 +67,7 @@ namespace GroundWrapper.Tests {
         [Fact]
         public void TwoQuads_EmitterShouldBeFound() {
             var scene = MakeDummyScene();
-            
+
             scene.Emitters.Add(new DiffuseEmitter(scene.Meshes[0], new ColorRGB(1, 1, 1)));
             scene.Prepare();
 

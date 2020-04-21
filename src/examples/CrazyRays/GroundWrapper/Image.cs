@@ -1,3 +1,4 @@
+using GroundWrapper.Shading;
 using System.Runtime.InteropServices;
 using System.Threading;
 
@@ -13,7 +14,7 @@ namespace GroundWrapper {
 
         public Image(int width, int height) {
             if (width < 1 || height < 1)
-                throw new System.ArgumentOutOfRangeException("width / height", 
+                throw new System.ArgumentOutOfRangeException("width / height",
                     "Cannot create an image smaller than 1x1 pixels.");
 
             Width = width;
@@ -27,7 +28,7 @@ namespace GroundWrapper {
             do {
                 initialValue = target;
                 computedValue = initialValue + addend;
-            } while (initialValue != 
+            } while (initialValue !=
                 Interlocked.CompareExchange(ref target, computedValue, initialValue));
             return computedValue;
         }
@@ -66,7 +67,7 @@ namespace GroundWrapper {
 
         public void WriteToFile(string filename) {
             var ext = System.IO.Path.GetExtension(filename);
-            if (ext == "exr")
+            if (ext.ToLower() == ".exr")
                 TinyExr.WriteImageToExr(data, Width, Height, 3, filename);
             else {
                 WriteImageToLDR(this, filename);
@@ -77,7 +78,8 @@ namespace GroundWrapper {
             // Read the image from the file, it is cached in nativ memory
             int width, height;
             int id = TinyExr.CacheExrImage(out width, out height, filename);
-            if (id < 0) throw new System.IO.IOException($"could not load .exr file '{filename}'");
+            if (id < 0)
+                throw new System.IO.IOException($"could not load .exr file '{filename}'");
 
             // Copy to managed memory array and return
             var img = new Image(width, height);
@@ -105,7 +107,7 @@ namespace GroundWrapper {
             public static extern int CacheExrImage(out int width, out int height, string filename);
 
             [DllImport("Ground", CallingConvention = CallingConvention.Cdecl)]
-            public static extern void CopyCachedImage(int id, [Out] ColorRGB[] buffer); 
+            public static extern void CopyCachedImage(int id, [Out] ColorRGB[] buffer);
         }
 
         static void WriteImageToLDR(Image img, string filename) {

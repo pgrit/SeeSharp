@@ -1,6 +1,6 @@
-﻿using Xunit;
-using GroundWrapper.Sampling;
+﻿using GroundWrapper.Sampling;
 using System;
+using Xunit;
 
 namespace GroundWrapper.Tests.Sampling {
     public class PiecewiseConstant_DistributionTest {

@@ -1,12 +1,15 @@
 ﻿using GroundWrapper;
 using GroundWrapper.Geometry;
+using GroundWrapper.Sampling;
+using GroundWrapper.Shading;
+using GroundWrapper.Shading.Emitters;
 
 namespace Integrators.Common {
     public class CachedRandomWalk : RandomWalk {
         PathCache cache;
         public int lastId;
 
-        public CachedRandomWalk(Scene scene, RNG rng, int maxDepth, PathCache cache) 
+        public CachedRandomWalk(Scene scene, RNG rng, int maxDepth, PathCache cache)
             : base(scene, rng, maxDepth) {
             this.cache = cache;
         }

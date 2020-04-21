@@ -1,6 +1,6 @@
 ﻿using System.Numerics;
 
-namespace GroundWrapper {
+namespace GroundWrapper.Shading.MicrofacetDistributions {
     public abstract class MicrofacetDistribution {
         /// <summary>
         /// Computes the distribution of microfacets with the given normal.

@@ -1,7 +1,7 @@
-using System.Numerics;
 using GroundWrapper.Geometry;
+using System.Numerics;
 
-namespace GroundWrapper {
+namespace GroundWrapper.Shading.Emitters {
     public abstract class Emitter {
         public Mesh Mesh;
 

@@ -1,7 +1,7 @@
-﻿using System.Numerics;
-using GroundWrapper.Geometry;
+﻿using GroundWrapper.Geometry;
+using System.Numerics;
 
-namespace GroundWrapper {
+namespace GroundWrapper.Shading.Emitters {
     public struct EmitterSample {
         public SurfacePoint point;
         public Vector3 direction;

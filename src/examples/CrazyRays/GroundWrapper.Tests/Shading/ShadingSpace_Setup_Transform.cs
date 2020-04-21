@@ -1,5 +1,4 @@
-﻿using GroundWrapper;
-using System;
+﻿using GroundWrapper.Shading;
 using System.Numerics;
 using Xunit;
 
@@ -11,8 +10,8 @@ namespace GroundWrapper.Tests.Shading {
             var worldDir = new Vector3(-1, -1, 0);
             var shadeDir = ShadingSpace.WorldToShading(normal, worldDir);
 
-            Assert.Equal( 0.0f, shadeDir.X);
-            Assert.Equal( 0.0f, shadeDir.Y);
+            Assert.Equal(0.0f, shadeDir.X);
+            Assert.Equal(0.0f, shadeDir.Y);
             Assert.Equal(-1.0f, shadeDir.Z, 4);
         }
 

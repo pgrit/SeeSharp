@@ -1,4 +1,6 @@
 ﻿using GroundWrapper.Geometry;
+using GroundWrapper.Shading;
+using GroundWrapper.Shading.Emitters;
 using System;
 using System.Numerics;
 using Xunit;
@@ -36,7 +38,7 @@ namespace GroundWrapper.Tests.Shading {
                 }, new int[] {
                     0, 1, 2,
                     0, 2, 3
-                }, 
+                },
                 shadingNormals: new Vector3[] {
                     new Vector3(0, 1, 0),
                     new Vector3(0, 1, 0),
@@ -195,7 +197,7 @@ namespace GroundWrapper.Tests.Shading {
             float expectedPdf = 0.25f * c / MathF.PI;
             Assert.Equal(expectedPdf, sample.pdf);
 
-            var expectedWeight = 
+            var expectedWeight =
                 emitter.EmittedRadiance(sample.point, sample.direction) * c
                 / expectedPdf;
             Assert.Equal(expectedWeight.r, sample.weight.r);

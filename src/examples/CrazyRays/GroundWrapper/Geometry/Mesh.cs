@@ -1,9 +1,9 @@
-﻿using GroundWrapper.Geometry;
-using GroundWrapper.GroundMath;
+﻿using GroundWrapper.Sampling;
+using GroundWrapper.Shading.Materials;
 using System.Diagnostics;
 using System.Numerics;
 
-namespace GroundWrapper {
+namespace GroundWrapper.Geometry {
 
     public class Mesh {
         public Material Material;
@@ -117,7 +117,7 @@ namespace GroundWrapper {
             var v3 = Vertices[Indices[faceIdx * 3 + 2]];
 
             return barycentric.X * v2
-                +  barycentric.Y * v3 
+                +  barycentric.Y * v3
                 + (1 - barycentric.X - barycentric.Y) * v1;
         }
 

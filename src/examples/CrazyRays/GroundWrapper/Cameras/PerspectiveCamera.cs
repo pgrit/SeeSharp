@@ -56,7 +56,7 @@ namespace GroundWrapper.Cameras {
 
             var view = Vector4.Transform(local, cameraToView);
             var film = new Vector3((view.X / view.W + 1) / 2 * Width, (view.Y / view.W + 1) / 2 * Height, local.Length());
-            
+
             // Check that the point is within the frustum
             if (film.X < 0 || film.X > Width || film.Y < 0 || film.Y > Height)
                 return null;

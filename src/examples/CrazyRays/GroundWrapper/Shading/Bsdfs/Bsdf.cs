@@ -1,6 +1,6 @@
 ﻿using System.Numerics;
 
-namespace GroundWrapper {
+namespace GroundWrapper.Shading.Bsdfs {
     public interface Bsdf {
         ColorRGB EvaluateWithCosine(Vector3 outDir, Vector3 inDir, bool isOnLightSubpath);
         ColorRGB EvaluateBsdfOnly(Vector3 outDir, Vector3 inDir, bool isOnLightSubpath);

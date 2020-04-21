@@ -1,7 +1,6 @@
-﻿using Xunit;
+﻿using System;
 using System.Numerics;
-using GroundWrapper;
-using System;
+using Xunit;
 
 namespace GroundWrapper.Tests.Camera {
     public class Perspective_Rays {
@@ -32,9 +31,9 @@ namespace GroundWrapper.Tests.Camera {
             var len = MathF.Sqrt(c * c * 3);
             var expectedXYZ = c / len;
 
-            Assert.Equal( expectedXYZ, ray.direction.X, 3);
+            Assert.Equal(expectedXYZ, ray.direction.X, 3);
             Assert.Equal(-expectedXYZ, ray.direction.Y, 3);
-            Assert.Equal( expectedXYZ, ray.direction.Z, 3);
+            Assert.Equal(expectedXYZ, ray.direction.Z, 3);
         }
 
         [Fact]

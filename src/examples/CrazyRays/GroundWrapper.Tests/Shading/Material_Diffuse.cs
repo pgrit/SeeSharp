@@ -1,8 +1,9 @@
 using GroundWrapper.Geometry;
-using System.Numerics;
+using GroundWrapper.Shading;
+using GroundWrapper.Shading.Materials;
 using System;
+using System.Numerics;
 using Xunit;
-using GroundWrapper.GroundMath;
 
 namespace GroundWrapper.Tests {
     public class Material_Diffuse {
@@ -106,7 +107,8 @@ namespace GroundWrapper.Tests {
             SurfacePoint hit = new SurfacePoint {
                 barycentricCoords = new Vector2(0.5f, 0.2f),
                 normal = new Vector3(0, 0, 1),
-                mesh = mesh, primId = 0,
+                mesh = mesh,
+                primId = 0,
                 position = new Vector3(0, 0, 0),
             };
 

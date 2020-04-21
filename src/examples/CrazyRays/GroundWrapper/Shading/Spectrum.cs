@@ -1,4 +1,6 @@
-﻿namespace GroundWrapper {
+﻿using System;
+
+namespace GroundWrapper.Shading {
     public struct ColorRGB {
         public float r, g, b;
 
@@ -14,8 +16,20 @@
         public static ColorRGB operator /(ColorRGB a, float b)
             => new ColorRGB { r = a.r / b, g = a.g / b, b = a.b / b };
 
+        public static ColorRGB operator /(ColorRGB a, ColorRGB b)
+            => new ColorRGB { r = a.r / b.r, g = a.g / b.g, b = a.b / b.b };
+
         public static ColorRGB operator +(ColorRGB a, ColorRGB b)
             => new ColorRGB { r = a.r + b.r, g = a.g + b.g, b = a.b + b.b };
+
+        public static ColorRGB operator -(ColorRGB a, ColorRGB b)
+            => a + -1 * b;
+
+        public static ColorRGB operator +(ColorRGB a, float b)
+            => new ColorRGB { r = a.r + b, g = a.g + b, b = a.b + b };
+
+        public static ColorRGB operator -(ColorRGB a, float b)
+            => a + -b;
 
         public static ColorRGB Black =
             new ColorRGB { r = 0.0f, g = 0.0f, b = 0.0f };
@@ -29,10 +43,19 @@
             this.b = b;
         }
 
+        public ColorRGB(float c) : this() {
+            r = c;
+            g = c;
+            b = c;
+        }
+
         public static bool operator ==(ColorRGB a, ColorRGB b)
             => a.r == b.r && a.g == b.g && a.b == b.b;
 
         public static bool operator !=(ColorRGB a, ColorRGB b)
             => !(a == b);
+
+        public static ColorRGB Sqrt(ColorRGB v)
+            => new ColorRGB(MathF.Sqrt(v.r), MathF.Sqrt(v.g), MathF.Sqrt(v.b));
     }
 }

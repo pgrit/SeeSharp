@@ -1,8 +1,9 @@
-﻿using System;
+﻿using GroundWrapper.Geometry;
+using GroundWrapper.Sampling;
+using System;
 using System.Numerics;
-using GroundWrapper.Geometry;
 
-namespace GroundWrapper {
+namespace GroundWrapper.Shading.Emitters {
     public class DiffuseEmitter : Emitter {
         public DiffuseEmitter(Mesh mesh, ColorRGB radiance) {
             Mesh = mesh;
@@ -27,11 +28,11 @@ namespace GroundWrapper {
             var posSample = SampleArea(primaryPos);
 
             // Transform primary to cosine hemisphere (z is up)
-            var local = GroundMath.SampleWrap.ToCosHemisphere(primaryDir);
+            var local = SampleWrap.ToCosHemisphere(primaryDir);
 
             // Transform to world space direction
             var normal = posSample.point.ShadingNormal;
-            var (tangent, binormal) = GroundMath.SampleWrap.ComputeBasisVectors(normal);
+            var (tangent, binormal) = SampleWrap.ComputeBasisVectors(normal);
             Vector3 dir = local.direction.Z * normal
                         + local.direction.X * tangent
                         + local.direction.Y * binormal;

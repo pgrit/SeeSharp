@@ -1,8 +1,6 @@
-﻿using System;
-using GroundWrapper;
-using GroundWrapper.Geometry;
-using System.Numerics;
+﻿using GroundWrapper;
 using Integrators;
+using System;
 
 namespace Renderer {
 

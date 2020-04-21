@@ -1,10 +1,7 @@
-﻿using System;
-using GroundWrapper;
-using GroundWrapper.GroundMath;
+﻿using GroundWrapper.Geometry;
 using Integrators.Common;
-using Integrators;
+using System;
 using System.Numerics;
-using GroundWrapper.Geometry;
 
 namespace Integrators.Tests.Helpers {
     public struct MisDummyPath {

@@ -1,6 +1,7 @@
-﻿using Xunit;
+﻿using GroundWrapper.Geometry;
 using System;
 using System.Numerics;
+using Xunit;
 
 namespace GroundWrapper.Tests.Geometry {
     public class Mesh_Sampling {
@@ -115,7 +116,7 @@ namespace GroundWrapper.Tests.Geometry {
 
             // With some small margin of error, all cells should now have exactly one value
             int numFilled = 0;
-            foreach(int count in grid) {
+            foreach (int count in grid) {
                 if (count > 0)
                     numFilled++;
             }

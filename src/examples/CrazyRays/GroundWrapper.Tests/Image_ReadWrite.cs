@@ -1,4 +1,5 @@
-﻿using Xunit;
+﻿using GroundWrapper.Shading;
+using Xunit;
 
 namespace GroundWrapper.Tests {
     public class Image_ReadWrite {

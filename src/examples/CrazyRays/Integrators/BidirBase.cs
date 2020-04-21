@@ -1,9 +1,11 @@
 ﻿using GroundWrapper;
-using System.Threading.Tasks;
-using Integrators.Common;
-using GroundWrapper.GroundMath;
 using GroundWrapper.Geometry;
+using GroundWrapper.Sampling;
+using GroundWrapper.Shading;
+using GroundWrapper.Shading.Emitters;
+using Integrators.Common;
 using System.Numerics;
+using System.Threading.Tasks;
 
 namespace Integrators {
     public abstract class BidirBase : Integrator {
@@ -116,7 +118,7 @@ namespace Integrators {
             // Compute the corresponding solid angle pdf (required for MIS)
             float pdfFromCamera = scene.Camera.SolidAngleToPixelJacobian(primaryRay.direction); // TODO this should be returned by Camera.Sample() which should replace GenerateRay() to follow conventions similar to the BSDF system
             var initialWeight = ColorRGB.White; // TODO this should be computed by the camera and returned by SampleCamera()
-            var cameraPoint = new SurfacePoint { 
+            var cameraPoint = new SurfacePoint {
                 position = scene.Camera.Position,
                 normal = scene.Camera.Direction
             };

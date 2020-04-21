@@ -1,6 +1,8 @@
 ﻿using GroundWrapper;
-using GroundWrapper.GroundMath;
 using GroundWrapper.Geometry;
+using GroundWrapper.Sampling;
+using GroundWrapper.Shading;
+using GroundWrapper.Shading.Emitters;
 using System.Numerics;
 
 namespace Integrators.Common {
@@ -11,7 +13,7 @@ namespace Integrators.Common {
             this.maxDepth = maxDepth;
         }
 
-        public virtual ColorRGB StartFromCamera(Vector2 filmPosition, SurfacePoint cameraPoint, 
+        public virtual ColorRGB StartFromCamera(Vector2 filmPosition, SurfacePoint cameraPoint,
                                                 float pdfFromCamera, Ray primaryRay, ColorRGB initialWeight) {
             isOnLightSubpath = false;
             return ContinueWalk(primaryRay, cameraPoint, pdfFromCamera, initialWeight, 1);
@@ -32,7 +34,7 @@ namespace Integrators.Common {
             return ColorRGB.Black;
         }
 
-        protected virtual ColorRGB OnHit(Ray ray, SurfacePoint hit, float pdfFromAncestor, float pdfToAncestor, 
+        protected virtual ColorRGB OnHit(Ray ray, SurfacePoint hit, float pdfFromAncestor, float pdfToAncestor,
                                          ColorRGB throughput, int depth, float toAncestorJacobian) {
             return ColorRGB.Black;
         }
@@ -41,7 +43,7 @@ namespace Integrators.Common {
             // Sample the next direction from the BSDF
             var bsdfSample = hit.Bsdf.Sample(-ray.direction, isOnLightSubpath, rng.NextFloat2D());
             return (
-                bsdfSample.pdf, 
+                bsdfSample.pdf,
                 bsdfSample.pdfReverse,
                 bsdfSample.weight,
                 bsdfSample.direction
@@ -66,7 +68,7 @@ namespace Integrators.Common {
                 // Compute the surface area pdf of sampling the previous path segment backwards
                 float pdfToAncestor = pdfReverse * SampleWrap.SurfaceAreaToSolidAngle(hit, previousPoint);
 
-                estimate += OnHit(ray, hit, pdfFromAncestor, pdfToAncestor, throughput, depth, 
+                estimate += OnHit(ray, hit, pdfFromAncestor, pdfToAncestor, throughput, depth,
                     SampleWrap.SurfaceAreaToSolidAngle(hit, previousPoint));
 
                 // Terminate if the maximum depth has been reached
@@ -81,7 +83,7 @@ namespace Integrators.Common {
                 pdfDirection = pdfNext;
                 previousPoint = hit;
             }
-           
+
             return estimate;
         }
 

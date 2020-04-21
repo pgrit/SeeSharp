@@ -1,10 +1,6 @@
-﻿using Xunit;
-using Integrators;
-using System;
-using System.Collections.Generic;
-using GroundWrapper;
-using GroundWrapper.GroundMath;
+﻿using System.Collections.Generic;
 using System.Numerics;
+using Xunit;
 
 namespace Integrators.Tests {
     public class ClassicBidir_Mis_DirectIllum {

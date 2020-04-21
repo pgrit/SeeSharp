@@ -1,7 +1,7 @@
-﻿using Xunit;
-using GroundWrapper.GroundMath;
+﻿using GroundWrapper.Geometry;
 using System;
 using System.Numerics;
+using Xunit;
 
 namespace GroundWrapper.Tests.Geometry {
     public class Mesh_Attributes {

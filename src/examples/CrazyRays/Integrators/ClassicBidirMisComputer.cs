@@ -1,6 +1,6 @@
-﻿using System;
+﻿using Integrators.Common;
+using System;
 using System.Collections.Generic;
-using Integrators.Common;
 
 namespace Integrators {
     public struct PathPdfPair {
@@ -120,7 +120,7 @@ namespace Integrators {
 
             // All bidirectional connections
             float nextReciprocal = 1 / pdfNextEvent;
-            for (int i = numPdfs - 2; i > 0; --i) { 
+            for (int i = numPdfs - 2; i > 0; --i) {
                 nextReciprocal *= pdfsLightToCamera[i] / pdfsCameraToLight[i];
                 sumReciprocals += nextReciprocal;
             }

@@ -1,6 +1,6 @@
 ﻿using System.Numerics;
 
-namespace GroundWrapper {
+namespace GroundWrapper.Shading.Bsdfs {
     public struct BsdfSample {
         public Vector3 direction;
         public float pdf;

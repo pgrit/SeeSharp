@@ -1,12 +1,18 @@
 ﻿using GroundWrapper.Geometry;
+using GroundWrapper.Shading.Bsdfs;
 
-namespace GroundWrapper {
+namespace GroundWrapper.Shading.Materials {
     /// <summary>
     /// Basic uber-shader surface material that should suffice for most integrator experiments.
     /// </summary>
     public class GenericMaterial : Material {
-        public struct Parameters {
-            public Image baseColor;
+        public class Parameters { // TODO support textured roughness etc
+            public Image baseColor = Image.Constant(ColorRGB.White);
+            public float roughness = 0.5f;
+            public float metallic = 0;
+            public Image specularTint = Image.Constant(ColorRGB.Black);
+            public float anisotropic = 0;
+            public float specularTransmittance = 0;
         }
 
         public GenericMaterial(Parameters parameters) => this.parameters = parameters;

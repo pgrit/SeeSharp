@@ -1,8 +1,9 @@
-﻿using System.Numerics;
+﻿using GroundWrapper.Geometry;
+using GroundWrapper.Sampling;
 using System;
-using GroundWrapper.Geometry;
+using System.Numerics;
 
-namespace GroundWrapper {
+namespace GroundWrapper.Shading.Bsdfs {
     public struct DiffuseBsdf : Bsdf {
         public ColorRGB reflectance;
         public SurfacePoint point;
@@ -24,7 +25,7 @@ namespace GroundWrapper {
         ColorRGB Bsdf.EvaluateBsdfOnly(Vector3 outDir, Vector3 inDir, bool isOnLightSubpath) {
             // Check that both directions are on the same hemisphere
             var normal = point.ShadingNormal;
-            if (Vector3.Dot(outDir, normal) * Vector3.Dot(inDir, normal) < 0) 
+            if (Vector3.Dot(outDir, normal) * Vector3.Dot(inDir, normal) < 0)
                 return ColorRGB.Black;
 
             return reflectance / MathF.PI;
@@ -39,12 +40,12 @@ namespace GroundWrapper {
             if (Vector3.Dot(outDir, normal) < 0) normal *= -1.0f;
 
             // Transform primary to cosine hemisphere (z is up)
-            var local = GroundMath.SampleWrap.ToCosHemisphere(primarySample);
+            var local = SampleWrap.ToCosHemisphere(primarySample);
 
             // Transform to world space direction
-            var (tangent, binormal) = GroundMath.SampleWrap.ComputeBasisVectors(normal);
-            Vector3 dir = local.direction.Z * normal 
-                        + local.direction.X * tangent 
+            var (tangent, binormal) = SampleWrap.ComputeBasisVectors(normal);
+            Vector3 dir = local.direction.Z * normal
+                        + local.direction.X * tangent
                         + local.direction.Y * binormal;
 
             // Compute weights and pdfs

@@ -1,8 +1,10 @@
-using System;
 using GroundWrapper;
 using GroundWrapper.Geometry;
+using GroundWrapper.Sampling;
+using GroundWrapper.Shading;
+using GroundWrapper.Shading.Emitters;
+using System;
 using System.Numerics;
-using GroundWrapper.GroundMath;
 
 namespace Integrators {
 
@@ -72,7 +74,7 @@ namespace Integrators {
 
                 // Compute the final sample weight, account for the change of variables from light source area
                 // to the hemisphere about the shading point.
-                
+
                 var value = misWeight * emission * bsdfCos * (jacobian / lightSample.pdf);
                 return value;
             }
@@ -85,15 +87,14 @@ namespace Integrators {
 
             var primary = rng.NextFloat2D();
             var bsdfSample = bsdf.Sample(-ray.direction, false, primary);
-            
+
             var bsdfRay = scene.Raytracer.SpawnRay(hit, bsdfSample.direction);
 
             return (bsdfRay, bsdfSample.pdf, bsdfSample.weight);
         }
 
         private ColorRGB EstimateIncidentRadiance(Scene scene, Ray ray, RNG rng, uint depth = 1,
-            SurfacePoint? previousHit = null, float previousPdf = 0.0f)
-        {
+            SurfacePoint? previousHit = null, float previousPdf = 0.0f) {
             ColorRGB value = ColorRGB.Black;
 
             // Did we reach the maximum depth?

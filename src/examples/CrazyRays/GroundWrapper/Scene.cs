@@ -164,9 +164,33 @@ namespace GroundWrapper {
                 var materials = root.GetProperty("materials");
                 foreach (var m in materials.EnumerateArray()) {
                     string name = m.GetProperty("name").GetString();
+
+                    float ReadOptionalFloat(string name, float defaultValue) {
+                        JsonElement elem;
+                        if (m.TryGetProperty(name, out elem))
+                            return elem.GetSingle();
+                        return defaultValue;
+                    }
+
+                    bool ReadOptionalBool(string name, bool defaultValue) {
+                        JsonElement elem;
+                        if (m.TryGetProperty(name, out elem))
+                            return elem.GetBoolean();
+                        return defaultValue;
+                    }
+
                     var parameters = new GenericMaterial.Parameters {
-                        baseColor = ReadColorOrTexture(m.GetProperty("baseColor"))
+                        baseColor = ReadColorOrTexture(m.GetProperty("baseColor")),
+                        roughness = ReadOptionalFloat("roughness", 0.5f),
+                        anisotropic = ReadOptionalFloat("anisotropic", 0.0f),
+                        diffuseTransmittance = ReadOptionalFloat("diffuseTransmittance", 1.0f),
+                        indexOfRefraction = ReadOptionalFloat("IOR", 1.0f),
+                        metallic = ReadOptionalFloat("metallic", 0.0f),
+                        specularTintStrength = ReadOptionalFloat("specularTint", 0.0f),
+                        specularTransmittance = ReadOptionalFloat("specularTransmittance", 0.0f),
+                        thin = ReadOptionalBool("thin", false)
                     };
+
                     namedMaterials[name] = new GenericMaterial(parameters);
                 }
 

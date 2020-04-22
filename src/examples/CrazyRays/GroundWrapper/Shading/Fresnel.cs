@@ -44,7 +44,7 @@ namespace GroundWrapper.Shading {
 
         ColorRGB Fresnel.Evaluate(float cosine) => new ColorRGB(Evaluate(cosine, EtaI, EtaT));
 
-        float Evaluate(float cosThetaI, float etaI, float etaT) {
+        public static float Evaluate(float cosThetaI, float etaI, float etaT) {
             cosThetaI = Math.Clamp(cosThetaI, -1, 1);
             // Potentially swap indices of refraction
             bool entering = cosThetaI > 0;
@@ -65,6 +65,50 @@ namespace GroundWrapper.Shading {
             float Rperp = (etaI * cosThetaI - etaT * cosThetaT) /
                   (etaI * cosThetaI + etaT * cosThetaT);
             return (Rparl * Rparl + Rperp * Rperp) / 2;
+        }
+    }
+
+    public class FresnelSchlick {
+        // https://seblagarde.wordpress.com/2013/04/29/memo-on-fresnel-equations/
+        //
+        // The Schlick Fresnel approximation is:
+        //
+        // R = R(0) + (1 - R(0)) (1 - cos theta)^5,
+        //
+        // where R(0) is the reflectance at normal indicence.
+        public static float SchlickWeight(float cosTheta) {
+            float m = Math.Clamp(1 - cosTheta, 0, 1);
+            return (m * m) * (m * m) * m;
+        }
+
+        public static float Evaluate(float R0, float cosTheta) {
+            var w = SchlickWeight(cosTheta);
+            return (1 - w) * R0 + w;
+        }
+
+        public static ColorRGB Evaluate(ColorRGB R0, float cosTheta) {
+            return ColorRGB.Lerp(SchlickWeight(cosTheta), R0, ColorRGB.White);
+        }
+
+        // For a dielectric, R(0) = (eta - 1)^2 / (eta + 1)^2, assuming we're
+        // coming from air..
+        public static float SchlickR0FromEta(float eta) {
+            var ratio = (eta - 1) / (eta + 1);
+            return ratio * ratio; 
+        }
+    }
+
+    // Specialized Fresnel function used for the specular component, based on
+    // a mixture between dielectric and the Schlick Fresnel approximation.
+    public class DisneyFresnel : Fresnel {
+        public ColorRGB ReflectanceAtNormal;
+        public float Metallic;
+        public float IndexOfRefraction;
+
+        ColorRGB Fresnel.Evaluate(float cosI) {
+            var diel = new ColorRGB(FresnelDielectric.Evaluate(cosI, 1, IndexOfRefraction));
+            var schlick = FresnelSchlick.Evaluate(ReflectanceAtNormal, cosI);
+            return ColorRGB.Lerp(Metallic, diel, schlick);
         }
     }
 }

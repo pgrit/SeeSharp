@@ -1,4 +1,5 @@
 using GroundWrapper.Shading;
+using System.Drawing;
 using System.Runtime.InteropServices;
 using System.Threading;
 
@@ -75,19 +76,12 @@ namespace GroundWrapper {
         }
 
         public static Image LoadFromFile(string filename) {
-            // Read the image from the file, it is cached in nativ memory
-            int width, height;
-            int id = TinyExr.CacheExrImage(out width, out height, filename);
-            if (id < 0)
-                throw new System.IO.IOException($"could not load .exr file '{filename}'");
-
-            // Copy to managed memory array and return
-            var img = new Image(width, height);
-            TinyExr.CopyCachedImage(id, img.data);
-            return img;
-
-            // TODO performance could probably be improved by using the memory allocated by the managed code, instead of copying.
-            //      However, the tinyexr library uses a different structure, so there is a benefit to copying as well.
+            var ext = System.IO.Path.GetExtension(filename);
+            if (ext.ToLower() == ".exr")
+                return LoadImageFromExr(filename);
+            else {
+                return LoadImageFromLDR(filename);
+            }
         }
 
         public static Image Constant(ColorRGB color) {
@@ -113,17 +107,46 @@ namespace GroundWrapper {
         static void WriteImageToLDR(Image img, string filename) {
             int width = img.Width;
             int height = img.Height;
-            using (System.Drawing.Bitmap b = new System.Drawing.Bitmap(width, height)) {
-                for (int x = 0; x < width; ++x) for (int y = 0; y < height; ++y) {
+            using (var b = new Bitmap(width, height)) {
+                for (int x = 0; x < width; ++x) {
+                    for (int y = 0; y < height; ++y) {
                         var px = img[x,y];
                         int ToInt(float chan) {
                             chan = System.MathF.Pow(chan, 1/2.2f);
                             return System.Math.Clamp((int)(chan * 255), 0, 255);
                         }
-                        b.SetPixel(x, y, System.Drawing.Color.FromArgb(ToInt(px.r), ToInt(px.g), ToInt(px.b)));
+                        b.SetPixel(x, y, Color.FromArgb(ToInt(px.r), ToInt(px.g), ToInt(px.b)));
                     }
+                }
                 b.Save(filename);
             }
+        }
+
+        static Image LoadImageFromLDR(string filename) {
+            Image image;
+            using (var b = (Bitmap)System.Drawing.Image.FromFile(filename)) {
+                image = new Image(b.Width, b.Height);
+                for (int x = 0; x < b.Width; ++x) {
+                    for (int y = 0; y < b.Height; ++y) {
+                        var clr = b.GetPixel(x, y);
+                        image[x, y] = new ColorRGB(clr.R, clr.G, clr.B);
+                    }
+                }
+            }
+            return image;
+        }
+
+        static Image LoadImageFromExr(string filename) {
+            // Read the image from the file, it is cached in nativ memory
+            int width, height;
+            int id = TinyExr.CacheExrImage(out width, out height, filename);
+            if (id < 0)
+                throw new System.IO.IOException($"could not load .exr file '{filename}'");
+
+            // Copy to managed memory array and return
+            var img = new Image(width, height);
+            TinyExr.CopyCachedImage(id, img.data);
+            return img;
         }
     }
 }

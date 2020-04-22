@@ -105,7 +105,13 @@ namespace GroundWrapper.Shading {
             return wt;
         }
 
-        public static bool SameHemisphere(Vector3 direction, Vector3 directionp)
-            => direction.Z * directionp.Z > 0;
+        /// <summary>
+        /// Tests if the two directions are in the same hemisphere w.r.t the shading normal.
+        /// </summary>
+        /// <param name="dirA"></param>
+        /// <param name="dirB"></param>
+        /// <returns>True if the sign of the cosine to the normal is the same for both.</returns>
+        public static bool SameHemisphere(Vector3 dirA, Vector3 dirB)
+            => dirA.Z * dirB.Z > 0;
     }
 }

@@ -21,6 +21,10 @@ namespace GroundWrapper.Shading.MicrofacetDistributions {
             return 1 / (1 + MaskingRatio(normal));
         }
 
+        public float MaskingShadowing(Vector3 outDir, Vector3 inDir) {
+            return 1 / (1 + MaskingRatio(outDir) + MaskingRatio(inDir));
+        }
+
         /// <summary>
         /// Computes the ratio of self-masked area to visible area. Used by <see cref="MaskingShadowing(Vector3)"/>.
         /// </summary>

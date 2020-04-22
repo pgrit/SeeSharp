@@ -43,7 +43,7 @@ namespace GroundWrapper.Shading {
             this.b = b;
         }
 
-        public ColorRGB(float c) : this() {
+        public ColorRGB(float c) {
             r = c;
             g = c;
             b = c;
@@ -57,5 +57,10 @@ namespace GroundWrapper.Shading {
 
         public static ColorRGB Sqrt(ColorRGB v)
             => new ColorRGB(MathF.Sqrt(v.r), MathF.Sqrt(v.g), MathF.Sqrt(v.b));
+
+        public static ColorRGB Lerp(float w, ColorRGB from, ColorRGB to)
+            => (1 - w) * from + w * to;
+
+        public float Luminance => 0.212671f * r + 0.715160f * g + 0.072169f * b;
     }
 }

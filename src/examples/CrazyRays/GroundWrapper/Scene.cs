@@ -199,65 +199,76 @@ namespace GroundWrapper {
                 var meshes = root.GetProperty("objects");
                 foreach (var m in meshes.EnumerateArray()) {
                     string name = m.GetProperty("name").GetString();
-                    string materialName = m.GetProperty("material").GetString();
-                    var material = namedMaterials[materialName];
 
                     string type = m.GetProperty("type").GetString();
-                    if (type != "trimesh") continue; // TODO support "obj" and "ply"
+                    if (type == "trimesh") {
+                        string materialName = m.GetProperty("material").GetString();
+                        var material = namedMaterials[materialName];
 
-                    Vector3[] ReadVec3Array(JsonElement json) {
-                        var result = new Vector3[json.GetArrayLength() / 3];
-                        for (int idx = 0; idx < json.GetArrayLength(); idx += 3) {
-                            result[idx / 3].X = json[idx + 0].GetSingle();
-                            result[idx / 3].Y = json[idx + 1].GetSingle();
-                            result[idx / 3].Z = json[idx + 2].GetSingle();
+                        Vector3[] ReadVec3Array(JsonElement json) {
+                            var result = new Vector3[json.GetArrayLength() / 3];
+                            for (int idx = 0; idx < json.GetArrayLength(); idx += 3) {
+                                result[idx / 3].X = json[idx + 0].GetSingle();
+                                result[idx / 3].Y = json[idx + 1].GetSingle();
+                                result[idx / 3].Z = json[idx + 2].GetSingle();
+                            }
+                            return result;
                         }
-                        return result;
-                    }
 
-                    Vector2[] ReadVec2Array(JsonElement json) {
-                        var result = new Vector2[json.GetArrayLength() / 2];
-                        for (int idx = 0; idx < json.GetArrayLength(); idx += 2) {
-                            result[idx / 2].X = json[idx + 0].GetSingle();
-                            result[idx / 2].Y = json[idx + 1].GetSingle();
+                        Vector2[] ReadVec2Array(JsonElement json) {
+                            var result = new Vector2[json.GetArrayLength() / 2];
+                            for (int idx = 0; idx < json.GetArrayLength(); idx += 2) {
+                                result[idx / 2].X = json[idx + 0].GetSingle();
+                                result[idx / 2].Y = json[idx + 1].GetSingle();
+                            }
+                            return result;
                         }
-                        return result;
+
+                        int[] ReadIntArray(JsonElement json) {
+                            var result = new int[json.GetArrayLength()];
+                            int idx = 0;
+                            foreach (var v in json.EnumerateArray())
+                                result[idx++] = v.GetInt32();
+                            return result;
+                        }
+
+                        Vector3[] vertices = ReadVec3Array(m.GetProperty("vertices"));
+                        int[] indices = ReadIntArray(m.GetProperty("indices"));
+
+                        JsonElement normalsJson;
+                        Vector3[] normals = null;
+                        if (m.TryGetProperty("normals", out normalsJson))
+                            normals = ReadVec3Array(m.GetProperty("normals"));
+
+                        JsonElement uvJson;
+                        Vector2[] uvs = null;
+                        if (m.TryGetProperty("uv", out uvJson))
+                            uvs = ReadVec2Array(m.GetProperty("uv"));
+
+                        var mesh = new Mesh(vertices, indices, normals, uvs);
+                        mesh.Material = material;
+
+                        Emitter emitter;
+                        JsonElement emissionJson;
+                        if (m.TryGetProperty("emission", out emissionJson)) { // The object is an emitter
+                            // TODO update schema to allow different types of emitters here
+                            var emission = ReadColorRGB(emissionJson);
+                            emitter = new DiffuseEmitter(mesh, emission);
+                            resultScene.Emitters.Add(emitter);
+                        }
+                        namedMeshes[name] = mesh;
+                        resultScene.Meshes.Add(mesh);
+                    } else if (type == "obj") {
+                        // The path is relative to this .json, we need to make it absolute / relative to the CWD
+                        string relpath = m.GetProperty("relativePath").GetString();
+                        string dir = Path.GetDirectoryName(path);
+                        string filename = Path.Join(dir, relpath);
+
+                        // Load the mesh and add it to the scene. We pass all materials defined in the .json along
+                        // they will replace any equally named materials from the .mtl file.
+                        var objMesh = ObjMesh.FromFile(filename);
+                        ObjConverter.AddToScene(objMesh, resultScene, namedMaterials);
                     }
-
-                    int[] ReadIntArray(JsonElement json) {
-                        var result = new int[json.GetArrayLength()];
-                        int idx = 0;
-                        foreach (var v in json.EnumerateArray())
-                            result[idx++] = v.GetInt32();
-                        return result;
-                    }
-
-                    Vector3[] vertices = ReadVec3Array(m.GetProperty("vertices"));
-                    int[] indices = ReadIntArray(m.GetProperty("indices"));
-
-                    JsonElement normalsJson;
-                    Vector3[] normals = null;
-                    if (m.TryGetProperty("normals", out normalsJson))
-                        normals = ReadVec3Array(m.GetProperty("normals"));
-
-                    JsonElement uvJson;
-                    Vector2[] uvs = null;
-                    if (m.TryGetProperty("uv", out uvJson))
-                        uvs = ReadVec2Array(m.GetProperty("uv"));
-
-                    var mesh = new Mesh(vertices, indices, normals, uvs);
-                    mesh.Material = material;
-
-                    Emitter emitter;
-                    JsonElement emissionJson;
-                    if (m.TryGetProperty("emission", out emissionJson)) { // The object is an emitter
-                        // TODO update schema to allow different types of emitters here
-                        var emission = ReadColorRGB(emissionJson);
-                        emitter = new DiffuseEmitter(mesh, emission);
-                        resultScene.Emitters.Add(emitter);
-                    }
-                    namedMeshes[name] = mesh;
-                    resultScene.Meshes.Add(mesh);
                 }
             }
 

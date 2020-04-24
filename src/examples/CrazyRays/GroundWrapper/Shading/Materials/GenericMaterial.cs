@@ -27,7 +27,7 @@ namespace GroundWrapper.Shading.Materials {
             var tex = hit.TextureCoordinates;
 
             // Evaluate textures // TODO make those actual textures
-            var baseColor = parameters.baseColor[tex.X, tex.Y];
+            var baseColor = parameters.baseColor[tex.X * parameters.baseColor.Width, tex.Y * parameters.baseColor.Height];
             float roughness = parameters.roughness;
             float anisotropic = parameters.anisotropic;
             float specularTintStrength = parameters.specularTintStrength;

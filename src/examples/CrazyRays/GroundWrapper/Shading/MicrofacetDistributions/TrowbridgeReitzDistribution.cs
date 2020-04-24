@@ -42,7 +42,7 @@ namespace GroundWrapper.Shading.MicrofacetDistributions {
 
 
         public static void TrowbridgeReitzSample11(float cosTheta, float U1, float U2,
-                                            out float slope_x, out float slope_y) {
+                                                   out float slope_x, out float slope_y) {
             // special case (normal incidence)
             if (cosTheta > .9999) {
                 float r = MathF.Sqrt(U1 / (1 - U1));
@@ -85,7 +85,7 @@ namespace GroundWrapper.Shading.MicrofacetDistributions {
         }
 
         static Vector3 TrowbridgeReitzSample(Vector3 wi, float alpha_x,
-                                      float alpha_y, float U1, float U2) {
+                                             float alpha_y, float U1, float U2) {
             // 1. stretch wi
             Vector3 wiStretched = Vector3.Normalize(new Vector3(alpha_x * wi.X, alpha_y * wi.Y, wi.Z));
 

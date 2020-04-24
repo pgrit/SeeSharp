@@ -68,7 +68,7 @@ namespace GroundWrapper.Geometry {
                     // and ignore everything else.
                     materialParameters = new GenericMaterial.Parameters {
                         baseColor = baseColor,
-                        roughness = 1 / objMaterial.specularIndex,
+                        roughness = objMaterial.specularIndex == 0 ? 1 : 1 / objMaterial.specularIndex,
                         metallic = 0.5f
                     };
                     break;
@@ -144,8 +144,11 @@ namespace GroundWrapper.Geometry {
                                 if (has_normals)
                                     localNormals.Add(mesh.file.normals[oldIndex.n]);
 
-                                if (has_texcoords)
-                                    localTexcoords.Add(mesh.file.texcoords[oldIndex.t]);
+                                if (has_texcoords) {
+                                    var uv = mesh.file.texcoords[oldIndex.t];
+                                    uv.Y = 1 - uv.Y;
+                                    localTexcoords.Add(uv);
+                                }
 
                                 newIndex = localVertices.Count - 1;
                                 objToLocal[oldIndex] = newIndex;

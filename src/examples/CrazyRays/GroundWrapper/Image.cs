@@ -1,4 +1,5 @@
 using GroundWrapper.Shading;
+using System;
 using System.Drawing;
 using System.Runtime.InteropServices;
 using System.Threading;
@@ -129,7 +130,14 @@ namespace GroundWrapper {
                 for (int x = 0; x < b.Width; ++x) {
                     for (int y = 0; y < b.Height; ++y) {
                         var clr = b.GetPixel(x, y);
-                        image[x, y] = new ColorRGB(clr.R, clr.G, clr.B);
+                        var rgb = new ColorRGB(clr.R / (float)255, clr.G / (float)255, clr.B / (float)255);
+
+                        // perform inverse gamma correction
+                        rgb.r = MathF.Pow(rgb.r, 2.2f);
+                        rgb.g = MathF.Pow(rgb.g, 2.2f);
+                        rgb.b = MathF.Pow(rgb.b, 2.2f);
+
+                        image[x, y] = rgb;
                     }
                 }
             }

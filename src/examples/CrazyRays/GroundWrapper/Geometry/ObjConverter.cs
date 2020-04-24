@@ -9,10 +9,9 @@ namespace GroundWrapper.Geometry {
 
         struct TriIdx  {
             public ObjMesh.Index v0, v1, v2;
-            public int m;
 
-            public TriIdx(ObjMesh.Index v0, ObjMesh.Index v1, ObjMesh.Index v2, int m) {
-                this.v0 = v0; this.v1 = v1; this.v2 = v2; this.m = m;
+            public TriIdx(ObjMesh.Index v0, ObjMesh.Index v1, ObjMesh.Index v2) {
+                this.v0 = v0; this.v1 = v1; this.v2 = v2;
             }
         }
 
@@ -83,17 +82,20 @@ namespace GroundWrapper.Geometry {
 
             // Convert the faces to triangles & build the new list of indices
             foreach (var obj in mesh.file.objects) {
-                // TODO we could group these by material to save some overhead
-                //      currently, we are duplicating vertices, ruining every memory
-                //      saving we could have gotten from indices
-                var triangles = new List<TriIdx>(); 
+                // Mapping from material index to triangle definition, per group
+                var triangleGroups = new List<Dictionary<int, List<TriIdx>>>();
 
-                // Triangulate faces
+                // Triangulate faces and group triangles by material
                 bool has_normals = false;
                 bool has_texcoords = false;
+                bool empty = true;
                 foreach (var group in obj.groups) {
+                    // Create the mapping from material index to triangle definition for this group.
+                    triangleGroups.Add(new Dictionary<int, List<TriIdx>>());
+
                     foreach (var face in group.faces) {
                         int mtl_idx = face.material;
+                        triangleGroups[^1].TryAdd(mtl_idx, new List<TriIdx>());
 
                         // Check if any vertex has a normal or uv coordinate
                         for (int i = 0; i < face.indices.Count; i++) {
@@ -106,53 +108,72 @@ namespace GroundWrapper.Geometry {
                         int prev = 1;
                         for (int i = 1; i < face.indices.Count - 1; i++) {
                             int next = i + 1;
-                            triangles.Add(new TriIdx(face.indices[v0], face.indices[prev], face.indices[next], mtl_idx));
+                            triangleGroups[^1][mtl_idx].Add(new TriIdx(face.indices[v0], face.indices[prev], face.indices[next]));
                             prev = next;
+
+                            empty = false;
                         }
                     }
                 }
 
-                if (triangles.Count == 0) continue;
+                if (empty) continue;
 
                 // Create a mesh for each triangle 
-                // TODO this could be grouped by material!
-                foreach (var triangle in triangles) {
-                    string materialName = mesh.file.materials[triangle.m];
+                // TODO we could process groups and triangle sets in parallel here! (measure cost first to check if that would be worth it)
+                foreach (var group in triangleGroups) {
+                    foreach (var triangleSet in group) {
+                        string materialName = mesh.file.materials[triangleSet.Key];
 
-                    // Either use the .obj material or the override
-                    Material material;
-                    if (!materialOverride.TryGetValue(materialName, out material)) {
-                        material = materials[materialName];
-                    }
+                        // Either use the .obj material or the override
+                        Material material;
+                        if (materialOverride == null || !materialOverride.TryGetValue(materialName, out material)) {
+                            material = materials[materialName];
+                        }
 
-                    // Create the mesh
-                    var vertices = new Vector3[3] {
-                        mesh.file.vertices[triangle.v0.v],
-                        mesh.file.vertices[triangle.v1.v],
-                        mesh.file.vertices[triangle.v2.v],
-                    };
-                    var indices = new int[3] { 0, 1, 2 };
+                        // Copy all required vertices, normals, and texture coordinates for this group
+                        // We do not support vertices that share a postion but not a normal, hence we map the full tripel to one int
+                        var objToLocal = new Dictionary<ObjMesh.Index, int>();
+                        var localVertices = new List<Vector3>();
+                        var localNormals = has_normals ? new List<Vector3>() : null;
+                        var localTexcoords = has_texcoords ? new List<Vector2>() : null;
+                        int RemapIndex(ObjMesh.Index oldIndex) {
+                            int newIndex;
+                            if (!objToLocal.TryGetValue(oldIndex, out newIndex)) {
+                                localVertices.Add(mesh.file.vertices[oldIndex.v]);
 
-                    Vector3[] normals = !has_normals ? null : new Vector3[3] {
-                        mesh.file.normals[triangle.v0.n],
-                        mesh.file.normals[triangle.v1.n],
-                        mesh.file.normals[triangle.v2.n],
-                    };
-                    Vector2[] uvs = !has_texcoords ? null : new Vector2[3] {
-                        mesh.file.texcoords[triangle.v0.t],
-                        mesh.file.texcoords[triangle.v1.t],
-                        mesh.file.texcoords[triangle.v2.t],
-                    };
-                    Mesh m = new Mesh(vertices, indices, normals, uvs);
-                    m.Material = material;
-                    scene.Meshes.Add(m);
+                                if (has_normals)
+                                    localNormals.Add(mesh.file.normals[oldIndex.n]);
 
-                    // Create an emitter if the obj material is emissive
-                    // TODO support overrides for this, too?
-                    ColorRGB emission;
-                    if (emitters.TryGetValue(materialName, out emission)) {
-                        var emitter = new DiffuseEmitter(m, emission);
-                        scene.Emitters.Add(emitter);
+                                if (has_texcoords)
+                                    localTexcoords.Add(mesh.file.texcoords[oldIndex.t]);
+
+                                newIndex = localVertices.Count - 1;
+                                objToLocal[oldIndex] = newIndex;
+                            }
+                            return newIndex;
+                        }
+
+                        var indices = new List<int>(triangleSet.Value.Count * 3);
+                        foreach (var triangle in triangleSet.Value) {
+                            indices.Add(RemapIndex(triangle.v0));
+                            indices.Add(RemapIndex(triangle.v1));
+                            indices.Add(RemapIndex(triangle.v2));
+                        }
+
+                        // Create and add the mesh
+                        Mesh m = new Mesh(localVertices.ToArray(), indices.ToArray(), localNormals?.ToArray(),
+                                          localTexcoords?.ToArray()) {
+                            Material = material
+                        };
+                        scene.Meshes.Add(m);
+
+                        // Create an emitter if the obj material is emissive
+                        // TODO support overrides for this, too?
+                        ColorRGB emission;
+                        if (emitters.TryGetValue(materialName, out emission)) {
+                            var emitter = new DiffuseEmitter(m, emission);
+                            scene.Emitters.Add(emitter);
+                        }
                     }
                 }
             }

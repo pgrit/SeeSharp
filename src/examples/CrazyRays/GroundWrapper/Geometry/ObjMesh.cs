@@ -51,12 +51,18 @@ namespace GroundWrapper.Geometry {
 
         /// <summary>A group of faces in the model.</summary>
         public class Group {
+            public string name;
             public List<Face> faces = new List<Face>();
+
+            public Group(string name) => this.name = name;
         }
 
         /// <summary>A object in the model, made of several groups.</summary>
         public class Object {
+            public string name;
             public List<Group> groups = new List<Group>();
+
+            public Object(string name) => this.name = name;
         }
 
         public class Material {
@@ -90,16 +96,19 @@ namespace GroundWrapper.Geometry {
 
         public File file = new File();
         public string basePath;
+        public List<string> errors;
 
         public static ObjMesh FromFile(string filename) {
-            // Parse the .obj itself
             var mesh = new ObjMesh();
-            using (var file = new System.IO.StreamReader(filename))
-                mesh.ParseObjFile(file);
+            mesh.errors = new List<string>();
 
             // Textures and materials will be relative to the .obj
             string full = System.IO.Path.GetFullPath(filename);
             mesh.basePath = System.IO.Path.GetDirectoryName(full);
+
+            // Parse the .obj itself
+            using (var file = new System.IO.StreamReader(filename))
+                mesh.errors.AddRange(mesh.ParseObjFile(file));
 
             // Parse all linked .mtl files
             foreach (string mtlFilename in mesh.file.mtlFiles) {
@@ -107,7 +116,7 @@ namespace GroundWrapper.Geometry {
                 string mtlPath = System.IO.Path.Join(mesh.basePath, mtlFilename);
 
                 using (var file = new System.IO.StreamReader(mtlPath))
-                    mesh.ParseMtlFile(file);
+                    mesh.errors.AddRange(mesh.ParseMtlFile(file));
             }
 
             return mesh;
@@ -116,11 +125,11 @@ namespace GroundWrapper.Geometry {
         private List<string> ParseObjFile(System.IO.StreamReader stream) {
             // Add an empty object to the scene
             int cur_object = 0;
-            file.objects.Add(new Object());
+            file.objects.Add(new Object(""));
             
             // Add an empty group to this object
             int cur_group = 0;
-            file.objects[0].groups.Add(new Group());
+            file.objects[0].groups.Add(new Group(""));
 
             // Add an empty material to the scene
             int cur_mtl = 0;
@@ -239,12 +248,14 @@ namespace GroundWrapper.Geometry {
                         }
                     }
                 } else if (line[0] == 'g' && char.IsWhiteSpace(line[1])) {
-                    file.objects[cur_object].groups.Add(new Group());
+                    string groupName = line.Substring(2).Trim();
+                    file.objects[cur_object].groups.Add(new Group(groupName));
                     cur_group++;
                 } else if (line[0] == 'o' && char.IsWhiteSpace(line[1])) {
-                    file.objects.Add(new Object());
+                    string objectName = line.Substring(2).Trim();
+                    file.objects.Add(new Object(objectName));
                     cur_object++;
-                    file.objects[cur_object].groups.Add(new Group());
+                    file.objects[cur_object].groups.Add(new Group(""));
                     cur_group = 0;
                 } else if (line.StartsWith("usemtl") && char.IsWhiteSpace(line[6])) {
                     line = line.Substring(6);
@@ -306,7 +317,7 @@ namespace GroundWrapper.Geometry {
 
                 if (line.StartsWith("newmtl") && char.IsWhiteSpace(line[6])) {
                     mtl_name = line.Substring(6).Trim();
-                    if (file.materialLib.TryAdd(mtl_name, new Material()))
+                    if (!file.materialLib.TryAdd(mtl_name, new Material()))
                         errors.Add($"Material redefinition for '{mtl_name}' (line {cur_line}).");
                 } else if (line[0] == 'K') {
                     if (line[1] == 'a' && char.IsWhiteSpace(line[2])) {

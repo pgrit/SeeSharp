@@ -8,6 +8,9 @@ namespace GroundWrapper.Shading.Bsdfs {
         public ColorRGB tint;
 
         ColorRGB BsdfComponent.Evaluate(Vector3 outDir, Vector3 inDir, bool isOnLightSubpath) {
+            if (!ShadingSpace.SameHemisphere(outDir, inDir))
+                return ColorRGB.Black;
+
             float cosThetaO = ShadingSpace.AbsCosTheta(outDir);
             float cosThetaI = ShadingSpace.AbsCosTheta(inDir);
             Vector3 halfVector = inDir + outDir;
@@ -31,6 +34,9 @@ namespace GroundWrapper.Shading.Bsdfs {
         }
 
         (float, float) BsdfComponent.Pdf(Vector3 outDir, Vector3 inDir, bool isOnLightSubpath) {
+            if (!ShadingSpace.SameHemisphere(outDir, inDir))
+                return (0, 0);
+
             var halfVector = outDir + inDir;
 
             // catch NaN causing corner cases

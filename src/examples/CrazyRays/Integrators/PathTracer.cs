@@ -18,7 +18,7 @@ namespace Integrators {
             System.Threading.Tasks.Parallel.For(0, scene.FrameBuffer.Height,
                 row => {
                     for (uint col = 0; col < scene.FrameBuffer.Width; ++col) {
-                        this.RenderPixel(scene, (uint)row, col);
+                        RenderPixel(scene, (uint)row, col);
                     }
                 }
             );
@@ -120,9 +120,6 @@ namespace Integrators {
                     // Compute MIS weights
                     float pdfRatio = pdfNextEvt / pdfBsdf;
                     misWeight = 1 / (pdfRatio * pdfRatio + 1);
-
-                    if (float.IsNaN(misWeight))
-                        Console.WriteLine("hi");
                 }
 
                 var emission = light.EmittedRadiance(hit, -ray.direction);

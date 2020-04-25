@@ -7,12 +7,23 @@ namespace Renderer {
     class Program {
 
         static void Main(string[] args) {
+            var stopwatch = System.Diagnostics.Stopwatch.StartNew();
+
             //var scene = Scene.LoadFromFile("../../data/scenes/breakfast/breakfast.json");
             var scene = Scene.LoadFromFile(@"G:\OneDrive\Graphics\TestScenes\Blender-Custom\SimpleTests\GlassBall.json");
+            
+            stopwatch.Stop();
+            Console.WriteLine($"Loading scene: {stopwatch.ElapsedMilliseconds}ms");
+
+            stopwatch.Restart();
+
             scene.FrameBuffer = new Image(512, 512);
             scene.Prepare();
 
-            var stopwatch = System.Diagnostics.Stopwatch.StartNew();
+            stopwatch.Stop();
+            Console.WriteLine($"Preparing scene: {stopwatch.ElapsedMilliseconds}ms");
+
+            stopwatch.Restart();
             //{
             //    var algorithm = new DebugVisualizer();
             //    algorithm.Render(scene);
@@ -36,8 +47,7 @@ namespace Renderer {
                 scene.FrameBuffer.WriteToFile("CboxClassicBidir.exr");
             }
             stopwatch.Stop();
-            Console.WriteLine(stopwatch.ElapsedMilliseconds);
-
+            Console.WriteLine($"Rendering: {stopwatch.ElapsedMilliseconds}ms");
         }
     }
 

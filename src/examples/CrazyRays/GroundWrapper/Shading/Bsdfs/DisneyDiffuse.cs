@@ -41,6 +41,9 @@ namespace GroundWrapper.Shading.Bsdfs {
         public float Roughness;
 
         ColorRGB BsdfComponent.Evaluate(Vector3 outDir, Vector3 inDir, bool isOnLightSubpath) {
+            if (!ShadingSpace.SameHemisphere(outDir, inDir))
+                return ColorRGB.Black;
+
             Vector3 wh = inDir + outDir;
             if (wh == Vector3.Zero) return ColorRGB.Black;
             wh = Vector3.Normalize(wh);

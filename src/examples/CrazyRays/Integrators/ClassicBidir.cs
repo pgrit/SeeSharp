@@ -30,7 +30,7 @@ namespace Integrators {
             var emitterSample = emitter.SampleRay(primaryPos, primaryDir); ;
 
             // Account for the light selection probability also in the MIS weights
-            emitterSample.pdf *= lightSelPrimary;
+            emitterSample.pdf *= selectProb;
 
             // TODO refactor: to reduce risk of mistakes, don't pass an emitter sample to "StartFromEmitter",
             //      pass the pdf, weight, and surface point directly instead.

@@ -29,11 +29,13 @@ namespace Renderer {
 
             // Emitter
             float emitterSize = 0.1f;
+            //float emitterDepth = -1.9f;
+            float emitterDepth = -1.0f;
             scene.Meshes.Add(new Mesh(new Vector3[] {
-                new Vector3(-emitterSize, -emitterSize, -1.9f),
-                new Vector3( emitterSize, -emitterSize, -1.9f),
-                new Vector3( emitterSize,  emitterSize, -1.9f),
-                new Vector3(-emitterSize,  emitterSize, -1.9f),
+                new Vector3(-emitterSize, -emitterSize, emitterDepth),
+                new Vector3( emitterSize, -emitterSize, emitterDepth),
+                new Vector3( emitterSize,  emitterSize, emitterDepth),
+                new Vector3(-emitterSize,  emitterSize, emitterDepth),
             }, new int[] {
                 0, 1, 2, 0, 2, 3
             }, new Vector3[] {

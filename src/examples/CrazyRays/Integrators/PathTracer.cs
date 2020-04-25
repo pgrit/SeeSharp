@@ -100,7 +100,7 @@ namespace Integrators {
             ColorRGB value = ColorRGB.Black;
 
             // Did we reach the maximum depth?
-            if (depth >= MaxDepth) return value;
+            if (depth > MaxDepth) return value;
 
             var hit = scene.Raytracer.Trace(ray);
 
@@ -126,8 +126,10 @@ namespace Integrators {
                 value += misWeight * emission;
             }
 
-            if (depth + 1 >= MinDepth)
+            if (depth + 1 >= MinDepth && depth < MaxDepth)
                 value += PerformNextEventEstimation(scene, ray, hit, rng);
+
+            if (depth > MaxDepth) return value;
 
             // Contine the random walk with a sample proportional to the BSDF
             (var bsdfRay, float bsdfPdf, var bsdfSampleWeight) =

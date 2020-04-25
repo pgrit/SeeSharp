@@ -44,19 +44,30 @@ namespace GroundWrapper.Geometry {
             return hit;
         }
 
+        Vector3 OffsetPoint(SurfacePoint from, Vector3 dir) {
+            float sign = Vector3.Dot(dir, from.normal) < 0.0f ? -1.0f : 1.0f;
+            return from.position + sign * from.errorOffset * from.normal;
+        }
+
         public bool IsOccluded(SurfacePoint from, SurfacePoint to) {
+            const float shadowEpsilon = 1e-5f;
+
             // Compute the ray with proper offsets
             var dir = to.position - from.position;
-            var dist = dir.Length();
-            dir /= dist;
+            var p0 = OffsetPoint(from, dir);
+            var p1 = OffsetPoint(to, -dir);
+            dir = p1 - p0;
 
-            var ray = SpawnRay(from, dir);
+            var ray = new Ray {
+                origin = p0,
+                direction = dir,
+                minDistance = shadowEpsilon,
+            };
 
             // TODO use a proper optimized method here that does not compute the actual closest hit.
             var p = Trace(ray);
 
-            bool occluded = p.mesh != null
-                && p.distance < dist - to.errorOffset - from.errorOffset;
+            bool occluded = p.mesh != null && p.distance < 1 - shadowEpsilon;
 
             return occluded;
         }

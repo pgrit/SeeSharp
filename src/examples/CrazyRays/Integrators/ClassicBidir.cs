@@ -69,7 +69,7 @@ namespace Integrators {
             CameraPath path;
 
             public CameraRandomWalk(RNG rng, int pixelIndex, ClassicBidir integrator)
-                : base(integrator.scene, rng, integrator.MaxDepth) {
+                : base(integrator.scene, rng, integrator.MaxDepth + 1) {
                 this.pixelIndex = pixelIndex;
                 this.integrator = integrator;
                 path.vertices = new List<PathPdfPair>(integrator.MaxDepth);
@@ -86,8 +86,12 @@ namespace Integrators {
                 if (light != null) {
                     value += throughput * integrator.OnEmitterHit(light, hit, ray, path, toAncestorJacobian);
                 }
-                value += throughput * integrator.BidirConnections(integrator.endpoints[pixelIndex], hit, -ray.direction, path, toAncestorJacobian);
-                value += throughput * integrator.PerformNextEventEstimation(ray, hit, rng, path, toAncestorJacobian);
+
+                // Perform connections if the maximum depth has not yet been reached
+                if (depth < integrator.MaxDepth) {
+                    value += throughput * integrator.BidirConnections(integrator.endpoints[pixelIndex], hit, -ray.direction, path, toAncestorJacobian);
+                    value += throughput * integrator.PerformNextEventEstimation(ray, hit, rng, path, toAncestorJacobian);
+                }
 
                 return value;
             }
@@ -118,7 +122,6 @@ namespace Integrators {
             );
             float misWeight = computer.Hit(path, pdfEmit, pdfNextEvent);
             var value = misWeight * emission;
-
             return value;
         }
 
@@ -264,7 +267,6 @@ namespace Integrators {
                 float misWeight = computer.NextEvent(path, pdfEmit, lightSample.pdf, bsdfForwardPdf, bsdfReversePdf);
 
                 var value = misWeight * emission * bsdfTimesCosine * (jacobian / lightSample.pdf);
-
                 return value;
             }
 

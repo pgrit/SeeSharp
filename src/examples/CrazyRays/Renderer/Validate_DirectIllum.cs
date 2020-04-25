@@ -28,12 +28,12 @@ namespace Renderer {
             });
 
             // Emitter
-            float emitterSize = 1.0f;
+            float emitterSize = 0.1f;
             scene.Meshes.Add(new Mesh(new Vector3[] {
-                new Vector3(-emitterSize, -emitterSize, 1),
-                new Vector3( emitterSize, -emitterSize, 1),
-                new Vector3( emitterSize,  emitterSize, 1),
-                new Vector3(-emitterSize,  emitterSize, 1),
+                new Vector3(-emitterSize, -emitterSize, -1.9f),
+                new Vector3( emitterSize, -emitterSize, -1.9f),
+                new Vector3( emitterSize,  emitterSize, -1.9f),
+                new Vector3(-emitterSize,  emitterSize, -1.9f),
             }, new int[] {
                 0, 1, 2, 0, 2, 3
             }, new Vector3[] {
@@ -96,12 +96,12 @@ namespace Renderer {
             var algorithms = new List<Integrator>() {
                 new PathTracer() {
                     TotalSpp = 10,
-                    MaxDepth = 5,
+                    MaxDepth = 2,
                     MinDepth = 1
                 },
                 new ClassicBidir() {
                     NumIterations = 10,
-                    MaxDepth = 5
+                    MaxDepth = 2
                 }
             };
             var names = new List<string> {"PathTracer", "ClassicBidir"};

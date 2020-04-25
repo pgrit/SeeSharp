@@ -11,14 +11,14 @@ namespace GroundWrapper.Shading.Materials {
     public class GenericMaterial : Material {
         public class Parameters { // TODO support textured roughness etc
             public Image baseColor = Image.Constant(ColorRGB.White);
-            public float roughness = 0.2f;
+            public float roughness = 0.5f;
             public float metallic = 0.0f;
             public float specularTintStrength = 1.0f;
             public float anisotropic = 0.0f;
-            public float specularTransmittance = 1.0f;
-            public float indexOfRefraction = 5.6f;
+            public float specularTransmittance = 0.0f;
+            public float indexOfRefraction = 1.45f;
             public bool thin = false;
-            public float diffuseTransmittance = 1.0f;
+            public float diffuseTransmittance = 0.0f;
         }
 
         public GenericMaterial(Parameters parameters) => this.parameters = parameters;

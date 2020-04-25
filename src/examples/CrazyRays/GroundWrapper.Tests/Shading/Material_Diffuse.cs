@@ -9,7 +9,7 @@ namespace GroundWrapper.Tests {
     public class Material_Diffuse {
         [Fact]
         public void NoLightLeaks() {
-            Material mtl = new GenericMaterial(new GenericMaterial.Parameters {
+            Material mtl = new DiffuseMaterial(new DiffuseMaterial.Parameters {
                 baseColor = Image.Constant(new ColorRGB(1, 1, 1))
             });
 
@@ -48,7 +48,7 @@ namespace GroundWrapper.Tests {
 
         [Fact]
         public void ForwardAndReverse_ShouldMatch() {
-            Material mtl = new GenericMaterial(new GenericMaterial.Parameters {
+            Material mtl = new DiffuseMaterial(new DiffuseMaterial.Parameters {
                 baseColor = Image.Constant(new ColorRGB(1, 1, 1))
             });
 
@@ -90,7 +90,7 @@ namespace GroundWrapper.Tests {
 
         [Fact]
         public void Albedo_ShouldBeWhite() {
-            Material mtl = new GenericMaterial(new GenericMaterial.Parameters {
+            Material mtl = new DiffuseMaterial(new DiffuseMaterial.Parameters {
                 baseColor = Image.Constant(new ColorRGB(1, 1, 1))
             });
 
@@ -132,7 +132,7 @@ namespace GroundWrapper.Tests {
 
         [Fact]
         public void Albedo_ShouldBeRed() {
-            Material mtl = new GenericMaterial(new GenericMaterial.Parameters {
+            Material mtl = new DiffuseMaterial(new DiffuseMaterial.Parameters {
                 baseColor = Image.Constant(new ColorRGB(1, 0, 0))
             });
 
@@ -174,7 +174,7 @@ namespace GroundWrapper.Tests {
 
         [Fact]
         public void EdgeCases_ShouldNotCauseOutliers() {
-            Material mtl = new GenericMaterial(new GenericMaterial.Parameters {
+            Material mtl = new DiffuseMaterial(new DiffuseMaterial.Parameters {
                 baseColor = Image.Constant(new ColorRGB(1, 1, 1))
             });
 

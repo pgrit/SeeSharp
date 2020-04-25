@@ -80,8 +80,8 @@ namespace GroundWrapper.Shading.Bsdfs {
             var (pdfForward, pdfReverse) = (0.0f, 0.0f);
             foreach (var c in Components) {
                 var (pdfFwd, pdfRev) = c.Pdf(outDir, sampledDir, isOnLightSubpath);
-                pdfForward += pdfFwd;
-                pdfReverse += pdfRev;
+                pdfForward += pdfFwd / Components.Length;
+                pdfReverse += pdfRev / Components.Length;
             }
 
             // Catch edge cases where the pdf is zero

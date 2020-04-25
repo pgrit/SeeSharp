@@ -120,6 +120,9 @@ namespace Integrators {
                     // Compute MIS weights
                     float pdfRatio = pdfNextEvt / pdfBsdf;
                     misWeight = 1 / (pdfRatio * pdfRatio + 1);
+
+                    if (float.IsNaN(misWeight))
+                        Console.WriteLine("hi");
                 }
 
                 var emission = light.EmittedRadiance(hit, -ray.direction);
@@ -133,8 +136,11 @@ namespace Integrators {
             (var bsdfRay, float bsdfPdf, var bsdfSampleWeight) =
                 BsdfSample(scene, ray, hit, rng);
 
+            if (bsdfPdf == 0 || bsdfSampleWeight == ColorRGB.Black)
+                return value;
+
             var indirectRadiance = EstimateIncidentRadiance(scene, bsdfRay, rng,
-                depth + 1, hit, bsdfPdf);
+                depth + 1, hit, bsdfPdf);            
 
             return value + indirectRadiance * bsdfSampleWeight;
         }

@@ -105,6 +105,10 @@ namespace GroundWrapper {
                 if (type == "rgb") {
                     var rgb = ReadColorRGB(json);
                     return Image.Constant(rgb);
+                } else if (type == "texture") {
+                    var texturePath = json.GetProperty("path").GetString();
+                    texturePath = Path.Join(Path.GetDirectoryName(path), texturePath);
+                    return Image.LoadFromFile(texturePath);
                 } else
                     return null;
             }

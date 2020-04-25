@@ -18,19 +18,19 @@ namespace Renderer {
             //    algorithm.Render(scene);
             //    scene.FrameBuffer.WriteToFile("CboxPT.exr");
             //}
-            {
-                var algorithm = new PathTracer();
-                algorithm.TotalSpp = 10;
-                algorithm.MaxDepth = 5;
-                algorithm.MinDepth = 1;
-                algorithm.Render(scene);
-                scene.FrameBuffer.WriteToFile("CboxPT.exr");
-            }
+            //{
+            //    var algorithm = new PathTracer();
+            //    algorithm.TotalSpp = 2;
+            //    algorithm.MaxDepth = 3;
+            //    algorithm.MinDepth = 1;
+            //    algorithm.Render(scene);
+            //    scene.FrameBuffer.WriteToFile("CboxPT.exr");
+            //}
             scene.FrameBuffer = new Image(scene.FrameBuffer.Width, scene.FrameBuffer.Height);
             {
                 var algorithm = new ClassicBidir();
                 algorithm.NumIterations = 2;
-                algorithm.MaxDepth = 5;
+                algorithm.MaxDepth = 3;
                 algorithm.Render(scene);
                 scene.FrameBuffer.WriteToFile("CboxClassicBidir.exr");
             }

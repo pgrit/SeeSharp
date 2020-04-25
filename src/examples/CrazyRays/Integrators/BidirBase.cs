@@ -4,6 +4,7 @@ using GroundWrapper.Sampling;
 using GroundWrapper.Shading;
 using GroundWrapper.Shading.Emitters;
 using Integrators.Common;
+using System;
 using System.Numerics;
 using System.Threading.Tasks;
 
@@ -62,13 +63,22 @@ namespace Integrators {
             }
         }
 
-        public virtual Emitter SelectEmitterForBidir(RNG rng) {
-            return scene.Emitters[0]; // TODO proper selection
+        public virtual (Emitter, float, float) SelectLight(float primary) {
+            float scaled = scene.Emitters.Count * primary;
+            int idx = Math.Clamp((int)scaled, 0, scene.Emitters.Count - 1);
+            var emitter = scene.Emitters[idx];
+            return (emitter, 1.0f / scene.Emitters.Count, scaled - idx);
         }
 
-        public virtual Emitter SelectEmitterForNextEvent(RNG rng, Ray ray, SurfacePoint hit) {
-            return scene.Emitters[0]; // TODO proper selection
+        public virtual float SelectLightPmf(Emitter em) {
+            return 1.0f / scene.Emitters.Count;
         }
+
+        public virtual (Emitter, float, float) SelectLight(SurfacePoint from, float primary)
+            => SelectLight(primary);
+
+        public virtual float SelectLightPmf(SurfacePoint from, Emitter em)
+            => SelectLightPmf(em);
 
         public override void Render(Scene scene) {
             this.scene = scene;

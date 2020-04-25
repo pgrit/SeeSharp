@@ -20,21 +20,31 @@ namespace Integrators {
         }
 
         public override int TraceLightPath(RNG rng, uint pathIndex) {
-            var emitter = SelectEmitterForBidir(rng); // TODO once this is a proper selection: obtain and consider PDF
+            // Select an emitter
+            float lightSelPrimary = rng.NextFloat();
+            var (emitter, selectProb, _) = SelectLight(lightSelPrimary);
 
+            // Sample a ray from the emitter
             var primaryPos = rng.NextFloat2D();
             var primaryDir = rng.NextFloat2D();
             var emitterSample = emitter.SampleRay(primaryPos, primaryDir); ;
 
+            // Account for the light selection probability also in the MIS weights
+            emitterSample.pdf *= lightSelPrimary;
+
+            // TODO refactor: to reduce risk of mistakes, don't pass an emitter sample to "StartFromEmitter",
+            //      pass the pdf, weight, and surface point directly instead.
+
+            // Perform a random walk through the scene, storing all vertices along the path
             var walker = new CachedRandomWalk(scene, rng, MaxDepth, pathCache);
-            walker.StartFromEmitter(emitterSample, emitterSample.weight);
+            walker.StartFromEmitter(emitterSample, emitterSample.weight / selectProb);
 
             return walker.lastId;
         }
 
         public float NextEventPdf(SurfacePoint from, SurfacePoint to) {
-            // TODO account for light selection probability once we do proper multi-light support!
-            float pdf = scene.QueryEmitter(to).PdfArea(to);
+            var emitter = scene.QueryEmitter(to);
+            float pdf = emitter.PdfArea(to) * SelectLightPmf(from, emitter);
             return pdf;
         }
 
@@ -99,7 +109,7 @@ namespace Integrators {
             // Compute pdf values
             float pdfEmit = emitter.PdfRay(hit, -ray.direction);
             pdfEmit *= reversePdfJacobian;
-            float pdfNextEvent = emitter.PdfArea(hit); // TODO use NextEventPdf() and the previous hit point!
+            float pdfNextEvent = emitter.PdfArea(hit) / scene.Emitters.Count; // TODO use NextEventPdf() and the previous hit point!
 
             // MIS weight
             var computer = new ClassicBidirMisComputer(
@@ -108,9 +118,6 @@ namespace Integrators {
             );
             float misWeight = computer.Hit(path, pdfEmit, pdfNextEvent);
             var value = misWeight * emission;
-
-            if (float.IsNaN(value.r))
-                System.Console.WriteLine("hi hit");
 
             return value;
         }
@@ -191,6 +198,9 @@ namespace Integrators {
                 var bsdfWeightLight = vertex.point.Bsdf.EvaluateBsdfOnly(dirToAncestor, -dirFromCamToLight, true);
                 var bsdfWeightCam = cameraPoint.Bsdf.EvaluateWithCosine(outDir, dirFromCamToLight, false);
 
+                if (bsdfWeightCam == ColorRGB.Black || bsdfWeightLight == ColorRGB.Black)
+                    return;
+
                 // Compute the missing pdfs
                 var (pdfCameraToLight, pdfCameraReverse) = cameraPoint.Bsdf.Pdf(outDir, dirFromCamToLight, false);
                 pdfCameraReverse *= reversePdfJacobian;
@@ -212,7 +222,6 @@ namespace Integrators {
                 float misWeight = computer.BidirConnect(path, vertex, pdfCameraReverse, pdfCameraToLight, pdfLightReverse, pdfLightToCamera);
 
                 ColorRGB weight = misWeight * vertex.weight * bsdfWeightLight * bsdfWeightCam * SampleWrap.SurfaceAreaToSolidAngle(cameraPoint, vertex.point);
-
                 result += weight;
             });
 
@@ -220,9 +229,10 @@ namespace Integrators {
         }
 
         public ColorRGB PerformNextEventEstimation(Ray ray, SurfacePoint hit, RNG rng, CameraPath path, float reversePdfJacobian) {
-            // Sample a point on the light source TODO should be one function & account for the selection probability
-            var light = SelectEmitterForNextEvent(rng, ray, hit);
+            // Sample a point on the light source
+            var (light, lightProb, _) = SelectLight(hit, rng.NextFloat());
             var lightSample = light.SampleArea(rng.NextFloat2D());
+            lightSample.pdf *= lightProb;
 
             if (!scene.Raytracer.IsOccluded(hit, lightSample.point)) {
                 Vector3 lightToSurface = hit.position - lightSample.point.position;
@@ -230,10 +240,14 @@ namespace Integrators {
 
                 var bsdf = hit.Bsdf;
                 var bsdfTimesCosine = bsdf.EvaluateWithCosine(-ray.direction, -lightToSurface, false);
+                if (bsdfTimesCosine == ColorRGB.Black)
+                    return ColorRGB.Black;
 
                 // Compute the jacobian for surface area -> solid angle
                 // (Inverse of the jacobian for solid angle pdf -> surface area pdf)
                 float jacobian = SampleWrap.SurfaceAreaToSolidAngle(hit, lightSample.point);
+                if (jacobian == 0)
+                    return ColorRGB.Black;
 
                 // Compute the missing pdf terms
                 var (bsdfForwardPdf, bsdfReversePdf) = bsdf.Pdf(-ray.direction, -lightToSurface, false);

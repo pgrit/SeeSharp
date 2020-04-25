@@ -17,7 +17,8 @@ namespace Integrators.Common {
         public override ColorRGB StartFromEmitter(EmitterSample emitterSample, ColorRGB initialWeight) {
             // Add the vertex on the light source
             lastId = cache.AddVertex(new PathVertex {
-                // TODO is any of these actually useful?
+                // TODO is any of these actually useful? Only the point right now, but only because we do not pre-compute
+                //      the next event weight (which would be more efficient to begin with)
                 point = emitterSample.point,
                 pdfFromAncestor = 0.0f, // unused
                 pdfToAncestor = 0.0f, // unused

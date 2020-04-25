@@ -47,7 +47,9 @@ namespace Integrators {
         private ColorRGB PerformNextEventEstimation(Scene scene, Ray ray, SurfacePoint hit, RNG rng) {
             // Select a light source
             // TODO implement multi-light support
-            var light = scene.Emitters[0];
+            int idx = rng.NextInt(0, scene.Emitters.Count);
+            var light = scene.Emitters[idx];
+            float lightSelectProb = 1.0f / scene.Emitters.Count;
 
             // Sample a point on the light source
             var lightSample = light.SampleArea(rng.NextFloat2D());
@@ -64,7 +66,7 @@ namespace Integrators {
                 var bsdfCos = bsdf.EvaluateWithCosine(-ray.direction, -lightToSurface, false);
 
                 // Compute surface area PDFs
-                float pdfNextEvt = lightSample.pdf;
+                float pdfNextEvt = lightSample.pdf * lightSelectProb;
                 float pdfBsdfSolidAngle = bsdf.Pdf(-ray.direction, -lightToSurface, false).Item1;
                 float pdfBsdf = pdfBsdfSolidAngle * jacobian;
 
@@ -75,7 +77,7 @@ namespace Integrators {
                 // Compute the final sample weight, account for the change of variables from light source area
                 // to the hemisphere about the shading point.
 
-                var value = misWeight * emission * bsdfCos * (jacobian / lightSample.pdf);
+                var value = misWeight * emission * bsdfCos * (jacobian / lightSample.pdf / lightSelectProb);
                 return value;
             }
 
@@ -112,7 +114,7 @@ namespace Integrators {
                 if (depth > 1) { // directly visible emitters are not explicitely connected
                     // Compute the surface area PDFs.
                     var jacobian = SampleWrap.SurfaceAreaToSolidAngle(previousHit.Value, hit);
-                    float pdfNextEvt = light.PdfArea(hit);
+                    float pdfNextEvt = light.PdfArea(hit) / scene.Emitters.Count;
                     float pdfBsdf = previousPdf * jacobian;
 
                     // Compute MIS weights

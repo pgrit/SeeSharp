@@ -39,6 +39,7 @@ namespace Integrators.Common {
             if (idx >= vertices.Length)
                 return -1;
 
+            vertex.point.Bsdf = null;
             vertices[idx] = vertex;
             return idx;
         }

@@ -3,7 +3,7 @@ using System;
 using System.Numerics;
 
 namespace GroundWrapper.Shading.Bsdfs {
-    public struct DisneyDiffuse : BsdfComponent {
+    public class DisneyDiffuse : BsdfComponent {
         public ColorRGB Reflectance;
 
         ColorRGB BsdfComponent.Evaluate(Vector3 outDir, Vector3 inDir, bool isOnLightSubpath) {
@@ -36,7 +36,7 @@ namespace GroundWrapper.Shading.Bsdfs {
         }
     }
 
-    public struct DisneyRetroReflection : BsdfComponent {
+    public class DisneyRetroReflection : BsdfComponent {
         public ColorRGB Reflectance;
         public float Roughness;
 

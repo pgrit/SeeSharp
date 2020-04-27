@@ -44,6 +44,9 @@ namespace GroundWrapper.Geometry {
                 }
                 return bsdf;
             }
+            set {
+                bsdf = value;
+            }
         }
         bool hasBsdf; private Bsdf bsdf;
     }

@@ -2,7 +2,7 @@
 using System.Numerics;
 
 namespace GroundWrapper.Shading.Bsdfs {
-    public struct MicrofacetReflection : BsdfComponent {
+    public class MicrofacetReflection : BsdfComponent {
         public MicrofacetDistribution distribution;
         public Fresnel fresnel;
         public ColorRGB tint;

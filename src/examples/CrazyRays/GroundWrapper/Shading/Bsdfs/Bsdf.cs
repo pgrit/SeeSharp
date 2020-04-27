@@ -3,7 +3,7 @@ using System;
 using System.Numerics;
 
 namespace GroundWrapper.Shading.Bsdfs {
-    public struct Bsdf {
+    public class Bsdf {
         public Vector3 shadingNormal;
         public BsdfComponent[] Components;
 

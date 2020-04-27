@@ -1,5 +1,4 @@
 ﻿using GroundWrapper;
-using GroundWrapper.Geometry;
 using GroundWrapper.Sampling;
 using GroundWrapper.Shading.Emitters;
 using Integrators.Common;
@@ -45,6 +44,8 @@ namespace Integrators.Bidir {
                 pathCache = new PathCache(MaxDepth * NumPaths);
             else
                 pathCache.Clear();
+
+            endpoints = new int[NumPaths];
 
             Parallel.For(0, NumPaths, idx => {
                 var seed = RNG.HashSeed(BaseSeed, (uint)idx, iter);

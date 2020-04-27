@@ -14,40 +14,10 @@ namespace GroundWrapper.Geometry {
         public static implicit operator bool(SurfacePoint hit)
             => hit.mesh != null;
 
-        public Vector3 ShadingNormal {
-            get {
-                if (!hasNormal) {
-                    shadingNormal = mesh.ComputeShadingNormal((int)primId, barycentricCoords);
-                    hasNormal = true;
-                }
-                return shadingNormal;
-            }
-        }
-        bool hasNormal; Vector3 shadingNormal;
+        public Vector3 ShadingNormal => mesh.ComputeShadingNormal((int)primId, barycentricCoords);
 
-        public Vector2 TextureCoordinates {
-            get {
-                if (!hasTexCoords) {
-                    texCoords = mesh.ComputeTextureCoordinates((int)primId, barycentricCoords);
-                    hasTexCoords = true;
-                }
-                return texCoords;
-            }
-        }
-        bool hasTexCoords; Vector2 texCoords;
+        public Vector2 TextureCoordinates => mesh.ComputeTextureCoordinates((int)primId, barycentricCoords);
 
-        public Bsdf Bsdf {
-            get {
-                if (!hasBsdf) {
-                    bsdf = mesh.Material.GetBsdf(this);
-                    hasBsdf = true;
-                }
-                return bsdf;
-            }
-            set {
-                bsdf = value;
-            }
-        }
-        bool hasBsdf; private Bsdf bsdf;
+        public Bsdf Bsdf => mesh.Material.GetBsdf(this);
     }
 }

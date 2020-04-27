@@ -44,7 +44,7 @@ namespace Renderer {
             //scene.FrameBuffer = new Image(scene.FrameBuffer.Width, scene.FrameBuffer.Height);
             {
                 var algorithm = new ClassicBidir();
-                algorithm.NumIterations = 4;
+                algorithm.NumIterations = 10;
                 algorithm.MaxDepth = 10;
                 algorithm.Render(scene);
                 scene.FrameBuffer.WriteToFile("CboxClassicBidir.exr");

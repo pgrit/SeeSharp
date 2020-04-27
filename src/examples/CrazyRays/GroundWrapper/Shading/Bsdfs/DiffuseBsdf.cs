@@ -3,7 +3,7 @@ using System;
 using System.Numerics;
 
 namespace GroundWrapper.Shading.Bsdfs {
-    public class DiffuseBsdf : BsdfComponent {
+    public struct DiffuseBsdf : BsdfComponent {
         public ColorRGB reflectance;
 
         ColorRGB BsdfComponent.Evaluate(Vector3 outDir, Vector3 inDir, bool isOnLightSubpath) {
@@ -30,7 +30,7 @@ namespace GroundWrapper.Shading.Bsdfs {
         }
     }
 
-    public class DiffuseTransmission : BsdfComponent {
+    public struct DiffuseTransmission : BsdfComponent {
         public ColorRGB Transmittance;
 
         ColorRGB BsdfComponent.Evaluate(Vector3 outDir, Vector3 inDir, bool isOnLightSubpath) {

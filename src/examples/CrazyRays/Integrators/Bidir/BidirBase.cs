@@ -27,7 +27,28 @@ namespace Integrators {
         /// <returns>
         /// The index of the last vertex along the path.
         /// </returns>
-        public abstract int TraceLightPath(RNG rng, uint pathIndex);
+        public virtual int TraceLightPath(RNG rng, uint pathIndex) {
+            // Select an emitter
+            float lightSelPrimary = rng.NextFloat();
+            var (emitter, selectProb, _) = SelectLight(lightSelPrimary);
+
+            // Sample a ray from the emitter
+            var primaryPos = rng.NextFloat2D();
+            var primaryDir = rng.NextFloat2D();
+            var emitterSample = emitter.SampleRay(primaryPos, primaryDir); ;
+
+            // Account for the light selection probability also in the MIS weights
+            emitterSample.pdf *= selectProb;
+
+            // TODO refactor: to reduce risk of mistakes, don't pass an emitter sample to "StartFromEmitter",
+            //      pass the pdf, weight, and surface point directly instead.
+
+            // Perform a random walk through the scene, storing all vertices along the path
+            var walker = new CachedRandomWalk(scene, rng, MaxDepth, pathCache);
+            walker.StartFromEmitter(emitterSample, emitterSample.weight / selectProb);
+
+            return walker.lastId;
+        }
 
         /// <summary>
         /// Called once per iteration after the light paths have been traced.
@@ -43,7 +64,8 @@ namespace Integrators {
         public abstract ColorRGB EstimatePixelValue(SurfacePoint cameraPoint, Vector2 filmPosition, Ray primaryRay,
                                                     float pdfFromCamera, ColorRGB initialWeight, RNG rng);
 
-        public delegate void ProcessVertex(PathVertex vertex, PathVertex ancestor, Vector3 dirToAncestor);
+        public delegate void ProcessVertex(PathVertex vertex, SurfacePoint vertexPoint, PathVertex ancestor,
+                                           SurfacePoint ancestorPoint, Vector3 dirToAncestor);
 
         /// <summary>
         /// Utility function that iterates over a light path, starting on the end point, excluding the point on the light itself.
@@ -55,9 +77,11 @@ namespace Integrators {
             while (pathCache[vertexId].ancestorId != -1) { // iterate over all vertices that have an ancestor
                 var vertex = pathCache[vertexId];
                 var ancestor = pathCache[vertex.ancestorId];
-                var dirToAncestor = ancestor.point.position - vertex.point.position;
+                var vertexPoint = ((SurfacePoint)vertex.point);
+                var ancestorPoint = ((SurfacePoint)ancestor.point);
+                var dirToAncestor = ancestorPoint.position - vertexPoint.position;
 
-                func(vertex, ancestor, dirToAncestor);
+                func(vertex, vertexPoint, ancestor, ancestorPoint, dirToAncestor);
 
                 vertexId = vertex.ancestorId;
             }

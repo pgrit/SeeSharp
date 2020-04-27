@@ -3,6 +3,7 @@ using GroundWrapper.Geometry;
 using GroundWrapper.Sampling;
 using GroundWrapper.Shading;
 using GroundWrapper.Shading.Emitters;
+using System;
 
 namespace Integrators.Common {
     public class CachedRandomWalk : RandomWalk {
@@ -19,7 +20,7 @@ namespace Integrators.Common {
             lastId = cache.AddVertex(new PathVertex {
                 // TODO is any of these actually useful? Only the point right now, but only because we do not pre-compute
                 //      the next event weight (which would be more efficient to begin with)
-                point = emitterSample.point,
+                point = new CompressedSurfacePoint(emitterSample.point),
                 pdfFromAncestor = 0.0f, // unused
                 pdfToAncestor = 0.0f, // unused
                 weight = ColorRGB.Black, // the first known weight is that at the first hit point
@@ -33,7 +34,7 @@ namespace Integrators.Common {
                                           ColorRGB throughput, int depth, float toAncestorJacobian) {
             // Add the next vertex
             lastId = cache.AddVertex(new PathVertex {
-                point = hit,
+                point = new CompressedSurfacePoint(hit),
                 pdfFromAncestor = pdfFromAncestor,
                 pdfToAncestor = pdfToAncestor,
                 weight = throughput,

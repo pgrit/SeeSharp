@@ -19,7 +19,7 @@ namespace GroundWrapper.Shading.Materials {
 
             return new Bsdf { Components = new BsdfComponent[] {
                 new DiffuseBsdf { reflectance = baseColor }
-            }, point = hit };
+            }, shadingNormal = hit.ShadingNormal };
         }
 
         Parameters parameters;

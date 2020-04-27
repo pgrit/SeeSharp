@@ -3,6 +3,7 @@ using GroundWrapper.Shading.Bsdfs;
 using GroundWrapper.Shading.MicrofacetDistributions;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 
 namespace GroundWrapper.Shading.Materials {
     /// <summary>
@@ -57,21 +58,23 @@ namespace GroundWrapper.Shading.Materials {
                 ReflectanceAtNormal = specularReflectanceAtNormal 
             };
 
-            var componentList = new List<BsdfComponent>(4);
+            // Compute the weight of the diffuse component
+            float diffuseWeight = (1 - metallic) * (1 - specularTransmittance);
+
+            // Determine the number of components
+            int numComponents = 1 + (diffuseWeight > 0 ? 2 : 0) + (specularTransmittance > 0 ? 1 : 0) + (parameters.thin ? 1 : 0);
+            var bsdf = new Bsdf { shadingNormal = hit.ShadingNormal, Components = new BsdfComponent[numComponents] };
+            int idx = 0;
 
             // Add the retro-reflection and diffuse terms
-            float diffuseWeight = (1 - metallic) * (1 - specularTransmittance);
             if (diffuseWeight > 0) {
                 if (parameters.thin) {
-                    var diffuse = new DisneyDiffuse { Reflectance = baseColor * (1 - diffuseTransmittance) };
-                    componentList.Add(diffuse);
+                    bsdf.Components[idx++] = new DisneyDiffuse { Reflectance = baseColor * (1 - diffuseTransmittance) };
                 } else {
-                    var diffuse = new DisneyDiffuse { Reflectance = baseColor * diffuseWeight };
-                    componentList.Add(diffuse);
+                    bsdf.Components[idx++] = new DisneyDiffuse { Reflectance = baseColor * diffuseWeight };
                 }
 
-                var retro = new DisneyRetroReflection { Reflectance = baseColor * diffuseWeight, Roughness = roughness };
-                componentList.Add(retro);
+                bsdf.Components[idx++] = new DisneyRetroReflection { Reflectance = baseColor * diffuseWeight, Roughness = roughness };
             }
 
             if (specularTransmittance > 0) {
@@ -79,37 +82,37 @@ namespace GroundWrapper.Shading.Materials {
                 // by sqrt(color), so that after two refractions, we're back to the
                 // provided color.
                 ColorRGB T = specularTransmittance * ColorRGB.Sqrt(baseColor);
-                BsdfComponent specularTransmit;
                 if (parameters.thin) {
                     // Scale roughness based on IOR (Burley 2015, Figure 15).
                     float rscaled = (0.65f * IOR - 0.35f) * roughness;
                     float axT = Math.Max(.001f, rscaled * rscaled / aspect);
                     float ayT = Math.Max(.001f, rscaled * rscaled * aspect);
                     var scaledDistrib = new TrowbridgeReitzDistribution { AlphaX = axT, AlphaY = ayT };
-                    specularTransmit = new MicrofacetTransmission { 
-                        Distribution = scaledDistrib, 
-                        Transmittance = T, 
-                        outsideIOR = 1, insideIOR = IOR 
+                    bsdf.Components[idx++] = new MicrofacetTransmission {
+                        Distribution = scaledDistrib,
+                        Transmittance = T,
+                        outsideIOR = 1,
+                        insideIOR = IOR
                     };
-                } else
-                    specularTransmit = new MicrofacetTransmission {
+                } else {
+                    bsdf.Components[idx++] = new MicrofacetTransmission {
                         Distribution = microfacetDistrib,
                         Transmittance = T,
                         outsideIOR = 1,
                         insideIOR = IOR
                     };
-                componentList.Add(specularTransmit);
+                }
             }
 
             if (parameters.thin) {
-                var diffuse = new DiffuseTransmission { Transmittance = baseColor * diffuseTransmittance };
-                componentList.Add(diffuse);
+                bsdf.Components[idx++] = new DiffuseTransmission { Transmittance = baseColor * diffuseTransmittance };
             }
 
-            var specularReflect = new MicrofacetReflection { distribution = microfacetDistrib, fresnel = fresnel, tint = specularTint };
-            componentList.Add(specularReflect);
+            bsdf.Components[idx++] = new MicrofacetReflection { distribution = microfacetDistrib, fresnel = fresnel, tint = specularTint };
 
-            return new Bsdf { point = hit, Components = componentList.ToArray() };
+            Debug.Assert(idx == bsdf.Components.Length);
+
+            return bsdf;
         }
 
         Parameters parameters;

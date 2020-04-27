@@ -19,29 +19,6 @@ namespace Integrators {
             base.Render(scene);
         }
 
-        public override int TraceLightPath(RNG rng, uint pathIndex) {
-            // Select an emitter
-            float lightSelPrimary = rng.NextFloat();
-            var (emitter, selectProb, _) = SelectLight(lightSelPrimary);
-
-            // Sample a ray from the emitter
-            var primaryPos = rng.NextFloat2D();
-            var primaryDir = rng.NextFloat2D();
-            var emitterSample = emitter.SampleRay(primaryPos, primaryDir); ;
-
-            // Account for the light selection probability also in the MIS weights
-            emitterSample.pdf *= selectProb;
-
-            // TODO refactor: to reduce risk of mistakes, don't pass an emitter sample to "StartFromEmitter",
-            //      pass the pdf, weight, and surface point directly instead.
-
-            // Perform a random walk through the scene, storing all vertices along the path
-            var walker = new CachedRandomWalk(scene, rng, MaxDepth, pathCache);
-            walker.StartFromEmitter(emitterSample, emitterSample.weight / selectProb);
-
-            return walker.lastId;
-        }
-
         public float NextEventPdf(SurfacePoint from, SurfacePoint to) {
             var emitter = scene.QueryEmitter(to);
             float pdf = emitter.PdfArea(to) * SelectLightPmf(from, emitter);
@@ -51,9 +28,9 @@ namespace Integrators {
         public override void ProcessPathCache() {
             // Incorporate the next event estimation pdf into each primary light path vertex.
             Parallel.For(0, endpoints.Length, idx => {
-                ForEachVertex(endpoints[idx], (vertex, ancestor, dirToAncestor) => {
+                ForEachVertex(endpoints[idx], (vertex, vertexPoint, ancestor, ancestorPoint, dirToAncestor) => {
                     if (vertex.depth == 1) {
-                        vertex.pdfToAncestor += NextEventPdf(vertex.point, ancestor.point);
+                        vertex.pdfToAncestor += NextEventPdf(vertexPoint, ancestorPoint);
                     }
                 });
             });
@@ -132,41 +109,41 @@ namespace Integrators {
         }
 
         public void ConnectPathVerticesToCamera(int vertexId) {
-            ForEachVertex(vertexId, (vertex, ancestor, dirToAncestor) => {
+            ForEachVertex(vertexId, (vertex, vertexPoint, ancestor, ancestorPoint, dirToAncestor) => {
                 // Compute image plane location
-                var raster = scene.Camera.WorldToFilm(vertex.point.position);
+                var raster = scene.Camera.WorldToFilm(vertexPoint.position);
                 if (!raster.HasValue) return;
 
                 // Trace shadow ray
-                if (scene.Raytracer.IsOccluded(vertex.point, scene.Camera.Position))
+                if (scene.Raytracer.IsOccluded(vertexPoint, scene.Camera.Position))
                     return;
 
                 // Perform a change of variables from scene surface to pixel area.
                 // TODO this could be computed by the camera itself...
                 // First: map the scene surface to the solid angle about the camera
-                var dirToCam = scene.Camera.Position - vertex.point.position;
+                var dirToCam = scene.Camera.Position - vertexPoint.position;
                 float distToCam = dirToCam.Length();
-                float cosToCam = Math.Abs(Vector3.Dot(vertex.point.normal, dirToCam)) / distToCam;
+                float cosToCam = Math.Abs(Vector3.Dot(vertexPoint.normal, dirToCam)) / distToCam;
                 float surfaceToSolidAngle = cosToCam / (distToCam * distToCam);
 
                 if (distToCam == 0 || cosToCam == 0)
                     return;
 
                 // Second: map the solid angle to the pixel area
-                float solidAngleToPixel = scene.Camera.SolidAngleToPixelJacobian(vertex.point.position);
+                float solidAngleToPixel = scene.Camera.SolidAngleToPixelJacobian(vertexPoint.position);
 
                 // Third: combine to get the full jacobian 
                 float surfaceToPixelJacobian = surfaceToSolidAngle * solidAngleToPixel;
 
-                var bsdf = vertex.point.Bsdf;
+                var bsdf = vertexPoint.Bsdf;
                 var bsdfValue = bsdf.EvaluateBsdfOnly(dirToAncestor, dirToCam, true);
 
                 // Compute the surface area pdf of sampling the previous vertex instead
                 float pdfReverse = bsdf.Pdf(dirToCam, dirToAncestor, false).Item1;
-                pdfReverse *= SampleWrap.SurfaceAreaToSolidAngle(vertex.point, ancestor.point);
+                pdfReverse *= SampleWrap.SurfaceAreaToSolidAngle(vertexPoint, ancestorPoint);
 
                 if (vertex.depth == 1) {
-                    pdfReverse += NextEventPdf(vertex.point, ancestor.point);
+                    pdfReverse += NextEventPdf(vertexPoint, ancestorPoint);
                 }
 
                 // Compute MIS weight
@@ -186,19 +163,19 @@ namespace Integrators {
         public ColorRGB BidirConnections(int lightEndpoint, SurfacePoint cameraPoint, Vector3 outDir, CameraPath path,
                                          float reversePdfJacobian) {
             ColorRGB result = ColorRGB.Black;
-            ForEachVertex(lightEndpoint, (vertex, ancestor, dirToAncestor) => {
+            ForEachVertex(lightEndpoint, (vertex, vertexPoint, ancestor, ancestorPoint, dirToAncestor) => {
                 // Only allow connections that do not exceed the maximum total path length
                 int depth = vertex.depth + path.vertices.Count + 1;
                 if (depth > MaxDepth) return;
 
                 // Trace shadow ray
-                if (scene.Raytracer.IsOccluded(vertex.point, cameraPoint))
+                if (scene.Raytracer.IsOccluded(vertexPoint, cameraPoint))
                     return;
 
                 // Compute connection direction
-                var dirFromCamToLight = vertex.point.position - cameraPoint.position;
+                var dirFromCamToLight = vertexPoint.position - cameraPoint.position;
 
-                var bsdfWeightLight = vertex.point.Bsdf.EvaluateBsdfOnly(dirToAncestor, -dirFromCamToLight, true);
+                var bsdfWeightLight = vertexPoint.Bsdf.EvaluateBsdfOnly(dirToAncestor, -dirFromCamToLight, true);
                 var bsdfWeightCam = cameraPoint.Bsdf.EvaluateWithCosine(outDir, dirFromCamToLight, false);
 
                 if (bsdfWeightCam == ColorRGB.Black || bsdfWeightLight == ColorRGB.Black)
@@ -207,14 +184,14 @@ namespace Integrators {
                 // Compute the missing pdfs
                 var (pdfCameraToLight, pdfCameraReverse) = cameraPoint.Bsdf.Pdf(outDir, dirFromCamToLight, false);
                 pdfCameraReverse *= reversePdfJacobian;
-                pdfCameraToLight *= SampleWrap.SurfaceAreaToSolidAngle(cameraPoint, vertex.point);
+                pdfCameraToLight *= SampleWrap.SurfaceAreaToSolidAngle(cameraPoint, vertexPoint);
 
-                var (pdfLightToCamera, pdfLightReverse) = vertex.point.Bsdf.Pdf(dirToAncestor, -dirFromCamToLight, true);
-                pdfLightReverse  *= SampleWrap.SurfaceAreaToSolidAngle(vertex.point, ancestor.point);
-                pdfLightToCamera *= SampleWrap.SurfaceAreaToSolidAngle(vertex.point, cameraPoint);
+                var (pdfLightToCamera, pdfLightReverse) = vertexPoint.Bsdf.Pdf(dirToAncestor, -dirFromCamToLight, true);
+                pdfLightReverse  *= SampleWrap.SurfaceAreaToSolidAngle(vertexPoint, ancestorPoint);
+                pdfLightToCamera *= SampleWrap.SurfaceAreaToSolidAngle(vertexPoint, cameraPoint);
 
                 if (vertex.depth == 1) {
-                    pdfLightReverse += NextEventPdf(vertex.point, ancestor.point);
+                    pdfLightReverse += NextEventPdf(vertexPoint, ancestorPoint);
                 }
 
                 // Compute the MIS weight
@@ -224,7 +201,7 @@ namespace Integrators {
                 );
                 float misWeight = computer.BidirConnect(path, vertex, pdfCameraReverse, pdfCameraToLight, pdfLightReverse, pdfLightToCamera);
 
-                ColorRGB weight = misWeight * vertex.weight * bsdfWeightLight * bsdfWeightCam * SampleWrap.SurfaceAreaToSolidAngle(cameraPoint, vertex.point);
+                ColorRGB weight = misWeight * vertex.weight * bsdfWeightLight * bsdfWeightCam * SampleWrap.SurfaceAreaToSolidAngle(cameraPoint, vertexPoint);
                 result += weight;
             });
 

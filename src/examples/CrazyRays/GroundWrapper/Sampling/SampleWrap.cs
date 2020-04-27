@@ -24,7 +24,7 @@ namespace GroundWrapper.Sampling {
 
             var binormalOut = Vector3.Cross(normal, tangentOut);
 
-            return (Vector3.Normalize(tangentOut), Vector3.Normalize(binormalOut));
+            return ((tangentOut), (binormalOut));
         }
 
         public static Vector2 ToUniformTriangle(Vector2 primary) {

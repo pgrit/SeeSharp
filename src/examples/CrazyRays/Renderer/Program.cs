@@ -6,8 +6,9 @@ namespace Renderer {
 
     class Program {
         static void Main(string[] args) {
-            Validate_DirectIllum.Validate();
-            return;
+            //Validate_DirectIllum.Validate();
+            //return;
+
             var stopwatch = System.Diagnostics.Stopwatch.StartNew();
 
             //var scene = Scene.LoadFromFile("../../data/scenes/breakfast/breakfast.json");
@@ -25,25 +26,25 @@ namespace Renderer {
             Console.WriteLine($"Preparing scene: {stopwatch.ElapsedMilliseconds}ms");
 
             stopwatch.Restart();
-            {
-                var algorithm = new DebugVisualizer();
-                algorithm.Render(scene);
-                scene.FrameBuffer.WriteToFile("DebugVis.exr");
-            }
-            scene.FrameBuffer = new Image(scene.FrameBuffer.Width, scene.FrameBuffer.Height);
-            {   
-                var algorithm = new PathTracer();
-                algorithm.TotalSpp = 10;
-                algorithm.MaxDepth = 5;
-                algorithm.MinDepth = 1;
-                algorithm.Render(scene);
-                scene.FrameBuffer.WriteToFile("CboxPT.exr");
-            }
-            scene.FrameBuffer = new Image(scene.FrameBuffer.Width, scene.FrameBuffer.Height);
+            //{
+            //    var algorithm = new DebugVisualizer();
+            //    algorithm.Render(scene);
+            //    scene.FrameBuffer.WriteToFile("DebugVis.exr");
+            //}
+            //scene.FrameBuffer = new Image(scene.FrameBuffer.Width, scene.FrameBuffer.Height);
+            //{   
+            //    var algorithm = new PathTracer();
+            //    algorithm.TotalSpp = 20;
+            //    algorithm.MaxDepth = 10;
+            //    algorithm.MinDepth = 1;
+            //    algorithm.Render(scene);
+            //    scene.FrameBuffer.WriteToFile("CboxPT.exr");
+            //}
+            //scene.FrameBuffer = new Image(scene.FrameBuffer.Width, scene.FrameBuffer.Height);
             {
                 var algorithm = new ClassicBidir();
                 algorithm.NumIterations = 10;
-                algorithm.MaxDepth = 5;
+                algorithm.MaxDepth = 10;
                 algorithm.Render(scene);
                 scene.FrameBuffer.WriteToFile("CboxClassicBidir.exr");
             }

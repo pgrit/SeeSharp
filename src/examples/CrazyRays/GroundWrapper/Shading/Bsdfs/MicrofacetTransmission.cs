@@ -3,7 +3,7 @@ using System;
 using System.Numerics;
 
 namespace GroundWrapper.Shading.Bsdfs {
-    public class MicrofacetTransmission : BsdfComponent {
+    public struct MicrofacetTransmission : BsdfComponent {
         public ColorRGB Transmittance;
         public MicrofacetDistribution Distribution;
         public float outsideIOR, insideIOR;
@@ -33,21 +33,22 @@ namespace GroundWrapper.Shading.Bsdfs {
                             (cosThetaI * cosThetaO * sqrtDenom * sqrtDenom));
         }
 
+        float ComputeOneDir(Vector3 outDir, Vector3 inDir) {
+            // Compute $\wh$ from $\outDir$ and $\inDir$ for microfacet transmission
+            float eta = ShadingSpace.CosTheta(outDir) > 0 ? (insideIOR / outsideIOR) : (outsideIOR / insideIOR);
+            Vector3 wh = Vector3.Normalize(outDir + inDir * eta);
+
+            // Compute change of variables _dwh\_dinDir_ for microfacet transmission
+            float sqrtDenom = Vector3.Dot(outDir, wh) + eta * Vector3.Dot(inDir, wh);
+            float dwh_dinDir = Math.Abs((eta * eta * Vector3.Dot(inDir, wh)) / (sqrtDenom * sqrtDenom));
+
+            return Distribution.Pdf(outDir, wh) * dwh_dinDir;
+        }
+
         (float, float) BsdfComponent.Pdf(Vector3 outDir, Vector3 inDir, bool isOnLightSubpath) {
             if (ShadingSpace.SameHemisphere(outDir, inDir)) 
                 return (0, 0);
-
-            float ComputeOneDir(Vector3 from, Vector3 to) {
-                // Compute $\wh$ from $\outDir$ and $\inDir$ for microfacet transmission
-                float eta = ShadingSpace.CosTheta(outDir) > 0 ? (insideIOR / outsideIOR) : (outsideIOR / insideIOR);
-                Vector3 wh = Vector3.Normalize(outDir + inDir * eta);
-
-                // Compute change of variables _dwh\_dinDir_ for microfacet transmission
-                float sqrtDenom = Vector3.Dot(outDir, wh) + eta * Vector3.Dot(inDir, wh);
-                float dwh_dinDir = Math.Abs((eta * eta * Vector3.Dot(inDir, wh)) / (sqrtDenom * sqrtDenom));
-
-                return Distribution.Pdf(outDir, wh) * dwh_dinDir;
-            }
+            
             return (ComputeOneDir(outDir, inDir), ComputeOneDir(inDir, outDir));
         }
 

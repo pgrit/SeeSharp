@@ -4,12 +4,12 @@ using System.Numerics;
 
 namespace GroundWrapper.Shading.Bsdfs {
     public struct Bsdf {
-        public SurfacePoint point;
+        public Vector3 shadingNormal;
         public BsdfComponent[] Components;
 
         public ColorRGB EvaluateBsdfOnly(Vector3 outDir, Vector3 inDir, bool isOnLightSubpath) {
             // Transform directions to shading space and normalize
-            var normal = point.ShadingNormal;
+            var normal = shadingNormal;
             outDir = ShadingSpace.WorldToShading(normal, outDir);
             inDir = ShadingSpace.WorldToShading(normal, inDir);
 
@@ -23,7 +23,7 @@ namespace GroundWrapper.Shading.Bsdfs {
 
         public ColorRGB EvaluateWithCosine(Vector3 outDir, Vector3 inDir, bool isOnLightSubpath) {
             // Transform directions to shading space and normalize
-            var normal = point.ShadingNormal;
+            var normal = shadingNormal;
             outDir = ShadingSpace.WorldToShading(normal, outDir);
             inDir = ShadingSpace.WorldToShading(normal, inDir);
 
@@ -37,7 +37,7 @@ namespace GroundWrapper.Shading.Bsdfs {
 
         public (float, float) Pdf(Vector3 outDir, Vector3 inDir, bool isOnLightSubpath) {
             // Transform directions to shading space and normalize
-            var normal = point.ShadingNormal;
+            var normal = shadingNormal;
             outDir = ShadingSpace.WorldToShading(normal, outDir);
             inDir = ShadingSpace.WorldToShading(normal, inDir);
 
@@ -52,7 +52,7 @@ namespace GroundWrapper.Shading.Bsdfs {
 
         public BsdfSample Sample(Vector3 outDir, bool isOnLightSubpath, Vector2 primarySample) {
             // Transform directions to shading space and normalize
-            var normal = point.ShadingNormal;
+            var normal = shadingNormal;
             outDir = ShadingSpace.WorldToShading(normal, outDir);
 
             // Select a component to importance sample. Uniformly for now.

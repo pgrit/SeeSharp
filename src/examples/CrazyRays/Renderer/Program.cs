@@ -27,20 +27,20 @@ namespace Renderer {
             Console.WriteLine($"Preparing scene: {stopwatch.ElapsedMilliseconds}ms");
 
             stopwatch.Restart();
-            {
-                var algorithm = new DebugVisualizer();
-                algorithm.Render(scene);
-                scene.FrameBuffer.WriteToFile("DebugVis.exr");
-            }
-            scene.FrameBuffer = new Image(scene.FrameBuffer.Width, scene.FrameBuffer.Height);
-            {
-                var algorithm = new PathTracer();
-                algorithm.TotalSpp = 20;
-                algorithm.MaxDepth = 10;
-                algorithm.MinDepth = 1;
-                algorithm.Render(scene);
-                scene.FrameBuffer.WriteToFile("PathTracer.exr");
-            }
+            //{
+            //    var algorithm = new DebugVisualizer();
+            //    algorithm.Render(scene);
+            //    scene.FrameBuffer.WriteToFile("DebugVis.exr");
+            //}
+            //scene.FrameBuffer = new Image(scene.FrameBuffer.Width, scene.FrameBuffer.Height);
+            //{
+            //    var algorithm = new PathTracer();
+            //    algorithm.TotalSpp = 20;
+            //    algorithm.MaxDepth = 10;
+            //    algorithm.MinDepth = 1;
+            //    algorithm.Render(scene);
+            //    scene.FrameBuffer.WriteToFile("PathTracer.exr");
+            //}
             scene.FrameBuffer = new Image(scene.FrameBuffer.Width, scene.FrameBuffer.Height);
             {
                 var algorithm = new ClassicBidir();

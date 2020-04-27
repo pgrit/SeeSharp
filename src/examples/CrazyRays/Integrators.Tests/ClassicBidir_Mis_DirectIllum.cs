@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using Integrators.Bidir;
+using System.Collections.Generic;
 using System.Numerics;
 using Xunit;
 using static Integrators.Bidir.BidirBase;
@@ -20,10 +21,10 @@ namespace Integrators.Tests {
             });
 
         float NextEventWeight() {
-            var computer = new ClassicBidirMisComputer (
-                lightPathCache: dummyPath.pathCache,
-                numLightPaths: dummyPath.numLightPaths
-            );
+            var computer = new ClassicBidir();
+            computer.lightPaths = new LightPathCache();
+            computer.lightPaths.pathCache = dummyPath.pathCache;
+            computer.NumLightPaths = dummyPath.numLightPaths;
 
             var cameraPath = new CameraPath {
                 vertices = new List<PathPdfPair>(dummyPath.cameraVertices[1..2])
@@ -35,7 +36,7 @@ namespace Integrators.Tests {
             dummyVert.pdfToAncestor = -1000.0f;
             cameraPath.vertices[^1] = dummyVert;
 
-            return computer.NextEvent(cameraPath,
+            return computer.NextEventMis(cameraPath,
                 pdfEmit: dummyPath.pathCache[1].pdfFromAncestor,
                 pdfNextEvent: 1.0f / dummyPath.lightArea,
                 pdfHit: dummyPath.cameraVertices[2].pdfFromAncestor,
@@ -43,27 +44,27 @@ namespace Integrators.Tests {
         }
 
         float LightTracerWeight() {
-            var computer = new ClassicBidirMisComputer (
-                lightPathCache: dummyPath.pathCache,
-                numLightPaths: dummyPath.numLightPaths
-            );
+            var computer = new ClassicBidir();
+            computer.lightPaths = new LightPathCache();
+            computer.lightPaths.pathCache = dummyPath.pathCache;
+            computer.NumLightPaths = dummyPath.numLightPaths;
 
-            return computer.LightTracer(dummyPath.pathCache[dummyPath.lightEndpointIdx],
+            return computer.LightTracerMis(dummyPath.pathCache[dummyPath.lightEndpointIdx],
                 pdfCamToPrimary: dummyPath.cameraVertices[1].pdfFromAncestor,
                 pdfReverse: dummyPath.pathCache[dummyPath.lightEndpointIdx].pdfToAncestor);
         }
 
         float HitWeight() {
-            var computer = new ClassicBidirMisComputer (
-                lightPathCache: dummyPath.pathCache,
-                numLightPaths: 500
-            );
+            var computer = new ClassicBidir();
+            computer.lightPaths = new LightPathCache();
+            computer.lightPaths.pathCache = dummyPath.pathCache;
+            computer.NumLightPaths = dummyPath.numLightPaths;
 
             var cameraPath = new CameraPath {
                 vertices = new List<PathPdfPair>(dummyPath.cameraVertices[1..3])
             };
 
-            return computer.Hit(cameraPath,
+            return computer.EmitterHitMis(cameraPath,
                 pdfEmit: dummyPath.pathCache[1].pdfFromAncestor,
                 pdfNextEvent: 1.0f / dummyPath.lightArea);
         }

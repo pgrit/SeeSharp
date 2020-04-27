@@ -1,5 +1,6 @@
 ﻿using GroundWrapper;
 using Integrators;
+using Integrators.Bidir;
 using System;
 
 namespace Renderer {

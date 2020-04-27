@@ -1,8 +1,5 @@
 ﻿using GroundWrapper.Geometry;
 using GroundWrapper.Shading.Bsdfs;
-using System;
-using System.Collections.Generic;
-using System.Text;
 
 namespace GroundWrapper.Shading.Materials {
     public class DiffuseMaterial : Material {

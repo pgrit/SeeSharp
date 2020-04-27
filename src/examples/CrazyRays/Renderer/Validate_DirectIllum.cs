@@ -5,6 +5,7 @@ using GroundWrapper.Shading;
 using GroundWrapper.Shading.Emitters;
 using GroundWrapper.Shading.Materials;
 using Integrators;
+using Integrators.Bidir;
 using System;
 using System.Collections.Generic;
 using System.Numerics;

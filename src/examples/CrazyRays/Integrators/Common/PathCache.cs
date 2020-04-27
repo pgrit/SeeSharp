@@ -1,45 +1,10 @@
 using GroundWrapper.Geometry;
 using GroundWrapper.Shading;
-using System.Numerics;
 using System.Threading;
 
 namespace Integrators.Common {
-
-    public struct CompressedSurfacePoint {
-        public Vector2 barycentricCoords;
-        public Mesh mesh;
-        public uint primId;
-        public float errorOffset;
-        public float distance;
-
-        public CompressedSurfacePoint(SurfacePoint point) {
-            barycentricCoords = point.barycentricCoords;
-            mesh = point.mesh;
-            primId = point.primId;
-            errorOffset = point.errorOffset;
-            distance = point.distance;
-        }
-
-        public static implicit operator SurfacePoint(CompressedSurfacePoint point) {
-            if (point.mesh == null) return new SurfacePoint { mesh = null };
-
-            return new SurfacePoint {
-                barycentricCoords = point.barycentricCoords,
-                distance = point.distance,
-                errorOffset = point.errorOffset,
-                mesh = point.mesh,
-                normal = point.mesh.FaceNormals[point.primId],
-                primId = point.primId,
-                position = point.mesh.ComputePosition((int)point.primId, point.barycentricCoords)
-            };
-        }
-    }
-
-    // TODO try to refactor this: most of these values are not necessary for the root vertex
-    //      separating the root vertex would also allow to avoid the double meaning of
-    //      "pdfToAncestor" which holds the NextEvent pdf in the root.
     public class PathVertex {
-        public CompressedSurfacePoint point; // TODO could be a "CompressedSurfacePoint"
+        public SurfacePoint point;
 
         // Surface area pdf to sample this vertex from the previous one,
         // i.e., the actual density this vertex was sampled from
@@ -49,7 +14,7 @@ namespace Integrators.Common {
         // i.e., the reverse direction of the path.
         public float pdfToAncestor;
 
-        public ColorRGB weight; // TODO support other spectral resolutions
+        public ColorRGB weight;
 
         public int ancestorId;
 

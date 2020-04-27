@@ -1,14 +1,38 @@
 ﻿using Integrators.Common;
 using System;
-using System.Collections.Generic;
+using static Integrators.Bidir.BidirBase;
 
 namespace Integrators {
-    public struct PathPdfPair {
-        public float pdfFromAncestor;
-        public float pdfToAncestor;
-    }
-    public struct CameraPath {
-        public List<PathPdfPair> vertices;
+    ref struct PathPdfs {
+        public PathCache lightPathCache;
+
+        // Assemble the pdf values in two arrays. The elements of each array
+        // correspond to the pdf values of sampling each vertex along the path.
+        // [0] is the primary vertex after the camera
+        // [numPdfs] is the last vertex, the one on the light source itself.
+        public Span<float> pdfsLightToCamera;
+        public Span<float> pdfsCameraToLight;
+
+        public void GatherCameraPdfs(CameraPath cameraPath, int lastCameraVertexIdx) {
+            // Gather the pdf values along the camera sub-path
+            for (int i = 0; i < lastCameraVertexIdx; ++i) {
+                pdfsCameraToLight[i] = cameraPath.vertices[i].pdfFromAncestor;
+                if (i < lastCameraVertexIdx - 1)
+                    pdfsLightToCamera[i] = cameraPath.vertices[i + 1].pdfToAncestor;
+            }
+        }
+
+        public void GatherLightPdfs(PathVertex lightVertex, int lastCameraVertexIdx, int numPdfs) {
+            pdfsLightToCamera[lastCameraVertexIdx + 1] = lightVertex.pdfFromAncestor;
+            var nextVert = lightPathCache[lightVertex.ancestorId];
+            for (int i = lastCameraVertexIdx + 2; i < numPdfs - 1; ++i) {
+                pdfsLightToCamera[i] = nextVert.pdfFromAncestor;
+                pdfsCameraToLight[i + 1] = nextVert.pdfToAncestor;
+
+                nextVert = lightPathCache[nextVert.ancestorId];
+            }
+            pdfsLightToCamera[^1] = 1;
+        }
     }
 
     public readonly ref struct ClassicBidirMisComputer {
@@ -36,39 +60,24 @@ namespace Integrators {
         /// <returns>Balance heuristic weight</returns>
         public float LightTracer(PathVertex lightVertex, float pdfCamToPrimary, float pdfReverse) {
             int numPdfs = lightVertex.depth + 1;
+            int lastCameraVertexIdx = -1;
 
-            // Assemble the pdf values in two arrays. The elements of each array
-            // correspond to the pdf values of sampling each vertex along the path.
-            // [0] is the primary vertex after the camera
-            // [numPdfs] is the last vertex, the one on the light source itself.
-            Span<float> pdfsLightToCamera = stackalloc float[numPdfs];
-            Span<float> pdfsCameraToLight = stackalloc float[numPdfs];
+            var pathPdfs = new PathPdfs {
+                pdfsCameraToLight = stackalloc float[numPdfs],
+                pdfsLightToCamera = stackalloc float[numPdfs],
+                lightPathCache = lightPathCache
+            };
 
-            pdfsCameraToLight[0] = pdfCamToPrimary;
-            pdfsCameraToLight[1] = pdfReverse;
-            pdfsLightToCamera[0] = lightVertex.pdfFromAncestor;
+            pathPdfs.pdfsCameraToLight[0] = pdfCamToPrimary;
+            pathPdfs.pdfsCameraToLight[1] = pdfReverse;
 
             // Iterate over the light path and gather the pdfs
-            var nextVert = lightPathCache[lightVertex.ancestorId];
-            for (int i = 1; i < numPdfs - 1; ++i) {
-                pdfsLightToCamera[i] = nextVert.pdfFromAncestor;
-                pdfsCameraToLight[i + 1] = nextVert.pdfToAncestor;
-
-                nextVert = lightPathCache[nextVert.ancestorId];
-            }
-
-            pdfsLightToCamera[^1] = 1;//nextVert.pdfFromAncestor;
+            pathPdfs.GatherLightPdfs(lightVertex, lastCameraVertexIdx, numPdfs);
 
             // Compute the actual weight
-            float sumReciprocals = 1.0f;
-            float nextReciprocal = 1.0f / numLightPaths;
-            for (int i = 0; i < numPdfs; ++i) {
-                nextReciprocal *= pdfsCameraToLight[i] / pdfsLightToCamera[i];
-                if (i < numPdfs - 2) // Connections to the emitter (next event) are treated separately
-                    sumReciprocals += nextReciprocal;
-            }
-            sumReciprocals += nextReciprocal; // Next event and hitting the emitter directly
-
+            float sumReciprocals = LightPathReciprocals(lastCameraVertexIdx, numPdfs, pathPdfs);
+            sumReciprocals /= numLightPaths;
+            sumReciprocals += 1;
             return 1 / sumReciprocals;
         }
 
@@ -95,22 +104,20 @@ namespace Integrators {
         /// <returns>Balance heuristic weight</returns>
         public float NextEvent(CameraPath cameraPath, float pdfEmit, float pdfNextEvent, float pdfHit, float pdfReverse) {
             int numPdfs = cameraPath.vertices.Count + 1;
+            int lastCameraVertexIdx = numPdfs - 2; // TODO ?? why only -1 here?
 
-            // Assemble the pdf values in two arrays. The elements of each array
-            // correspond to the pdf values of sampling each vertex along the path.
-            // [0] is the primary vertex after the camera
-            // [numPdfs] is the last vertex, the one on the light source itself.
-            Span<float> pdfsLightToCamera = stackalloc float[numPdfs];
-            Span<float> pdfsCameraToLight = stackalloc float[numPdfs];
+            var pathPdfs = new PathPdfs {
+                pdfsCameraToLight = stackalloc float[numPdfs],
+                pdfsLightToCamera = stackalloc float[numPdfs],
+                lightPathCache = lightPathCache
+            };
 
-            for (int i = 0; i < numPdfs - 2; ++i) {
-                pdfsCameraToLight[i] = cameraPath.vertices[i].pdfFromAncestor;
-                pdfsLightToCamera[i] = cameraPath.vertices[i + 1].pdfToAncestor;
-            }
-            pdfsCameraToLight[^2] = cameraPath.vertices[^1].pdfFromAncestor;
-            pdfsLightToCamera[^2] = pdfEmit;
+            pathPdfs.GatherCameraPdfs(cameraPath, lastCameraVertexIdx);
+
+            pathPdfs.pdfsCameraToLight[^2] = cameraPath.vertices[^1].pdfFromAncestor;
+            pathPdfs.pdfsLightToCamera[^2] = pdfEmit;
             if (numPdfs > 2) // not for direct illumination
-                pdfsLightToCamera[^3] = pdfReverse;
+                pathPdfs.pdfsLightToCamera[^3] = pdfReverse;
 
             // Compute the actual weight
             float sumReciprocals = 1.0f;
@@ -119,14 +126,7 @@ namespace Integrators {
             sumReciprocals += pdfHit / pdfNextEvent;
 
             // All bidirectional connections
-            float nextReciprocal = 1 / pdfNextEvent;
-            for (int i = numPdfs - 2; i > 0; --i) {
-                nextReciprocal *= pdfsLightToCamera[i] / pdfsCameraToLight[i];
-                sumReciprocals += nextReciprocal;
-            }
-
-            // Light tracer
-            sumReciprocals += nextReciprocal * numLightPaths * pdfsLightToCamera[0] / pdfsCameraToLight[0];
+            sumReciprocals += CameraPathReciprocals(lastCameraVertexIdx, pathPdfs) / pdfNextEvent;
 
             return 1 / sumReciprocals;
         }
@@ -146,22 +146,18 @@ namespace Integrators {
         /// <returns>Balance heuristic weight</returns>
         public float Hit(CameraPath cameraPath, float pdfEmit, float pdfNextEvent) {
             int numPdfs = cameraPath.vertices.Count;
+            int lastCameraVertexIdx = numPdfs - 1;
 
             if (numPdfs == 1) return 1.0f; // sole technique for rendering directly visible lights.
 
-            // Assemble the pdf values in two arrays. The elements of each array
-            // correspond to the pdf values of sampling each vertex along the path.
-            // [0] is the primary vertex after the camera
-            // [numPdfs] is the last vertex, the one on the light source itself.
-            Span<float> pdfsLightToCamera = stackalloc float[numPdfs];
-            Span<float> pdfsCameraToLight = stackalloc float[numPdfs];
+            var pathPdfs = new PathPdfs {
+                pdfsCameraToLight = stackalloc float[numPdfs],
+                pdfsLightToCamera = stackalloc float[numPdfs],
+                lightPathCache = lightPathCache
+            };
 
-            for (int i = 0; i < numPdfs - 2; ++i) {
-                pdfsCameraToLight[i] = cameraPath.vertices[i].pdfFromAncestor;
-                pdfsLightToCamera[i] = cameraPath.vertices[i + 1].pdfToAncestor;
-            }
-            pdfsCameraToLight[^2] = cameraPath.vertices[^2].pdfFromAncestor;
-            pdfsLightToCamera[^2] = pdfEmit;
+            pathPdfs.GatherCameraPdfs(cameraPath, lastCameraVertexIdx);
+            pathPdfs.pdfsLightToCamera[^2] = pdfEmit;
 
             float pdfThis = cameraPath.vertices[^1].pdfFromAncestor;
 
@@ -172,17 +168,10 @@ namespace Integrators {
             sumReciprocals += pdfNextEvent / pdfThis;
 
             // All connections along the camera path
-            float nextReciprocal = 1.0f / pdfThis;
-            for (int i = numPdfs - 2; i > 0; --i) {
-                nextReciprocal *= pdfsLightToCamera[i] / pdfsCameraToLight[i];
-                sumReciprocals += nextReciprocal;
-            }
-
-            // Light tracer
-            sumReciprocals += nextReciprocal * pdfsLightToCamera[0] / pdfsCameraToLight[0] * numLightPaths;
+            sumReciprocals += CameraPathReciprocals(lastCameraVertexIdx - 1, pathPdfs) / pdfThis;
 
             return 1 / sumReciprocals;
-        }
+        }        
 
         /// <summary>
         /// Computes the balance heuristic value for an "inner" connection.
@@ -211,60 +200,53 @@ namespace Integrators {
             int numPdfs = cameraPath.vertices.Count + lightVertex.depth + 1;
             int lastCameraVertexIdx = cameraPath.vertices.Count - 1;
 
-            // Assemble the pdf values in two arrays. The elements of each array
-            // correspond to the pdf values of sampling each vertex along the path.
-            // [0] is the primary vertex after the camera
-            // [numPdfs] is the last vertex, the one on the light source itself.
-            Span<float> pdfsLightToCamera = stackalloc float[numPdfs];
-            Span<float> pdfsCameraToLight = stackalloc float[numPdfs];
+            var pathPdfs = new PathPdfs {
+                pdfsCameraToLight = stackalloc float[numPdfs],
+                pdfsLightToCamera = stackalloc float[numPdfs],
+                lightPathCache = lightPathCache
+            };
 
-            // Gather the pdf values along the camera sub-path
-            for (int i = 0; i < lastCameraVertexIdx; ++i) {
-                pdfsCameraToLight[i] = cameraPath.vertices[i].pdfFromAncestor;
-                if (i < lastCameraVertexIdx - 1)
-                    pdfsLightToCamera[i] = cameraPath.vertices[i + 1].pdfToAncestor;
-            }
-
-            // Gather the pdf values along the light sub-path
-            pdfsLightToCamera[lastCameraVertexIdx + 1] = lightVertex.pdfFromAncestor;
-            var nextVert = lightPathCache[lightVertex.ancestorId];
-            for (int i = lastCameraVertexIdx + 2; i < numPdfs - 1; ++i) {
-                pdfsLightToCamera[i] = nextVert.pdfFromAncestor;
-                pdfsCameraToLight[i + 1] = nextVert.pdfToAncestor;
-
-                nextVert = lightPathCache[nextVert.ancestorId];
-            }
-            pdfsLightToCamera[^1] = 1;//nextVert.pdfFromAncestor;
+            pathPdfs.GatherCameraPdfs(cameraPath, lastCameraVertexIdx);
+            pathPdfs.GatherLightPdfs(lightVertex, lastCameraVertexIdx, numPdfs);
 
             // Set the pdf values that are unique to this combination of paths
             if (lastCameraVertexIdx > 0) // only if this is not the primary hit point
-                pdfsLightToCamera[lastCameraVertexIdx - 1] = pdfCameraReverse;
-            pdfsCameraToLight[lastCameraVertexIdx] = cameraPath.vertices[lastCameraVertexIdx].pdfFromAncestor;
-            pdfsLightToCamera[lastCameraVertexIdx] = pdfLightToCamera;
-            pdfsCameraToLight[lastCameraVertexIdx + 1] = pdfCameraToLight;
-            pdfsCameraToLight[lastCameraVertexIdx + 2] = pdfLightReverse;
+                pathPdfs.pdfsLightToCamera[lastCameraVertexIdx - 1] = pdfCameraReverse;
+            pathPdfs.pdfsCameraToLight[lastCameraVertexIdx] = cameraPath.vertices[^1].pdfFromAncestor;
+            pathPdfs.pdfsLightToCamera[lastCameraVertexIdx] = pdfLightToCamera;
+            pathPdfs.pdfsCameraToLight[lastCameraVertexIdx + 1] = pdfCameraToLight;
+            pathPdfs.pdfsCameraToLight[lastCameraVertexIdx + 2] = pdfLightReverse;
 
             // Compute reciprocals for hypothetical connections along the camera sub-path
             float sumReciprocals = 1.0f;
+            sumReciprocals += CameraPathReciprocals(lastCameraVertexIdx, pathPdfs);
+            sumReciprocals += LightPathReciprocals(lastCameraVertexIdx, numPdfs, pathPdfs);
+
+            return 1 / sumReciprocals;
+        }
+
+        private float CameraPathReciprocals(int lastCameraVertexIdx, PathPdfs pdfs) {
+            float sumReciprocals = 0.0f;
             float nextReciprocal = 1.0f;
             for (int i = lastCameraVertexIdx; i > 0; --i) { // all bidir connections
-                nextReciprocal *= pdfsLightToCamera[i] / pdfsCameraToLight[i];
+                nextReciprocal *= pdfs.pdfsLightToCamera[i] / pdfs.pdfsCameraToLight[i];
                 sumReciprocals += nextReciprocal;
             }
             // Light tracer
-            float lightTracerReciprocal = pdfsLightToCamera[0] / pdfsCameraToLight[0] * numLightPaths;
-            sumReciprocals += lightTracerReciprocal;
+            sumReciprocals += nextReciprocal * pdfs.pdfsLightToCamera[0] / pdfs.pdfsCameraToLight[0] * numLightPaths;
+            return sumReciprocals;
+        }
 
-            // Compute the reciprocals for hypothetical connections along the light sub-path
-            nextReciprocal = 1.0f;
+        private float LightPathReciprocals(int lastCameraVertexIdx, int numPdfs, PathPdfs pdfs) {
+            float sumReciprocals = 0.0f;
+            float nextReciprocal = 1.0f;
             for (int i = lastCameraVertexIdx + 1; i < numPdfs; ++i) {
-                nextReciprocal *= pdfsCameraToLight[i] / pdfsLightToCamera[i];
+                nextReciprocal *= pdfs.pdfsCameraToLight[i] / pdfs.pdfsLightToCamera[i];
                 if (i < numPdfs - 2) // Connections to the emitter (next event) are treated separately
                     sumReciprocals += nextReciprocal;
             }
             sumReciprocals += nextReciprocal; // Next event and hitting the emitter directly
-
-            return 1 / sumReciprocals;
+            return sumReciprocals;
         }
     }
 }

@@ -21,6 +21,15 @@ namespace Integrators.Bidir {
         public Scene scene;
         public LightPathCache lightPaths;
 
+        public struct PathPdfPair {
+            public float pdfFromAncestor;
+            public float pdfToAncestor;
+        }
+
+        public struct CameraPath {
+            public List<PathPdfPair> vertices;
+        }
+
         /// <summary>
         /// Called once per iteration after the light paths have been traced.
         /// Use this to create acceleration structures etc.

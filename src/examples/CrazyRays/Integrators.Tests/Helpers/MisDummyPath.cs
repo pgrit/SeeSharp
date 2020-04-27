@@ -2,6 +2,7 @@
 using Integrators.Common;
 using System;
 using System.Numerics;
+using static Integrators.Bidir.BidirBase;
 
 namespace Integrators.Tests.Helpers {
     public struct MisDummyPath {

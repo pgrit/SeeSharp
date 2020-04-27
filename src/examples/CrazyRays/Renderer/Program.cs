@@ -27,27 +27,27 @@ namespace Renderer {
             Console.WriteLine($"Preparing scene: {stopwatch.ElapsedMilliseconds}ms");
 
             stopwatch.Restart();
-            //{
-            //    var algorithm = new DebugVisualizer();
-            //    algorithm.Render(scene);
-            //    scene.FrameBuffer.WriteToFile("DebugVis.exr");
-            //}
-            //scene.FrameBuffer = new Image(scene.FrameBuffer.Width, scene.FrameBuffer.Height);
-            //{   
-            //    var algorithm = new PathTracer();
-            //    algorithm.TotalSpp = 20;
-            //    algorithm.MaxDepth = 10;
-            //    algorithm.MinDepth = 1;
-            //    algorithm.Render(scene);
-            //    scene.FrameBuffer.WriteToFile("CboxPT.exr");
-            //}
-            //scene.FrameBuffer = new Image(scene.FrameBuffer.Width, scene.FrameBuffer.Height);
+            {
+                var algorithm = new DebugVisualizer();
+                algorithm.Render(scene);
+                scene.FrameBuffer.WriteToFile("DebugVis.exr");
+            }
+            scene.FrameBuffer = new Image(scene.FrameBuffer.Width, scene.FrameBuffer.Height);
+            {
+                var algorithm = new PathTracer();
+                algorithm.TotalSpp = 20;
+                algorithm.MaxDepth = 10;
+                algorithm.MinDepth = 1;
+                algorithm.Render(scene);
+                scene.FrameBuffer.WriteToFile("PathTracer.exr");
+            }
+            scene.FrameBuffer = new Image(scene.FrameBuffer.Width, scene.FrameBuffer.Height);
             {
                 var algorithm = new ClassicBidir();
                 algorithm.NumIterations = 10;
                 algorithm.MaxDepth = 10;
                 algorithm.Render(scene);
-                scene.FrameBuffer.WriteToFile("CboxClassicBidir.exr");
+                scene.FrameBuffer.WriteToFile("ClassicBidir.exr");
             }
             stopwatch.Stop();
             Console.WriteLine($"Rendering: {stopwatch.ElapsedMilliseconds}ms");

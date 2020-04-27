@@ -1,6 +1,7 @@
 ﻿using System.Collections.Generic;
 using System.Numerics;
 using Xunit;
+using static Integrators.Bidir.BidirBase;
 
 namespace Integrators.Tests {
     public class ClassicBidir_Mis_DirectIllum {

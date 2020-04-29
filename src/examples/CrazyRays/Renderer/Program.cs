@@ -8,7 +8,8 @@ namespace Renderer {
     class Program {
         static void Main(string[] args) {
             //Validate_DirectIllum.Validate();
-            //return;
+            Validate_SingleBounce.Validate();
+            return;
 
             var stopwatch = System.Diagnostics.Stopwatch.StartNew();
 
@@ -36,7 +37,7 @@ namespace Renderer {
             //{
             //    var algorithm = new PathTracer();
             //    algorithm.TotalSpp = 20;
-            //    algorithm.MaxDepth = 10;
+            //    algorithm.MaxDepth = 3;
             //    algorithm.MinDepth = 1;
             //    algorithm.Render(scene);
             //    scene.FrameBuffer.WriteToFile("PathTracer.exr");
@@ -44,10 +45,21 @@ namespace Renderer {
             scene.FrameBuffer = new Image(scene.FrameBuffer.Width, scene.FrameBuffer.Height);
             {
                 var algorithm = new ClassicBidir();
-                algorithm.NumIterations = 10;
-                algorithm.MaxDepth = 10;
+                algorithm.NumIterations = 2;
+                algorithm.MaxDepth = 3;
                 algorithm.Render(scene);
                 scene.FrameBuffer.WriteToFile("ClassicBidir.exr");
+            }
+            scene.FrameBuffer = new Image(scene.FrameBuffer.Width, scene.FrameBuffer.Height);
+            {
+                var algorithm = new StratifiedMultiConnect() {
+                    NumIterations = 2,
+                    NumLightPaths = 1000,
+                    NumConnections = 10,
+                    MaxDepth = 3
+                };
+                algorithm.Render(scene);
+                scene.FrameBuffer.WriteToFile("StratMultiBidir.exr");
             }
             stopwatch.Stop();
             Console.WriteLine($"Rendering: {stopwatch.ElapsedMilliseconds}ms");

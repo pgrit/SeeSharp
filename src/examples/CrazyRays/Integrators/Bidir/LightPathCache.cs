@@ -1,5 +1,7 @@
 ﻿using GroundWrapper;
+using GroundWrapper.Geometry;
 using GroundWrapper.Sampling;
+using GroundWrapper.Shading;
 using GroundWrapper.Shading.Emitters;
 using Integrators.Common;
 using System;
@@ -39,7 +41,7 @@ namespace Integrators.Bidir {
         /// Resets the path cache and populates it with a new set of light paths.
         /// </summary>
         /// <param name="iter">Index of the current iteration, used to seed the random number generator.</param>
-        public void TraceAllPaths(uint iter) {
+        public void TraceAllPaths(uint iter, OnHitCallback onHit) {
             if (pathCache == null)
                 pathCache = new PathCache(MaxDepth * NumPaths);
             else
@@ -50,8 +52,25 @@ namespace Integrators.Bidir {
             Parallel.For(0, NumPaths, idx => {
                 var seed = RNG.HashSeed(BaseSeed, (uint)idx, iter);
                 var rng = new RNG(seed);
-                endpoints[idx] = TraceLightPath(rng, (uint)idx);
+                endpoints[idx] = TraceLightPath(rng, (uint)idx, onHit);
             });
+        }
+
+        public delegate void OnHitCallback(ref PathVertex newVertex, PathVertex ancestor, Vector3 nextDirection);
+
+        class NotifyingCachedWalk : CachedRandomWalk {
+            public OnHitCallback callback;
+            public NotifyingCachedWalk(Scene scene, RNG rng, int maxDepth, PathCache cache) 
+                : base(scene, rng, maxDepth, cache) {
+            }
+
+            protected override ColorRGB OnHit(Ray ray, SurfacePoint hit, float pdfFromAncestor, float pdfToAncestor, 
+                                              ColorRGB throughput, int depth, float toAncestorJacobian, Vector3 nextDirection) {
+                var ancestor = cache[lastId];
+                var weight = base.OnHit(ray, hit, pdfFromAncestor, pdfToAncestor, throughput, depth, toAncestorJacobian, nextDirection);
+                callback(ref cache[lastId], ancestor, nextDirection);
+                return weight;
+            }
         }
 
         /// <summary>
@@ -60,7 +79,7 @@ namespace Integrators.Bidir {
         /// <returns>
         /// The index of the last vertex along the path.
         /// </returns>
-        public virtual int TraceLightPath(RNG rng, uint pathIndex) {
+        public virtual int TraceLightPath(RNG rng, uint pathIndex, OnHitCallback onHit) {
             // Select an emitter
             float lightSelPrimary = rng.NextFloat();
             var (emitter, selectProb, _) = SelectLight(lightSelPrimary);
@@ -77,7 +96,8 @@ namespace Integrators.Bidir {
             //      pass the pdf, weight, and surface point directly instead.
 
             // Perform a random walk through the scene, storing all vertices along the path
-            var walker = new CachedRandomWalk(scene, rng, MaxDepth, pathCache);
+            var walker = new NotifyingCachedWalk(scene, rng, MaxDepth, pathCache);
+            walker.callback = onHit;
             walker.StartFromEmitter(emitterSample, emitterSample.weight / selectProb);
 
             return walker.lastId;

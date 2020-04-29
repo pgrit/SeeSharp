@@ -3,10 +3,11 @@ using GroundWrapper.Geometry;
 using GroundWrapper.Sampling;
 using GroundWrapper.Shading;
 using GroundWrapper.Shading.Emitters;
+using System.Numerics;
 
 namespace Integrators.Common {
     public class CachedRandomWalk : RandomWalk {
-        PathCache cache;
+        public PathCache cache;
         public int lastId;
 
         public CachedRandomWalk(Scene scene, RNG rng, int maxDepth, PathCache cache)
@@ -30,7 +31,7 @@ namespace Integrators.Common {
         }
 
         protected override ColorRGB OnHit(Ray ray, SurfacePoint hit, float pdfFromAncestor, float pdfToAncestor,
-                                          ColorRGB throughput, int depth, float toAncestorJacobian) {
+                                          ColorRGB throughput, int depth, float toAncestorJacobian, Vector3 nextDirection) {
             // Add the next vertex
             lastId = cache.AddVertex(new PathVertex {
                 point = hit,

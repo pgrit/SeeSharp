@@ -3,7 +3,7 @@ using System;
 using System.Numerics;
 
 namespace GroundWrapper.Shading.Bsdfs {
-    public class DiffuseBsdf : BsdfComponent {
+    public struct DiffuseBsdf : BsdfComponent {
         public ColorRGB reflectance;
 
         ColorRGB BsdfComponent.Evaluate(Vector3 outDir, Vector3 inDir, bool isOnLightSubpath) {
@@ -16,6 +16,11 @@ namespace GroundWrapper.Shading.Bsdfs {
         Vector3? BsdfComponent.Sample(Vector3 outDir, bool isOnLightSubpath, Vector2 primarySample) {
             // Transform primary sample to cosine hemisphere
             var local = SampleWrap.ToCosHemisphere(primarySample);
+
+            // Make sure it ends up on the same hemisphere as the outgoing direction
+            if (ShadingSpace.CosTheta(outDir) < 0) 
+                local.direction.Z *= -1;
+
             return local.direction;
         }
 
@@ -30,7 +35,7 @@ namespace GroundWrapper.Shading.Bsdfs {
         }
     }
 
-    public class DiffuseTransmission : BsdfComponent {
+    public struct DiffuseTransmission : BsdfComponent {
         public ColorRGB Transmittance;
 
         ColorRGB BsdfComponent.Evaluate(Vector3 outDir, Vector3 inDir, bool isOnLightSubpath) {

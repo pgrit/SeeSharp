@@ -13,6 +13,10 @@ namespace Integrators.Bidir {
             base.Render(scene);
         }
 
+        public override void ProcessPathCache() {
+            SplatLightVertices();
+        }
+
         public override ColorRGB OnCameraHit(CameraPath path, RNG rng, int pixelIndex, Ray ray, SurfacePoint hit,
                                              float pdfFromAncestor, float pdfToAncestor, ColorRGB throughput, 
                                              int depth, float toAncestorJacobian) {
@@ -26,7 +30,7 @@ namespace Integrators.Bidir {
 
             // Perform connections if the maximum depth has not yet been reached
             if (depth < MaxDepth) {
-                value += throughput * BidirConnections(pixelIndex, hit, -ray.direction, path, toAncestorJacobian);
+                value += throughput * BidirConnections(pixelIndex, hit, -ray.direction, rng, path, toAncestorJacobian);
                 value += throughput * PerformNextEventEstimation(ray, hit, rng, path, toAncestorJacobian);
             }
 

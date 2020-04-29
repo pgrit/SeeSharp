@@ -28,9 +28,8 @@ namespace Integrators.Common {
             vertices = new PathVertex[capacity];
         }
 
-        public PathVertex this[int vertexId] {
-            get => vertices[vertexId];
-            set => vertices[vertexId] = value;
+        public ref PathVertex this[int vertexId] {
+            get => ref vertices[vertexId];
         }
 
         public int AddVertex(PathVertex vertex) {

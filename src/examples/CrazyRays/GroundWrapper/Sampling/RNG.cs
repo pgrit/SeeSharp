@@ -7,8 +7,8 @@ namespace GroundWrapper.Sampling {
     /// http://cas.ee.ic.ac.uk/people/dt10/research/rngs-gpu-mwc64x.html
     /// </summary>
     public class RNG {
-        public RNG(UInt64 seed = 0) {
-            this.state = seed;
+        public RNG(ulong seed = 0) {
+            state = seed;
         }
 
         public float NextFloat(float min, float max) {
@@ -17,7 +17,7 @@ namespace GroundWrapper.Sampling {
         }
 
         public float NextFloat() {
-            float val = (float)MWC64X() / (float)0xFFFFFFFF;
+            float val = (float)MWC64X() / 0xFFFFFFFF;
 
             // Ensure that neither exact 0 nor exact 1 are ever returned.
             // This avoids annoying checks everywhere in the renderer.
@@ -30,12 +30,12 @@ namespace GroundWrapper.Sampling {
         public Vector2 NextFloat2D()
         => new Vector2(NextFloat(), NextFloat());
 
-        // Random number from min (inclusive) to max (exclusive)
+        /// <summary>Random number from min (inclusive) to max (exclusive)</summary>
         public int NextInt(int min, int max) {
             if (max == min)
                 return min;
 
-            var delta = ((UInt64)max - (UInt64)min);
+            var delta = (ulong)max - (ulong)min;
             return (int)(MWC64X() % delta) + min;
         }
 
@@ -43,17 +43,17 @@ namespace GroundWrapper.Sampling {
             for (int i = 0; i < n; ++i) MWC64X();
         }
 
-        UInt64 state;
+        ulong state;
 
-        UInt32 MWC64X() {
-            var c = (UInt32)(state >> 32);
-            var x = (UInt32)(state & 0xFFFFFFFF);
-            state = x * ((UInt64)4294883355U) + (UInt64)c;
+        uint MWC64X() {
+            var c = (uint)(state >> 32);
+            var x = (uint)(state & 0xFFFFFFFF);
+            state = x * ((ulong)4294883355U) + c;
             return x^c;
         }
 
         /// <summary> Hashes 4 bytes using FNV </summary>
-        private static UInt32 FnvHash(UInt32 h, UInt32 d) {
+        private static uint FnvHash(uint h, uint d) {
             h = (h * 16777619) ^ (d        & 0xFF);
             h = (h * 16777619) ^ ((d >>  8) & 0xFF);
             h = (h * 16777619) ^ ((d >> 16) & 0xFF);
@@ -64,8 +64,8 @@ namespace GroundWrapper.Sampling {
         /// <summary> Computes a new seed by hashing. </summary>
         /// <param name="chainIndex">e.g., a pixel index</param>
         /// <param name="sampleIndex">current sample within the, e.g., pixel</param>
-        public static UInt32 HashSeed(UInt32 BaseSeed,
-            UInt32 chainIndex, UInt32 sampleIndex) {
+        public static uint HashSeed(uint BaseSeed,
+            uint chainIndex, uint sampleIndex) {
             var h1 = FnvHash(FnvHash(0x811C9DC5, BaseSeed), chainIndex);
             var h2 = FnvHash(FnvHash(0x811C9DC5, h1), sampleIndex);
             return h2;

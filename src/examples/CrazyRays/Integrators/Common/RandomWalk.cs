@@ -35,7 +35,7 @@ namespace Integrators.Common {
         }
 
         protected virtual ColorRGB OnHit(Ray ray, SurfacePoint hit, float pdfFromAncestor, float pdfToAncestor,
-                                         ColorRGB throughput, int depth, float toAncestorJacobian) {
+                                         ColorRGB throughput, int depth, float toAncestorJacobian, Vector3 nextDirection) {
             return ColorRGB.Black;
         }
 
@@ -62,6 +62,9 @@ namespace Integrators.Common {
                 // Convert the PDF of the previous hemispherical sample to surface area
                 float pdfFromAncestor = pdfDirection * SampleWrap.SurfaceAreaToSolidAngle(previousPoint, hit);
 
+                // TODO better handling for when the path will not be continued!
+                //      maybe separate the OnHit and OnContinue handlers after all
+
                 // Sample the next direction (required to know the reverse pdf)
                 var (pdfNext, pdfReverse, weight, direction) = SampleNextDirection(hit, ray);
 
@@ -69,7 +72,7 @@ namespace Integrators.Common {
                 float pdfToAncestor = pdfReverse * SampleWrap.SurfaceAreaToSolidAngle(hit, previousPoint);
 
                 estimate += OnHit(ray, hit, pdfFromAncestor, pdfToAncestor, throughput, depth,
-                    SampleWrap.SurfaceAreaToSolidAngle(hit, previousPoint));
+                                  SampleWrap.SurfaceAreaToSolidAngle(hit, previousPoint), direction);
 
                 // Terminate if the maximum depth has been reached
                 if (depth >= maxDepth) break;

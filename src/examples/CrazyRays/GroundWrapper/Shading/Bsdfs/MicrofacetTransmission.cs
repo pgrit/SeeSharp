@@ -3,7 +3,7 @@ using System;
 using System.Numerics;
 
 namespace GroundWrapper.Shading.Bsdfs {
-    public class MicrofacetTransmission : BsdfComponent {
+    public struct MicrofacetTransmission : BsdfComponent {
         public ColorRGB Transmittance;
         public MicrofacetDistribution Distribution;
         public float outsideIOR, insideIOR;

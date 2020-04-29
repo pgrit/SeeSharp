@@ -1,5 +1,4 @@
-﻿using GroundWrapper.Geometry;
-using System;
+﻿using System;
 using System.Numerics;
 
 namespace GroundWrapper.Shading.Bsdfs {
@@ -44,8 +43,8 @@ namespace GroundWrapper.Shading.Bsdfs {
             var (pdfForward, pdfReverse) = (0.0f, 0.0f);
             foreach (var c in Components) {
                 var (pdfFwd, pdfRev) = c.Pdf(outDir, inDir, isOnLightSubpath);
-                pdfForward += pdfFwd;
-                pdfReverse += pdfRev;
+                pdfForward += pdfFwd / Components.Length;
+                pdfReverse += pdfRev / Components.Length;
             }
             return (pdfForward, pdfReverse);
         }

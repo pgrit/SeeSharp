@@ -34,18 +34,7 @@ namespace Integrators.Bidir {
         /// Called once per iteration after the light paths have been traced.
         /// Use this to create acceleration structures etc.
         /// </summary>
-        public virtual void ProcessPathCache() {
-            // Incorporate the next event estimation pdf into each primary light path vertex.
-            Parallel.For(0, lightPaths.endpoints.Length, idx => {
-                lightPaths.ForEachVertex(lightPaths.endpoints[idx], (vertex, ancestor, dirToAncestor) => {
-                    if (vertex.depth == 1) {
-                        vertex.pdfToAncestor += NextEventPdf(vertex.point, ancestor.point);
-                    }
-                });
-            });
-
-            SplatLightVertices();
-        }
+        public abstract void ProcessPathCache();
 
         public virtual (Emitter, float, float) SelectLight(float primary) {
             float scaled = scene.Emitters.Count * primary;
@@ -92,10 +81,26 @@ namespace Integrators.Bidir {
 
             lightPaths = new LightPathCache { MaxDepth = MaxDepth, NumPaths = NumLightPaths, scene = scene };
 
+            void AddNextEventPdf(ref PathVertex vertex, PathVertex ancestor, Vector3 nextDirection) {
+                if (vertex.depth == 1) {
+                    vertex.pdfToAncestor += NextEventPdf(vertex.point, ancestor.point);
+                }
+            }
+
             for (uint iter = 0; iter < NumIterations; ++iter) {
-                lightPaths.TraceAllPaths(iter);
+                //var stopwatch = System.Diagnostics.Stopwatch.StartNew();
+                //Console.WriteLine($"starting iteration{iter}");
+                lightPaths.TraceAllPaths(iter, AddNextEventPdf);
+                //stopwatch.Stop();
+                //Console.WriteLine($"done tracing light paths - {stopwatch.ElapsedMilliseconds}ms");
+                //stopwatch.Restart();
                 ProcessPathCache();
+                //stopwatch.Stop();
+                //Console.WriteLine($"done processing - {stopwatch.ElapsedMilliseconds}ms");
+                //stopwatch.Restart();
                 TraceAllCameraPaths(iter);
+                //stopwatch.Stop();
+                //Console.WriteLine($"done with camera pass - {stopwatch.ElapsedMilliseconds}ms");
             }
         }
 
@@ -146,7 +151,8 @@ namespace Integrators.Bidir {
             lightPaths.ForEachVertex(endpoint, (vertex, ancestor, dirToAncestor) => {
                 // Compute image plane location
                 var raster = scene.Camera.WorldToFilm(vertex.point.position);
-                if (!raster.HasValue) return;
+                if (!raster.HasValue) 
+                    return;
 
                 // Perform a change of variables from scene surface to pixel area.
                 // TODO this could be computed by the camera itself...
@@ -192,12 +198,16 @@ namespace Integrators.Bidir {
         public abstract float BidirConnectMis(CameraPath cameraPath, PathVertex lightVertex, float pdfCameraReverse,
                                               float pdfCameraToLight, float pdfLightReverse, float pdfLightToCamera);
 
-        public ColorRGB BidirConnections(int pixelIndex, SurfacePoint cameraPoint, Vector3 outDir, CameraPath path,
-                                         float reversePdfJacobian) {
+        public virtual (int, bool) SelectBidirPath(int pixelIndex, RNG rng) {
+            return (lightPaths.endpoints[pixelIndex], true);
+        }
+
+        public ColorRGB BidirConnections(int pixelIndex, SurfacePoint cameraPoint, Vector3 outDir, RNG rng,
+                                         CameraPath path, float reversePdfJacobian) {
             ColorRGB result = ColorRGB.Black;
 
             // Select a path to connect to (based on pixel index)
-            int lightEndpoint = lightPaths.endpoints[pixelIndex];
+            (int lightEndpoint, bool connectAncestors) = SelectBidirPath(pixelIndex, rng);
 
             // Connect with all vertices along the path
             lightPaths.ForEachVertex(lightEndpoint, (vertex, ancestor, dirToAncestor) => {
@@ -212,7 +222,7 @@ namespace Integrators.Bidir {
                 // Compute connection direction
                 var dirFromCamToLight = vertex.point.position - cameraPoint.position;
 
-                var bsdfWeightLight = vertex.point.Bsdf.EvaluateBsdfOnly(dirToAncestor, -dirFromCamToLight, true);
+                var bsdfWeightLight = vertex.point.Bsdf.EvaluateWithCosine(dirToAncestor, -dirFromCamToLight, true);
                 var bsdfWeightCam = cameraPoint.Bsdf.EvaluateWithCosine(outDir, dirFromCamToLight, false);
 
                 if (bsdfWeightCam == ColorRGB.Black || bsdfWeightLight == ColorRGB.Black)
@@ -231,9 +241,10 @@ namespace Integrators.Bidir {
                     pdfLightReverse += NextEventPdf(vertex.point, ancestor.point);
                 }
 
-                float misWeight = BidirConnectMis(path, vertex, pdfCameraReverse, pdfCameraToLight, pdfLightReverse, pdfLightToCamera);
-
-                ColorRGB weight = misWeight * vertex.weight * bsdfWeightLight * bsdfWeightCam * SampleWrap.SurfaceAreaToSolidAngle(cameraPoint, vertex.point);
+                float misWeight = BidirConnectMis(path, vertex, pdfCameraReverse, pdfCameraToLight, pdfLightReverse,
+                                                  pdfLightToCamera);
+                float distanceSqr = (cameraPoint.position - vertex.point.position).LengthSquared();
+                ColorRGB weight = misWeight * vertex.weight * bsdfWeightLight * bsdfWeightCam / distanceSqr;
                 result += weight;
             });
 
@@ -313,7 +324,7 @@ namespace Integrators.Bidir {
             }
 
             protected override ColorRGB OnHit(Ray ray, SurfacePoint hit, float pdfFromAncestor, float pdfToAncestor,
-                                              ColorRGB throughput, int depth, float toAncestorJacobian) {
+                                              ColorRGB throughput, int depth, float toAncestorJacobian, Vector3 nextDirection) {
                 path.vertices.Add(new PathPdfPair { pdfFromAncestor = pdfFromAncestor, pdfToAncestor = pdfToAncestor });
                 return integrator.OnCameraHit(path, rng, pixelIndex, ray, hit, pdfFromAncestor, pdfToAncestor, throughput, depth, toAncestorJacobian);
             }

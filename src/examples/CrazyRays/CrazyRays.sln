@@ -1,22 +1,24 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
-# Visual Studio 15
-VisualStudioVersion = 15.0.26124.0
+# Visual Studio Version 16
+VisualStudioVersion = 16.0.30011.22
 MinimumVisualStudioVersion = 15.0.26124.0
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Renderer", "Renderer\Renderer.csproj", "{6043B8C0-B33D-4898-BA1A-D97FA8F1F127}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Renderer", "Renderer\Renderer.csproj", "{6043B8C0-B33D-4898-BA1A-D97FA8F1F127}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Integrators", "Integrators\Integrators.csproj", "{B2C79F47-073A-44E3-8B2A-0F3507A02A10}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Integrators", "Integrators\Integrators.csproj", "{B2C79F47-073A-44E3-8B2A-0F3507A02A10}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "GroundWrapper", "GroundWrapper\GroundWrapper.csproj", "{2E06055D-E13E-4266-ABBA-D270B9C0BCB0}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "GroundWrapper", "GroundWrapper\GroundWrapper.csproj", "{2E06055D-E13E-4266-ABBA-D270B9C0BCB0}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Integrators.Tests", "Integrators.Tests\Integrators.Tests.csproj", "{2498C72E-7351-4A51-B21D-558E1ACA037C}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Integrators.Tests", "Integrators.Tests\Integrators.Tests.csproj", "{2498C72E-7351-4A51-B21D-558E1ACA037C}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "GroundWrapper.Tests", "GroundWrapper.Tests\GroundWrapper.Tests.csproj", "{749A8035-A5DA-4B15-BF9E-21B631E24F68}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "GroundWrapper.Tests", "GroundWrapper.Tests\GroundWrapper.Tests.csproj", "{749A8035-A5DA-4B15-BF9E-21B631E24F68}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{4972C1E0-5294-4AF5-B5C3-06DE738A9599}"
+	ProjectSection(SolutionItems) = preProject
+		.editorconfig = .editorconfig
+	EndProjectSection
 EndProject
 Global
-	GlobalSection(SolutionProperties) = preSolution
-		HideSolutionNode = FALSE
-	EndGlobalSection
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
 		Debug|x64 = Debug|x64
@@ -86,5 +88,11 @@ Global
 		{749A8035-A5DA-4B15-BF9E-21B631E24F68}.Release|x64.Build.0 = Release|Any CPU
 		{749A8035-A5DA-4B15-BF9E-21B631E24F68}.Release|x86.ActiveCfg = Release|Any CPU
 		{749A8035-A5DA-4B15-BF9E-21B631E24F68}.Release|x86.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {D6D428F9-6648-4A17-A08C-4044FE1FEBB7}
 	EndGlobalSection
 EndGlobal

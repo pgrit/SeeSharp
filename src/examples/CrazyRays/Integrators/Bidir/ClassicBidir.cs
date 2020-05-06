@@ -4,13 +4,32 @@ using GroundWrapper.Sampling;
 using GroundWrapper.Shading;
 using GroundWrapper.Shading.Emitters;
 using Integrators.Common;
+using System.Numerics;
 
 namespace Integrators.Bidir {
     public class ClassicBidir : BidirBase {
+        TechPyramid techPyramidRaw;
+        TechPyramid techPyramidWeighted;
+
+        public override void RegisterSample(ColorRGB weight, float misWeight, Vector2 pixel,
+                                            int cameraPathLength, int lightPathLength, int fullLength) {
+            techPyramidRaw.Add(cameraPathLength, lightPathLength, fullLength, pixel, weight);
+            techPyramidWeighted.Add(cameraPathLength, lightPathLength, fullLength, pixel, weight * misWeight);
+        }
+
         public override void Render(Scene scene) {
+            techPyramidRaw = new TechPyramid(scene.FrameBuffer.Width, scene.FrameBuffer.Height,
+                                             minDepth: 1, maxDepth: MaxDepth, merges: false);
+            techPyramidWeighted = new TechPyramid(scene.FrameBuffer.Width, scene.FrameBuffer.Height,
+                                                  minDepth: 1, maxDepth: MaxDepth, merges: false);
+            
             // Classic Bidir requires exactly one light path for every camera path.
             NumLightPaths = scene.FrameBuffer.Width * scene.FrameBuffer.Height;
             base.Render(scene);
+
+            // TODO allow user to specify a full path prefix!
+            techPyramidRaw.WriteToFiles("classic-bidir/raw-");
+            techPyramidWeighted.WriteToFiles("classic-bidir/weighted-");
         }
 
         public override void ProcessPathCache() {

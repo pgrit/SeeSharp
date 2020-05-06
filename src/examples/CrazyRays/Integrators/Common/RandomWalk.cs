@@ -75,10 +75,12 @@ namespace Integrators.Common {
                                   SampleWrap.SurfaceAreaToSolidAngle(hit, previousPoint), direction);
 
                 // Terminate if the maximum depth has been reached
-                if (depth >= maxDepth) break;
+                if (depth >= maxDepth) 
+                    break;
 
                 // Every so often, the BSDF samples an invalid direction (e.g., due to shading normals or imperfect sampling)
-                if (pdfNext == 0 || weight == ColorRGB.Black) break;
+                if (pdfNext == 0 || weight == ColorRGB.Black) 
+                    break;
 
                 // Continue the path with the next ray
                 ray = scene.Raytracer.SpawnRay(hit, direction);

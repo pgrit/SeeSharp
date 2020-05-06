@@ -3,15 +3,36 @@ using GroundWrapper.Geometry;
 using GroundWrapper.Sampling;
 using GroundWrapper.Shading;
 using GroundWrapper.Shading.Emitters;
-using Integrators.Bidir;
 using Integrators.Common;
+using System.Numerics;
 
-namespace Integrators {
-    public class StratifiedMultiConnect : BidirBase {
+namespace Integrators.Bidir {
+    /// <summary>
+    /// Variation of the bidirectional path tracer that uses the "Light vertex cache" proposed
+    /// by Davidovic et al [2014] "Progressive Light Transport Simulation on the GPU: Survey and Improvements".
+    /// </summary>
+    public class VertexCacheBidir : BidirBase {
         public int NumConnections = 5;
 
+        TechPyramid techPyramidRaw;
+        TechPyramid techPyramidWeighted;
+
+        public override void RegisterSample(ColorRGB weight, float misWeight, Vector2 pixel,
+                                            int cameraPathLength, int lightPathLength, int fullLength) {
+            techPyramidRaw.Add(cameraPathLength, lightPathLength, fullLength, pixel, weight);
+            techPyramidWeighted.Add(cameraPathLength, lightPathLength, fullLength, pixel, weight * misWeight);
+        }
+
         public override void Render(Scene scene) {
+            techPyramidRaw = new TechPyramid(scene.FrameBuffer.Width, scene.FrameBuffer.Height, 
+                                             minDepth: 1, maxDepth: MaxDepth, merges: false);
+            techPyramidWeighted = new TechPyramid(scene.FrameBuffer.Width, scene.FrameBuffer.Height,
+                                                  minDepth: 1, maxDepth: MaxDepth, merges: false);
             base.Render(scene);
+
+            // TODO allow user to specify a full path prefix!
+            techPyramidRaw.WriteToFiles("vertex-cache/raw-");
+            techPyramidWeighted.WriteToFiles("vertex-cache/weighted-");
         }
 
         public override void ProcessPathCache() {
@@ -19,7 +40,25 @@ namespace Integrators {
         }
 
         public override (int, bool) SelectBidirPath(int pixelIndex, RNG rng) {
-            return (lightPaths.endpoints[rng.NextInt(0, NumLightPaths)], true);
+            // Select a single vertex from the entire cache at random
+            // TODO the vertices on the lights should not be in the cache!
+            return (rng.NextInt(0, lightPaths.pathCache.Count), false);
+        }
+
+        /// <summary>
+        /// Computes the effective density of selecting a light path vertex for connection.
+        /// That is, the product of the selection probability and the number of samples.
+        /// </summary>
+        /// <returns>Effective density</returns>
+        public float BidirSelectDensity() {
+            // We select light path vertices uniformly
+            float selectProb = 1.0f / lightPaths.pathCache.Count;
+
+            // There are "NumLightPaths" samples that could have generated the selected vertex, 
+            // we repeat the process "NumConnections" times
+            float numSamples = NumConnections * NumLightPaths;
+
+            return selectProb * numSamples;
         }
 
         public override ColorRGB OnCameraHit(CameraPath path, RNG rng, int pixelIndex, Ray ray, SurfacePoint hit,
@@ -32,11 +71,12 @@ namespace Integrators {
             if (light != null) {
                 value += throughput * OnEmitterHit(light, hit, ray, path, toAncestorJacobian);
             }
-
+            
             // Perform connections if the maximum depth has not yet been reached
             if (depth < MaxDepth) {
                 for (int i = 0; i < NumConnections; ++i) {
-                    value += throughput * BidirConnections(pixelIndex, hit, -ray.direction, rng, path, toAncestorJacobian) / NumConnections;
+                    var weight = throughput * BidirConnections(pixelIndex, hit, -ray.direction, rng, path, toAncestorJacobian);
+                    value += weight / BidirSelectDensity();
                 }
                 value += throughput * PerformNextEventEstimation(ray, hit, rng, path, toAncestorJacobian);
             }
@@ -106,8 +146,8 @@ namespace Integrators {
 
             // Compute reciprocals for hypothetical connections along the camera sub-path
             float sumReciprocals = 1.0f;
-            sumReciprocals += CameraPathReciprocals(lastCameraVertexIdx, pathPdfs) / NumConnections;
-            sumReciprocals += LightPathReciprocals(lastCameraVertexIdx, numPdfs, pathPdfs) / NumConnections;
+            sumReciprocals += CameraPathReciprocals(lastCameraVertexIdx, pathPdfs) / BidirSelectDensity();
+            sumReciprocals += LightPathReciprocals(lastCameraVertexIdx, numPdfs, pathPdfs) / BidirSelectDensity();
 
             return 1 / sumReciprocals;
         }
@@ -142,7 +182,7 @@ namespace Integrators {
             float nextReciprocal = 1.0f;
             for (int i = lastCameraVertexIdx; i > 0; --i) { // all bidir connections
                 nextReciprocal *= pdfs.pdfsLightToCamera[i] / pdfs.pdfsCameraToLight[i];
-                sumReciprocals += nextReciprocal * NumConnections;
+                sumReciprocals += nextReciprocal * BidirSelectDensity();
             }
             // Light tracer
             sumReciprocals += nextReciprocal * pdfs.pdfsLightToCamera[0] / pdfs.pdfsCameraToLight[0] * NumLightPaths;
@@ -155,7 +195,7 @@ namespace Integrators {
             for (int i = lastCameraVertexIdx + 1; i < numPdfs; ++i) {
                 nextReciprocal *= pdfs.pdfsCameraToLight[i] / pdfs.pdfsLightToCamera[i];
                 if (i < numPdfs - 2) // Connections to the emitter (next event) are treated separately
-                    sumReciprocals += nextReciprocal * NumConnections;
+                    sumReciprocals += nextReciprocal * BidirSelectDensity();
             }
             sumReciprocals += nextReciprocal; // Next event and hitting the emitter directly
             return sumReciprocals;

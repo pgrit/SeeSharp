@@ -69,9 +69,14 @@ namespace GroundWrapper {
 
         public void WriteToFile(string filename) {
             var ext = System.IO.Path.GetExtension(filename);
-            if (ext.ToLower() == ".exr")
+            if (ext.ToLower() == ".exr") {
+                // First, make sure that the full path exists
+                var dirname = System.IO.Path.GetDirectoryName(filename);
+                if (dirname != "")
+                    System.IO.Directory.CreateDirectory(dirname);
+
                 TinyExr.WriteImageToExr(data, Width, Height, 3, filename);
-            else {
+            } else {
                 WriteImageToLDR(this, filename);
             }
         }

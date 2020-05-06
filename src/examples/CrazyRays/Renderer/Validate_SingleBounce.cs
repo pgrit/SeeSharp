@@ -130,7 +130,7 @@ namespace Renderer {
                     NumIterations = 10,
                     MaxDepth = 3
                 },
-                new StratifiedMultiConnect() {
+                new VertexCacheBidir() {
                     NumIterations = 10,
                     MaxDepth = 3,
                     NumConnections = 4,

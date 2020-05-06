@@ -27,6 +27,19 @@ namespace Integrators.Bidir {
         }
 
         public struct CameraPath {
+            /// <summary>
+            /// The pixel position where the path was started.
+            /// </summary>
+            public Vector2 pixel;
+
+            /// <summary>
+            /// The product of the local estimators along the path (BSDF * cos / pdf)
+            /// </summary>
+            public ColorRGB throughput;
+
+            /// <summary>
+            /// The pdf values for sampling this path.
+            /// </summary>
             public List<PathPdfPair> vertices;
         }
 
@@ -68,7 +81,7 @@ namespace Integrators.Bidir {
                                                    float pdfFromCamera, ColorRGB initialWeight, RNG rng) {
             // The pixel index determines which light path we connect to
             int pixelIndex = (int)filmPosition.Y * scene.FrameBuffer.Width + (int)filmPosition.X;
-            var walk = new CameraRandomWalk(rng, pixelIndex, this);
+            var walk = new CameraRandomWalk(rng, filmPosition, pixelIndex, this);
             return walk.StartFromCamera(filmPosition, cameraPoint, pdfFromCamera, primaryRay, initialWeight);
         }
 
@@ -139,6 +152,18 @@ namespace Integrators.Bidir {
             scene.FrameBuffer.Splat((float)col, (float)row, value);
         }
 
+        /// <summary>
+        /// Called for each sample that has a non-zero contribution to the image.
+        /// This can be used to write out pyramids of sampling technique images / MIS weights.
+        /// The default implementation does nothing.
+        /// </summary>
+        /// <param name="cameraPathLength">Number of edges in the camera sub-path (0 if light tracer).</param>
+        /// <param name="lightPathLength">Number of edges in the light sub-path (0 when hitting the light).</param>
+        /// <param name="fullLength">Number of edges forming the full path. Used to disambiguate techniques.</param>
+        public virtual void RegisterSample(ColorRGB weight, float misWeight, Vector2 pixel,
+                                           int cameraPathLength, int lightPathLength, int fullLength) {
+        }
+
         public abstract float LightTracerMis(PathVertex lightVertex, float pdfCamToPrimary, float pdfReverse);
 
         public void SplatLightVertices() {
@@ -151,7 +176,7 @@ namespace Integrators.Bidir {
             lightPaths.ForEachVertex(endpoint, (vertex, ancestor, dirToAncestor) => {
                 // Compute image plane location
                 var raster = scene.Camera.WorldToFilm(vertex.point.position);
-                if (!raster.HasValue) 
+                if (!raster.HasValue)
                     return;
 
                 // Perform a change of variables from scene surface to pixel area.
@@ -183,34 +208,40 @@ namespace Integrators.Bidir {
                 pdfReverse *= SampleWrap.SurfaceAreaToSolidAngle(vertex.point, ancestor.point);
 
                 // Account for next event estimation
-                if (vertex.depth == 1) { 
+                if (vertex.depth == 1) {
                     pdfReverse += NextEventPdf(vertex.point, ancestor.point);
                 }
 
                 float misWeight = LightTracerMis(vertex, surfaceToPixelJacobian, pdfReverse);
-                
+
                 // Compute image contribution and splat
-                ColorRGB weight = misWeight * vertex.weight * bsdfValue * surfaceToPixelJacobian / NumLightPaths;
-                scene.FrameBuffer.Splat(raster.Value.X, raster.Value.Y, weight * (1.0f / NumIterations));
+                ColorRGB weight = vertex.weight * bsdfValue * surfaceToPixelJacobian / NumLightPaths;
+                scene.FrameBuffer.Splat(raster.Value.X, raster.Value.Y, misWeight * weight * (1.0f / NumIterations));
+
+                var pixel = new Vector2(raster.Value.X, raster.Value.Y);
+                RegisterSample(weight, misWeight, pixel, 0, vertex.depth, vertex.depth + 1);
             });
         }
 
-        public abstract float BidirConnectMis(CameraPath cameraPath, PathVertex lightVertex, float pdfCameraReverse,
-                                              float pdfCameraToLight, float pdfLightReverse, float pdfLightToCamera);
+        public abstract float BidirConnectMis(CameraPath cameraPath, PathVertex lightVertex,
+                                              float pdfCameraReverse, float pdfCameraToLight,
+                                              float pdfLightReverse, float pdfLightToCamera);
 
         public virtual (int, bool) SelectBidirPath(int pixelIndex, RNG rng) {
             return (lightPaths.endpoints[pixelIndex], true);
         }
 
-        public ColorRGB BidirConnections(int pixelIndex, SurfacePoint cameraPoint, Vector3 outDir, RNG rng,
-                                         CameraPath path, float reversePdfJacobian) {
+        public ColorRGB BidirConnections(int pixelIndex, SurfacePoint cameraPoint, Vector3 outDir,
+                                         RNG rng, CameraPath path, float reversePdfJacobian) {
             ColorRGB result = ColorRGB.Black;
 
             // Select a path to connect to (based on pixel index)
             (int lightEndpoint, bool connectAncestors) = SelectBidirPath(pixelIndex, rng);
 
-            // Connect with all vertices along the path
-            lightPaths.ForEachVertex(lightEndpoint, (vertex, ancestor, dirToAncestor) => {
+            // Precompute the bsdf once, avoids multiple texture lookups and allocations
+            var cameraBsdf = cameraPoint.Bsdf;
+
+            void Connect(PathVertex vertex, PathVertex ancestor, Vector3 dirToAncestor) {
                 // Only allow connections that do not exceed the maximum total path length
                 int depth = vertex.depth + path.vertices.Count + 1;
                 if (depth > MaxDepth) return;
@@ -219,22 +250,25 @@ namespace Integrators.Bidir {
                 if (scene.Raytracer.IsOccluded(vertex.point, cameraPoint))
                     return;
 
+                // Precompute the bsdf once, avoids multiple texture lookups and allocations
+                var vertexBsdf = vertex.point.Bsdf;
+
                 // Compute connection direction
                 var dirFromCamToLight = vertex.point.position - cameraPoint.position;
 
-                var bsdfWeightLight = vertex.point.Bsdf.EvaluateWithCosine(dirToAncestor, -dirFromCamToLight, true);
-                var bsdfWeightCam = cameraPoint.Bsdf.EvaluateWithCosine(outDir, dirFromCamToLight, false);
+                var bsdfWeightLight = vertexBsdf.EvaluateWithCosine(dirToAncestor, -dirFromCamToLight, true);
+                var bsdfWeightCam = cameraBsdf.EvaluateWithCosine(outDir, dirFromCamToLight, false);
 
                 if (bsdfWeightCam == ColorRGB.Black || bsdfWeightLight == ColorRGB.Black)
                     return;
 
                 // Compute the missing pdfs
-                var (pdfCameraToLight, pdfCameraReverse) = cameraPoint.Bsdf.Pdf(outDir, dirFromCamToLight, false);
+                var (pdfCameraToLight, pdfCameraReverse) = cameraBsdf.Pdf(outDir, dirFromCamToLight, false);
                 pdfCameraReverse *= reversePdfJacobian;
                 pdfCameraToLight *= SampleWrap.SurfaceAreaToSolidAngle(cameraPoint, vertex.point);
 
-                var (pdfLightToCamera, pdfLightReverse) = vertex.point.Bsdf.Pdf(dirToAncestor, -dirFromCamToLight, true);
-                pdfLightReverse  *= SampleWrap.SurfaceAreaToSolidAngle(vertex.point, ancestor.point);
+                var (pdfLightToCamera, pdfLightReverse) = vertexBsdf.Pdf(dirToAncestor, -dirFromCamToLight, true);
+                pdfLightReverse *= SampleWrap.SurfaceAreaToSolidAngle(vertex.point, ancestor.point);
                 pdfLightToCamera *= SampleWrap.SurfaceAreaToSolidAngle(vertex.point, cameraPoint);
 
                 if (vertex.depth == 1) {
@@ -244,11 +278,31 @@ namespace Integrators.Bidir {
                 float misWeight = BidirConnectMis(path, vertex, pdfCameraReverse, pdfCameraToLight, pdfLightReverse,
                                                   pdfLightToCamera);
                 float distanceSqr = (cameraPoint.position - vertex.point.position).LengthSquared();
-                ColorRGB weight = misWeight * vertex.weight * bsdfWeightLight * bsdfWeightCam / distanceSqr;
-                result += weight;
-            });
 
-            return result;
+                // Avoid NaNs in rare cases
+                if (distanceSqr == 0)
+                    return;
+
+                ColorRGB weight = vertex.weight * bsdfWeightLight * bsdfWeightCam / distanceSqr;
+                result += misWeight * weight;
+
+                RegisterSample(weight * path.throughput, misWeight, path.pixel,
+                               path.vertices.Count, vertex.depth, depth);
+            }
+
+            if (!connectAncestors) {
+                var vertex = lightPaths.pathCache[lightEndpoint];
+                if (vertex.ancestorId == -1)
+                    return ColorRGB.Black;
+                var ancestor = lightPaths.pathCache[vertex.ancestorId];
+                var dirToAncestor = ancestor.point.position - vertex.point.position;
+                Connect(vertex, ancestor, dirToAncestor);
+                return result;
+            } else {
+                // Connect with all vertices along the path
+                lightPaths.ForEachVertex(lightEndpoint, Connect);
+                return result;
+            }
         }
 
         public abstract float NextEventMis(CameraPath cameraPath, float pdfEmit, float pdfNextEvent, float pdfHit, float pdfReverse);
@@ -284,8 +338,10 @@ namespace Integrators.Bidir {
 
                 float misWeight = NextEventMis(path, pdfEmit, lightSample.pdf, bsdfForwardPdf, bsdfReversePdf);
 
-                var value = misWeight * emission * bsdfTimesCosine * (jacobian / lightSample.pdf);
-                return value;
+                var weight = emission * bsdfTimesCosine * (jacobian / lightSample.pdf);
+                RegisterSample(weight * path.throughput, misWeight, path.pixel, 
+                               path.vertices.Count, 0, path.vertices.Count + 1);
+                return misWeight * weight;
             }
 
             return ColorRGB.Black;
@@ -293,7 +349,8 @@ namespace Integrators.Bidir {
 
         public abstract float EmitterHitMis(CameraPath cameraPath, float pdfEmit, float pdfNextEvent);
 
-        public ColorRGB OnEmitterHit(Emitter emitter, SurfacePoint hit, Ray ray, CameraPath path, float reversePdfJacobian) {
+        public ColorRGB OnEmitterHit(Emitter emitter, SurfacePoint hit, Ray ray, 
+                                     CameraPath path, float reversePdfJacobian) {
             var emission = emitter.EmittedRadiance(hit, -ray.direction);
 
             // Compute pdf values
@@ -302,31 +359,43 @@ namespace Integrators.Bidir {
             float pdfNextEvent = emitter.PdfArea(hit) / scene.Emitters.Count; // TODO use NextEventPdf() and the previous hit point!
 
             float misWeight = EmitterHitMis(path, pdfEmit, pdfNextEvent);
+            RegisterSample(emission * path.throughput, misWeight, path.pixel,
+                           path.vertices.Count, 0, path.vertices.Count);
 
             var value = misWeight * emission;
             return value;
         }
 
-        public abstract ColorRGB OnCameraHit(CameraPath path, RNG rng, int pixelIndex, Ray ray, SurfacePoint hit, 
-                                             float pdfFromAncestor, float pdfToAncestor,
-                                             ColorRGB throughput, int depth, float toAncestorJacobian);
+        public abstract ColorRGB OnCameraHit(CameraPath path, RNG rng, int pixelIndex, Ray ray,
+                                             SurfacePoint hit, float pdfFromAncestor,
+                                             float pdfToAncestor, ColorRGB throughput, int depth,
+                                             float toAncestorJacobian);
 
         class CameraRandomWalk : RandomWalk {
             int pixelIndex;
             BidirBase integrator;
             CameraPath path;
 
-            public CameraRandomWalk(RNG rng, int pixelIndex, BidirBase integrator)
+            public CameraRandomWalk(RNG rng, Vector2 filmPosition, int pixelIndex, BidirBase integrator)
                 : base(integrator.scene, rng, integrator.MaxDepth + 1) {
                 this.pixelIndex = pixelIndex;
                 this.integrator = integrator;
                 path.vertices = new List<PathPdfPair>(integrator.MaxDepth);
+                path.pixel = filmPosition;
             }
 
-            protected override ColorRGB OnHit(Ray ray, SurfacePoint hit, float pdfFromAncestor, float pdfToAncestor,
-                                              ColorRGB throughput, int depth, float toAncestorJacobian, Vector3 nextDirection) {
-                path.vertices.Add(new PathPdfPair { pdfFromAncestor = pdfFromAncestor, pdfToAncestor = pdfToAncestor });
-                return integrator.OnCameraHit(path, rng, pixelIndex, ray, hit, pdfFromAncestor, pdfToAncestor, throughput, depth, toAncestorJacobian);
+            protected override ColorRGB OnHit(Ray ray, SurfacePoint hit, float pdfFromAncestor,
+                                              float pdfToAncestor, ColorRGB throughput, int depth,
+                                              float toAncestorJacobian, Vector3 nextDirection) {
+                path.vertices.Add(new PathPdfPair { 
+                    pdfFromAncestor = pdfFromAncestor, 
+                    pdfToAncestor = pdfToAncestor 
+                });
+
+                path.throughput = throughput;
+
+                return integrator.OnCameraHit(path, rng, pixelIndex, ray, hit, pdfFromAncestor, 
+                                              pdfToAncestor, throughput, depth, toAncestorJacobian);
             }
 
             protected override ColorRGB OnInvalidHit() => ColorRGB.Black;

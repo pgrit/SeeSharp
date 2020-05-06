@@ -8,13 +8,13 @@ namespace Renderer {
     class Program {
         static void Main(string[] args) {
             //Validate_DirectIllum.Validate();
-            Validate_SingleBounce.Validate();
-            return;
+            //Validate_SingleBounce.Validate();
+            //return;
 
             var stopwatch = System.Diagnostics.Stopwatch.StartNew();
 
             //var scene = Scene.LoadFromFile("../../data/scenes/breakfast/breakfast.json");
-            var scene = Scene.LoadFromFile(@"G:\OneDrive\Graphics\TestScenes\Blender-Custom\SimpleTests\GlassBall.json");
+            var scene = Scene.LoadFromFile(@"G:\OneDrive\Graphics\TestScenes\Blender-Custom\SimpleTests\GlassBallDiffuser.json");
 
             stopwatch.Stop();
             Console.WriteLine($"Loading scene: {stopwatch.ElapsedMilliseconds}ms");
@@ -36,30 +36,29 @@ namespace Renderer {
             //scene.FrameBuffer = new Image(scene.FrameBuffer.Width, scene.FrameBuffer.Height);
             //{
             //    var algorithm = new PathTracer();
-            //    algorithm.TotalSpp = 20;
-            //    algorithm.MaxDepth = 3;
+            //    algorithm.TotalSpp = 2;
+            //    algorithm.MaxDepth = 4;
             //    algorithm.MinDepth = 1;
             //    algorithm.Render(scene);
             //    scene.FrameBuffer.WriteToFile("PathTracer.exr");
             //}
-            scene.FrameBuffer = new Image(scene.FrameBuffer.Width, scene.FrameBuffer.Height);
+            //scene.FrameBuffer = new Image(scene.FrameBuffer.Width, scene.FrameBuffer.Height);
             {
                 var algorithm = new ClassicBidir();
-                algorithm.NumIterations = 2;
-                algorithm.MaxDepth = 3;
+                algorithm.NumIterations = 1;
+                algorithm.MaxDepth = 4;
                 algorithm.Render(scene);
                 scene.FrameBuffer.WriteToFile("ClassicBidir.exr");
             }
             scene.FrameBuffer = new Image(scene.FrameBuffer.Width, scene.FrameBuffer.Height);
             {
-                var algorithm = new StratifiedMultiConnect() {
-                    NumIterations = 2,
-                    NumLightPaths = 1000,
+                var algorithm = new VertexCacheBidir() {
+                    NumIterations = 1,
                     NumConnections = 10,
-                    MaxDepth = 3
+                    MaxDepth = 4
                 };
                 algorithm.Render(scene);
-                scene.FrameBuffer.WriteToFile("StratMultiBidir.exr");
+                scene.FrameBuffer.WriteToFile("VertexCacheBidir.exr");
             }
             stopwatch.Stop();
             Console.WriteLine($"Rendering: {stopwatch.ElapsedMilliseconds}ms");

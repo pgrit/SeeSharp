@@ -32,6 +32,8 @@ namespace Integrators.Common {
             get => ref vertices[vertexId];
         }
 
+        public int Count => next;
+
         public int AddVertex(PathVertex vertex) {
             int idx = Interlocked.Increment(ref next) - 1;
 

@@ -5,21 +5,23 @@ using System.Runtime.InteropServices;
 
 namespace SeeSharp.Core.Geometry {
     public class Raytracer {
+        int sceneId;
+
         public Raytracer() {
-            SeeCoreApi.InitScene();
+            sceneId = SeeCoreApi.InitScene();
         }
 
         public void AddMesh(Mesh mesh) {
-            uint meshId = (uint)SeeCoreApi.AddTriangleMesh(mesh.Vertices, mesh.NumVertices, mesh.Indices, mesh.NumFaces * 3);
+            uint meshId = (uint)SeeCoreApi.AddTriangleMesh(sceneId, mesh.Vertices, mesh.NumVertices, mesh.Indices, mesh.NumFaces * 3);
             meshMap[meshId] = mesh;
         }
 
         public void CommitScene() {
-            SeeCoreApi.FinalizeScene();
+            SeeCoreApi.FinalizeScene(sceneId);
         }
 
         public SurfacePoint Trace(Ray ray) {
-            var minHit = SeeCoreApi.TraceSingle(ray);
+            var minHit = SeeCoreApi.TraceSingle(sceneId, ray);
 
             if (minHit.meshId == uint.MaxValue)
                 return new SurfacePoint();
@@ -102,14 +104,14 @@ namespace SeeSharp.Core.Geometry {
 
         private static class SeeCoreApi {
             [DllImport("SeeCore", CallingConvention = CallingConvention.Cdecl)]
-            public static extern void InitScene();
+            public static extern int InitScene();
 
             [DllImport("SeeCore", CallingConvention = CallingConvention.Cdecl)]
-            public static extern void FinalizeScene();
+            public static extern void FinalizeScene(int scene);
 
             [DllImport("SeeCore", CallingConvention = CallingConvention.Cdecl)]
-            public static extern int AddTriangleMesh(Vector3[] vertices, int numVerts,
-                int[] indices, int numIdx, float[] texCoords = null, float[] shadingNormals = null);
+            public static extern int AddTriangleMesh(int scene, Vector3[] vertices, int numVerts, int[] indices,
+                                                     int numIdx, float[] texCoords = null, float[] shadingNormals = null);
 
 #pragma warning disable CS0649 // The field is never assigned to (only returned from native function call)
             public readonly struct MinimalHitInfo {
@@ -122,7 +124,7 @@ namespace SeeSharp.Core.Geometry {
 #pragma warning restore CS0649 // The field is never assigned to
 
             [DllImport("SeeCore", CallingConvention = CallingConvention.Cdecl)]
-            public static extern MinimalHitInfo TraceSingle(Ray ray);
+            public static extern MinimalHitInfo TraceSingle(int scene, Ray ray);
         }
     }
 }

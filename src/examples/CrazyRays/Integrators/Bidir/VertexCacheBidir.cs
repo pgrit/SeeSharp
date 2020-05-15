@@ -13,30 +13,16 @@ namespace Integrators.Bidir {
     /// </summary>
     public class VertexCacheBidir : BidirBase {
         public int NumConnections = 5;
+        public int NumShadowRays = 1;
+
+        public bool EnableLightTracer = true;
+        public bool EnableHitting = true;
 
         TechPyramid techPyramidRaw;
         TechPyramid techPyramidWeighted;
 
-        public override void RegisterSample(ColorRGB weight, float misWeight, Vector2 pixel,
-                                            int cameraPathLength, int lightPathLength, int fullLength) {
-            techPyramidRaw.Add(cameraPathLength, lightPathLength, fullLength, pixel, weight);
-            techPyramidWeighted.Add(cameraPathLength, lightPathLength, fullLength, pixel, weight * misWeight);
-        }
-
-        public override void Render(Scene scene) {
-            techPyramidRaw = new TechPyramid(scene.FrameBuffer.Width, scene.FrameBuffer.Height, 
-                                             minDepth: 1, maxDepth: MaxDepth, merges: false);
-            techPyramidWeighted = new TechPyramid(scene.FrameBuffer.Width, scene.FrameBuffer.Height,
-                                                  minDepth: 1, maxDepth: MaxDepth, merges: false);
-            base.Render(scene);
-
-            // TODO allow user to specify a full path prefix!
-            techPyramidRaw.WriteToFiles("vertex-cache/raw-");
-            techPyramidWeighted.WriteToFiles("vertex-cache/weighted-");
-        }
-
-        public override void ProcessPathCache() {
-            SplatLightVertices();
+        public override float NextEventPdf(SurfacePoint from, SurfacePoint to) {
+            return base.NextEventPdf(from, to) * NumShadowRays;
         }
 
         public override (int, bool) SelectBidirPath(int pixelIndex, RNG rng) {
@@ -61,6 +47,31 @@ namespace Integrators.Bidir {
             return selectProb * numSamples;
         }
 
+        public override void RegisterSample(ColorRGB weight, float misWeight, Vector2 pixel,
+                                            int cameraPathLength, int lightPathLength, int fullLength) {
+            // TODO this is missing the division by the number of samples and selection probabilities!
+            //      Bidir base doesn't know about those atm
+
+            techPyramidRaw.Add(cameraPathLength, lightPathLength, fullLength, pixel, weight);
+            techPyramidWeighted.Add(cameraPathLength, lightPathLength, fullLength, pixel, weight * misWeight);
+        }
+
+        public override void Render(Scene scene) {
+            techPyramidRaw = new TechPyramid(scene.FrameBuffer.Width, scene.FrameBuffer.Height, 
+                                             minDepth: 1, maxDepth: MaxDepth, merges: false);
+            techPyramidWeighted = new TechPyramid(scene.FrameBuffer.Width, scene.FrameBuffer.Height,
+                                                  minDepth: 1, maxDepth: MaxDepth, merges: false);
+            base.Render(scene);
+
+            // TODO allow user to specify a full path prefix!
+            techPyramidRaw.WriteToFiles("vertex-cache/raw-");
+            techPyramidWeighted.WriteToFiles("vertex-cache/weighted-");
+        }
+
+        public override void ProcessPathCache() {
+            if (EnableLightTracer) SplatLightVertices();
+        }
+
         public override ColorRGB OnCameraHit(CameraPath path, RNG rng, int pixelIndex, Ray ray, SurfacePoint hit,
                                              float pdfFromAncestor, float pdfToAncestor, ColorRGB throughput,
                                              int depth, float toAncestorJacobian) {
@@ -68,7 +79,7 @@ namespace Integrators.Bidir {
 
             // Was a light hit?
             Emitter light = scene.QueryEmitter(hit);
-            if (light != null) {
+            if (light != null && EnableHitting) {
                 value += throughput * OnEmitterHit(light, hit, ray, path, toAncestorJacobian);
             }
             
@@ -78,7 +89,11 @@ namespace Integrators.Bidir {
                     var weight = throughput * BidirConnections(pixelIndex, hit, -ray.direction, rng, path, toAncestorJacobian);
                     value += weight / BidirSelectDensity();
                 }
-                value += throughput * PerformNextEventEstimation(ray, hit, rng, path, toAncestorJacobian);
+
+                for (int i = 0; i < NumShadowRays; ++i) {
+                    var weight = throughput * PerformNextEventEstimation(ray, hit, rng, path, toAncestorJacobian);
+                    value += weight / NumShadowRays;
+                }
             }
 
             return value;
@@ -154,7 +169,7 @@ namespace Integrators.Bidir {
 
         public override float NextEventMis(CameraPath cameraPath, float pdfEmit, float pdfNextEvent, float pdfHit, float pdfReverse) {
             int numPdfs = cameraPath.vertices.Count + 1;
-            int lastCameraVertexIdx = numPdfs - 2; // TODO ?? why only -1 here?
+            int lastCameraVertexIdx = numPdfs - 2;
 
             var pathPdfs = new BidirPathPdfs(lightPaths.pathCache, numPdfs);
 
@@ -169,7 +184,7 @@ namespace Integrators.Bidir {
             float sumReciprocals = 1.0f;
 
             // Hitting the light source
-            sumReciprocals += pdfHit / pdfNextEvent;
+            if (EnableHitting) sumReciprocals += pdfHit / pdfNextEvent;
 
             // All bidirectional connections
             sumReciprocals += CameraPathReciprocals(lastCameraVertexIdx, pathPdfs) / pdfNextEvent;
@@ -184,8 +199,8 @@ namespace Integrators.Bidir {
                 nextReciprocal *= pdfs.pdfsLightToCamera[i] / pdfs.pdfsCameraToLight[i];
                 sumReciprocals += nextReciprocal * BidirSelectDensity();
             }
-            // Light tracer
-            sumReciprocals += nextReciprocal * pdfs.pdfsLightToCamera[0] / pdfs.pdfsCameraToLight[0] * NumLightPaths;
+            if (EnableLightTracer)
+                sumReciprocals += nextReciprocal * pdfs.pdfsLightToCamera[0] / pdfs.pdfsCameraToLight[0] * NumLightPaths;
             return sumReciprocals;
         }
 

@@ -118,8 +118,8 @@ namespace GroundWrapper {
                     for (int y = 0; y < height; ++y) {
                         var px = img[x,y];
                         int ToInt(float chan) {
-                            chan = System.MathF.Pow(chan, 1/2.2f);
-                            return System.Math.Clamp((int)(chan * 255), 0, 255);
+                            chan = MathF.Pow(chan, 1/2.2f);
+                            return Math.Clamp((int)(chan * 255), 0, 255);
                         }
                         b.SetPixel(x, y, Color.FromArgb(ToInt(px.r), ToInt(px.g), ToInt(px.b)));
                     }

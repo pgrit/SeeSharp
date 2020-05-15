@@ -356,7 +356,7 @@ namespace Integrators.Bidir {
             // Compute pdf values
             float pdfEmit = emitter.PdfRay(hit, -ray.direction);
             pdfEmit *= reversePdfJacobian;
-            float pdfNextEvent = emitter.PdfArea(hit) / scene.Emitters.Count; // TODO use NextEventPdf() and the previous hit point!
+            float pdfNextEvent = NextEventPdf(new SurfacePoint(), hit); // TODO get the actual previous point!
 
             float misWeight = EmitterHitMis(path, pdfEmit, pdfNextEvent);
             RegisterSample(emission * path.throughput, misWeight, path.pixel,
@@ -393,6 +393,8 @@ namespace Integrators.Bidir {
                 });
 
                 path.throughput = throughput;
+
+                // TODO cache last hit here and pass it along as well
 
                 return integrator.OnCameraHit(path, rng, pixelIndex, ray, hit, pdfFromAncestor, 
                                               pdfToAncestor, throughput, depth, toAncestorJacobian);

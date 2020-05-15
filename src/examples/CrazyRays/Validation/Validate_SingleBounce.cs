@@ -140,7 +140,7 @@ namespace Renderer {
             var names = new List<string> {
                 "PathTracer",
                 "ClassicBidir",
-                "StratMultiBidir"
+                "VertexCacheBidir"
             };
 
             var images = RenderImages(scene, algorithms, names);

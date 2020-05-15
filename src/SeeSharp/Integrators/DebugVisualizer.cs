@@ -1,13 +1,11 @@
-﻿using GroundWrapper;
-using GroundWrapper.Geometry;
-using GroundWrapper.Sampling;
-using GroundWrapper.Shading;
+﻿using SeeSharp.Core;
+using SeeSharp.Core.Geometry;
+using SeeSharp.Core.Sampling;
+using SeeSharp.Core.Shading;
 using System;
-using System.Collections.Generic;
 using System.Numerics;
-using System.Text;
 
-namespace Integrators {
+namespace SeeSharp.Integrators {
     public class DebugVisualizer : Integrator {
         public uint BaseSeed = 0xC030114;
         public int TotalSpp = 1;

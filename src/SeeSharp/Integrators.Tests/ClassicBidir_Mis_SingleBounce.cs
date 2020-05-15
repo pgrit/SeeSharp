@@ -1,10 +1,10 @@
-﻿using Integrators.Bidir;
+﻿using SeeSharp.Integrators.Bidir;
 using System.Collections.Generic;
 using System.Numerics;
 using Xunit;
-using static Integrators.Bidir.BidirBase;
+using static SeeSharp.Integrators.Bidir.BidirBase;
 
-namespace Integrators.Tests {
+namespace SeeSharp.Integrators.Tests {
 
     public class ClassicBidir_Mis_SingleBounce {
 

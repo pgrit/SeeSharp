@@ -1,12 +1,12 @@
-using GroundWrapper;
-using GroundWrapper.Geometry;
-using GroundWrapper.Sampling;
-using GroundWrapper.Shading;
-using GroundWrapper.Shading.Emitters;
+using SeeSharp.Core;
+using SeeSharp.Core.Geometry;
+using SeeSharp.Core.Sampling;
+using SeeSharp.Core.Shading;
+using SeeSharp.Core.Shading.Emitters;
 using System;
 using System.Numerics;
 
-namespace Integrators {
+namespace SeeSharp.Integrators {
 
     public class PathTracer : Integrator {
         public UInt32 BaseSeed = 0xC030114;

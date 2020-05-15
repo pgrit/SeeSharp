@@ -1,12 +1,12 @@
-﻿using GroundWrapper.Shading;
+﻿using SeeSharp.Core.Shading;
 using System.Collections.Generic;
-using GroundWrapper;
+using SeeSharp.Core;
 
 using TechniqueNames = System.Collections.Generic.Dictionary
     <(int cameraPathEdges, int lightPathEdges, int totalEdges), string>;
 using System.Numerics;
 
-namespace Integrators.Bidir {
+namespace SeeSharp.Integrators.Bidir {
     public class TechPyramid {
         public TechPyramid(int width, int height, int minDepth, int maxDepth, bool merges) {
             // Generate the filenames

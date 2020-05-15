@@ -1,4 +1,4 @@
-﻿namespace Validation {
+﻿namespace SeeSharp.Validation {
 
     class Program {
         static void Main(string[] args) {

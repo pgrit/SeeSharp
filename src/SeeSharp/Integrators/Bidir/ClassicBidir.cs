@@ -1,12 +1,12 @@
-﻿using GroundWrapper;
-using GroundWrapper.Geometry;
-using GroundWrapper.Sampling;
-using GroundWrapper.Shading;
-using GroundWrapper.Shading.Emitters;
-using Integrators.Common;
+﻿using SeeSharp.Core;
+using SeeSharp.Core.Geometry;
+using SeeSharp.Core.Sampling;
+using SeeSharp.Core.Shading;
+using SeeSharp.Core.Shading.Emitters;
+using SeeSharp.Integrators.Common;
 using System.Numerics;
 
-namespace Integrators.Bidir {
+namespace SeeSharp.Integrators.Bidir {
     public class ClassicBidir : BidirBase {
         TechPyramid techPyramidRaw;
         TechPyramid techPyramidWeighted;

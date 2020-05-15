@@ -1,8 +1,8 @@
-using GroundWrapper.Geometry;
-using GroundWrapper.Shading;
+using SeeSharp.Core.Geometry;
+using SeeSharp.Core.Shading;
 using System.Threading;
 
-namespace Integrators.Common {
+namespace SeeSharp.Integrators.Common {
     public class PathVertex {
         public SurfacePoint point;
 

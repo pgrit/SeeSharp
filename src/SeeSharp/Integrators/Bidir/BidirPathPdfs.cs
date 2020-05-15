@@ -1,8 +1,8 @@
-﻿using Integrators.Common;
+﻿using SeeSharp.Integrators.Common;
 using System;
-using static Integrators.Bidir.BidirBase;
+using static SeeSharp.Integrators.Bidir.BidirBase;
 
-namespace Integrators {
+namespace SeeSharp.Integrators {
     /// <summary> 
     /// Assembles the pdf values in two arrays. The elements of each array
     /// correspond to the pdf values of sampling each vertex along the path.

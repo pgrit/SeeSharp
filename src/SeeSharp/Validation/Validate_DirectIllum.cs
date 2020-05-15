@@ -1,16 +1,16 @@
-﻿using GroundWrapper;
-using GroundWrapper.Cameras;
-using GroundWrapper.Geometry;
-using GroundWrapper.Shading;
-using GroundWrapper.Shading.Emitters;
-using GroundWrapper.Shading.Materials;
-using Integrators;
-using Integrators.Bidir;
+﻿using SeeSharp.Core;
+using SeeSharp.Core.Cameras;
+using SeeSharp.Core.Geometry;
+using SeeSharp.Core.Shading;
+using SeeSharp.Core.Shading.Emitters;
+using SeeSharp.Core.Shading.Materials;
+using SeeSharp.Integrators;
+using SeeSharp.Integrators.Bidir;
 using System;
 using System.Collections.Generic;
 using System.Numerics;
 
-namespace Validation {
+namespace SeeSharp.Validation {
     public static class Validate_DirectIllum {
         static Scene SetupQuadLightScene() {
             var scene = new Scene();

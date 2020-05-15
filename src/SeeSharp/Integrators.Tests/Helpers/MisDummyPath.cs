@@ -1,10 +1,10 @@
-﻿using GroundWrapper.Geometry;
-using Integrators.Common;
+﻿using SeeSharp.Core.Geometry;
+using SeeSharp.Integrators.Common;
 using System;
 using System.Numerics;
-using static Integrators.Bidir.BidirBase;
+using static SeeSharp.Integrators.Bidir.BidirBase;
 
-namespace Integrators.Tests.Helpers {
+namespace SeeSharp.Integrators.Tests.Helpers {
     public struct MisDummyPath {
         public float lightArea;
         public int numLightPaths;

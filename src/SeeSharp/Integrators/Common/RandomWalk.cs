@@ -1,11 +1,11 @@
-﻿using GroundWrapper;
-using GroundWrapper.Geometry;
-using GroundWrapper.Sampling;
-using GroundWrapper.Shading;
-using GroundWrapper.Shading.Emitters;
+﻿using SeeSharp.Core;
+using SeeSharp.Core.Geometry;
+using SeeSharp.Core.Sampling;
+using SeeSharp.Core.Shading;
+using SeeSharp.Core.Shading.Emitters;
 using System.Numerics;
 
-namespace Integrators.Common {
+namespace SeeSharp.Integrators.Common {
     public class RandomWalk {
         public RandomWalk(Scene scene, RNG rng, int maxDepth) {
             this.scene = scene;

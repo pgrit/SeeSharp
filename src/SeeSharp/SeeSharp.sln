@@ -7,11 +7,11 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Validation", "Validation\Va
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Integrators", "Integrators\Integrators.csproj", "{B2C79F47-073A-44E3-8B2A-0F3507A02A10}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "GroundWrapper", "GroundWrapper\GroundWrapper.csproj", "{2E06055D-E13E-4266-ABBA-D270B9C0BCB0}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Core", "Core\Core.csproj", "{2E06055D-E13E-4266-ABBA-D270B9C0BCB0}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Integrators.Tests", "Integrators.Tests\Integrators.Tests.csproj", "{2498C72E-7351-4A51-B21D-558E1ACA037C}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "GroundWrapper.Tests", "GroundWrapper.Tests\GroundWrapper.Tests.csproj", "{749A8035-A5DA-4B15-BF9E-21B631E24F68}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Core.Tests", "Core.Tests\Core.Tests.csproj", "{749A8035-A5DA-4B15-BF9E-21B631E24F68}"
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{4972C1E0-5294-4AF5-B5C3-06DE738A9599}"
 	ProjectSection(SolutionItems) = preProject

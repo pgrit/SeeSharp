@@ -57,14 +57,23 @@
         "baseColor": {
           "type": "rgb",
           "value": [0.725, 0.71, 0.68]
-        }
+        },
+
+        "roughness": 0.2,
+        "specularTransmittance": 1,
+        "IOR": 1.56
       },
       {
         "name": "TallBox",
         "baseColor": {
           "type": "rgb",
           "value": [0.725, 0.71, 0.68]
-        }
+        },
+
+        "roughness": 0.1,
+        "specularTint": 1,
+        "anisotropic": 0.3,
+        "metallic": 0.8
       },
       {
         "name": "Light",

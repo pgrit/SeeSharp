@@ -1,4 +1,12 @@
-# Building the project
+# Components
+
+## Blender exporter
+
+## C++ libraries
+
+## SeeSharp rendering framework
+
+# Building the C++ libraries
 
 You will need CMake and a C++14 compliant compiler to build the project.
 
@@ -8,13 +16,11 @@ The recommended method to install dependencies is using vcpkg on all platforms.
 
 - Embree 3
 - TBB (also a dependency of Embree)
-- rapidjson
-- GTest (to build the unit tests)
 
 For example, for a 64-Bit build on Windows, install all dependencies via:
 
 ```
-vcpkg install embree3 tbb rapidjson gtest --triplet=x64-windows
+vcpkg install embree3 tbb --triplet=x64-windows
 ```
 
 ## Using CMake to build
@@ -22,7 +28,7 @@ vcpkg install embree3 tbb rapidjson gtest --triplet=x64-windows
 To build the project after installing the dependencies, first create a new folder, for example:
 
 ```
-cd renderground
+cd SeeSharp
 mkdir build
 cd build
 ```
@@ -36,6 +42,22 @@ cmake --build .
 
 Or, alternatively, simply open the folder in Visual Studio 2019 and it should be automatically configured correctly.
 
-# Generating the documentation
+# Building the SeeSharp framework
 
-Run doxygen in the root folder and use `docs/doxyfile` as the configuration file. The output will be in the `docs` folder.
+## Building
+
+Building is trivial. From anywhere, simply run:
+
+```
+dotnet build [PATH_TO_ROOT_DIR]/src/SeeSharp
+```
+
+## Testing
+
+To run the unit test, you first need to add the folder `dist` to the path (as it contains the shared libraries).
+Then, run the following commands:
+
+```
+cd dist
+dotnet test ../src/SeeSharp/
+```

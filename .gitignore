@@ -16,8 +16,7 @@ obj
 
 # CMake generated files
 build
-src/dist/*
-!src/dist/renderground-scene-schema.json
+dist/*
 
 # Python temporary and build files
 __pycache__

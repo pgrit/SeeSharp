@@ -2,7 +2,7 @@
 using SeeSharp.Integrators;
 using System.Collections.Generic;
 
-namespace Experiments {
+namespace SeeSharp.Experiments {
     public abstract class ExperimentFactory {
         public abstract Dictionary<string, Integrator> MakeMethods();
         public abstract Scene MakeScene();

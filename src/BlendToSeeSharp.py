@@ -113,8 +113,8 @@ def write_some_data(context, filepath):
 
 class ExportSomeData(Operator, ExportHelper):
     """This appears in the tooltip of the operator and in the generated docs"""
-    bl_idname = "export.to_ground"
-    bl_label = "Ground Scene Exporter"
+    bl_idname = "export.to_seesharp"
+    bl_label = "SeeSharp Scene Exporter"
 
     # ExportHelper mixin class uses this
     filename_ext = ".json"
@@ -143,4 +143,4 @@ if __name__ == "__main__":
     register()
 
     # test call
-    bpy.ops.export.to_ground('INVOKE_DEFAULT')
+    bpy.ops.export.to_seesharp('INVOKE_DEFAULT')

@@ -1,4 +1,5 @@
 ﻿using SeeSharp.Core;
+using SeeSharp.Experiments;
 using SeeSharp.Integrators;
 using System.IO;
 
@@ -19,10 +20,12 @@ namespace Experiments {
         /// Each method's images are placed in a separate folder, using the method's name
         /// as the folder's name.
         /// </summary>
-        public void Run() {
+        public void Run(bool forceReference = false) {
             var scene = factory.MakeScene();
+            scene.FrameBuffer = new Image(width, height);
+            scene.Prepare();
 
-            RenderReference(false);
+            RenderReference(scene, forceReference);
 
             var methods = factory.MakeMethods();
             foreach (var method in methods) {
@@ -34,10 +37,9 @@ namespace Experiments {
             }
         }
 
-        public void RenderReference(bool force) {
+        private void RenderReference(Scene scene, bool force) {
             bool exists = File.Exists(Path.Join(workingDirectory, "reference.exr"));
             if (!exists || force) {
-                var scene = factory.MakeScene();
                 var integrator = factory.MakeReferenceIntegrator();
                 Render(workingDirectory, "reference.exr", integrator, scene);
             }

@@ -84,6 +84,12 @@ and a small subset of Cycles materials, to SeeSharp's file format. The script is
 `src/BlendToSeeSharp.py`
 To use the script, simply run it within Blender.
 
+### Exporting an example scene
+
+### Rendering with the interactive viewer
+
+### Performance comparison to Mitsuba
+
 ## Conducting an experiment
 
 SeeSharp is designed to be used as a library, to write rendering experiments with. To get started, you should first create a new console application that will contain you experiment set-up, as well as any additional algorithms or other changes you will introduce.

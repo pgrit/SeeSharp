@@ -48,7 +48,12 @@ namespace SeeSharp.Core.Shading.Bsdfs {
         Vector3? BsdfComponent.Sample(Vector3 outDir, bool isOnLightSubpath, Vector2 primarySample) {
             // Transform primary sample to cosine hemisphere
             var local = SampleWrap.ToCosHemisphere(primarySample);
-            return -local.direction;
+
+            // Make sure the sample is in the other hemisphere as the outgoing direction
+            if (ShadingSpace.CosTheta(outDir) > 0)
+                local.direction.Z *= -1;
+                
+            return local.direction;
         }
 
         (float, float) BsdfComponent.Pdf(Vector3 outDir, Vector3 inDir, bool isOnLightSubpath) {

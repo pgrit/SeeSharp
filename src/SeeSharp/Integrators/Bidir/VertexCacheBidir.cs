@@ -1,9 +1,11 @@
 ﻿using SeeSharp.Core;
+using SeeSharp.Core.Cameras;
 using SeeSharp.Core.Geometry;
 using SeeSharp.Core.Sampling;
 using SeeSharp.Core.Shading;
 using SeeSharp.Core.Shading.Emitters;
 using SeeSharp.Integrators.Common;
+using System.IO;
 using System.Numerics;
 
 namespace SeeSharp.Integrators.Bidir {
@@ -18,8 +20,13 @@ namespace SeeSharp.Integrators.Bidir {
         public bool EnableLightTracer = true;
         public bool EnableHitting = true;
 
+        public bool RenderTechniquePyramid = true;
+        public string TechniquePyramidPath = "vertex-cache";
+
         TechPyramid techPyramidRaw;
         TechPyramid techPyramidWeighted;
+
+        VertexSelector vertexSelector;
 
         public override float NextEventPdf(SurfacePoint from, SurfacePoint to) {
             return base.NextEventPdf(from, to) * NumShadowRays;
@@ -27,8 +34,7 @@ namespace SeeSharp.Integrators.Bidir {
 
         public override (int, bool) SelectBidirPath(int pixelIndex, RNG rng) {
             // Select a single vertex from the entire cache at random
-            // TODO the vertices on the lights should not be in the cache!
-            return (rng.NextInt(0, lightPaths.pathCache.Count), false);
+            return (vertexSelector.Select(rng), false);
         }
 
         /// <summary>
@@ -38,7 +44,7 @@ namespace SeeSharp.Integrators.Bidir {
         /// <returns>Effective density</returns>
         public float BidirSelectDensity() {
             // We select light path vertices uniformly
-            float selectProb = 1.0f / lightPaths.pathCache.Count;
+            float selectProb = 1.0f / vertexSelector.Count;
 
             // There are "NumLightPaths" samples that could have generated the selected vertex, 
             // we repeat the process "NumConnections" times
@@ -49,27 +55,45 @@ namespace SeeSharp.Integrators.Bidir {
 
         public override void RegisterSample(ColorRGB weight, float misWeight, Vector2 pixel,
                                             int cameraPathLength, int lightPathLength, int fullLength) {
-            // TODO this is missing the division by the number of samples and selection probabilities!
-            //      Bidir base doesn't know about those atm
+            if (!RenderTechniquePyramid)
+                return;
+
+            // Divide by the splitting factors and selection probabilities
+            if (lightPathLength == 0 && fullLength != cameraPathLength) {
+                // next event estimation
+                weight /= NumShadowRays;
+            } else if (cameraPathLength > 0 && lightPathLength > 0) {
+                // bidirectional connection
+                weight /= BidirSelectDensity();
+            }
+
+            // Technique pyramids are rendered across all iterations
+            weight /= NumIterations;
 
             techPyramidRaw.Add(cameraPathLength, lightPathLength, fullLength, pixel, weight);
             techPyramidWeighted.Add(cameraPathLength, lightPathLength, fullLength, pixel, weight * misWeight);
         }
 
         public override void Render(Scene scene) {
-            techPyramidRaw = new TechPyramid(scene.FrameBuffer.Width, scene.FrameBuffer.Height, 
-                                             minDepth: 1, maxDepth: MaxDepth, merges: false);
-            techPyramidWeighted = new TechPyramid(scene.FrameBuffer.Width, scene.FrameBuffer.Height,
-                                                  minDepth: 1, maxDepth: MaxDepth, merges: false);
+            if (RenderTechniquePyramid) {
+                techPyramidRaw = new TechPyramid(scene.FrameBuffer.Width, scene.FrameBuffer.Height,
+                                                 minDepth: 1, maxDepth: MaxDepth, merges: false);
+                techPyramidWeighted = new TechPyramid(scene.FrameBuffer.Width, scene.FrameBuffer.Height,
+                                                      minDepth: 1, maxDepth: MaxDepth, merges: false);
+            }
+
             base.Render(scene);
 
-            // TODO allow user to specify a full path prefix!
-            techPyramidRaw.WriteToFiles("vertex-cache/raw-");
-            techPyramidWeighted.WriteToFiles("vertex-cache/weighted-");
+            if (RenderTechniquePyramid) {
+                techPyramidRaw.WriteToFiles(Path.Join(TechniquePyramidPath, "raw-"));
+                techPyramidWeighted.WriteToFiles(Path.Join(TechniquePyramidPath, "weighted-"));
+            }
         }
 
         public override void ProcessPathCache() {
-            if (EnableLightTracer) SplatLightVertices();
+            if (EnableLightTracer) 
+                SplatLightVertices();
+            vertexSelector = new VertexSelector(lightPaths.pathCache);
         }
 
         public override ColorRGB OnCameraHit(CameraPath path, RNG rng, int pixelIndex, Ray ray, SurfacePoint hit,

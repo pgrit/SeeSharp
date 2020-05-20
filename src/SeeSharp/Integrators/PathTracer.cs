@@ -46,7 +46,6 @@ namespace SeeSharp.Integrators {
 
         private ColorRGB PerformNextEventEstimation(Scene scene, Ray ray, SurfacePoint hit, RNG rng) {
             // Select a light source
-            // TODO implement multi-light support
             int idx = rng.NextInt(0, scene.Emitters.Count);
             var light = scene.Emitters[idx];
             float lightSelectProb = 1.0f / scene.Emitters.Count;

@@ -32,6 +32,12 @@ namespace SeeSharp.Integrators.Bidir {
             return base.NextEventPdf(from, to) * NumShadowRays;
         }
 
+        public override (Emitter, SurfaceSample) SampleNextEvent(SurfacePoint from, RNG rng) {
+            var (light, sample) = base.SampleNextEvent(from, rng);
+            sample.pdf *= NumShadowRays;
+            return (light, sample);
+        }
+
         public override (int, bool) SelectBidirPath(int pixelIndex, RNG rng) {
             // Select a single vertex from the entire cache at random
             return (vertexSelector.Select(rng), false);
@@ -59,10 +65,7 @@ namespace SeeSharp.Integrators.Bidir {
                 return;
 
             // Divide by the splitting factors and selection probabilities
-            if (lightPathLength == 0 && fullLength != cameraPathLength) {
-                // next event estimation
-                weight /= NumShadowRays;
-            } else if (cameraPathLength > 0 && lightPathLength > 0) {
+            if (cameraPathLength > 0 && lightPathLength > 0) { 
                 // bidirectional connection
                 weight /= BidirSelectDensity();
             }
@@ -115,8 +118,7 @@ namespace SeeSharp.Integrators.Bidir {
                 }
 
                 for (int i = 0; i < NumShadowRays; ++i) {
-                    var weight = throughput * PerformNextEventEstimation(ray, hit, rng, path, toAncestorJacobian);
-                    value += weight / NumShadowRays;
+                    value += throughput * PerformNextEventEstimation(ray, hit, rng, path, toAncestorJacobian);
                 }
             }
 

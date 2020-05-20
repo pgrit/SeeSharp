@@ -66,12 +66,6 @@ namespace SeeSharp.Integrators.Bidir {
         public virtual float SelectLightPmf(SurfacePoint from, Emitter em)
             => SelectLightPmf(em);
 
-        public virtual float NextEventPdf(SurfacePoint from, SurfacePoint to) {
-            var emitter = scene.QueryEmitter(to);
-            float pdf = emitter.PdfArea(to) * SelectLightPmf(from, emitter);
-            return pdf;
-        }
-
         /// <summary>
         /// Called once for each pixel per iteration. Expected to perform some sort of path tracing,
         /// possibly connecting vertices with those from the light path cache.
@@ -101,19 +95,9 @@ namespace SeeSharp.Integrators.Bidir {
             }
 
             for (uint iter = 0; iter < NumIterations; ++iter) {
-                //var stopwatch = System.Diagnostics.Stopwatch.StartNew();
-                //Console.WriteLine($"starting iteration{iter}");
                 lightPaths.TraceAllPaths(iter, AddNextEventPdf);
-                //stopwatch.Stop();
-                //Console.WriteLine($"done tracing light paths - {stopwatch.ElapsedMilliseconds}ms");
-                //stopwatch.Restart();
                 ProcessPathCache();
-                //stopwatch.Stop();
-                //Console.WriteLine($"done processing - {stopwatch.ElapsedMilliseconds}ms");
-                //stopwatch.Restart();
                 TraceAllCameraPaths(iter);
-                //stopwatch.Stop();
-                //Console.WriteLine($"done with camera pass - {stopwatch.ElapsedMilliseconds}ms");
             }
         }
 
@@ -235,6 +219,11 @@ namespace SeeSharp.Integrators.Bidir {
                                          RNG rng, CameraPath path, float reversePdfJacobian) {
             ColorRGB result = ColorRGB.Black;
 
+            if (lightPaths.pathCache.Count - NumLightPaths == 0) {
+                // No light paths to connect to! (not counting those on the emitter itself)
+                return ColorRGB.Black;
+            }
+
             // Select a path to connect to (based on pixel index)
             (int lightEndpoint, bool connectAncestors) = SelectBidirPath(pixelIndex, rng);
 
@@ -307,11 +296,22 @@ namespace SeeSharp.Integrators.Bidir {
 
         public abstract float NextEventMis(CameraPath cameraPath, float pdfEmit, float pdfNextEvent, float pdfHit, float pdfReverse);
 
-        public ColorRGB PerformNextEventEstimation(Ray ray, SurfacePoint hit, RNG rng, CameraPath path, float reversePdfJacobian) {
-            // Sample a point on the light source
-            var (light, lightProb, _) = SelectLight(hit, rng.NextFloat());
+        public virtual float NextEventPdf(SurfacePoint from, SurfacePoint to) {
+            var emitter = scene.QueryEmitter(to);
+            float pdf = emitter.PdfArea(to) * SelectLightPmf(from, emitter);
+            return pdf;
+        }
+
+        public virtual (Emitter, SurfaceSample) SampleNextEvent(SurfacePoint from, RNG rng) {
+            var (light, lightProb, _) = SelectLight(from, rng.NextFloat());
             var lightSample = light.SampleArea(rng.NextFloat2D());
             lightSample.pdf *= lightProb;
+            return (light, lightSample);
+        }
+
+        public ColorRGB PerformNextEventEstimation(Ray ray, SurfacePoint hit, RNG rng, CameraPath path, float reversePdfJacobian) {
+            // Sample a point on the light source
+            var (light, lightSample) = SampleNextEvent(hit, rng);
 
             if (!scene.Raytracer.IsOccluded(hit, lightSample.point)) {
                 Vector3 lightToSurface = hit.position - lightSample.point.position;
@@ -335,6 +335,7 @@ namespace SeeSharp.Integrators.Bidir {
 
                 float pdfEmit = light.PdfRay(lightSample.point, lightToSurface);
                 pdfEmit *= SampleWrap.SurfaceAreaToSolidAngle(lightSample.point, hit);
+                pdfEmit *= lightPaths.SelectLightPmf(light);
 
                 float misWeight = NextEventMis(path, pdfEmit, lightSample.pdf, bsdfForwardPdf, bsdfReversePdf);
 
@@ -356,6 +357,7 @@ namespace SeeSharp.Integrators.Bidir {
             // Compute pdf values
             float pdfEmit = emitter.PdfRay(hit, -ray.direction);
             pdfEmit *= reversePdfJacobian;
+            pdfEmit *= lightPaths.SelectLightPmf(emitter);
             float pdfNextEvent = NextEventPdf(new SurfacePoint(), hit); // TODO get the actual previous point!
 
             float misWeight = EmitterHitMis(path, pdfEmit, pdfNextEvent);

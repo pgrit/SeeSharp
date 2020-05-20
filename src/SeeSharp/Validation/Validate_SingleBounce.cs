@@ -4,15 +4,17 @@ using SeeSharp.Core.Geometry;
 using SeeSharp.Core.Shading;
 using SeeSharp.Core.Shading.Emitters;
 using SeeSharp.Core.Shading.Materials;
-using SeeSharp.Integrators;
-using SeeSharp.Integrators.Bidir;
-using System;
-using System.Collections.Generic;
 using System.Numerics;
 
 namespace SeeSharp.Validation {
-    public class Validate_SingleBounce {
-        static Scene SetupQuadLightScene() {
+    class Validate_SingleBounce : ValidationSceneFactory {
+        public override int SamplesPerPixel => 10;
+
+        public override int MaxDepth => 3;
+
+        public override string Name => "SingleBounce";
+
+        public override Scene MakeScene() {
             var scene = new Scene();
 
             // Ground plane
@@ -74,80 +76,6 @@ namespace SeeSharp.Validation {
             scene.Prepare();
 
             return scene;
-        }
-
-        static bool ValidateImages(List<Image> images) {
-            // Compute all mean values
-            var means = new List<float>();
-            foreach (var img in images) {
-                float average = 0;
-                for (int r = 0; r < img.Height; ++r) {
-                    for (int c = 0; c < img.Width; ++c) {
-                        var rgb = img[c, r];
-                        average += (rgb.r + rgb.b + rgb.g) / (3 * img.Width * img.Height);
-                    }
-                }
-                means.Add(average);
-            }
-
-            // Check that they are within a small margin of error (1%)
-            foreach (var m in means)
-                if (Math.Abs(m - means[0]) > means[0] * 0.01)
-                    return false;
-
-            return true;
-        }
-
-        static List<Image> RenderImages(Scene scene, List<Integrator> algorithms, List<string> names) {
-            var images = new List<Image>();
-
-            var stopwatch  = System.Diagnostics.Stopwatch.StartNew();
-
-            for (int i = 0; i < algorithms.Count; ++i) {
-                stopwatch.Restart();
-                algorithms[i].Render(scene);
-                stopwatch.Stop();
-                Console.WriteLine($"Done with {names[i]} after {stopwatch.ElapsedMilliseconds}ms.");
-
-                images.Add(scene.FrameBuffer);
-                scene.FrameBuffer.WriteToFile($"{names[i]}.exr");
-                scene.FrameBuffer = new Image(scene.FrameBuffer.Width, scene.FrameBuffer.Height);
-            }
-
-            return images;
-        }
-
-        public static void Validate() {
-            var scene = SetupQuadLightScene();
-
-            var algorithms = new List<Integrator>() {
-                new PathTracer() {
-                    TotalSpp = 10,
-                    MaxDepth = 3,
-                    MinDepth = 1
-                },
-                new ClassicBidir() {
-                    NumIterations = 10,
-                    MaxDepth = 3
-                },
-                new VertexCacheBidir() {
-                    NumIterations = 10,
-                    MaxDepth = 3,
-                    NumConnections = 4,
-                    NumLightPaths = 10
-                }
-            };
-            var names = new List<string> {
-                "PathTracer",
-                "ClassicBidir",
-                "VertexCacheBidir"
-            };
-
-            var images = RenderImages(scene, algorithms, names);
-
-            if (!ValidateImages(images)) {
-                Console.WriteLine("Validation error: Average image values too far appart!");
-            }
         }
     }
 }

@@ -71,6 +71,25 @@ namespace SeeSharp.Core.Sampling {
             return Math.Abs(cosine) / MathF.PI;
         }
 
+
+        public static DirectionSample ToCosineLobe(float power, Vector2 primary) {
+            float phi = MathF.PI * 2.0f * primary.X;
+            float cos_t = MathF.Pow(primary.Y, 1.0f / (power + 1.0f));
+            float sin_t = MathF.Sqrt(1.0f - (cos_t * cos_t)); // cos_t cannot be >= 1
+
+            Vector3 local_dir = SphericalToCartesian(sin_t, cos_t, phi);
+
+            return new DirectionSample { 
+                direction = local_dir, 
+                pdf = (power + 1.0f) * MathF.Pow(cos_t, power) * 1.0f / (2.0f * MathF.PI) 
+            };
+        }
+
+        public static float ToCosineLobeJacobian(float power, float cos) {
+            return cos > 0.0f ? ((power + 1.0f) * MathF.Pow(cos, power) * 1.0f / (2.0f * MathF.PI)) : 0.0f;
+        }
+
+
         /// <summary>
         /// Computes the inverse jacobian for the mapping from surface area around "to" to the sphere around "from". 
         /// 

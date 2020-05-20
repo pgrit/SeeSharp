@@ -1,6 +1,7 @@
 ﻿using SeeSharp.Core;
 using SeeSharp.Experiments;
 using SeeSharp.Integrators;
+using System.Collections.Generic;
 using System.IO;
 
 namespace Experiments {
@@ -26,15 +27,23 @@ namespace Experiments {
             scene.Prepare();
 
             RenderReference(scene, forceReference);
-
+            allImages.Add("reference.exr");
+            
             var methods = factory.MakeMethods();
             foreach (var method in methods) {
-                var name = method.Key;
-                var integrator = method.Value;
+                string path = Path.Join(workingDirectory, method.name);
+                Render(path, "render.exr", method.integrator, scene);
 
-                string path = Path.Join(workingDirectory, name);
-                Render(path, "render.exr", integrator, scene);
+                allImages.Add(Path.Join(method.name, "render.exr"));
+                allImages.AddRange(method.files);
             }
+
+            GenerateOpenScript();
+        }
+
+        private void GenerateOpenScript() {
+            string command = "tev " + string.Join(" ", allImages);
+            System.IO.File.WriteAllText(Path.Join(workingDirectory, "open-tev.ps1"), command);
         }
 
         private void RenderReference(Scene scene, bool force) {
@@ -52,7 +61,8 @@ namespace Experiments {
             integrator.Render(scene);
             stopwatch.Stop();
 
-            scene.FrameBuffer.WriteToFile(Path.Join(dir, filename));
+            var path = Path.Join(dir, filename);
+            scene.FrameBuffer.WriteToFile(path);
 
             return stopwatch.ElapsedMilliseconds / 1000.0;
         }
@@ -60,5 +70,6 @@ namespace Experiments {
         ExperimentFactory factory;
         string workingDirectory;
         int width, height;
+        List<string> allImages = new List<string>();
     }
 }

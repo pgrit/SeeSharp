@@ -5,6 +5,7 @@ namespace SeeSharp.Core.Shading.Materials {
     public class DiffuseMaterial : Material {
         public class Parameters {
             public Image baseColor = Image.Constant(ColorRGB.White);
+            public bool transmitter = false;
         }
         public DiffuseMaterial(Parameters parameters) => this.parameters = parameters;
 
@@ -14,9 +15,19 @@ namespace SeeSharp.Core.Shading.Materials {
             // Evaluate textures // TODO make those actual textures
             var baseColor = parameters.baseColor[tex.X * parameters.baseColor.Width, tex.Y * parameters.baseColor.Height];
 
-            return new Bsdf { Components = new BsdfComponent[] {
-                new DiffuseBsdf { reflectance = baseColor }
-            }, shadingNormal = hit.ShadingNormal };
+            if (parameters.transmitter) {
+                return new Bsdf {
+                    Components = new BsdfComponent[] {
+                        new DiffuseTransmission { Transmittance = baseColor }
+                    }, shadingNormal = hit.ShadingNormal
+                };
+            } else {
+                return new Bsdf {
+                    Components = new BsdfComponent[] {
+                        new DiffuseBsdf { reflectance = baseColor }
+                    }, shadingNormal = hit.ShadingNormal
+                };
+            }
         }
 
         Parameters parameters;

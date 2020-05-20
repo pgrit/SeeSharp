@@ -13,6 +13,7 @@ namespace SeeSharp.Integrators.Bidir {
 
         public override void RegisterSample(ColorRGB weight, float misWeight, Vector2 pixel,
                                             int cameraPathLength, int lightPathLength, int fullLength) {
+            weight /= NumIterations;
             techPyramidRaw.Add(cameraPathLength, lightPathLength, fullLength, pixel, weight);
             techPyramidWeighted.Add(cameraPathLength, lightPathLength, fullLength, pixel, weight * misWeight);
         }

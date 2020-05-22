@@ -1,6 +1,6 @@
 <img src="logo.png" width=120 height=120 alt="SeeSharp Logo" />
 
-# SeeSharp 
+# SeeSharp
 
 Traditional rendering frameworks are almost exclusively written in C++. They offer great
 performance, but require quite some implementation effort. Hence, quickly testing various
@@ -9,11 +9,11 @@ that problem.
 
 In principle, SeeSharp is yet another rendering framework. It combines the Embree traversal
 kernels with a PBRT-style material system and a variety of rendering algorithms (integrators).
-The key difference is the choice of programming language: C#. Thanks to C# and .NET core, 
-rendering experiments can benefit from short compile times, far easier debuging, no nasty 
+The key difference is the choice of programming language: C#. Thanks to C# and .NET core,
+rendering experiments can benefit from short compile times, far easier debuging, no nasty
 segfaults, and even a REPL.
 
-At the cost of a surprisingly small reduction in performance, experiments can be done much 
+At the cost of a surprisingly small reduction in performance, experiments can be done much
 quicker, and without wasting time on debugging undefined behaviour only because you yet again forgot a -1 somewhere.
 
 The following sections explain how to get the framework up and running. Additionally, a simple
@@ -51,11 +51,13 @@ cd build
 Now use CMake to generate the proper makefiles for your platform, don't forget to specify the vcpkg toolchain file:
 
 ```
-cmake .. -DCMAKE_TOOLCHAIN_FILE=...
-cmake --build .
+cmake .. -DCMAKE_BUILD_TYPE=Release -DCMAKE_TOOLCHAIN_FILE=...
+cmake --build . --config Release
 ```
 
 Or, alternatively, simply open the folder in Visual Studio 2019 and it should be automatically configured correctly.
+
+In order to use the shared libraries that are now in the `dist` folder, consider adding the folder to the PATH.
 
 ## Building the SeeSharp framework
 
@@ -80,7 +82,7 @@ dotnet test ../src/SeeSharp/
 ## Rendering a scene from Blender
 
 SeeSharp comes with a simple export script for Blender, that can export triangle meshes, cameras,
-and a small subset of Cycles materials, to SeeSharp's file format. The script is called 
+and a small subset of Cycles materials, to SeeSharp's file format. The script is called
 `src/BlendToSeeSharp.py`
 To use the script, simply run it within Blender.
 

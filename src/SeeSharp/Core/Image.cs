@@ -2,7 +2,6 @@ using SeeSharp.Core.Shading;
 using System;
 using System.Drawing;
 using System.Runtime.InteropServices;
-using System.Threading;
 
 namespace SeeSharp.Core {
     public class Image {
@@ -25,24 +24,11 @@ namespace SeeSharp.Core {
             data = new ColorRGB[width * height];
         }
 
-        float AtomicAddFloat(ref float target, float addend) {
-            float initialValue, computedValue;
-            do {
-                initialValue = target;
-                computedValue = initialValue + addend;
-            } while (initialValue !=
-                Interlocked.CompareExchange(ref target, computedValue, initialValue));
-            return computedValue;
-        }
-
         public void Splat(float x, float y, ColorRGB value) {
             int idx = IndexOf(x, y);
             lock (this) {
                 this[x, y] += value;
             }
-            //AtomicAddFloat(ref data[idx].r, value.r);
-            //AtomicAddFloat(ref data[idx].g, value.g);
-            //AtomicAddFloat(ref data[idx].b, value.b);
         }
 
         int IndexOf(float x, float y) {

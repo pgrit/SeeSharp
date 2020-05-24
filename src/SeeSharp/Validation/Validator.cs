@@ -7,14 +7,14 @@ using SeeSharp.Integrators.Bidir;
 
 namespace SeeSharp.Validation {
     class Validator {
-        static bool ValidateImages(List<Image> images) {
+        static bool ValidateImages(List<FrameBuffer> images) {
             // Compute all mean values
             var means = new List<float>();
             foreach (var img in images) {
                 float average = 0;
                 for (int r = 0; r < img.Height; ++r) {
                     for (int c = 0; c < img.Width; ++c) {
-                        var rgb = img[c, r];
+                        var rgb = img.image[c, r];
                         average += (rgb.r + rgb.b + rgb.g) / (3 * img.Width * img.Height);
                     }
                 }
@@ -29,9 +29,9 @@ namespace SeeSharp.Validation {
             return true;
         }
 
-        static List<Image> RenderImages(Scene scene, List<Integrator> algorithms, List<string> names, 
+        static List<FrameBuffer> RenderImages(Scene scene, List<Integrator> algorithms, List<string> names, 
                                         string testname) {
-            var images = new List<Image>();
+            var images = new List<FrameBuffer>();
 
             var stopwatch  = System.Diagnostics.Stopwatch.StartNew();
 
@@ -43,7 +43,7 @@ namespace SeeSharp.Validation {
 
                 images.Add(scene.FrameBuffer);
                 scene.FrameBuffer.WriteToFile(System.IO.Path.Join($"{testname}", $"{names[i]}.exr"));
-                scene.FrameBuffer = new Image(scene.FrameBuffer.Width, scene.FrameBuffer.Height);
+                scene.FrameBuffer = new FrameBuffer(scene.FrameBuffer.Width, scene.FrameBuffer.Height);
             }
 
             return images;

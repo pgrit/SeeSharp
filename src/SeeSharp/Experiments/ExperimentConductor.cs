@@ -23,7 +23,7 @@ namespace Experiments {
         /// </summary>
         public void Run(bool forceReference = false) {
             var scene = factory.MakeScene();
-            scene.FrameBuffer = new Image(width, height);
+            scene.FrameBuffer = new FrameBuffer(width, height);
             scene.Prepare();
 
             RenderReference(scene, forceReference);
@@ -55,7 +55,7 @@ namespace Experiments {
         }
 
         private double Render(string dir, string filename, Integrator integrator, Scene scene) {
-            scene.FrameBuffer = new Image(width, height);
+            scene.FrameBuffer = new FrameBuffer(width, height);
 
             var stopwatch = System.Diagnostics.Stopwatch.StartNew();
             integrator.Render(scene);

@@ -11,7 +11,7 @@ using System.Text.Json;
 
 namespace SeeSharp.Core {
     public class Scene {
-        public Image FrameBuffer;
+        public FrameBuffer FrameBuffer;
         public Cameras.Camera Camera;
 
         public List<Mesh> Meshes = new List<Mesh>();

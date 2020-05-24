@@ -14,7 +14,7 @@ namespace SeeSharp.Core.Cameras {
                 throw new System.ArgumentException("World to camera transform must be invertible.", "worldToCamera");
         }
 
-        public abstract void UpdateFrameBuffer(Image value);
+        public abstract void UpdateFrameBuffer(FrameBuffer value);
 
         public abstract Ray GenerateRay(Vector2 filmPos);
 

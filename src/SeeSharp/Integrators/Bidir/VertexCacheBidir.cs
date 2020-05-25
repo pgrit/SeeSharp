@@ -52,7 +52,7 @@ namespace SeeSharp.Integrators.Bidir {
             // We select light path vertices uniformly
             float selectProb = 1.0f / vertexSelector.Count;
 
-            // There are "NumLightPaths" samples that could have generated the selected vertex, 
+            // There are "NumLightPaths" samples that could have generated the selected vertex,
             // we repeat the process "NumConnections" times
             float numSamples = NumConnections * NumLightPaths;
 
@@ -65,7 +65,7 @@ namespace SeeSharp.Integrators.Bidir {
                 return;
 
             // Divide by the splitting factors and selection probabilities
-            if (cameraPathLength > 0 && lightPathLength > 0) { 
+            if (cameraPathLength > 0 && lightPathLength > 0) {
                 // bidirectional connection
                 weight /= BidirSelectDensity();
             }
@@ -96,7 +96,7 @@ namespace SeeSharp.Integrators.Bidir {
         public override void ProcessPathCache() {
             vertexSelector = new VertexSelector(lightPaths.pathCache);
 
-            if (EnableLightTracer) 
+            if (EnableLightTracer)
                 SplatLightVertices();
         }
 
@@ -110,7 +110,7 @@ namespace SeeSharp.Integrators.Bidir {
             if (light != null && EnableHitting) {
                 value += throughput * OnEmitterHit(light, hit, ray, path, toAncestorJacobian);
             }
-            
+
             // Perform connections if the maximum depth has not yet been reached
             if (depth < MaxDepth) {
                 for (int i = 0; i < NumConnections; ++i) {
@@ -219,7 +219,7 @@ namespace SeeSharp.Integrators.Bidir {
             return 1 / sumReciprocals;
         }
 
-        private float CameraPathReciprocals(int lastCameraVertexIdx, BidirPathPdfs pdfs) {
+        protected virtual float CameraPathReciprocals(int lastCameraVertexIdx, BidirPathPdfs pdfs) {
             float sumReciprocals = 0.0f;
             float nextReciprocal = 1.0f;
             for (int i = lastCameraVertexIdx; i > 0; --i) { // all bidir connections
@@ -231,7 +231,7 @@ namespace SeeSharp.Integrators.Bidir {
             return sumReciprocals;
         }
 
-        private float LightPathReciprocals(int lastCameraVertexIdx, int numPdfs, BidirPathPdfs pdfs) {
+        protected virtual float LightPathReciprocals(int lastCameraVertexIdx, int numPdfs, BidirPathPdfs pdfs) {
             float sumReciprocals = 0.0f;
             float nextReciprocal = 1.0f;
             for (int i = lastCameraVertexIdx + 1; i < numPdfs; ++i) {

@@ -3,13 +3,13 @@ using System;
 using static SeeSharp.Integrators.Bidir.BidirBase;
 
 namespace SeeSharp.Integrators {
-    /// <summary> 
+    /// <summary>
     /// Assembles the pdf values in two arrays. The elements of each array
     /// correspond to the pdf values of sampling each vertex along the path.
     /// [0] is the primary vertex after the camera
     /// [numPdfs] is the last vertex, the one on the light source itself.
     /// </summary>
-    ref struct BidirPathPdfs {
+    public ref struct BidirPathPdfs {
         public readonly PathCache lightPathCache;
 
         public readonly Span<float> pdfsLightToCamera;

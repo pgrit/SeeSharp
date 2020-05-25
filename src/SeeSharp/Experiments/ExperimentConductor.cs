@@ -48,22 +48,24 @@ namespace Experiments {
         }
 
         private void RenderReference(Scene scene, bool force) {
-            bool exists = File.Exists(Path.Join(workingDirectory, "reference.exr"));
+            string filepath = Path.Join(workingDirectory, "reference.exr");
+            bool exists = File.Exists(filepath);
             if (!exists || force) {
                 var integrator = factory.MakeReferenceIntegrator();
-                Render(workingDirectory, "reference.exr", integrator, scene);
+                scene.FrameBuffer = new FrameBuffer(width, height, filepath);
+                integrator.Render(scene);
+                scene.FrameBuffer.WriteToFile();
             }
         }
 
         private double Render(string dir, string filename, Integrator integrator, Scene scene) {
-            scene.FrameBuffer = new FrameBuffer(width, height, Path.Join(dir, filename));
+            scene.FrameBuffer = new FrameBuffer(width, height, Path.Join(dir, filename), factory.FrameBufferFlags);
 
             var stopwatch = System.Diagnostics.Stopwatch.StartNew();
             integrator.Render(scene);
             stopwatch.Stop();
 
             scene.FrameBuffer.WriteToFile();
-
             return stopwatch.ElapsedMilliseconds / 1000.0;
         }
 

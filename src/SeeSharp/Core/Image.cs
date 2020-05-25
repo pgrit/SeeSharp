@@ -25,9 +25,16 @@ namespace SeeSharp.Core {
         }
 
         public void Splat(float x, float y, ColorRGB value) {
-            int idx = IndexOf(x, y);
             lock (this) {
                 this[x, y] += value;
+            }
+        }
+
+        public void Scale(float s) {
+            for (int x = 0; x < Width; ++x) {
+                for (int y = 0; y < Height; ++y) {
+                    this[x, y] *= s;
+                }
             }
         }
 

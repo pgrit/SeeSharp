@@ -15,33 +15,34 @@ namespace SeeSharp.Integrators {
         public uint MinDepth = 1;
 
         public override void Render(Scene scene) {
-            System.Threading.Tasks.Parallel.For(0, scene.FrameBuffer.Height,
-                row => {
-                    for (uint col = 0; col < scene.FrameBuffer.Width; ++col) {
-                        RenderPixel(scene, (uint)row, col);
+            for (uint sampleIndex = 0; sampleIndex < TotalSpp; ++sampleIndex) {
+                scene.FrameBuffer.StartIteration();
+                System.Threading.Tasks.Parallel.For(0, scene.FrameBuffer.Height,
+                    row => {
+                        for (uint col = 0; col < scene.FrameBuffer.Width; ++col) {
+                            RenderPixel(scene, (uint)row, col, sampleIndex);
+                        }
                     }
-                }
-            );
+                );
+                scene.FrameBuffer.EndIteration();
+            }
         }
 
-        private void RenderPixel(Scene scene, uint row, uint col) {
-            for (uint sampleIndex = 0; sampleIndex < TotalSpp; ++sampleIndex) {
-                // Seed the random number generator
-                uint pixelIndex = row * (uint)scene.FrameBuffer.Width + col;
-                var seed = RNG.HashSeed(BaseSeed, pixelIndex, sampleIndex);
-                var rng = new RNG(seed);
+        private void RenderPixel(Scene scene, uint row, uint col, uint sampleIndex) {
+            // Seed the random number generator
+            uint pixelIndex = row * (uint)scene.FrameBuffer.Width + col;
+            var seed = RNG.HashSeed(BaseSeed, pixelIndex, sampleIndex);
+            var rng = new RNG(seed);
 
-                // Sample a ray from the camera
-                var offset = rng.NextFloat2D();
-                Ray primaryRay = scene.Camera.GenerateRay(new Vector2(col, row) + offset);
+            // Sample a ray from the camera
+            var offset = rng.NextFloat2D();
+            Ray primaryRay = scene.Camera.GenerateRay(new Vector2(col, row) + offset);
 
-                var value = EstimateIncidentRadiance(scene, primaryRay, rng);
-                value = value * (1.0f / TotalSpp);
+            var value = EstimateIncidentRadiance(scene, primaryRay, rng);
 
-                // TODO we do nearest neighbor splatting manually here, to avoid numerical
-                //      issues if the primary samples are almost 1 (400 + 0.99999999f = 401)
-                scene.FrameBuffer.Splat(col, row, value);
-            }
+            // TODO / HACK we do nearest neighbor splatting manually here, to avoid numerical
+            //             issues if the primary samples are almost 1 (400 + 0.99999999f = 401)
+            scene.FrameBuffer.Splat(col, row, value);
         }
 
         private ColorRGB PerformNextEventEstimation(Scene scene, Ray ray, SurfacePoint hit, RNG rng) {
@@ -80,7 +81,7 @@ namespace SeeSharp.Integrators {
                 return value;
             }
 
-            return new ColorRGB { r=0, g=0, b=0 };
+            return ColorRGB.Black;
         }
 
         private (Ray, float, ColorRGB) BsdfSample(Scene scene, Ray ray, SurfacePoint hit, RNG rng) {

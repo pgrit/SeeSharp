@@ -59,10 +59,10 @@ namespace Validation {
             //scene.Emitters.Add(new DiffuseEmitter(scene.Meshes[^1], ColorRGB.White * 1000));
 
             var matrix = Matrix4x4.CreateLookAt(Vector3.UnitZ * 2,
-                                                -Vector3.UnitZ, 
+                                                -Vector3.UnitZ,
                                                 Vector3.UnitY);
             scene.Camera = new PerspectiveCamera(matrix, 40, null);
-            scene.FrameBuffer = new FrameBuffer(512, 512);
+            scene.FrameBuffer = new FrameBuffer(512, 512, "");
 
             scene.Prepare();
 

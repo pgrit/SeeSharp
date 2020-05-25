@@ -29,21 +29,24 @@ namespace SeeSharp.Validation {
             return true;
         }
 
-        static List<FrameBuffer> RenderImages(Scene scene, List<Integrator> algorithms, List<string> names, 
-                                        string testname) {
+        static List<FrameBuffer> RenderImages(Scene scene, List<Integrator> algorithms, 
+                                              List<string> names, string testname) {
             var images = new List<FrameBuffer>();
+            Console.WriteLine($"Running test '{testname}'");
 
             var stopwatch  = System.Diagnostics.Stopwatch.StartNew();
-
             for (int i = 0; i < algorithms.Count; ++i) {
+                // Create a new empty frame buffer with the desired output filename
+                scene.FrameBuffer = new FrameBuffer(scene.FrameBuffer.Width, scene.FrameBuffer.Height,
+                                                    System.IO.Path.Join($"{testname}", $"{names[i]}.exr"));
+
                 stopwatch.Restart();
                 algorithms[i].Render(scene);
                 stopwatch.Stop();
                 Console.WriteLine($"Done with {names[i]} after {stopwatch.ElapsedMilliseconds}ms.");
 
                 images.Add(scene.FrameBuffer);
-                scene.FrameBuffer.WriteToFile(System.IO.Path.Join($"{testname}", $"{names[i]}.exr"));
-                scene.FrameBuffer = new FrameBuffer(scene.FrameBuffer.Width, scene.FrameBuffer.Height);
+                scene.FrameBuffer.WriteToFile();
             }
 
             return images;

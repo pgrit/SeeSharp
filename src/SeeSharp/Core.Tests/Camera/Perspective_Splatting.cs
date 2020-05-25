@@ -5,7 +5,7 @@ using Xunit;
 namespace SeeSharp.Core.Tests.Camera {
     public class Perspective_Splatting {
         Cameras.Camera MakeTestCamera() {
-            var frameBuffer = new FrameBuffer(3, 3);
+            var frameBuffer = new FrameBuffer(3, 3, "");
 
             var camTransform = Matrix4x4.CreateLookAt(
                 cameraPosition: new Vector3(0, 0, 0),

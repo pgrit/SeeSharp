@@ -23,12 +23,13 @@ namespace Experiments {
         /// </summary>
         public void Run(bool forceReference = false) {
             var scene = factory.MakeScene();
-            scene.FrameBuffer = new FrameBuffer(width, height);
-            scene.Prepare();
 
+            // Render the reference image (only if it does not exist or forced)
+            scene.FrameBuffer = new FrameBuffer(width, height, Path.Join(workingDirectory, "reference.exr"));
+            scene.Prepare();
             RenderReference(scene, forceReference);
             allImages.Add("reference.exr");
-            
+
             var methods = factory.MakeMethods();
             foreach (var method in methods) {
                 string path = Path.Join(workingDirectory, method.name);
@@ -55,14 +56,13 @@ namespace Experiments {
         }
 
         private double Render(string dir, string filename, Integrator integrator, Scene scene) {
-            scene.FrameBuffer = new FrameBuffer(width, height);
+            scene.FrameBuffer = new FrameBuffer(width, height, Path.Join(dir, filename));
 
             var stopwatch = System.Diagnostics.Stopwatch.StartNew();
             integrator.Render(scene);
             stopwatch.Stop();
 
-            var path = Path.Join(dir, filename);
-            scene.FrameBuffer.WriteToFile(path);
+            scene.FrameBuffer.WriteToFile();
 
             return stopwatch.ElapsedMilliseconds / 1000.0;
         }

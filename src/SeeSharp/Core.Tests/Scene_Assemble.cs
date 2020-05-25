@@ -48,7 +48,7 @@ namespace SeeSharp.Core.Tests {
 
             scene.Camera = new PerspectiveCamera(Matrix4x4.CreateLookAt(new Vector3(0, 0, 0),
                 new Vector3(0, 5, 0), new Vector3(0, 0, 1)), 90, null);
-            scene.FrameBuffer = new FrameBuffer(1, 1);
+            scene.FrameBuffer = new FrameBuffer(1, 1, "");
 
             return scene;
         }
@@ -99,7 +99,7 @@ namespace SeeSharp.Core.Tests {
             var cam = new PerspectiveCamera(Matrix4x4.CreateLookAt(new Vector3(0, 0, 0),
                 new Vector3(1,0,0), new Vector3(0, 1, 0)), 90, null);
             scene.Camera = cam;
-            scene.FrameBuffer = new FrameBuffer(10, 20);
+            scene.FrameBuffer = new FrameBuffer(10, 20, "");
 
             scene.Prepare();
 
@@ -125,7 +125,7 @@ namespace SeeSharp.Core.Tests {
             Assert.Contains("framebuffer", scene.ValidationErrorMessages[0].ToLower());
 
             // Scene should be correct after setting a framebuffer
-            scene.FrameBuffer = new FrameBuffer(256, 128);
+            scene.FrameBuffer = new FrameBuffer(256, 128, "");
 
             Assert.True(scene.IsValid);
         }

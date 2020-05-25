@@ -94,9 +94,10 @@ namespace SeeSharp.Integrators.Bidir {
         }
 
         public override void ProcessPathCache() {
+            vertexSelector = new VertexSelector(lightPaths.pathCache);
+
             if (EnableLightTracer) 
                 SplatLightVertices();
-            vertexSelector = new VertexSelector(lightPaths.pathCache);
         }
 
         public override ColorRGB OnCameraHit(CameraPath path, RNG rng, int pixelIndex, Ray ray, SurfacePoint hit,

@@ -95,9 +95,11 @@ namespace SeeSharp.Integrators.Bidir {
             }
 
             for (uint iter = 0; iter < NumIterations; ++iter) {
+                scene.FrameBuffer.StartIteration();
                 lightPaths.TraceAllPaths(iter, AddNextEventPdf);
                 ProcessPathCache();
                 TraceAllCameraPaths(iter);
+                scene.FrameBuffer.EndIteration();
             }
         }
 
@@ -129,7 +131,6 @@ namespace SeeSharp.Integrators.Bidir {
             };
 
             var value = EstimatePixelValue(cameraPoint, filmSample, primaryRay, pdfFromCamera, initialWeight, rng);
-            value = value * (1.0f / NumIterations);
 
             // TODO we do nearest neighbor splatting manually here, to avoid numerical
             //      issues if the primary samples are almost 1 (400 + 0.99999999f = 401)
@@ -200,7 +201,7 @@ namespace SeeSharp.Integrators.Bidir {
 
                 // Compute image contribution and splat
                 ColorRGB weight = vertex.weight * bsdfValue * surfaceToPixelJacobian / NumLightPaths;
-                scene.FrameBuffer.Splat(raster.Value.X, raster.Value.Y, misWeight * weight * (1.0f / NumIterations));
+                scene.FrameBuffer.Splat(raster.Value.X, raster.Value.Y, misWeight * weight);
 
                 var pixel = new Vector2(raster.Value.X, raster.Value.Y);
                 RegisterSample(weight, misWeight, pixel, 0, vertex.depth, vertex.depth + 1);

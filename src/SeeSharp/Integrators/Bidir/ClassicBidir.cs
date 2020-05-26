@@ -8,29 +8,41 @@ using System.Numerics;
 
 namespace SeeSharp.Integrators.Bidir {
     public class ClassicBidir : BidirBase {
+        public bool RenderTechniquePyramid = false;
+
         TechPyramid techPyramidRaw;
         TechPyramid techPyramidWeighted;
 
         public override void RegisterSample(ColorRGB weight, float misWeight, Vector2 pixel,
                                             int cameraPathLength, int lightPathLength, int fullLength) {
+            if (!RenderTechniquePyramid)
+                return;
             weight /= NumIterations;
             techPyramidRaw.Add(cameraPathLength, lightPathLength, fullLength, pixel, weight);
             techPyramidWeighted.Add(cameraPathLength, lightPathLength, fullLength, pixel, weight * misWeight);
         }
 
         public override void Render(Scene scene) {
-            techPyramidRaw = new TechPyramid(scene.FrameBuffer.Width, scene.FrameBuffer.Height,
-                                             minDepth: 1, maxDepth: MaxDepth, merges: false);
-            techPyramidWeighted = new TechPyramid(scene.FrameBuffer.Width, scene.FrameBuffer.Height,
-                                                  minDepth: 1, maxDepth: MaxDepth, merges: false);
+            if (RenderTechniquePyramid) {
+                techPyramidRaw = new TechPyramid(scene.FrameBuffer.Width, scene.FrameBuffer.Height,
+                                                 minDepth: 1, maxDepth: MaxDepth, merges: false);
+                techPyramidWeighted = new TechPyramid(scene.FrameBuffer.Width, scene.FrameBuffer.Height,
+                                                      minDepth: 1, maxDepth: MaxDepth, merges: false);
+            }
             
             // Classic Bidir requires exactly one light path for every camera path.
             NumLightPaths = scene.FrameBuffer.Width * scene.FrameBuffer.Height;
+
             base.Render(scene);
 
-            // TODO allow user to specify a full path prefix!
-            techPyramidRaw.WriteToFiles("classic-bidir/raw-");
-            techPyramidWeighted.WriteToFiles("classic-bidir/weighted-");
+            // Store the technique pyramids
+            if (RenderTechniquePyramid) {
+                string pathRaw = System.IO.Path.Join(scene.FrameBuffer.Basename, "techs-raw");
+                techPyramidRaw.WriteToFiles(pathRaw);
+
+                string pathWeighted = System.IO.Path.Join(scene.FrameBuffer.Basename, "techs-weighted");
+                techPyramidWeighted.WriteToFiles(pathWeighted);
+            }
         }
 
         public override void ProcessPathCache() {

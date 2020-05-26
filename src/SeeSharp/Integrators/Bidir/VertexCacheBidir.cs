@@ -20,8 +20,7 @@ namespace SeeSharp.Integrators.Bidir {
         public bool EnableLightTracer = true;
         public bool EnableHitting = true;
 
-        public bool RenderTechniquePyramid = true;
-        public string TechniquePyramidPath = "vertex-cache";
+        public bool RenderTechniquePyramid = false;
 
         TechPyramid techPyramidRaw;
         TechPyramid techPyramidWeighted;
@@ -88,8 +87,8 @@ namespace SeeSharp.Integrators.Bidir {
             base.Render(scene);
 
             if (RenderTechniquePyramid) {
-                techPyramidRaw.WriteToFiles(Path.Join(TechniquePyramidPath, "raw-"));
-                techPyramidWeighted.WriteToFiles(Path.Join(TechniquePyramidPath, "weighted-"));
+                techPyramidRaw.WriteToFiles(Path.Join(scene.FrameBuffer.Basename, "techs-raw"));
+                techPyramidWeighted.WriteToFiles(Path.Join(scene.FrameBuffer.Basename, "techs-weighted"));
             }
         }
 

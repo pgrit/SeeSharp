@@ -49,7 +49,7 @@ namespace SeeSharp.Core {
         }
 
         /// <summary>
-        /// Allows access to a pixel in the image. (0,0) is the top left corner.
+        /// Allows access to a pixel in the image. (0,0) is the top left corner and (1,0) the top right corner.
         /// Not thread-safe unless read-only. Use <see cref="Splat(float, float)"/> for thread-safe writing.
         /// </summary>
         /// <param name="x">Horizontal coordinate [0,width], left to right.</param>

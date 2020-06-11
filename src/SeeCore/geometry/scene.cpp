@@ -1,4 +1,5 @@
 #include <cassert>
+#include <cstdio>
 #include <algorithm>
 
 #include "geometry/scene.h"

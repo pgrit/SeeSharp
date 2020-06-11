@@ -56,7 +56,11 @@ def export_materials(result):
         result["materials"][-1]["name"] = material.name
 
 def export_cameras(result):
-    camera = bpy.data.scenes[0].camera # TODO support multiple named cameras
+    # TODO support multiple named cameras
+    if bpy.context.scene is None:
+        camera = bpy.data.scenes[0].camera 
+    else:
+        camera = bpy.context.scene.camera
 
     result["transforms"] = [
         {
@@ -77,7 +81,7 @@ def export_cameras(result):
 
     result["cameras"] = [
         {
-            "fov": degrees(bpy.data.cameras[camera.name].angle),
+            "fov": degrees(camera.data.angle),
             "transform": "camera",
             "name": "default",
             "type": "perspective"

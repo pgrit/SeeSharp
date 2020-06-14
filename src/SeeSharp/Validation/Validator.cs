@@ -63,14 +63,16 @@ namespace SeeSharp.Validation {
                 },
                 new ClassicBidir() {
                     NumIterations = sceneFactory.SamplesPerPixel / 2,
-                    MaxDepth = sceneFactory.MaxDepth
+                    MaxDepth = sceneFactory.MaxDepth,
+                    RenderTechniquePyramid = true
                 },
                 new VertexCacheBidir() {
                     NumIterations = sceneFactory.SamplesPerPixel / 2,
                     MaxDepth = sceneFactory.MaxDepth,
                     NumLightPaths = 1000,
                     NumConnections = 4,
-                    NumShadowRays = 4
+                    NumShadowRays = 4,
+                    RenderTechniquePyramid = true
                 }
             };
             var names = new List<string> {

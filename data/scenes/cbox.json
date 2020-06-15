@@ -19,6 +19,7 @@
     "materials": [
       {
         "name": "LeftWall",
+        "type": "diffuse",
         "baseColor": {
           "type": "rgb",
           "value": [0.63, 0.065, 0.05]
@@ -26,6 +27,7 @@
       },
       {
         "name": "RightWall",
+        "type": "diffuse",
         "baseColor": {
           "type": "rgb",
           "value": [0.14, 0.45, 0.091]
@@ -33,6 +35,7 @@
       },
       {
         "name": "Floor",
+        "type": "diffuse",
         "baseColor": {
           "type": "rgb",
           "value": [0.725, 0.71, 0.68]
@@ -40,6 +43,7 @@
       },
       {
         "name": "Ceiling",
+        "type": "diffuse",
         "baseColor": {
           "type": "rgb",
           "value": [0.725, 0.71, 0.68]
@@ -47,6 +51,7 @@
       },
       {
         "name": "BackWall",
+        "type": "diffuse",
         "baseColor": {
           "type": "rgb",
           "value": [0.725, 0.71, 0.68]
@@ -54,29 +59,23 @@
       },
       {
         "name": "ShortBox",
+        "type": "diffuse",
         "baseColor": {
           "type": "rgb",
           "value": [0.725, 0.71, 0.68]
-        },
-
-        "roughness": 0.2,
-        "specularTransmittance": 1,
-        "IOR": 1.56
+        }
       },
       {
         "name": "TallBox",
+        "type": "diffuse",
         "baseColor": {
           "type": "rgb",
           "value": [0.725, 0.71, 0.68]
-        },
-
-        "roughness": 0.1,
-        "specularTint": 1,
-        "anisotropic": 0.3,
-        "metallic": 0.8
+        }
       },
       {
         "name": "Light",
+        "type": "diffuse",
         "baseColor": {
           "type": "rgb",
           "value": [ 0.0, 0.0, 0.0]

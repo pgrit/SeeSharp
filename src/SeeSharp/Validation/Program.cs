@@ -1,5 +1,4 @@
 ﻿using System.Collections.Generic;
-using Validation;
 
 namespace SeeSharp.Validation {
     class Program {
@@ -7,9 +6,10 @@ namespace SeeSharp.Validation {
             var allTests = new List<ValidationSceneFactory>() {
                 //new Validate_DirectIllum(),
                 // new Validate_SingleBounce(),
-                new Validate_SingleBounceGlossy(),
+                // new Validate_SingleBounceGlossy(),
                 //new Validate_MultiLight(),
                 //new Validate_GlossyLight(),
+                new Validate_CornellBox()
             };
 
             foreach (var test in allTests)

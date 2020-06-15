@@ -184,19 +184,32 @@ namespace SeeSharp.Core {
                             return defaultValue;
                         }
 
-                        var parameters = new GenericMaterial.Parameters {
-                            baseColor = ReadColorOrTexture(m.GetProperty("baseColor")),
-                            roughness = ReadOptionalFloat("roughness", 0.5f),
-                            anisotropic = ReadOptionalFloat("anisotropic", 0.0f),
-                            diffuseTransmittance = ReadOptionalFloat("diffuseTransmittance", 1.0f),
-                            indexOfRefraction = ReadOptionalFloat("IOR", 1.0f),
-                            metallic = ReadOptionalFloat("metallic", 0.0f),
-                            specularTintStrength = ReadOptionalFloat("specularTint", 0.0f),
-                            specularTransmittance = ReadOptionalFloat("specularTransmittance", 0.0f),
-                            thin = ReadOptionalBool("thin", false)
-                        };
+                        // Check whether this is a purely diffuse material or "generic"
+                        string type = "generic";
+                        JsonElement elem;
+                        if (m.TryGetProperty("type", out elem)) {
+                            type = elem.GetString();
+                        }
 
-                        namedMaterials[name] = new GenericMaterial(parameters);
+                        if (type == "diffuse") {
+                            var parameters = new DiffuseMaterial.Parameters {
+                                baseColor = ReadColorOrTexture(m.GetProperty("baseColor"))
+                            };
+                            namedMaterials[name] = new DiffuseMaterial(parameters);
+                        } else {
+                            var parameters = new GenericMaterial.Parameters {
+                                baseColor = ReadColorOrTexture(m.GetProperty("baseColor")),
+                                roughness = ReadOptionalFloat("roughness", 0.5f),
+                                anisotropic = ReadOptionalFloat("anisotropic", 0.0f),
+                                diffuseTransmittance = ReadOptionalFloat("diffuseTransmittance", 1.0f),
+                                indexOfRefraction = ReadOptionalFloat("IOR", 1.0f),
+                                metallic = ReadOptionalFloat("metallic", 0.0f),
+                                specularTintStrength = ReadOptionalFloat("specularTint", 0.0f),
+                                specularTransmittance = ReadOptionalFloat("specularTransmittance", 0.0f),
+                                thin = ReadOptionalBool("thin", false)
+                            };
+                            namedMaterials[name] = new GenericMaterial(parameters);
+                        }
                     }
                 }
 

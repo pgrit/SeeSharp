@@ -1,4 +1,3 @@
-
 using System;
 using System.Collections.Generic;
 using SeeSharp.Core;
@@ -29,7 +28,7 @@ namespace SeeSharp.Validation {
             return true;
         }
 
-        static List<FrameBuffer> RenderImages(Scene scene, List<Integrator> algorithms, 
+        static List<FrameBuffer> RenderImages(Scene scene, List<Integrator> algorithms,
                                               List<string> names, string testname) {
             var images = new List<FrameBuffer>();
             Console.WriteLine($"Running test '{testname}'");

@@ -19,6 +19,7 @@ namespace SeeSharp.Integrators.Bidir {
 
         public bool EnableLightTracer = true;
         public bool EnableHitting = true;
+        public bool EnableConnections = true;
 
         public bool RenderTechniquePyramid = false;
 
@@ -112,7 +113,7 @@ namespace SeeSharp.Integrators.Bidir {
 
             // Perform connections if the maximum depth has not yet been reached
             if (depth < MaxDepth) {
-                for (int i = 0; i < NumConnections; ++i) {
+                for (int i = 0; i < NumConnections && EnableConnections; ++i) {
                     var weight = throughput * BidirConnections(pixelIndex, hit, -ray.direction, rng, path, toAncestorJacobian);
                     value += weight / BidirSelectDensity();
                 }
@@ -223,7 +224,8 @@ namespace SeeSharp.Integrators.Bidir {
             float nextReciprocal = 1.0f;
             for (int i = lastCameraVertexIdx; i > 0; --i) { // all bidir connections
                 nextReciprocal *= pdfs.pdfsLightToCamera[i] / pdfs.pdfsCameraToLight[i];
-                sumReciprocals += nextReciprocal * BidirSelectDensity();
+                if (EnableConnections)
+                    sumReciprocals += nextReciprocal * BidirSelectDensity();
             }
             if (EnableLightTracer)
                 sumReciprocals += nextReciprocal * pdfs.pdfsLightToCamera[0] / pdfs.pdfsCameraToLight[0] * NumLightPaths;
@@ -235,7 +237,7 @@ namespace SeeSharp.Integrators.Bidir {
             float nextReciprocal = 1.0f;
             for (int i = lastCameraVertexIdx + 1; i < numPdfs; ++i) {
                 nextReciprocal *= pdfs.pdfsCameraToLight[i] / pdfs.pdfsLightToCamera[i];
-                if (i < numPdfs - 2) // Connections to the emitter (next event) are treated separately
+                if (i < numPdfs - 2 && EnableConnections) // Connections to the emitter (next event) are treated separately
                     sumReciprocals += nextReciprocal * BidirSelectDensity();
             }
             sumReciprocals += nextReciprocal; // Next event and hitting the emitter directly

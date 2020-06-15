@@ -24,6 +24,7 @@ def map_float(node):
 
 def map_principled(shader):
     return {
+        "type": "generic",
         "baseColor": map_texture_or_color(shader.inputs['Base Color']),
         "roughness": map_float(shader.inputs["Roughness"]),
         "anisotropic": map_float(shader.inputs["Anisotropic"]),
@@ -35,14 +36,21 @@ def map_principled(shader):
         "specularTint": map_float(shader.inputs["Specular Tint"]),
     }
 
+def map_diffuse(shader):
+    return {
+        "type": "diffuse",
+        "baseColor": map_texture_or_color(shader.inputs['Color']),
+    }
+
 def map_view_shader(material):
+    # TODO export at least the diffuse color / texture
     return {}
 
 shader_matcher = {
     "Principled BSDF": map_principled,
-    # TODO: support at least the following (needs proper support in json, too)
-    #       purely diffuse (maybe textured)
-    #       black body emitter
+    "Diffuse BSDF": map_diffuse,
+    # TODO: support black body emitters
+    # TODO: support simple graphs (in particular diffuse + glossy combinations)
 }
 
 def export_materials(result):
@@ -58,7 +66,7 @@ def export_materials(result):
 def export_cameras(result):
     # TODO support multiple named cameras
     if bpy.context.scene is None:
-        camera = bpy.data.scenes[0].camera 
+        camera = bpy.data.scenes[0].camera
     else:
         camera = bpy.context.scene.camera
 
@@ -106,7 +114,7 @@ def export_scene(filepath):
         "relativePath": obj_name
     }]
 
-    # TODO write the result into the .json
+    # Write the result into the .json
     import json
     with open(filepath, 'w') as fp:
         json.dump(result, fp, indent=2)

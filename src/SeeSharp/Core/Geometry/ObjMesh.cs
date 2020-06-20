@@ -299,9 +299,9 @@ namespace SeeSharp.Core.Geometry {
                 var matches = regexFloat.Matches(line);
                 if (matches.Count != 3)
                     errors.Add($"Invalid vector (line {cur_line}).");
-                v.r = float.Parse(matches[0].Value);
-                v.g = float.Parse(matches[1].Value);
-                v.b = float.Parse(matches[2].Value);
+                v.R = float.Parse(matches[0].Value);
+                v.G = float.Parse(matches[1].Value);
+                v.B = float.Parse(matches[2].Value);
                 return v;
             }
 

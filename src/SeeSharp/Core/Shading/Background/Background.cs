@@ -13,7 +13,7 @@ namespace SeeSharp.Core.Shading.Background {
 
         public abstract BackgroundSample SampleDirection(Vector2 primary);
         public abstract float DirectionPdf(Vector3 Direction);
-        public abstract void SampleRay(Vector2 primaryPos, Vector2 primaryDir);
+        public abstract (Ray, ColorRGB, float) SampleRay(Vector2 primaryPos, Vector2 primaryDir);
         public abstract float RayPdf(SurfacePoint point, Vector3 direction);
 
         public Vector3 SceneCenter;

@@ -107,8 +107,8 @@ namespace SeeSharp.Core.Tests.Shading {
             var r1 = emitter.EmittedRadiance(dummyHit, new Vector3(0, 1, 1));
             var r2 = emitter.EmittedRadiance(dummyHit, new Vector3(0, -1, 1));
 
-            Assert.True(r1.r > 0);
-            Assert.Equal(0, r2.r);
+            Assert.True(r1.R > 0);
+            Assert.Equal(0, r2.R);
         }
 
         [Fact]
@@ -200,9 +200,9 @@ namespace SeeSharp.Core.Tests.Shading {
             var expectedWeight =
                 emitter.EmittedRadiance(sample.point, sample.direction) * c
                 / expectedPdf;
-            Assert.Equal(expectedWeight.r, sample.weight.r);
-            Assert.Equal(expectedWeight.g, sample.weight.g);
-            Assert.Equal(expectedWeight.b, sample.weight.b);
+            Assert.Equal(expectedWeight.R, sample.weight.R);
+            Assert.Equal(expectedWeight.G, sample.weight.G);
+            Assert.Equal(expectedWeight.B, sample.weight.B);
         }
     }
 }

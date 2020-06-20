@@ -45,7 +45,7 @@ namespace SeeSharp.Core.Cameras {
             // Compute the camera position
             var pos = Vector3.Transform(new Vector3(0, 0, 0), cameraToWorld);
 
-            return new Ray { direction = Vector3.Normalize(dir), minDistance = 0, origin = pos };
+            return new Ray { Direction = Vector3.Normalize(dir), MinDistance = 0, Origin = pos };
         }
 
         public override Vector3? WorldToFilm(Vector3 pos) {

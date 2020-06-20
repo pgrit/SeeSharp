@@ -123,7 +123,7 @@ namespace SeeSharp.Integrators.Bidir {
             Ray primaryRay = scene.Camera.GenerateRay(filmSample);
 
             // Compute the corresponding solid angle pdf (required for MIS)
-            float pdfFromCamera = scene.Camera.SolidAngleToPixelJacobian(primaryRay.direction); // TODO this should be returned by Camera.Sample() which should replace GenerateRay() to follow conventions similar to the BSDF system
+            float pdfFromCamera = scene.Camera.SolidAngleToPixelJacobian(primaryRay.Direction); // TODO this should be returned by Camera.Sample() which should replace GenerateRay() to follow conventions similar to the BSDF system
             var initialWeight = ColorRGB.White; // TODO this should be computed by the camera and returned by SampleCamera()
             var cameraPoint = new SurfacePoint {
                 position = scene.Camera.Position,
@@ -319,7 +319,7 @@ namespace SeeSharp.Integrators.Bidir {
                 var emission = light.EmittedRadiance(lightSample.point, lightToSurface);
 
                 var bsdf = hit.Bsdf;
-                var bsdfTimesCosine = bsdf.EvaluateWithCosine(-ray.direction, -lightToSurface, false);
+                var bsdfTimesCosine = bsdf.EvaluateWithCosine(-ray.Direction, -lightToSurface, false);
                 if (bsdfTimesCosine == ColorRGB.Black)
                     return ColorRGB.Black;
 
@@ -330,7 +330,7 @@ namespace SeeSharp.Integrators.Bidir {
                     return ColorRGB.Black;
 
                 // Compute the missing pdf terms
-                var (bsdfForwardPdf, bsdfReversePdf) = bsdf.Pdf(-ray.direction, -lightToSurface, false);
+                var (bsdfForwardPdf, bsdfReversePdf) = bsdf.Pdf(-ray.Direction, -lightToSurface, false);
                 bsdfForwardPdf *= SampleWrap.SurfaceAreaToSolidAngle(hit, lightSample.point);
                 bsdfReversePdf *= reversePdfJacobian;
 
@@ -353,10 +353,10 @@ namespace SeeSharp.Integrators.Bidir {
 
         public ColorRGB OnEmitterHit(Emitter emitter, SurfacePoint hit, Ray ray, 
                                      CameraPath path, float reversePdfJacobian) {
-            var emission = emitter.EmittedRadiance(hit, -ray.direction);
+            var emission = emitter.EmittedRadiance(hit, -ray.Direction);
 
             // Compute pdf values
-            float pdfEmit = emitter.PdfRay(hit, -ray.direction);
+            float pdfEmit = emitter.PdfRay(hit, -ray.Direction);
             pdfEmit *= reversePdfJacobian;
             pdfEmit *= lightPaths.SelectLightPmf(emitter);
             float pdfNextEvent = NextEventPdf(new SurfacePoint(), hit); // TODO get the actual previous point!

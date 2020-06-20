@@ -6,21 +6,21 @@ namespace SeeSharp.Core.Tests {
         [Fact]
         public void Default_ShouldBeBlack() {
             Image image = new Image(2, 2);
-            Assert.Equal(0.0f, image[0, 0].r);
-            Assert.Equal(0.0f, image[0, 0].g);
-            Assert.Equal(0.0f, image[0, 0].b);
+            Assert.Equal(0.0f, image[0, 0].R);
+            Assert.Equal(0.0f, image[0, 0].G);
+            Assert.Equal(0.0f, image[0, 0].B);
 
-            Assert.Equal(0.0f, image[1, 0].r);
-            Assert.Equal(0.0f, image[1, 0].g);
-            Assert.Equal(0.0f, image[1, 0].b);
+            Assert.Equal(0.0f, image[1, 0].R);
+            Assert.Equal(0.0f, image[1, 0].G);
+            Assert.Equal(0.0f, image[1, 0].B);
 
-            Assert.Equal(0.0f, image[0, 1].r);
-            Assert.Equal(0.0f, image[0, 1].g);
-            Assert.Equal(0.0f, image[0, 1].b);
+            Assert.Equal(0.0f, image[0, 1].R);
+            Assert.Equal(0.0f, image[0, 1].G);
+            Assert.Equal(0.0f, image[0, 1].B);
 
-            Assert.Equal(0.0f, image[1, 1].r);
-            Assert.Equal(0.0f, image[1, 1].g);
-            Assert.Equal(0.0f, image[1, 1].b);
+            Assert.Equal(0.0f, image[1, 1].R);
+            Assert.Equal(0.0f, image[1, 1].G);
+            Assert.Equal(0.0f, image[1, 1].B);
         }
 
         [Fact]
@@ -31,21 +31,21 @@ namespace SeeSharp.Core.Tests {
             image[0, 1] = new ColorRGB(0, 1, 0);
             image[1, 1] = new ColorRGB(0, 0, 1);
 
-            Assert.Equal(0.0f, image[0, 0].r);
-            Assert.Equal(0.0f, image[0, 0].g);
-            Assert.Equal(0.0f, image[0, 0].b);
+            Assert.Equal(0.0f, image[0, 0].R);
+            Assert.Equal(0.0f, image[0, 0].G);
+            Assert.Equal(0.0f, image[0, 0].B);
 
-            Assert.Equal(1.0f, image[1, 0].r);
-            Assert.Equal(0.0f, image[1, 0].g);
-            Assert.Equal(0.0f, image[1, 0].b);
+            Assert.Equal(1.0f, image[1, 0].R);
+            Assert.Equal(0.0f, image[1, 0].G);
+            Assert.Equal(0.0f, image[1, 0].B);
 
-            Assert.Equal(0.0f, image[0, 1].r);
-            Assert.Equal(1.0f, image[0, 1].g);
-            Assert.Equal(0.0f, image[0, 1].b);
+            Assert.Equal(0.0f, image[0, 1].R);
+            Assert.Equal(1.0f, image[0, 1].G);
+            Assert.Equal(0.0f, image[0, 1].B);
 
-            Assert.Equal(0.0f, image[1, 1].r);
-            Assert.Equal(0.0f, image[1, 1].g);
-            Assert.Equal(1.0f, image[1, 1].b);
+            Assert.Equal(0.0f, image[1, 1].R);
+            Assert.Equal(0.0f, image[1, 1].G);
+            Assert.Equal(1.0f, image[1, 1].B);
         }
 
         [Fact]
@@ -56,21 +56,21 @@ namespace SeeSharp.Core.Tests {
             image[0, 1] = new ColorRGB(0, 1, 0);
             image[1, 1] = new ColorRGB(0, 0, 1);
 
-            Assert.Equal(0.0f, image[-2, 0].r);
-            Assert.Equal(0.0f, image[-2, 0].g);
-            Assert.Equal(0.0f, image[-2, 0].b);
+            Assert.Equal(0.0f, image[-2, 0].R);
+            Assert.Equal(0.0f, image[-2, 0].G);
+            Assert.Equal(0.0f, image[-2, 0].B);
 
-            Assert.Equal(1.0f, image[4, 0].r);
-            Assert.Equal(0.0f, image[4, 0].g);
-            Assert.Equal(0.0f, image[4, 0].b);
+            Assert.Equal(1.0f, image[4, 0].R);
+            Assert.Equal(0.0f, image[4, 0].G);
+            Assert.Equal(0.0f, image[4, 0].B);
 
-            Assert.Equal(0.0f, image[0, 10].r);
-            Assert.Equal(1.0f, image[0, 10].g);
-            Assert.Equal(0.0f, image[0, 10].b);
+            Assert.Equal(0.0f, image[0, 10].R);
+            Assert.Equal(1.0f, image[0, 10].G);
+            Assert.Equal(0.0f, image[0, 10].B);
 
-            Assert.Equal(0.0f, image[15, 15].r);
-            Assert.Equal(0.0f, image[15, 15].g);
-            Assert.Equal(1.0f, image[15, 15].b);
+            Assert.Equal(0.0f, image[15, 15].R);
+            Assert.Equal(0.0f, image[15, 15].G);
+            Assert.Equal(1.0f, image[15, 15].B);
         }
 
         [Fact]
@@ -81,9 +81,9 @@ namespace SeeSharp.Core.Tests {
             image[0, 1] = new ColorRGB(0, 1, 0);
             image[1, 1] = new ColorRGB(0, 0, 1);
 
-            Assert.Equal(0.0f, image[0.5f, 0.5f].r);
-            Assert.Equal(0.0f, image[0.5f, 0.5f].g);
-            Assert.Equal(0.0f, image[0.5f, 0.5f].b);
+            Assert.Equal(0.0f, image[0.5f, 0.5f].R);
+            Assert.Equal(0.0f, image[0.5f, 0.5f].G);
+            Assert.Equal(0.0f, image[0.5f, 0.5f].B);
         }
 
         [Fact]
@@ -98,21 +98,21 @@ namespace SeeSharp.Core.Tests {
             Image read = Image.LoadFromFile("test.exr");
 
             Assert.NotNull(read);
-            Assert.Equal(0, read[0, 0].r);
-            Assert.Equal(0, read[0, 0].g);
-            Assert.Equal(0, read[0, 0].b);
+            Assert.Equal(0, read[0, 0].R);
+            Assert.Equal(0, read[0, 0].G);
+            Assert.Equal(0, read[0, 0].B);
 
-            Assert.Equal(1, read[1, 0].r);
-            Assert.Equal(0, read[1, 0].g);
-            Assert.Equal(0, read[1, 0].b);
+            Assert.Equal(1, read[1, 0].R);
+            Assert.Equal(0, read[1, 0].G);
+            Assert.Equal(0, read[1, 0].B);
 
-            Assert.Equal(0, read[0, 1].r);
-            Assert.Equal(1, read[0, 1].g);
-            Assert.Equal(0, read[0, 1].b);
+            Assert.Equal(0, read[0, 1].R);
+            Assert.Equal(1, read[0, 1].G);
+            Assert.Equal(0, read[0, 1].B);
 
-            Assert.Equal(0, read[1, 1].r);
-            Assert.Equal(0, read[1, 1].g);
-            Assert.Equal(1, read[1, 1].b);
+            Assert.Equal(0, read[1, 1].R);
+            Assert.Equal(0, read[1, 1].G);
+            Assert.Equal(1, read[1, 1].B);
         }
     }
 }

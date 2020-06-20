@@ -37,9 +37,9 @@ namespace SeeSharp.Integrators {
             var hit = scene.Raytracer.Trace(primaryRay);
             ColorRGB value = ColorRGB.Black;
             if (hit) {
-                float cosine = Math.Abs(Vector3.Dot(hit.normal, primaryRay.direction));
+                float cosine = Math.Abs(Vector3.Dot(hit.normal, primaryRay.Direction));
                 cosine /= hit.normal.Length();
-                cosine /= primaryRay.direction.Length();
+                cosine /= primaryRay.Direction.Length();
                 value = ColorRGB.White * cosine;
             }
 

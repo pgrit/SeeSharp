@@ -41,9 +41,9 @@ namespace SeeSharp.Core.Tests {
 
             Assert.Equal(0, rev);
             Assert.Equal(0, fwd);
-            Assert.Equal(0, val.r);
-            Assert.Equal(0, val.g);
-            Assert.Equal(0, val.b);
+            Assert.Equal(0, val.R);
+            Assert.Equal(0, val.G);
+            Assert.Equal(0, val.B);
         }
 
         [Fact]
@@ -121,13 +121,13 @@ namespace SeeSharp.Core.Tests {
             var primary = new Vector2(0.25f, 0.8f);
             var sample = bsdf.Sample(outDir, false, primary);
 
-            Assert.Equal(1.0f / MathF.PI, retro.r, 3);
-            Assert.Equal(1.0f / MathF.PI, retro.g, 3);
-            Assert.Equal(1.0f / MathF.PI, retro.b, 3);
+            Assert.Equal(1.0f / MathF.PI, retro.R, 3);
+            Assert.Equal(1.0f / MathF.PI, retro.G, 3);
+            Assert.Equal(1.0f / MathF.PI, retro.B, 3);
 
-            Assert.Equal(1.0f, sample.weight.r, 3);
-            Assert.Equal(1.0f, sample.weight.g, 3);
-            Assert.Equal(1.0f, sample.weight.b, 3);
+            Assert.Equal(1.0f, sample.weight.R, 3);
+            Assert.Equal(1.0f, sample.weight.G, 3);
+            Assert.Equal(1.0f, sample.weight.B, 3);
         }
 
         [Fact]
@@ -163,13 +163,13 @@ namespace SeeSharp.Core.Tests {
             var primary = new Vector2(0.25f, 0.8f);
             var sample = bsdf.Sample(outDir, false, primary);
 
-            Assert.Equal(1.0f / MathF.PI, retro.r, 3);
-            Assert.Equal(0.0f / MathF.PI, retro.g, 3);
-            Assert.Equal(0.0f / MathF.PI, retro.b, 3);
+            Assert.Equal(1.0f / MathF.PI, retro.R, 3);
+            Assert.Equal(0.0f / MathF.PI, retro.G, 3);
+            Assert.Equal(0.0f / MathF.PI, retro.B, 3);
 
-            Assert.Equal(1.0f, sample.weight.r, 3);
-            Assert.Equal(0.0f, sample.weight.g, 3);
-            Assert.Equal(0.0f, sample.weight.b, 3);
+            Assert.Equal(1.0f, sample.weight.R, 3);
+            Assert.Equal(0.0f, sample.weight.G, 3);
+            Assert.Equal(0.0f, sample.weight.B, 3);
         }
 
         [Fact]
@@ -216,13 +216,13 @@ namespace SeeSharp.Core.Tests {
                 var sample = bsdf.Sample(outDir, false, prim);
 
                 if (sample.pdf == 0) {
-                    Assert.Equal(0.0f, sample.weight.r, 3);
-                    Assert.Equal(0.0f, sample.weight.g, 3);
-                    Assert.Equal(0.0f, sample.weight.b, 3);
+                    Assert.Equal(0.0f, sample.weight.R, 3);
+                    Assert.Equal(0.0f, sample.weight.G, 3);
+                    Assert.Equal(0.0f, sample.weight.B, 3);
                 } else {
-                    Assert.Equal(1.0f, sample.weight.r, 3);
-                    Assert.Equal(1.0f, sample.weight.g, 3);
-                    Assert.Equal(1.0f, sample.weight.b, 3);
+                    Assert.Equal(1.0f, sample.weight.R, 3);
+                    Assert.Equal(1.0f, sample.weight.G, 3);
+                    Assert.Equal(1.0f, sample.weight.B, 3);
                 }
             }
         }

@@ -1,4 +1,5 @@
 using System;
+using System.Drawing;
 using System.Numerics;
 using SeeSharp.Core.Geometry;
 using SeeSharp.Core.Sampling;
@@ -67,7 +68,7 @@ namespace SeeSharp.Core.Shading.Background {
             return directionSampler.Pdf(pixelCoords) * MathF.Sin(sphericalDir.Y);
         }
 
-        public override void SampleRay(Vector2 primaryPos, Vector2 primaryDir) {
+        public override (Ray, ColorRGB, float) SampleRay(Vector2 primaryPos, Vector2 primaryDir) {
             throw new NotImplementedException();
         }
 

@@ -14,7 +14,7 @@ namespace SeeSharp.Validation {
                 for (int r = 0; r < img.Height; ++r) {
                     for (int c = 0; c < img.Width; ++c) {
                         var rgb = img.image[c, r];
-                        average += (rgb.r + rgb.b + rgb.g) / (3 * img.Width * img.Height);
+                        average += (rgb.R + rgb.B + rgb.G) / (3 * img.Width * img.Height);
                     }
                 }
                 means.Add(average);

@@ -62,7 +62,7 @@ namespace SeeSharp.Integrators.Bidir {
 
             // Perform connections if the maximum depth has not yet been reached
             if (depth < MaxDepth) {
-                value += throughput * BidirConnections(pixelIndex, hit, -ray.direction, rng, path, toAncestorJacobian);
+                value += throughput * BidirConnections(pixelIndex, hit, -ray.Direction, rng, path, toAncestorJacobian);
                 value += throughput * PerformNextEventEstimation(ray, hit, rng, path, toAncestorJacobian);
             }
 

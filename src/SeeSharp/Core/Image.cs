@@ -114,7 +114,7 @@ namespace SeeSharp.Core {
                             chan = MathF.Pow(chan, 1/2.2f);
                             return Math.Clamp((int)(chan * 255), 0, 255);
                         }
-                        b.SetPixel(x, y, Color.FromArgb(ToInt(px.r), ToInt(px.g), ToInt(px.b)));
+                        b.SetPixel(x, y, Color.FromArgb(ToInt(px.R), ToInt(px.G), ToInt(px.B)));
                     }
                 }
                 b.Save(filename);
@@ -131,9 +131,9 @@ namespace SeeSharp.Core {
                         var rgb = new ColorRGB(clr.R / (float)255, clr.G / (float)255, clr.B / (float)255);
 
                         // perform inverse gamma correction
-                        rgb.r = MathF.Pow(rgb.r, 2.2f);
-                        rgb.g = MathF.Pow(rgb.g, 2.2f);
-                        rgb.b = MathF.Pow(rgb.b, 2.2f);
+                        rgb.R = MathF.Pow(rgb.R, 2.2f);
+                        rgb.G = MathF.Pow(rgb.G, 2.2f);
+                        rgb.B = MathF.Pow(rgb.B, 2.2f);
 
                         image[x, y] = rgb;
                     }

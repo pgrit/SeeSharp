@@ -21,9 +21,9 @@ namespace SeeSharp.Core.Tests.Shading {
 
             var val = map.EmittedRadiance(Vector3.UnitY - Vector3.UnitX);
 
-            Assert.Equal(10.0f, val.r);
-            Assert.Equal(10.0f, val.g);
-            Assert.Equal(10.0f, val.b);
+            Assert.Equal(10.0f, val.R);
+            Assert.Equal(10.0f, val.G);
+            Assert.Equal(10.0f, val.B);
         }
 
         [Fact]
@@ -33,13 +33,13 @@ namespace SeeSharp.Core.Tests.Shading {
             var valTop = map.EmittedRadiance(-Vector3.UnitY);
             var valLeft = map.EmittedRadiance(-Vector3.UnitX);
 
-            Assert.Equal(0.0f, valTop.r);
-            Assert.Equal(0.0f, valTop.g);
-            Assert.Equal(0.0f, valTop.b);
+            Assert.Equal(0.0f, valTop.R);
+            Assert.Equal(0.0f, valTop.G);
+            Assert.Equal(0.0f, valTop.B);
 
-            Assert.Equal(0.0f, valLeft.r);
-            Assert.Equal(0.0f, valLeft.g);
-            Assert.Equal(0.0f, valLeft.b);
+            Assert.Equal(0.0f, valLeft.R);
+            Assert.Equal(0.0f, valLeft.G);
+            Assert.Equal(0.0f, valLeft.B);
         }
 
         [Fact]
@@ -69,11 +69,6 @@ namespace SeeSharp.Core.Tests.Shading {
         }
 
         [Fact]
-        public void RaySampling_PdfShouldBeConsistent() {
-            var map = MakeSimpleMap();
-        }
-
-        [Fact]
         public void DirectionSampling_EstimatorShouldBeCorrect() {
             var map = MakeSimpleMap();
 
@@ -83,9 +78,37 @@ namespace SeeSharp.Core.Tests.Shading {
             var radiance = map.EmittedRadiance(sample.Direction);
             var expectedWeight = radiance / pdf;
 
-            Assert.Equal(expectedWeight.r, sample.Weight.r);
-            Assert.Equal(expectedWeight.g, sample.Weight.g);
-            Assert.Equal(expectedWeight.b, sample.Weight.b);
+            Assert.Equal(expectedWeight.R, sample.Weight.R);
+            Assert.Equal(expectedWeight.G, sample.Weight.G);
+            Assert.Equal(expectedWeight.B, sample.Weight.B);
+        }
+
+        [Fact]
+        public void RaySampling_PdfShouldBeConsistent() {
+            var map = MakeSimpleMap();
+
+            var sample = map.SampleRay(Vector2.One * 0.741f, Vector2.One * 0.2f);
+
+        }
+
+        [Fact]
+        public void RaySampling_DirectionShouldBeOpposite() {
+            var map = MakeSimpleMap();
+
+            var dirPrimary = Vector2.One * 0.2f;
+            var (ray, _, _) = map.SampleRay(Vector2.One * 0.741f, dirPrimary);
+            var dirSample = map.SampleDirection(dirPrimary);
+
+            Assert.Equal(dirSample.Direction.X, -ray.Direction.X, 3);
+            Assert.Equal(dirSample.Direction.Y, -ray.Direction.Y, 3);
+            Assert.Equal(dirSample.Direction.Z, -ray.Direction.Z, 3);
+        }
+
+        [Fact]
+        public void RaySampling_EstimatorShouldBeCorrect() {
+            var map = MakeSimpleMap();
+
+            var sample = map.SampleRay(Vector2.One * 0.741f, Vector2.One * 0.2f);
         }
     }
 }

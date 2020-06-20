@@ -41,7 +41,7 @@ namespace SeeSharp.Integrators.Common {
 
         protected virtual (float, float, ColorRGB, Vector3) SampleNextDirection(SurfacePoint hit, Ray ray) {
             // Sample the next direction from the BSDF
-            var bsdfSample = hit.Bsdf.Sample(-ray.direction, isOnLightSubpath, rng.NextFloat2D());
+            var bsdfSample = hit.Bsdf.Sample(-ray.Direction, isOnLightSubpath, rng.NextFloat2D());
             return (
                 bsdfSample.pdf,
                 bsdfSample.pdfReverse,

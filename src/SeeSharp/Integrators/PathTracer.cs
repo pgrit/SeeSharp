@@ -88,10 +88,10 @@ namespace SeeSharp.Integrators {
                 return ColorRGB.Black;
 
             // Compute the balance heuristic MIS weight
-            float pdfNextEvent = scene.Background.DirectionPdf(ray.direction);
+            float pdfNextEvent = scene.Background.DirectionPdf(ray.Direction);
             float misWeight = 1 / (1 + pdfNextEvent / previousPdf);
 
-            return misWeight * scene.Background.EmittedRadiance(ray.direction);
+            return misWeight * scene.Background.EmittedRadiance(ray.Direction);
         }
 
         private static ColorRGB OnLightHit(Scene scene, Ray ray, uint depth, SurfacePoint? previousHit, 
@@ -108,7 +108,7 @@ namespace SeeSharp.Integrators {
                 misWeight = 1 / (pdfRatio * pdfRatio + 1);
             }
 
-            var emission = light.EmittedRadiance(hit, -ray.direction);
+            var emission = light.EmittedRadiance(hit, -ray.Direction);
             return misWeight * emission;
         }
 
@@ -119,8 +119,8 @@ namespace SeeSharp.Integrators {
             var sample = scene.Background.SampleDirection(rng.NextFloat2D());
             if (scene.Raytracer.LeavesScene(hit, sample.Direction)) {
                 var bsdf = hit.Bsdf;
-                var bsdfTimesCosine = bsdf.EvaluateWithCosine(-ray.direction, sample.Direction, false);
-                var (pdfBsdf, _)= bsdf.Pdf(-ray.direction, sample.Direction, false);
+                var bsdfTimesCosine = bsdf.EvaluateWithCosine(-ray.Direction, sample.Direction, false);
+                var (pdfBsdf, _)= bsdf.Pdf(-ray.Direction, sample.Direction, false);
 
                 // Since the densities are in solid angle unit, no need for any conversions here
                 float misWeight = 1.0f / (1.0f + pdfBsdf / sample.Pdf);
@@ -154,11 +154,11 @@ namespace SeeSharp.Integrators {
                 float jacobian = SampleWrap.SurfaceAreaToSolidAngle(hit, lightSample.point);
 
                 var bsdf = hit.Bsdf;
-                var bsdfCos = bsdf.EvaluateWithCosine(-ray.direction, -lightToSurface, false);
+                var bsdfCos = bsdf.EvaluateWithCosine(-ray.Direction, -lightToSurface, false);
 
                 // Compute surface area PDFs
                 float pdfNextEvt = lightSample.pdf * lightSelectProb;
-                float pdfBsdfSolidAngle = bsdf.Pdf(-ray.direction, -lightToSurface, false).Item1;
+                float pdfBsdfSolidAngle = bsdf.Pdf(-ray.Direction, -lightToSurface, false).Item1;
                 float pdfBsdf = pdfBsdfSolidAngle * jacobian;
 
                 // Compute the resulting power heuristic weights
@@ -179,7 +179,7 @@ namespace SeeSharp.Integrators {
             var bsdf = hit.Bsdf;
 
             var primary = rng.NextFloat2D();
-            var bsdfSample = bsdf.Sample(-ray.direction, false, primary);
+            var bsdfSample = bsdf.Sample(-ray.Direction, false, primary);
 
             var bsdfRay = scene.Raytracer.SpawnRay(hit, bsdfSample.direction);
 

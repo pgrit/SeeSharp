@@ -26,9 +26,9 @@ namespace SeeSharp.Core.Tests.Geometry {
             rt.CommitScene();
 
             SurfacePoint hit = rt.Trace(new Ray {
-                origin = new Vector3(-0.5f, -10, 0),
-                direction = new Vector3(0, 1, 0),
-                minDistance = 1.0f
+                Origin = new Vector3(-0.5f, -10, 0),
+                Direction = new Vector3(0, 1, 0),
+                MinDistance = 1.0f
             });
 
             Assert.Equal(10.0f, hit.distance, 0);
@@ -57,9 +57,9 @@ namespace SeeSharp.Core.Tests.Geometry {
             rt.CommitScene();
 
             SurfacePoint hit = rt.Trace(new Ray {
-                origin = new Vector3(-0.5f, -10, 0),
-                direction = new Vector3(0, -1, 0),
-                minDistance = 1.0f
+                Origin = new Vector3(-0.5f, -10, 0),
+                Direction = new Vector3(0, -1, 0),
+                MinDistance = 1.0f
             });
 
             Assert.False(hit);

@@ -61,9 +61,9 @@ namespace SeeSharp.Core.Geometry {
             dir = p1 - p0;
 
             var ray = new Ray {
-                origin = p0,
-                direction = dir,
-                minDistance = shadowEpsilon,
+                Origin = p0,
+                Direction = dir,
+                MinDistance = shadowEpsilon,
             };
 
             // TODO use a proper optimized method here that does not compute the actual closest hit.
@@ -105,9 +105,9 @@ namespace SeeSharp.Core.Geometry {
         public Ray SpawnRay(SurfacePoint from, Vector3 dir) {
             float sign = Vector3.Dot(dir, from.normal) < 0.0f ? -1.0f : 1.0f;
             return new Ray {
-                origin = from.position + sign * from.errorOffset * from.normal,
-                direction = dir,
-                minDistance = from.errorOffset,
+                Origin = from.position + sign * from.errorOffset * from.normal,
+                Direction = dir,
+                MinDistance = from.errorOffset,
             };
         }
 

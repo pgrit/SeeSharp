@@ -114,7 +114,7 @@ namespace SeeSharp.Integrators.Bidir {
             // Perform connections if the maximum depth has not yet been reached
             if (depth < MaxDepth) {
                 for (int i = 0; i < NumConnections && EnableConnections; ++i) {
-                    var weight = throughput * BidirConnections(pixelIndex, hit, -ray.direction, rng, path, toAncestorJacobian);
+                    var weight = throughput * BidirConnections(pixelIndex, hit, -ray.Direction, rng, path, toAncestorJacobian);
                     value += weight / BidirSelectDensity();
                 }
 

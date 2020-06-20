@@ -23,17 +23,17 @@ namespace SeeSharp.Core.Tests.Camera {
             // bottom left corner
             var ray = cam.GenerateRay(new Vector2(0, 0));
 
-            Assert.Equal(0, ray.origin.X);
-            Assert.Equal(0, ray.origin.Y);
-            Assert.Equal(0, ray.origin.Z);
+            Assert.Equal(0, ray.Origin.X);
+            Assert.Equal(0, ray.Origin.Y);
+            Assert.Equal(0, ray.Origin.Z);
 
             var c = MathF.Cos(MathF.PI / 4.0f);
             var len = MathF.Sqrt(c * c * 3);
             var expectedXYZ = c / len;
 
-            Assert.Equal(expectedXYZ, ray.direction.X, 3);
-            Assert.Equal(-expectedXYZ, ray.direction.Y, 3);
-            Assert.Equal(expectedXYZ, ray.direction.Z, 3);
+            Assert.Equal(expectedXYZ, ray.Direction.X, 3);
+            Assert.Equal(-expectedXYZ, ray.Direction.Y, 3);
+            Assert.Equal(expectedXYZ, ray.Direction.Z, 3);
         }
 
         [Fact]
@@ -43,16 +43,16 @@ namespace SeeSharp.Core.Tests.Camera {
             // image center
             var ray = cam.GenerateRay(new Vector2(1.5f, 1.5f));
 
-            Assert.Equal(0, ray.origin.X);
-            Assert.Equal(0, ray.origin.Y);
-            Assert.Equal(0, ray.origin.Z);
+            Assert.Equal(0, ray.Origin.X);
+            Assert.Equal(0, ray.Origin.Y);
+            Assert.Equal(0, ray.Origin.Z);
 
             var c = MathF.Cos(MathF.PI / 4.0f);
             var len = MathF.Sqrt(c * c * 3);
 
-            Assert.Equal(0, ray.direction.X, 3);
-            Assert.Equal(0, ray.direction.Y, 3);
-            Assert.Equal(1, ray.direction.Z, 3);
+            Assert.Equal(0, ray.Direction.X, 3);
+            Assert.Equal(0, ray.Direction.Y, 3);
+            Assert.Equal(1, ray.Direction.Z, 3);
         }
 
         [Fact]
@@ -62,17 +62,17 @@ namespace SeeSharp.Core.Tests.Camera {
             // left center
             var ray = cam.GenerateRay(new Vector2(0, 1.5f));
 
-            Assert.Equal(0, ray.origin.X);
-            Assert.Equal(0, ray.origin.Y);
-            Assert.Equal(0, ray.origin.Z);
+            Assert.Equal(0, ray.Origin.X);
+            Assert.Equal(0, ray.Origin.Y);
+            Assert.Equal(0, ray.Origin.Z);
 
             var c = MathF.Cos(MathF.PI / 4.0f);
             var len = MathF.Sqrt(c * c * 2);
             var expectedXYZ = c / len;
 
-            Assert.Equal(expectedXYZ, ray.direction.X, 3);
-            Assert.Equal(0, ray.direction.Y, 3);
-            Assert.Equal(expectedXYZ, ray.direction.Z, 3);
+            Assert.Equal(expectedXYZ, ray.Direction.X, 3);
+            Assert.Equal(0, ray.Direction.Y, 3);
+            Assert.Equal(expectedXYZ, ray.Direction.Z, 3);
         }
 
         [Fact]
@@ -82,17 +82,17 @@ namespace SeeSharp.Core.Tests.Camera {
             // left center
             var ray = cam.GenerateRay(new Vector2(3, 1.5f));
 
-            Assert.Equal(0, ray.origin.X);
-            Assert.Equal(0, ray.origin.Y);
-            Assert.Equal(0, ray.origin.Z);
+            Assert.Equal(0, ray.Origin.X);
+            Assert.Equal(0, ray.Origin.Y);
+            Assert.Equal(0, ray.Origin.Z);
 
             var c = MathF.Cos(MathF.PI / 4.0f);
             var len = MathF.Sqrt(c * c * 2);
             var expectedXYZ = c / len;
 
-            Assert.Equal(-expectedXYZ, ray.direction.X, 3);
-            Assert.Equal(0, ray.direction.Y, 3);
-            Assert.Equal(expectedXYZ, ray.direction.Z, 3);
+            Assert.Equal(-expectedXYZ, ray.Direction.X, 3);
+            Assert.Equal(0, ray.Direction.Y, 3);
+            Assert.Equal(expectedXYZ, ray.Direction.Z, 3);
         }
 
         [Fact]
@@ -102,17 +102,17 @@ namespace SeeSharp.Core.Tests.Camera {
             // bottom left corner
             var ray = cam.GenerateRay(new Vector2(3, 3));
 
-            Assert.Equal(0, ray.origin.X);
-            Assert.Equal(0, ray.origin.Y);
-            Assert.Equal(0, ray.origin.Z);
+            Assert.Equal(0, ray.Origin.X);
+            Assert.Equal(0, ray.Origin.Y);
+            Assert.Equal(0, ray.Origin.Z);
 
             var c = MathF.Cos(MathF.PI / 4.0f);
             var len = MathF.Sqrt(c * c * 3);
             var expectedXYZ = c / len;
 
-            Assert.Equal(-expectedXYZ, ray.direction.X, 3);
-            Assert.Equal(expectedXYZ, ray.direction.Y, 3);
-            Assert.Equal(expectedXYZ, ray.direction.Z, 3);
+            Assert.Equal(-expectedXYZ, ray.Direction.X, 3);
+            Assert.Equal(expectedXYZ, ray.Direction.Y, 3);
+            Assert.Equal(expectedXYZ, ray.Direction.Z, 3);
         }
     }
 }

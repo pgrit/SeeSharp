@@ -45,7 +45,98 @@ namespace SeeSharp.Integrators {
             scene.FrameBuffer.Splat(col, row, value);
         }
 
+        private ColorRGB EstimateIncidentRadiance(Scene scene, Ray ray, RNG rng, uint depth = 1,
+            SurfacePoint? previousHit = null, float previousPdf = 0.0f) {
+            ColorRGB value = ColorRGB.Black;
+
+            // Did we reach the maximum depth?
+            if (depth > MaxDepth) return value;
+
+            var hit = scene.Raytracer.Trace(ray);
+
+            // Did the ray leave the scene?
+            if (!hit) return OnBackgroundHit(scene, ray, previousPdf);
+
+            // Check if a light source was hit.
+            Emitter light = scene.QueryEmitter(hit);
+            if (light != null && depth >= MinDepth) {
+                value += OnLightHit(scene, ray, depth, previousHit, previousPdf, hit, light);
+            }
+
+            if (depth + 1 >= MinDepth && depth < MaxDepth) {
+                value += PerformBackgroundNextEvent(scene, ray, hit, rng);
+                value += PerformNextEventEstimation(scene, ray, hit, rng);
+            }
+
+            if (depth > MaxDepth) return value;
+
+            // Contine the random walk with a sample proportional to the BSDF
+            (var bsdfRay, float bsdfPdf, var bsdfSampleWeight) =
+                BsdfSample(scene, ray, hit, rng);
+
+            if (bsdfPdf == 0 || bsdfSampleWeight == ColorRGB.Black)
+                return value;
+
+            var indirectRadiance = EstimateIncidentRadiance(scene, bsdfRay, rng,
+                depth + 1, hit, bsdfPdf);            
+
+            return value + indirectRadiance * bsdfSampleWeight;
+        }
+
+        private static ColorRGB OnBackgroundHit(Scene scene, Ray ray, float previousPdf) {
+            if (scene.Background == null)
+                return ColorRGB.Black;
+
+            // Compute the balance heuristic MIS weight
+            float pdfNextEvent = scene.Background.DirectionPdf(ray.direction);
+            float misWeight = 1 / (1 + pdfNextEvent / previousPdf);
+
+            return misWeight * scene.Background.EmittedRadiance(ray.direction);
+        }
+
+        private static ColorRGB OnLightHit(Scene scene, Ray ray, uint depth, SurfacePoint? previousHit, 
+                                           float previousPdf, SurfacePoint hit, Emitter light) {
+            float misWeight = 1.0f;
+            if (depth > 1) { // directly visible emitters are not explicitely connected
+                             // Compute the surface area PDFs.
+                var jacobian = SampleWrap.SurfaceAreaToSolidAngle(previousHit.Value, hit);
+                float pdfNextEvt = light.PdfArea(hit) / scene.Emitters.Count;
+                float pdfBsdf = previousPdf * jacobian;
+
+                // Compute MIS weights
+                float pdfRatio = pdfNextEvt / pdfBsdf;
+                misWeight = 1 / (pdfRatio * pdfRatio + 1);
+            }
+
+            var emission = light.EmittedRadiance(hit, -ray.direction);
+            return misWeight * emission;
+        }
+
+        private ColorRGB PerformBackgroundNextEvent(Scene scene, Ray ray, SurfacePoint hit, RNG rng) {
+            if (scene.Background == null)
+                return ColorRGB.Black; // There is no background
+
+            var sample = scene.Background.SampleDirection(rng.NextFloat2D());
+            if (scene.Raytracer.LeavesScene(hit, sample.Direction)) {
+                var bsdf = hit.Bsdf;
+                var bsdfTimesCosine = bsdf.EvaluateWithCosine(-ray.direction, sample.Direction, false);
+                var (pdfBsdf, _)= bsdf.Pdf(-ray.direction, sample.Direction, false);
+
+                // Since the densities are in solid angle unit, no need for any conversions here
+                float misWeight = 1.0f / (1.0f + pdfBsdf / sample.Pdf);
+
+                var emission = sample.Weight * bsdfTimesCosine;
+                return misWeight * emission;
+            }
+
+            // The background is occluded
+            return ColorRGB.Black;
+        }
+
         private ColorRGB PerformNextEventEstimation(Scene scene, Ray ray, SurfacePoint hit, RNG rng) {
+            if (scene.Emitters.Count == 0)
+                return ColorRGB.Black;
+
             // Select a light source
             int idx = rng.NextInt(0, scene.Emitters.Count);
             var light = scene.Emitters[idx];
@@ -93,55 +184,6 @@ namespace SeeSharp.Integrators {
             var bsdfRay = scene.Raytracer.SpawnRay(hit, bsdfSample.direction);
 
             return (bsdfRay, bsdfSample.pdf, bsdfSample.weight);
-        }
-
-        private ColorRGB EstimateIncidentRadiance(Scene scene, Ray ray, RNG rng, uint depth = 1,
-            SurfacePoint? previousHit = null, float previousPdf = 0.0f) {
-            ColorRGB value = ColorRGB.Black;
-
-            // Did we reach the maximum depth?
-            if (depth > MaxDepth) return value;
-
-            var hit = scene.Raytracer.Trace(ray);
-
-            // Did the ray leave the scene?
-            if (!hit) return ColorRGB.Black;
-
-            // Check if a light source was hit.
-            Emitter light = scene.QueryEmitter(hit);
-            if (light != null && depth >= MinDepth) {
-                float misWeight = 1.0f;
-                if (depth > 1) { // directly visible emitters are not explicitely connected
-                    // Compute the surface area PDFs.
-                    var jacobian = SampleWrap.SurfaceAreaToSolidAngle(previousHit.Value, hit);
-                    float pdfNextEvt = light.PdfArea(hit) / scene.Emitters.Count;
-                    float pdfBsdf = previousPdf * jacobian;
-
-                    // Compute MIS weights
-                    float pdfRatio = pdfNextEvt / pdfBsdf;
-                    misWeight = 1 / (pdfRatio * pdfRatio + 1);
-                }
-
-                var emission = light.EmittedRadiance(hit, -ray.direction);
-                value += misWeight * emission;
-            }
-
-            if (depth + 1 >= MinDepth && depth < MaxDepth)
-                value += PerformNextEventEstimation(scene, ray, hit, rng);
-
-            if (depth > MaxDepth) return value;
-
-            // Contine the random walk with a sample proportional to the BSDF
-            (var bsdfRay, float bsdfPdf, var bsdfSampleWeight) =
-                BsdfSample(scene, ray, hit, rng);
-
-            if (bsdfPdf == 0 || bsdfSampleWeight == ColorRGB.Black)
-                return value;
-
-            var indirectRadiance = EstimateIncidentRadiance(scene, bsdfRay, rng,
-                depth + 1, hit, bsdfPdf);            
-
-            return value + indirectRadiance * bsdfSampleWeight;
         }
     }
 

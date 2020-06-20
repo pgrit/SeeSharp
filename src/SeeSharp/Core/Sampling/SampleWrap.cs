@@ -42,6 +42,11 @@ namespace SeeSharp.Core.Sampling {
             );
         }
 
+        /// <summary>
+        /// Maps the cartensian coordinates (z is up) to spherical coordinates.
+        /// </summary>
+        /// <param name="dir">Direction in cartesian coordinates</param>
+        /// <returns>A vector where X is the longitude and Y the latitude</returns>
         public static Vector2 CartesianToSpherical(Vector3 dir) {
             var sp = new Vector2(
                 MathF.Atan2(dir.Y, dir.X),

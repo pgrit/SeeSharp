@@ -1,6 +1,7 @@
 using SeeSharp.Core.Cameras;
 using SeeSharp.Core.Geometry;
 using SeeSharp.Core.Shading;
+using SeeSharp.Core.Shading.Background;
 using SeeSharp.Core.Shading.Emitters;
 using SeeSharp.Core.Shading.Materials;
 using System;
@@ -18,6 +19,7 @@ namespace SeeSharp.Core {
         public Raytracer Raytracer { get; private set; }
 
         public List<Emitter> Emitters { get; private set; } = new List<Emitter>();
+        public Background Background;
 
         public List<string> ValidationErrorMessages { get; private set; } = new List<string>();
 

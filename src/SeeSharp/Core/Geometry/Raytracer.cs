@@ -91,6 +91,17 @@ namespace SeeSharp.Core.Geometry {
             return occluded;
         }
 
+        public bool LeavesScene(SurfacePoint from, Vector3 direction) {
+            var ray = SpawnRay(from, direction);
+
+            // TODO use a proper optimized method here that does not compute the actual closest hit.
+            var p = Trace(ray);
+
+            bool occluded = p.mesh != null;
+
+            return !occluded;
+        }
+
         public Ray SpawnRay(SurfacePoint from, Vector3 dir) {
             float sign = Vector3.Dot(dir, from.normal) < 0.0f ? -1.0f : 1.0f;
             return new Ray {

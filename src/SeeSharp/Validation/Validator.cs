@@ -60,11 +60,11 @@ namespace SeeSharp.Validation {
                     MaxDepth = (uint)sceneFactory.MaxDepth,
                     MinDepth = 1
                 },
-                //new ClassicBidir() {
-                //    NumIterations = sceneFactory.SamplesPerPixel / 2,
-                //    MaxDepth = sceneFactory.MaxDepth,
-                //    RenderTechniquePyramid = true
-                //},
+                new ClassicBidir() {
+                    NumIterations = sceneFactory.SamplesPerPixel / 2,
+                    MaxDepth = sceneFactory.MaxDepth,
+                    RenderTechniquePyramid = true
+                },
                 //new VertexCacheBidir() {
                 //    NumIterations = sceneFactory.SamplesPerPixel / 2,
                 //    MaxDepth = sceneFactory.MaxDepth,
@@ -76,7 +76,7 @@ namespace SeeSharp.Validation {
             };
             var names = new List<string> {
                 "PathTracer",
-                //"ClassicBidir",
+                "ClassicBidir",
                 //"VertexCacheBidir"
             };
 

@@ -1,4 +1,5 @@
 using System.Numerics;
+using SeeSharp.Core.Geometry;
 using SeeSharp.Core.Shading;
 using SeeSharp.Core.Shading.Background;
 using Xunit;
@@ -12,7 +13,14 @@ namespace SeeSharp.Core.Tests.Shading {
             // Create a "sun".
             image.Splat(128, 64, ColorRGB.White * 10);
 
-            return new EnvironmentMap(image);
+            // Create the background object
+            var bgn = new EnvironmentMap(image);
+
+            // Specify a fake scene bounding sphere
+            bgn.SceneCenter = new Vector3(1, 2, 3);
+            bgn.SceneRadius = 42;
+
+            return bgn;
         }
 
         [Fact]
@@ -87,8 +95,10 @@ namespace SeeSharp.Core.Tests.Shading {
         public void RaySampling_PdfShouldBeConsistent() {
             var map = MakeSimpleMap();
 
-            var sample = map.SampleRay(Vector2.One * 0.741f, Vector2.One * 0.2f);
+            var (ray, _, pdfSample) = map.SampleRay(Vector2.One * 0.741f, Vector2.One * 0.2f);
+            float pdfEval = map.RayPdf(Vector3.Zero, ray.Direction);
 
+            Assert.Equal(pdfEval, pdfSample, 3);
         }
 
         [Fact]
@@ -108,7 +118,14 @@ namespace SeeSharp.Core.Tests.Shading {
         public void RaySampling_EstimatorShouldBeCorrect() {
             var map = MakeSimpleMap();
 
-            var sample = map.SampleRay(Vector2.One * 0.741f, Vector2.One * 0.2f);
+            var (ray, weight, pdf) = map.SampleRay(Vector2.One * 0.741f, Vector2.One * 0.2f);
+
+            var radiance = map.EmittedRadiance(-ray.Direction);
+            var expectedWeight = radiance / pdf;
+
+            Assert.Equal(expectedWeight.R, weight.R);
+            Assert.Equal(expectedWeight.G, weight.G);
+            Assert.Equal(expectedWeight.B, weight.B);
         }
     }
 }

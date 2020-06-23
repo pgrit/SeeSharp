@@ -13,7 +13,7 @@ using System.Text.Json;
 namespace SeeSharp.Core {
     public class Scene {
         public FrameBuffer FrameBuffer;
-        public Cameras.Camera Camera;
+        public Camera Camera;
 
         public List<Mesh> Meshes = new List<Mesh>();
         public Raytracer Raytracer { get; private set; }
@@ -21,11 +21,14 @@ namespace SeeSharp.Core {
         public List<Emitter> Emitters { get; private set; } = new List<Emitter>();
         public Background Background;
 
+        public Vector3 SceneCenter { get; private set; }
+        public float SceneRadius { get; private set; }
+
         public List<string> ValidationErrorMessages { get; private set; } = new List<string>();
 
         public void Prepare() {
             if (!IsValid)
-                throw new System.InvalidOperationException("Cannot finalize an invalid scene.");
+                throw new InvalidOperationException("Cannot finalize an invalid scene.");
 
             // Prepare the scene geometry for ray tracing.
             Raytracer = new Raytracer();
@@ -33,6 +36,33 @@ namespace SeeSharp.Core {
                 Raytracer.AddMesh(Meshes[idx]);
             }
             Raytracer.CommitScene();
+
+            // Compute the bounding sphere of the scene.
+            // 1) Compute the center of the mesh: the average of all vertex positions
+            var center = Vector3.Zero;
+            ulong totalVertices = 0;
+            for (int idx = 0; idx < Meshes.Count; ++idx) {
+                foreach (var vert in Meshes[idx].Vertices) {
+                    center += vert;
+                }
+                totalVertices += (ulong)Meshes[idx].Vertices.Length;
+            }
+            SceneCenter = center / totalVertices;
+
+            // 2) Compute the radius of the tight bounding box: the distance to the furthest vertex 
+            float radius = 0;
+            for (int idx = 0; idx < Meshes.Count; ++idx) {
+                foreach (var vert in Meshes[idx].Vertices) {
+                    radius = MathF.Max((vert - center).LengthSquared(), radius);
+                }
+            }
+            SceneRadius = MathF.Sqrt(radius);
+
+            // If a background is set, pass the scene center and radius to it
+            if (Background != null) {
+                Background.SceneCenter = SceneCenter;
+                Background.SceneRadius = SceneRadius;
+            }
 
             // Make sure the camera is set for the correct resolution.
             Camera.UpdateFrameBuffer(FrameBuffer);

@@ -35,7 +35,7 @@ namespace SeeSharp.Core.Geometry {
                 SurfaceArea += surfaceAreas[face];
             }
 
-            triangleDistribution = new Sampling.PiecewiseConstant(surfaceAreas);
+            triangleDistribution = new PiecewiseConstant(surfaceAreas);
 
             this.shadingNormals = shadingNormals;
             this.textureCoordinates = textureCoordinates;

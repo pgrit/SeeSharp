@@ -94,6 +94,42 @@ namespace SeeSharp.Core.Sampling {
             return cos > 0.0f ? ((power + 1.0f) * MathF.Pow(cos, power) * 1.0f / (2.0f * MathF.PI)) : 0.0f;
         }
 
+        /// <summary>
+        /// Wraps a primary sample to a position on the unit disc.
+        /// </summary>
+        public static Vector2 ToConcentricDisc(Vector2 primary) {
+            float phi, r;
+
+            float a = 2 * primary.X - 1;
+            float b = 2 * primary.Y - 1;
+            if (a > -b) {
+                if (a > b) {
+                    r = a;
+                    phi = (MathF.PI * 0.25f) * (b / a);
+                } else {
+                    r = b;
+                    phi = (MathF.PI * 0.25f) * (2 - (a / b));
+                }
+            } else {
+                if (a < b) {
+                    r = -a;
+                    phi = (MathF.PI * 0.25f) * (4 + (b / a));
+                } else {
+                    r = -b;
+                    if (b != 0)
+                        phi = (MathF.PI * 0.25f) * (6 - (a / b));
+                    else
+                        phi = 0;
+                }
+            }
+
+            return new Vector2(r * MathF.Cos(phi), r * MathF.Sin(phi));
+        }
+
+        public static float ToConcentricDiscJacobian() {
+            return 1.0f / MathF.PI;
+        }
+
 
         /// <summary>
         /// Computes the inverse jacobian for the mapping from surface area around "to" to the sphere around "from". 

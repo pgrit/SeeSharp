@@ -65,15 +65,39 @@ namespace SeeSharp.Core.Shading.Background {
         public override float DirectionPdf(Vector3 direction) {
             var sphericalDir = WorldToSpherical(direction);
             var pixelCoords = SphericalToPixel(sphericalDir);
-            return directionSampler.Pdf(pixelCoords) * MathF.Sin(sphericalDir.Y);
+            return directionSampler.Pdf(pixelCoords) / MathF.Sin(sphericalDir.Y);
         }
 
         public override (Ray, ColorRGB, float) SampleRay(Vector2 primaryPos, Vector2 primaryDir) {
-            throw new NotImplementedException();
+            // Sample a direction from the scene to the background
+            var dirSample = SampleDirection(primaryDir);
+
+            // Sample a point on the unit disc
+            var unitDiscPoint = SampleWrap.ToConcentricDisc(primaryPos);
+
+            // And transform it to the scene spanning disc orthogonal to the selected direction
+            var (tangent, binormal) = SampleWrap.ComputeBasisVectors(dirSample.Direction);
+            var pos = SceneCenter + SceneRadius * (dirSample.Direction // offset outside of the scene
+                                                   + tangent * unitDiscPoint.X // remap unit disc x coordinate
+                                                   + binormal * unitDiscPoint.Y); // remap unit disc y coordinate
+
+            // Compute the pdf: uniform sampling of a disc with radius "SceneRadius"
+            float discJacobian = SampleWrap.ToConcentricDiscJacobian();
+            float posPdf = discJacobian / (SceneRadius * SceneRadius);
+
+            // Compute the final result
+            var ray = new Ray { Origin = pos, Direction = -dirSample.Direction, MinDistance = 0 };
+            var weight = dirSample.Weight / posPdf;
+            var pdf = posPdf * dirSample.Pdf;
+
+            return (ray, weight, pdf);
         }
 
-        public override float RayPdf(SurfacePoint point, Vector3 direction) {
-            throw new NotImplementedException();
+        public override float RayPdf(Vector3 point, Vector3 direction) {
+            float dirPdf = DirectionPdf(-direction);
+            float discJacobian = SampleWrap.ToConcentricDiscJacobian();
+            float posPdf = discJacobian / (SceneRadius * SceneRadius);
+            return posPdf * dirPdf;
         }
 
         /// <summary>

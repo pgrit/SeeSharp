@@ -14,7 +14,14 @@ namespace SeeSharp.Core.Shading.Background {
         public abstract BackgroundSample SampleDirection(Vector2 primary);
         public abstract float DirectionPdf(Vector3 Direction);
         public abstract (Ray, ColorRGB, float) SampleRay(Vector2 primaryPos, Vector2 primaryDir);
-        public abstract float RayPdf(SurfacePoint point, Vector3 direction);
+
+        /// <summary>
+        /// Computes the pdf value for sampling a ray from the background towards the scene.
+        /// </summary>
+        /// <param name="point">A point along the ray. Could be the start, end, or some other point.</param>
+        /// <param name="direction">Direction of the ray (i.e., from the background to the scene).</param>
+        /// <returns></returns>
+        public abstract float RayPdf(Vector3 point, Vector3 direction);
 
         public Vector3 SceneCenter;
         public float SceneRadius;

@@ -8,7 +8,7 @@ using System.Numerics;
 
 namespace SeeSharp.Validation {
     class Validate_Environment : ValidationSceneFactory {
-        public override int SamplesPerPixel => 100;
+        public override int SamplesPerPixel => 10;
 
         public override int MaxDepth => 5;
 
@@ -18,7 +18,7 @@ namespace SeeSharp.Validation {
             var scene = new Scene();
 
             // Ground plane
-            float groundRadius = 0.1f;
+            float groundRadius = 1.0f;
             scene.Meshes.Add(new Mesh(new Vector3[] {
                 new Vector3(-groundRadius, -groundRadius, -2),
                 new Vector3( groundRadius, -groundRadius, -2),

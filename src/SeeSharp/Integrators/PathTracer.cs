@@ -55,7 +55,7 @@ namespace SeeSharp.Integrators {
             var hit = scene.Raytracer.Trace(ray);
 
             // Did the ray leave the scene?
-            if (!hit) return OnBackgroundHit(scene, ray, previousPdf);
+            if (!hit) return OnBackgroundHit(scene, ray, depth, previousPdf);
 
             // Check if a light source was hit.
             Emitter light = scene.QueryEmitter(hit);
@@ -83,13 +83,16 @@ namespace SeeSharp.Integrators {
             return value + indirectRadiance * bsdfSampleWeight;
         }
 
-        private static ColorRGB OnBackgroundHit(Scene scene, Ray ray, float previousPdf) {
+        private static ColorRGB OnBackgroundHit(Scene scene, Ray ray, uint depth, float previousPdf) {
             if (scene.Background == null)
                 return ColorRGB.Black;
 
-            // Compute the balance heuristic MIS weight
-            float pdfNextEvent = scene.Background.DirectionPdf(ray.Direction);
-            float misWeight = 1 / (1 + pdfNextEvent / previousPdf);
+            float misWeight = 1.0f;
+            if (depth > 1) {
+                // Compute the balance heuristic MIS weight
+                float pdfNextEvent = scene.Background.DirectionPdf(ray.Direction);
+                misWeight = 1 / (1 + pdfNextEvent / previousPdf);
+            }
 
             return misWeight * scene.Background.EmittedRadiance(ray.Direction);
         }
@@ -123,7 +126,7 @@ namespace SeeSharp.Integrators {
                 var (pdfBsdf, _)= bsdf.Pdf(-ray.Direction, sample.Direction, false);
 
                 // Since the densities are in solid angle unit, no need for any conversions here
-                float misWeight = 1.0f / (1.0f + pdfBsdf / sample.Pdf);
+                float misWeight = 1 / (1.0f + pdfBsdf / sample.Pdf);
 
                 var emission = sample.Weight * bsdfTimesCosine;
                 return misWeight * emission;

@@ -40,7 +40,7 @@ namespace SeeSharp.Core.Shading.Background {
             var direction = SphericalToWorld(sphericalDir);
 
             // Multiply the pdfs with the jacobian of the change of variables from unit square to sphere
-            float jacobian = MathF.Sin(sphericalDir.Y);
+            float jacobian = MathF.Sin(sphericalDir.Y) * MathF.PI * MathF.PI * 2.0f;
             if (jacobian == 0.0f) {
                 // Prevent infs / nans in this rare edge case
                 return new BackgroundSample {
@@ -65,7 +65,7 @@ namespace SeeSharp.Core.Shading.Background {
         public override float DirectionPdf(Vector3 direction) {
             var sphericalDir = WorldToSpherical(direction);
             var pixelCoords = SphericalToPixel(sphericalDir);
-            return directionSampler.Pdf(pixelCoords) / MathF.Sin(sphericalDir.Y);
+            return directionSampler.Pdf(pixelCoords) / (MathF.Sin(sphericalDir.Y) * MathF.PI * MathF.PI * 2.0f);
         }
 
         public override (Ray, ColorRGB, float) SampleRay(Vector2 primaryPos, Vector2 primaryDir) {

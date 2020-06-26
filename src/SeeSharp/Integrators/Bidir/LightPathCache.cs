@@ -34,7 +34,11 @@ namespace SeeSharp.Integrators.Bidir {
         }
 
         public virtual float SelectLightPmf(Emitter em) {
-            return 1.0f / scene.Emitters.Count; // TODO +1 if background enabled
+            if (em == null) { // background
+                return BackgroundProbability;
+            } else {
+                return 1.0f / scene.Emitters.Count * (1 - BackgroundProbability);
+            }
         }
 
         public virtual float BackgroundProbability => 1 / (1.0f + scene.Emitters.Count);

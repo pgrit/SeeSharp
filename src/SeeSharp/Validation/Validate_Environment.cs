@@ -18,7 +18,7 @@ namespace SeeSharp.Validation {
             var scene = new Scene();
 
             // Ground plane
-            float groundRadius = 1.0f;
+            float groundRadius = 0.1f;
             scene.Meshes.Add(new Mesh(new Vector3[] {
                 new Vector3(-groundRadius, -groundRadius, -2),
                 new Vector3( groundRadius, -groundRadius, -2),

@@ -190,7 +190,8 @@ namespace SeeSharp.Integrators.Bidir {
 
                 // Compute the surface area pdf of sampling the previous vertex instead
                 float pdfReverse = bsdf.Pdf(dirToCam, dirToAncestor, false).Item1;
-                pdfReverse *= SampleWrap.SurfaceAreaToSolidAngle(vertex.point, ancestor.point);
+                if (ancestor.point.mesh != null) // Unless this is a background, i.e., a directional distribution
+                    pdfReverse *= SampleWrap.SurfaceAreaToSolidAngle(vertex.point, ancestor.point);
 
                 // Account for next event estimation
                 if (vertex.depth == 1) {
@@ -258,7 +259,8 @@ namespace SeeSharp.Integrators.Bidir {
                 pdfCameraToLight *= SampleWrap.SurfaceAreaToSolidAngle(cameraPoint, vertex.point);
 
                 var (pdfLightToCamera, pdfLightReverse) = vertexBsdf.Pdf(dirToAncestor, -dirFromCamToLight, true);
-                pdfLightReverse *= SampleWrap.SurfaceAreaToSolidAngle(vertex.point, ancestor.point);
+                if (ancestor.point.mesh != null) // only convert to surface area if this was an actual surface area sampler
+                    pdfLightReverse *= SampleWrap.SurfaceAreaToSolidAngle(vertex.point, ancestor.point);
                 pdfLightToCamera *= SampleWrap.SurfaceAreaToSolidAngle(vertex.point, cameraPoint);
 
                 if (vertex.depth == 1) {
@@ -299,9 +301,6 @@ namespace SeeSharp.Integrators.Bidir {
 
         public virtual float NextEventPdf(SurfacePoint from, SurfacePoint to) {
             if (to.mesh == null) { // Background
-
-                return 0;// TODO enable the pdf once the technique is implemented
-
                 var direction = to.position - from.position;
                 return scene.Background.DirectionPdf(direction);
             } else { // Emissive object
@@ -317,44 +316,73 @@ namespace SeeSharp.Integrators.Bidir {
             return (light, lightSample);
         }
 
+        public virtual float ComputeNextEventBackgroundProbability(/*SurfacePoint from*/) 
+            => 1 / (1.0f + scene.Emitters.Count);
+
         public ColorRGB PerformNextEventEstimation(Ray ray, SurfacePoint hit, RNG rng, CameraPath path,
                                                    float reversePdfJacobian) {
-            if (scene.Emitters.Count == 0) 
-                return ColorRGB.Black;
+            float backgroundProbability = ComputeNextEventBackgroundProbability(/*hit*/);
+            if (rng.NextFloat() < backgroundProbability) { // Connect to the background
+                if (scene.Background == null)
+                    return ColorRGB.Black; // There is no background
 
-            // Sample a point on the light source
-            var (light, lightSample) = SampleNextEvent(hit, rng);
+                var sample = scene.Background.SampleDirection(rng.NextFloat2D());
+                sample.Pdf *= backgroundProbability;
+                sample.Weight /= backgroundProbability;
+                if (scene.Raytracer.LeavesScene(hit, sample.Direction)) {
+                    var bsdf = hit.Bsdf;
+                    var bsdfTimesCosine = bsdf.EvaluateWithCosine(-ray.Direction, sample.Direction, false);
 
-            if (!scene.Raytracer.IsOccluded(hit, lightSample.point)) {
-                Vector3 lightToSurface = hit.position - lightSample.point.position;
-                var emission = light.EmittedRadiance(lightSample.point, lightToSurface);
+                    // Compute the reverse BSDF sampling pdf
+                    var (bsdfForwardPdf, bsdfReversePdf) = bsdf.Pdf(-ray.Direction, sample.Direction, false);
+                    bsdfReversePdf *= reversePdfJacobian;
 
-                var bsdf = hit.Bsdf;
-                var bsdfTimesCosine = bsdf.EvaluateWithCosine(-ray.Direction, -lightToSurface, false);
-                if (bsdfTimesCosine == ColorRGB.Black)
+                    // Compute emission pdf
+                    float pdfEmit = scene.Background.RayPdf(hit.position, -sample.Direction);
+                    pdfEmit *= lightPaths.SelectLightPmf(null);
+
+                    float misWeight = NextEventMis(path, pdfEmit, sample.Pdf, bsdfForwardPdf, bsdfReversePdf);
+
+                    var emission = sample.Weight * bsdfTimesCosine;
+                    return misWeight * emission;
+                }
+            } else { // Connect to an emissive surface
+                if (scene.Emitters.Count == 0)
                     return ColorRGB.Black;
 
-                // Compute the jacobian for surface area -> solid angle
-                // (Inverse of the jacobian for solid angle pdf -> surface area pdf)
-                float jacobian = SampleWrap.SurfaceAreaToSolidAngle(hit, lightSample.point);
-                if (jacobian == 0)
-                    return ColorRGB.Black;
+                // Sample a point on the light source
+                var (light, lightSample) = SampleNextEvent(hit, rng);
+                lightSample.pdf *= (1 - backgroundProbability);
+                if (!scene.Raytracer.IsOccluded(hit, lightSample.point)) {
+                    Vector3 lightToSurface = hit.position - lightSample.point.position;
+                    var emission = light.EmittedRadiance(lightSample.point, lightToSurface);
 
-                // Compute the missing pdf terms
-                var (bsdfForwardPdf, bsdfReversePdf) = bsdf.Pdf(-ray.Direction, -lightToSurface, false);
-                bsdfForwardPdf *= SampleWrap.SurfaceAreaToSolidAngle(hit, lightSample.point);
-                bsdfReversePdf *= reversePdfJacobian;
+                    var bsdf = hit.Bsdf;
+                    var bsdfTimesCosine = bsdf.EvaluateWithCosine(-ray.Direction, -lightToSurface, false);
+                    if (bsdfTimesCosine == ColorRGB.Black)
+                        return ColorRGB.Black;
 
-                float pdfEmit = light.PdfRay(lightSample.point, lightToSurface);
-                pdfEmit *= SampleWrap.SurfaceAreaToSolidAngle(lightSample.point, hit);
-                pdfEmit *= lightPaths.SelectLightPmf(light);
+                    // Compute the jacobian for surface area -> solid angle
+                    // (Inverse of the jacobian for solid angle pdf -> surface area pdf)
+                    float jacobian = SampleWrap.SurfaceAreaToSolidAngle(hit, lightSample.point);
+                    if (jacobian == 0) return ColorRGB.Black;
 
-                float misWeight = NextEventMis(path, pdfEmit, lightSample.pdf, bsdfForwardPdf, bsdfReversePdf);
+                    // Compute the missing pdf terms
+                    var (bsdfForwardPdf, bsdfReversePdf) = bsdf.Pdf(-ray.Direction, -lightToSurface, false);
+                    bsdfForwardPdf *= SampleWrap.SurfaceAreaToSolidAngle(hit, lightSample.point);
+                    bsdfReversePdf *= reversePdfJacobian;
 
-                var weight = emission * bsdfTimesCosine * (jacobian / lightSample.pdf);
-                RegisterSample(weight * path.throughput, misWeight, path.pixel,
-                               path.vertices.Count, 0, path.vertices.Count + 1);
-                return misWeight * weight;
+                    float pdfEmit = light.PdfRay(lightSample.point, lightToSurface);
+                    pdfEmit *= SampleWrap.SurfaceAreaToSolidAngle(lightSample.point, hit);
+                    pdfEmit *= lightPaths.SelectLightPmf(light);
+
+                    float misWeight = NextEventMis(path, pdfEmit, lightSample.pdf, bsdfForwardPdf, bsdfReversePdf);
+
+                    var weight = emission * bsdfTimesCosine * (jacobian / lightSample.pdf);
+                    RegisterSample(weight * path.throughput, misWeight, path.pixel,
+                                   path.vertices.Count, 0, path.vertices.Count + 1);
+                    return misWeight * weight;
+                }
             }
 
             return ColorRGB.Black;
@@ -380,6 +408,24 @@ namespace SeeSharp.Integrators.Bidir {
             return value;
         }
 
+        public ColorRGB OnBackgroundHit(Ray ray, CameraPath path) {
+            if (scene.Background == null)
+                return ColorRGB.Black;
+
+            // Compute the pdf of sampling the previous point by emission from the background
+            float pdfEmit = scene.Background.RayPdf(ray.Origin, -ray.Direction);
+            pdfEmit *= lightPaths.SelectLightPmf(null);
+
+            // Compute the pdf of sampling the same connection via next event estimation
+            float pdfNextEvent = scene.Background.DirectionPdf(ray.Direction);
+            float backgroundProbability = ComputeNextEventBackgroundProbability(/*hit*/);
+            pdfNextEvent *= backgroundProbability;
+
+            float misWeight = EmitterHitMis(path, pdfEmit, pdfNextEvent);
+
+            return misWeight * scene.Background.EmittedRadiance(ray.Direction);
+        }
+
         public abstract ColorRGB OnCameraHit(CameraPath path, RNG rng, int pixelIndex, Ray ray,
                                              SurfacePoint hit, float pdfFromAncestor,
                                              float pdfToAncestor, ColorRGB throughput, int depth,
@@ -398,6 +444,15 @@ namespace SeeSharp.Integrators.Bidir {
                 path.pixel = filmPosition;
             }
 
+            protected override ColorRGB OnInvalidHit(Ray ray, float pdfFromAncestor, ColorRGB throughput) {
+                path.vertices.Add(new PathPdfPair {
+                    pdfFromAncestor = pdfFromAncestor,
+                    pdfToAncestor = 0
+                });
+                path.throughput = throughput;
+                return integrator.OnBackgroundHit(ray, path);
+            }
+
             protected override ColorRGB OnHit(Ray ray, SurfacePoint hit, float pdfFromAncestor,
                                               float pdfToAncestor, ColorRGB throughput, int depth,
                                               float toAncestorJacobian, Vector3 nextDirection) {
@@ -405,16 +460,10 @@ namespace SeeSharp.Integrators.Bidir {
                     pdfFromAncestor = pdfFromAncestor,
                     pdfToAncestor = pdfToAncestor
                 });
-
                 path.throughput = throughput;
-
-                // TODO cache last hit here and pass it along as well
-
                 return integrator.OnCameraHit(path, rng, pixelIndex, ray, hit, pdfFromAncestor,
                                               pdfToAncestor, throughput, depth, toAncestorJacobian);
             }
-
-            protected override ColorRGB OnInvalidHit() => ColorRGB.Black;
         }
     }
 }

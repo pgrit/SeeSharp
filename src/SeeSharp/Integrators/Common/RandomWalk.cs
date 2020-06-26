@@ -31,7 +31,7 @@ namespace SeeSharp.Integrators.Common {
             // Find the first actual hitpoint on scene geometry
             var hit = scene.Raytracer.Trace(ray);
             if (!hit) 
-                return OnInvalidHit();
+                return OnInvalidHit(ray, pdf, initialWeight);
 
             // Sample the next direction (required to know the reverse pdf)
             var (pdfNext, pdfReverse, weight, direction) = SampleNextDirection(hit, ray);
@@ -60,7 +60,7 @@ namespace SeeSharp.Integrators.Common {
         //    this.isOnLightSubpath = isOnLightSubpath;
         //}
 
-        protected virtual ColorRGB OnInvalidHit() {
+        protected virtual ColorRGB OnInvalidHit(Ray ray, float pdfFromAncestor, ColorRGB throughput) {
             return ColorRGB.Black;
         }
 
@@ -85,7 +85,7 @@ namespace SeeSharp.Integrators.Common {
             for (int depth = initialDepth; depth < maxDepth; ++depth) {
                 var hit = scene.Raytracer.Trace(ray);
                 if (!hit) {
-                    estimate += OnInvalidHit();
+                    estimate += OnInvalidHit(ray, pdfDirection, throughput);
                     break;
                 }
 

@@ -53,7 +53,7 @@ namespace SeeSharp.Core {
             float radius = 0;
             for (int idx = 0; idx < Meshes.Count; ++idx) {
                 foreach (var vert in Meshes[idx].Vertices) {
-                    radius = MathF.Max((vert - center).LengthSquared(), radius);
+                    radius = MathF.Max((vert - SceneCenter).LengthSquared(), radius);
                 }
             }
             SceneRadius = MathF.Sqrt(radius);

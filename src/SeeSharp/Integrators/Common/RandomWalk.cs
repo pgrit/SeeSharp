@@ -25,6 +25,36 @@ namespace SeeSharp.Integrators.Common {
             return ContinueWalk(ray, emitterSample.point, emitterSample.pdf, initialWeight, 1);
         }
 
+        public virtual ColorRGB StartFromBackground(Ray ray, ColorRGB initialWeight, float pdf) {
+            isOnLightSubpath = true;
+
+            // Find the first actual hitpoint on scene geometry
+            var hit = scene.Raytracer.Trace(ray);
+            if (!hit) 
+                return OnInvalidHit();
+
+            // Sample the next direction (required to know the reverse pdf)
+            var (pdfNext, pdfReverse, weight, direction) = SampleNextDirection(hit, ray);
+
+            // Both pdfs have unit sr-1
+            float pdfFromAncestor = pdf;
+            float pdfToAncestor = pdfReverse;
+
+            ColorRGB estimate = OnHit(ray, hit, pdfFromAncestor, pdfToAncestor, initialWeight, 1, 1.0f, direction);
+
+            // Terminate if the maximum depth has been reached
+            if (1 >= maxDepth) 
+                return estimate;
+
+            // Every so often, the BSDF samples an invalid direction (e.g., due to shading normals or imperfect sampling)
+            if (pdfNext == 0 || weight == ColorRGB.Black) 
+                return estimate;
+
+            // Continue the path with the next ray
+            ray = scene.Raytracer.SpawnRay(hit, direction);
+            return estimate + ContinueWalk(ray, hit, pdfNext, initialWeight * weight, 2);
+        }
+
         // TODO implement this function for splitting support!
         //public ColorRGB StartOnSurface(bool isOnLightSubpath) {
         //    this.isOnLightSubpath = isOnLightSubpath;
@@ -62,9 +92,6 @@ namespace SeeSharp.Integrators.Common {
                 // Convert the PDF of the previous hemispherical sample to surface area
                 float pdfFromAncestor = pdfDirection * SampleWrap.SurfaceAreaToSolidAngle(previousPoint, hit);
 
-                // TODO better handling for when the path will not be continued!
-                //      maybe separate the OnHit and OnContinue handlers after all
-
                 // Sample the next direction (required to know the reverse pdf)
                 var (pdfNext, pdfReverse, weight, direction) = SampleNextDirection(hit, ray);
 
@@ -75,12 +102,10 @@ namespace SeeSharp.Integrators.Common {
                                   SampleWrap.SurfaceAreaToSolidAngle(hit, previousPoint), direction);
 
                 // Terminate if the maximum depth has been reached
-                if (depth >= maxDepth) 
-                    break;
+                if (depth >= maxDepth) break;
 
                 // Every so often, the BSDF samples an invalid direction (e.g., due to shading normals or imperfect sampling)
-                if (pdfNext == 0 || weight == ColorRGB.Black) 
-                    break;
+                if (pdfNext == 0 || weight == ColorRGB.Black) break;
 
                 // Continue the path with the next ray
                 ray = scene.Raytracer.SpawnRay(hit, direction);

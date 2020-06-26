@@ -298,9 +298,16 @@ namespace SeeSharp.Integrators.Bidir {
         public abstract float NextEventMis(CameraPath cameraPath, float pdfEmit, float pdfNextEvent, float pdfHit, float pdfReverse);
 
         public virtual float NextEventPdf(SurfacePoint from, SurfacePoint to) {
-            var emitter = scene.QueryEmitter(to);
-            float pdf = emitter.PdfArea(to) * SelectLightPmf(from, emitter);
-            return pdf;
+            if (to.mesh == null) { // Background
+
+                return 0;// TODO enable the pdf once the technique is implemented
+
+                var direction = to.position - from.position;
+                return scene.Background.DirectionPdf(direction);
+            } else { // Emissive object
+                var emitter = scene.QueryEmitter(to);
+                return emitter.PdfArea(to) * SelectLightPmf(from, emitter);
+            }
         }
 
         public virtual (Emitter, SurfaceSample) SampleNextEvent(SurfacePoint from, RNG rng) {
@@ -310,7 +317,11 @@ namespace SeeSharp.Integrators.Bidir {
             return (light, lightSample);
         }
 
-        public ColorRGB PerformNextEventEstimation(Ray ray, SurfacePoint hit, RNG rng, CameraPath path, float reversePdfJacobian) {
+        public ColorRGB PerformNextEventEstimation(Ray ray, SurfacePoint hit, RNG rng, CameraPath path,
+                                                   float reversePdfJacobian) {
+            if (scene.Emitters.Count == 0) 
+                return ColorRGB.Black;
+
             // Sample a point on the light source
             var (light, lightSample) = SampleNextEvent(hit, rng);
 
@@ -341,7 +352,7 @@ namespace SeeSharp.Integrators.Bidir {
                 float misWeight = NextEventMis(path, pdfEmit, lightSample.pdf, bsdfForwardPdf, bsdfReversePdf);
 
                 var weight = emission * bsdfTimesCosine * (jacobian / lightSample.pdf);
-                RegisterSample(weight * path.throughput, misWeight, path.pixel, 
+                RegisterSample(weight * path.throughput, misWeight, path.pixel,
                                path.vertices.Count, 0, path.vertices.Count + 1);
                 return misWeight * weight;
             }
@@ -351,7 +362,7 @@ namespace SeeSharp.Integrators.Bidir {
 
         public abstract float EmitterHitMis(CameraPath cameraPath, float pdfEmit, float pdfNextEvent);
 
-        public ColorRGB OnEmitterHit(Emitter emitter, SurfacePoint hit, Ray ray, 
+        public ColorRGB OnEmitterHit(Emitter emitter, SurfacePoint hit, Ray ray,
                                      CameraPath path, float reversePdfJacobian) {
             var emission = emitter.EmittedRadiance(hit, -ray.Direction);
 
@@ -390,16 +401,16 @@ namespace SeeSharp.Integrators.Bidir {
             protected override ColorRGB OnHit(Ray ray, SurfacePoint hit, float pdfFromAncestor,
                                               float pdfToAncestor, ColorRGB throughput, int depth,
                                               float toAncestorJacobian, Vector3 nextDirection) {
-                path.vertices.Add(new PathPdfPair { 
-                    pdfFromAncestor = pdfFromAncestor, 
-                    pdfToAncestor = pdfToAncestor 
+                path.vertices.Add(new PathPdfPair {
+                    pdfFromAncestor = pdfFromAncestor,
+                    pdfToAncestor = pdfToAncestor
                 });
 
                 path.throughput = throughput;
 
                 // TODO cache last hit here and pass it along as well
 
-                return integrator.OnCameraHit(path, rng, pixelIndex, ray, hit, pdfFromAncestor, 
+                return integrator.OnCameraHit(path, rng, pixelIndex, ray, hit, pdfFromAncestor,
                                               pdfToAncestor, throughput, depth, toAncestorJacobian);
             }
 

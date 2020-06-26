@@ -29,9 +29,10 @@ namespace SeeSharp.Core.Sampling {
         }
 
         public float Pdf(Vector2 pos) {
-            int row = (int)(pos.Y * numRows);
-            int col = (int)(pos.X * numCols);
-            return rowDistribution.Probability(row) * colDistributions[row].Probability(col);
+            int row = Math.Min((int)(pos.Y * numRows), numRows - 1);
+            int col = Math.Min((int)(pos.X * numCols), numCols - 1);
+            float probability =  rowDistribution.Probability(row) * colDistributions[row].Probability(col);
+            return probability * (numRows * numCols);
         }
 
         /// <summary>

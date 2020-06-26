@@ -34,8 +34,10 @@ namespace SeeSharp.Integrators.Bidir {
         }
 
         public virtual float SelectLightPmf(Emitter em) {
-            return 1.0f / scene.Emitters.Count;
+            return 1.0f / scene.Emitters.Count; // TODO +1 if background enabled
         }
+
+        public virtual float BackgroundProbability => 1 / (1.0f + scene.Emitters.Count);
 
         /// <summary>
         /// Resets the path cache and populates it with a new set of light paths.
@@ -52,7 +54,7 @@ namespace SeeSharp.Integrators.Bidir {
             Parallel.For(0, NumPaths, idx => {
                 var seed = RNG.HashSeed(BaseSeed, (uint)idx, iter);
                 var rng = new RNG(seed);
-                endpoints[idx] = TraceLightPath(rng, (uint)idx, onHit);
+                endpoints[idx] = TraceLightPath(rng, onHit);
             });
         }
 
@@ -79,28 +81,16 @@ namespace SeeSharp.Integrators.Bidir {
         /// <returns>
         /// The index of the last vertex along the path.
         /// </returns>
-        public virtual int TraceLightPath(RNG rng, uint pathIndex, OnHitCallback onHit) {
-            // Select an emitter
+        public virtual int TraceLightPath(RNG rng, OnHitCallback onHit) {
+            // Select an emitter or the background
             float lightSelPrimary = rng.NextFloat();
-            var (emitter, selectProb, _) = SelectLight(lightSelPrimary);
-
-            // Sample a ray from the emitter
-            var primaryPos = rng.NextFloat2D();
-            var primaryDir = rng.NextFloat2D();
-            var emitterSample = emitter.SampleRay(primaryPos, primaryDir); ;
-
-            // Account for the light selection probability also in the MIS weights
-            emitterSample.pdf *= selectProb;
-
-            // TODO refactor: to reduce risk of mistakes, don't pass an emitter sample to "StartFromEmitter",
-            //      pass the pdf, weight, and surface point directly instead.
-
-            // Perform a random walk through the scene, storing all vertices along the path
-            var walker = new NotifyingCachedWalk(scene, rng, MaxDepth, pathCache);
-            walker.callback = onHit;
-            walker.StartFromEmitter(emitterSample, emitterSample.weight / selectProb);
-
-            return walker.lastId;
+            if (lightSelPrimary > BackgroundProbability) { // Sample from an emitter in the scene
+                // Remap the primary sample
+                lightSelPrimary = (lightSelPrimary - BackgroundProbability) / (1 - BackgroundProbability);
+                return TraceEmitterPath(rng, lightSelPrimary, onHit);
+            } else { // Sample from the background
+                return TraceBackgroundPath(rng, onHit);
+            }
         }
 
         public delegate void ProcessVertex(PathVertex vertex, PathVertex ancestor, Vector3 dirToAncestor);
@@ -121,6 +111,42 @@ namespace SeeSharp.Integrators.Bidir {
 
                 vertexId = vertex.ancestorId;
             }
+        }
+
+        int TraceEmitterPath(RNG rng, float lightSelPrimary, OnHitCallback onHit) {
+            var (emitter, selectProb, _) = SelectLight(lightSelPrimary);
+            selectProb *= 1 - BackgroundProbability;
+
+            // Sample a ray from the emitter
+            var primaryPos = rng.NextFloat2D();
+            var primaryDir = rng.NextFloat2D();
+            var emitterSample = emitter.SampleRay(primaryPos, primaryDir); ;
+
+            // Account for the light selection probability in the MIS weights
+            emitterSample.pdf *= selectProb;
+
+            // Perform a random walk through the scene, storing all vertices along the path
+            var walker = new NotifyingCachedWalk(scene, rng, MaxDepth, pathCache);
+            walker.callback = onHit;
+            walker.StartFromEmitter(emitterSample, emitterSample.weight / selectProb);
+            return walker.lastId;
+        }
+
+        int TraceBackgroundPath(RNG rng, OnHitCallback onHit) {
+            // Sample a ray from the background towards the scene
+            var primaryPos = rng.NextFloat2D();
+            var primaryDir = rng.NextFloat2D();
+            var (ray, weight, pdf) = scene.Background.SampleRay(primaryPos, primaryDir);
+
+            // Account for the light selection probability
+            pdf *= BackgroundProbability;
+            weight /= BackgroundProbability;
+
+            // Perform a random walk through the scene, storing all vertices along the path
+            var walker = new NotifyingCachedWalk(scene, rng, MaxDepth, pathCache);
+            walker.callback = onHit;
+            walker.StartFromBackground(ray, weight, pdf);
+            return walker.lastId;
         }
     }
 }

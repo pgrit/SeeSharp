@@ -8,7 +8,7 @@ using System.Numerics;
 
 namespace SeeSharp.Validation {
     class Validate_Environment : ValidationSceneFactory {
-        public override int SamplesPerPixel => 10;
+        public override int SamplesPerPixel => 100;
 
         public override int MaxDepth => 5;
 
@@ -18,11 +18,12 @@ namespace SeeSharp.Validation {
             var scene = new Scene();
 
             // Ground plane
+            float groundRadius = 0.1f;
             scene.Meshes.Add(new Mesh(new Vector3[] {
-                new Vector3(-10, -10, -2),
-                new Vector3( 10, -10, -2),
-                new Vector3( 10,  10, -2),
-                new Vector3(-10,  10, -2),
+                new Vector3(-groundRadius, -groundRadius, -2),
+                new Vector3( groundRadius, -groundRadius, -2),
+                new Vector3( groundRadius,  groundRadius, -2),
+                new Vector3(-groundRadius,  groundRadius, -2),
             }, new int[] {
                 0, 1, 2, 0, 2, 3
             }));
@@ -34,8 +35,8 @@ namespace SeeSharp.Validation {
             Image image = new Image(512, 256);
             for (int row = 0; row < image.Height; ++row)
                 for (int col = 0; col < image.Width; ++col)
-                    image.Splat(col, row, ColorRGB.White * 0.1f);
-            image.Splat(255, 128, ColorRGB.White * 1000);
+                    image.Splat(col, row, ColorRGB.White * 1.0f);
+            //image.Splat(255, 128, ColorRGB.White * 1000);
             scene.Background = new EnvironmentMap(image);
 
             // Camera and frame buffer

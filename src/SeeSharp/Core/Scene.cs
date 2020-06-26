@@ -195,6 +195,20 @@ namespace SeeSharp.Core {
                     resultScene.Camera = namedCameras[name]; // TODO allow loading of multiple cameras? (and selecting one by name later)
                 }
 
+                // Parse the background images
+                JsonElement backgroundElement;
+                if (root.TryGetProperty("background", out backgroundElement)) {
+                    string type = backgroundElement.GetProperty("type").GetString();
+
+                    if (type == "image") {
+                        string filename = backgroundElement.GetProperty("filename").GetString();
+                        string dir = Path.GetDirectoryName(path);
+                        filename = Path.Join(dir, filename);
+
+                        resultScene.Background = new EnvironmentMap(Image.LoadFromFile(filename));
+                    }
+                }
+
                 // Parse all materials
                 var namedMaterials = new Dictionary<string, Material>();
                 JsonElement materials;

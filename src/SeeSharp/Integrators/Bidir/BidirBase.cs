@@ -341,10 +341,14 @@ namespace SeeSharp.Integrators.Bidir {
                     float pdfEmit = scene.Background.RayPdf(hit.position, -sample.Direction);
                     pdfEmit *= lightPaths.SelectLightPmf(null);
 
+                    // Compute the mis weight
                     float misWeight = NextEventMis(path, pdfEmit, sample.Pdf, bsdfForwardPdf, bsdfReversePdf);
 
-                    var emission = sample.Weight * bsdfTimesCosine;
-                    return misWeight * emission;
+                    // Compute and log the final sample weight
+                    var weight = sample.Weight * bsdfTimesCosine;
+                    RegisterSample(weight * path.throughput, misWeight, path.pixel,
+                                   path.vertices.Count, 0, path.vertices.Count + 1);
+                    return misWeight * weight;
                 }
             } else { // Connect to an emissive surface
                 if (scene.Emitters.Count == 0)
@@ -403,9 +407,7 @@ namespace SeeSharp.Integrators.Bidir {
             float misWeight = EmitterHitMis(path, pdfEmit, pdfNextEvent);
             RegisterSample(emission * path.throughput, misWeight, path.pixel,
                            path.vertices.Count, 0, path.vertices.Count);
-
-            var value = misWeight * emission;
-            return value;
+            return misWeight * emission;
         }
 
         public ColorRGB OnBackgroundHit(Ray ray, CameraPath path) {
@@ -422,8 +424,10 @@ namespace SeeSharp.Integrators.Bidir {
             pdfNextEvent *= backgroundProbability;
 
             float misWeight = EmitterHitMis(path, pdfEmit, pdfNextEvent);
-
-            return misWeight * scene.Background.EmittedRadiance(ray.Direction);
+            var emission = scene.Background.EmittedRadiance(ray.Direction);
+            RegisterSample(emission * path.throughput, misWeight, path.pixel,
+                           path.vertices.Count, 0, path.vertices.Count);
+            return misWeight * emission * path.throughput;
         }
 
         public abstract ColorRGB OnCameraHit(CameraPath path, RNG rng, int pixelIndex, Ray ray,

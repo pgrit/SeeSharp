@@ -1,0 +1,68 @@
+{
+    "name": "Simple background",
+    "transforms": [
+      {
+        "name": "camera",
+        "position": [ 0, 1.0, 0 ],
+        "rotation": [ -90, 0, 0 ],
+        "scale": [ 1, 1, 1 ]
+      }
+    ],
+    "cameras": [
+      {
+        "name": "default",
+        "type": "perspective",
+        "fov": 19.5,
+        "transform": "camera"
+      }
+    ],
+    "background": {
+      "type": "image",
+      "filename": "uniform.exr"
+    },
+    "materials": [
+      {
+        "name": "Quad",
+        "baseColor": {
+          "type": "rgb",
+          "value": [1, 1, 1]
+        }
+      },
+      {
+        "name": "Light",
+        "baseColor": {
+          "type": "rgb",
+          "value": [ 0, 0, 0 ]
+        }
+      }
+    ],
+    "objects": [
+      {
+        "name": "quad",
+        "material": "Quad",
+        "type": "trimesh",
+        "indices": [
+          0, 2, 1,
+          0, 3, 2
+        ],
+        "vertices": [
+          -10.0, 0.0, -10.0,
+           10.0, 0.0, -10.0,
+           10.0, 0.0,  10.0,
+          -10.0, 0.0,  10.0
+        ],
+        "normals": [
+          0, -1, 0,
+          0, -1, 0,
+          0, -1, 0,
+          0, -1, 0
+        ],
+        "uv": [
+          0.0, 0.0,
+          1.0, 0.0,
+          1.0, 1.0,
+          0.0, 1.0
+        ]
+      }
+    ]
+  }

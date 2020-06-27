@@ -147,6 +147,11 @@ SEE_CORE_API void CopyCachedImage(int id, float* out) {
             // TODO allow arbitrary ordering of channels and grayscale images?
             auto channel = reinterpret_cast<const float*>(img.images[chan]);
             out[idx++] = channel[r * img.width + c];
+
+            if (img.num_channels - chan == 3) {
+                // HACK to allow RGBA images. The proper solution would be to heed channel names!
+                break;
+            }
         }
     }
 

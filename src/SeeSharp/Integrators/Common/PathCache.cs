@@ -4,23 +4,23 @@ using System.Threading;
 
 namespace SeeSharp.Integrators.Common {
     public class PathVertex {
-        public SurfacePoint point;
+        public SurfacePoint Point;
 
         // Surface area pdf to sample this vertex from the previous one,
         // i.e., the actual density this vertex was sampled from
-        public float pdfFromAncestor;
+        public float PdfFromAncestor;
 
         // Surface area pdf to sample the previous vertex from this one,
         // i.e., the reverse direction of the path.
-        public float pdfToAncestor;
+        public float PdfToAncestor;
 
-        public ColorRGB weight;
+        public ColorRGB Weight;
 
-        public int ancestorId;
+        public int AncestorId;
 
         // The number of edges along the path. This should be clarified,
         // conventions differ between rendereres!
-        public byte depth;
+        public byte Depth;
     }
 
     public class PathCache { // TODO no need for all the fancy pre-alloc if we are using class anyway

@@ -31,9 +31,9 @@ namespace SeeSharp.Core.Tests.Geometry {
                 MinDistance = 1.0f
             });
 
-            Assert.Equal(10.0f, hit.distance, 0);
-            Assert.Equal(1u, hit.primId);
-            Assert.Equal(mesh, hit.mesh);
+            Assert.Equal(10.0f, hit.Distance, 0);
+            Assert.Equal(1u, hit.PrimId);
+            Assert.Equal(mesh, hit.Mesh);
         }
 
         [Fact]

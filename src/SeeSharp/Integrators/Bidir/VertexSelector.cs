@@ -20,7 +20,7 @@ namespace SeeSharp.Integrators.Bidir {
         void Prepare() {
             indices = new List<int>(cache.Count);
             for (int i = 0; i < cache.Count; ++i) {
-                if (cache[i].ancestorId != -1)
+                if (cache[i].AncestorId != -1)
                     indices.Add(i);
             }
         }

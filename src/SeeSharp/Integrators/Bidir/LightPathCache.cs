@@ -11,7 +11,7 @@ using System.Threading.Tasks;
 namespace SeeSharp.Integrators.Bidir {
     /// <summary>
     /// Samples a given number of light paths via random walks through a scene.
-    /// The paths are stored in a <see cref="PathCache"/>
+    /// The paths are stored in a <see cref="Common.PathCache"/>
     /// </summary>
     public class LightPathCache {
         // Parameters
@@ -20,45 +20,45 @@ namespace SeeSharp.Integrators.Bidir {
         public uint BaseSeed = 0xC030114u;
 
         // Scene specific data
-        public Scene scene;
+        public Scene Scene;
 
         // Outputs
-        public PathCache pathCache;
-        public int[] endpoints;
+        public PathCache PathCache;
+        public int[] Endpoints;
 
         public virtual (Emitter, float, float) SelectLight(float primary) {
-            float scaled = scene.Emitters.Count * primary;
-            int idx = Math.Clamp((int)scaled, 0, scene.Emitters.Count - 1);
-            var emitter = scene.Emitters[idx];
-            return (emitter, 1.0f / scene.Emitters.Count, scaled - idx);
+            float scaled = Scene.Emitters.Count * primary;
+            int idx = Math.Clamp((int)scaled, 0, Scene.Emitters.Count - 1);
+            var emitter = Scene.Emitters[idx];
+            return (emitter, 1.0f / Scene.Emitters.Count, scaled - idx);
         }
 
         public virtual float SelectLightPmf(Emitter em) {
             if (em == null) { // background
                 return BackgroundProbability;
             } else {
-                return 1.0f / scene.Emitters.Count * (1 - BackgroundProbability);
+                return 1.0f / Scene.Emitters.Count * (1 - BackgroundProbability);
             }
         }
 
-        public virtual float BackgroundProbability => 1 / (1.0f + scene.Emitters.Count);
+        public virtual float BackgroundProbability => 1 / (1.0f + Scene.Emitters.Count);
 
         /// <summary>
         /// Resets the path cache and populates it with a new set of light paths.
         /// </summary>
         /// <param name="iter">Index of the current iteration, used to seed the random number generator.</param>
         public void TraceAllPaths(uint iter, OnHitCallback onHit) {
-            if (pathCache == null)
-                pathCache = new PathCache(MaxDepth * NumPaths);
+            if (PathCache == null)
+                PathCache = new PathCache(MaxDepth * NumPaths);
             else
-                pathCache.Clear();
+                PathCache.Clear();
 
-            endpoints = new int[NumPaths];
+            Endpoints = new int[NumPaths];
 
             Parallel.For(0, NumPaths, idx => {
                 var seed = RNG.HashSeed(BaseSeed, (uint)idx, iter);
                 var rng = new RNG(seed);
-                endpoints[idx] = TraceLightPath(rng, onHit);
+                Endpoints[idx] = TraceLightPath(rng, onHit);
             });
         }
 
@@ -106,14 +106,14 @@ namespace SeeSharp.Integrators.Bidir {
             if (endpoint < 0) return;
 
             int vertexId = endpoint;
-            while (pathCache[vertexId].ancestorId != -1) { // iterate over all vertices that have an ancestor
-                var vertex = pathCache[vertexId];
-                var ancestor = pathCache[vertex.ancestorId];
-                var dirToAncestor = ancestor.point.position - vertex.point.position;
+            while (PathCache[vertexId].AncestorId != -1) { // iterate over all vertices that have an ancestor
+                var vertex = PathCache[vertexId];
+                var ancestor = PathCache[vertex.AncestorId];
+                var dirToAncestor = ancestor.Point.Position - vertex.Point.Position;
 
                 func(vertex, ancestor, dirToAncestor);
 
-                vertexId = vertex.ancestorId;
+                vertexId = vertex.AncestorId;
             }
         }
 
@@ -130,7 +130,7 @@ namespace SeeSharp.Integrators.Bidir {
             emitterSample.pdf *= selectProb;
 
             // Perform a random walk through the scene, storing all vertices along the path
-            var walker = new NotifyingCachedWalk(scene, rng, MaxDepth, pathCache);
+            var walker = new NotifyingCachedWalk(Scene, rng, MaxDepth, PathCache);
             walker.callback = onHit;
             walker.StartFromEmitter(emitterSample, emitterSample.weight / selectProb);
             return walker.lastId;
@@ -140,14 +140,14 @@ namespace SeeSharp.Integrators.Bidir {
             // Sample a ray from the background towards the scene
             var primaryPos = rng.NextFloat2D();
             var primaryDir = rng.NextFloat2D();
-            var (ray, weight, pdf) = scene.Background.SampleRay(primaryPos, primaryDir);
+            var (ray, weight, pdf) = Scene.Background.SampleRay(primaryPos, primaryDir);
 
             // Account for the light selection probability
             pdf *= BackgroundProbability;
             weight /= BackgroundProbability;
 
             // Perform a random walk through the scene, storing all vertices along the path
-            var walker = new NotifyingCachedWalk(scene, rng, MaxDepth, pathCache);
+            var walker = new NotifyingCachedWalk(Scene, rng, MaxDepth, PathCache);
             walker.callback = onHit;
             walker.StartFromBackground(ray, weight, pdf);
             return walker.lastId;

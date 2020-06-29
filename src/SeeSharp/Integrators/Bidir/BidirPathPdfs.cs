@@ -31,13 +31,13 @@ namespace SeeSharp.Integrators {
         }
 
         public void GatherLightPdfs(PathVertex lightVertex, int lastCameraVertexIdx, int numPdfs) {
-            pdfsLightToCamera[lastCameraVertexIdx + 1] = lightVertex.pdfFromAncestor;
-            var nextVert = lightPathCache[lightVertex.ancestorId];
+            pdfsLightToCamera[lastCameraVertexIdx + 1] = lightVertex.PdfFromAncestor;
+            var nextVert = lightPathCache[lightVertex.AncestorId];
             for (int i = lastCameraVertexIdx + 2; i < numPdfs - 1; ++i) {
-                pdfsLightToCamera[i] = nextVert.pdfFromAncestor;
-                pdfsCameraToLight[i + 1] = nextVert.pdfToAncestor;
+                pdfsLightToCamera[i] = nextVert.PdfFromAncestor;
+                pdfsCameraToLight[i + 1] = nextVert.PdfToAncestor;
 
-                nextVert = lightPathCache[nextVert.ancestorId];
+                nextVert = lightPathCache[nextVert.AncestorId];
             }
             pdfsLightToCamera[^1] = 1;
         }

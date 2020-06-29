@@ -24,14 +24,14 @@ namespace SeeSharp.Integrators.Tests.Helpers {
                 pathCache = new PathCache(10);
 
                 var emitterVertex = new PathVertex {
-                    point = new SurfacePoint {
-                        position = positions[0],
-                        normal = normals[0],
+                    Point = new SurfacePoint {
+                        Position = positions[0],
+                        Normal = normals[0],
                     },
-                    pdfFromAncestor = -10000.0f,
-                    pdfToAncestor = -10000.0f, // Guard value: this is unused!
-                    ancestorId = -1,
-                    depth = 0
+                    PdfFromAncestor = -10000.0f,
+                    PdfToAncestor = -10000.0f, // Guard value: this is unused!
+                    AncestorId = -1,
+                    Depth = 0
                 };
                 int emVertexId = pathCache.AddVertex(emitterVertex);
 
@@ -41,27 +41,27 @@ namespace SeeSharp.Integrators.Tests.Helpers {
                 for (int idx = 1; idx < normals.Length; ++idx) {
                     // Add the vertex on the first surface
                     var surfaceVertex = new PathVertex {
-                        point = new SurfacePoint {
-                            position = positions[idx],
-                            normal = normals[idx],
+                        Point = new SurfacePoint {
+                            Position = positions[idx],
+                            Normal = normals[idx],
                         },
-                        ancestorId = prevLightVertexIdx,
-                        depth = (byte)idx
+                        AncestorId = prevLightVertexIdx,
+                        Depth = (byte)idx
                     };
 
                     // Compute the geometry terms
-                    Vector3 dirToLight = prevLightVertex.point.position - surfaceVertex.point.position;
+                    Vector3 dirToLight = prevLightVertex.Point.Position - surfaceVertex.Point.Position;
                     float distSqr = dirToLight.LengthSquared();
                     dirToLight = Vector3.Normalize(dirToLight);
-                    float cosSurfToLight = Vector3.Dot(dirToLight, surfaceVertex.point.normal);
-                    float cosLightToSurf = Vector3.Dot(-dirToLight, prevLightVertex.point.normal);
+                    float cosSurfToLight = Vector3.Dot(dirToLight, surfaceVertex.Point.Normal);
+                    float cosLightToSurf = Vector3.Dot(-dirToLight, prevLightVertex.Point.Normal);
 
                     // pdf for diffuse sampling of the emission direction
-                    surfaceVertex.pdfFromAncestor = (cosLightToSurf / MathF.PI) * (cosSurfToLight / distSqr);
-                    surfaceVertex.pdfToAncestor = (cosSurfToLight / MathF.PI) * (cosLightToSurf / distSqr);
+                    surfaceVertex.PdfFromAncestor = (cosLightToSurf / MathF.PI) * (cosSurfToLight / distSqr);
+                    surfaceVertex.PdfToAncestor = (cosSurfToLight / MathF.PI) * (cosLightToSurf / distSqr);
                     if (idx == 1) {
-                        surfaceVertex.pdfFromAncestor *= 1.0f / lightArea;
-                        surfaceVertex.pdfToAncestor += 1.0f / lightArea; // Next event
+                        surfaceVertex.PdfFromAncestor *= 1.0f / lightArea;
+                        surfaceVertex.PdfToAncestor += 1.0f / lightArea; // Next event
                     }
 
                     int lightVertexIndex = pathCache.AddVertex(surfaceVertex);
@@ -94,17 +94,17 @@ namespace SeeSharp.Integrators.Tests.Helpers {
                     var lightVert = pathCache[lightVertIdx];
 
                     cameraVertices[idx] = new PathPdfPair {
-                        pdfFromAncestor = lightVert.pdfToAncestor,
-                        pdfToAncestor = lightVert.pdfFromAncestor
+                        pdfFromAncestor = lightVert.PdfToAncestor,
+                        pdfToAncestor = lightVert.PdfFromAncestor
                     };
 
-                    lightVertIdx = lightVert.ancestorId;
+                    lightVertIdx = lightVert.AncestorId;
                 }
 
                 // The last camera path vertex is special
-                var dir = pathCache[0].point.position - pathCache[1].point.position;
-                var cossurf = Vector3.Dot(Vector3.Normalize(dir), pathCache[1].point.normal);
-                var coslight = Vector3.Dot(Vector3.Normalize(-dir), pathCache[0].point.normal);
+                var dir = pathCache[0].Point.Position - pathCache[1].Point.Position;
+                var cossurf = Vector3.Dot(Vector3.Normalize(dir), pathCache[1].Point.Normal);
+                var coslight = Vector3.Dot(Vector3.Normalize(-dir), pathCache[0].Point.Normal);
                 var distsqr = dir.LengthSquared();
                 cameraVertices[^1].pdfFromAncestor = cossurf * coslight / distsqr / MathF.PI;
                 cameraVertices[^1].pdfToAncestor = -100000.0f;

@@ -26,7 +26,7 @@ namespace SeeSharp.Integrators.Tests {
         float NextEventWeight() {
             var computer = new ClassicBidir();
             computer.lightPaths = new LightPathCache();
-            computer.lightPaths.pathCache = dummyPath.pathCache;
+            computer.lightPaths.PathCache = dummyPath.pathCache;
             computer.NumLightPaths = dummyPath.numLightPaths;
 
             var cameraPath = new CameraPath {
@@ -40,7 +40,7 @@ namespace SeeSharp.Integrators.Tests {
             cameraPath.vertices[^1] = dummyVert;
 
             return computer.NextEventMis(cameraPath,
-                pdfEmit: dummyPath.pathCache[1].pdfFromAncestor,
+                pdfEmit: dummyPath.pathCache[1].PdfFromAncestor,
                 pdfNextEvent: 1.0f / dummyPath.lightArea,
                 pdfHit: dummyPath.cameraVertices[^1].pdfFromAncestor,
                 pdfReverse: pdfReverse);
@@ -49,18 +49,18 @@ namespace SeeSharp.Integrators.Tests {
         float LightTracerWeight() {
             var computer = new ClassicBidir();
             computer.lightPaths = new LightPathCache();
-            computer.lightPaths.pathCache = dummyPath.pathCache;
+            computer.lightPaths.PathCache = dummyPath.pathCache;
             computer.NumLightPaths = dummyPath.numLightPaths;
 
             return computer.LightTracerMis(dummyPath.pathCache[dummyPath.lightEndpointIdx],
                 pdfCamToPrimary: dummyPath.cameraVertices[1].pdfFromAncestor,
-                pdfReverse: dummyPath.pathCache[dummyPath.lightEndpointIdx].pdfToAncestor);
+                pdfReverse: dummyPath.pathCache[dummyPath.lightEndpointIdx].PdfToAncestor);
         }
 
         float HitWeight() {
             var computer = new ClassicBidir();
             computer.lightPaths = new LightPathCache();
-            computer.lightPaths.pathCache = dummyPath.pathCache;
+            computer.lightPaths.PathCache = dummyPath.pathCache;
             computer.NumLightPaths = dummyPath.numLightPaths;
 
             var cameraPath = new CameraPath {
@@ -68,25 +68,25 @@ namespace SeeSharp.Integrators.Tests {
             };
 
             return computer.EmitterHitMis(cameraPath,
-                pdfEmit: dummyPath.pathCache[1].pdfFromAncestor,
+                pdfEmit: dummyPath.pathCache[1].PdfFromAncestor,
                 pdfNextEvent: 1.0f / dummyPath.lightArea);
         }
 
         float ConnectFirstToSecondWeight() {
             var computer = new ClassicBidir();
             computer.lightPaths = new LightPathCache();
-            computer.lightPaths.pathCache = dummyPath.pathCache;
+            computer.lightPaths.PathCache = dummyPath.pathCache;
             computer.NumLightPaths = dummyPath.numLightPaths;
 
             var cameraPath = new CameraPath {
                 vertices = new List<PathPdfPair>(dummyPath.cameraVertices[1..2])
             };
 
-            var lightVertex = dummyPath.pathCache[dummyPath.pathCache[dummyPath.lightEndpointIdx].ancestorId];
+            var lightVertex = dummyPath.pathCache[dummyPath.pathCache[dummyPath.lightEndpointIdx].AncestorId];
 
             // scramble the reverse pdf in the light path, to make sure it is not inadvertently used
-            float lightReverse = lightVertex.pdfToAncestor;
-            lightVertex.pdfToAncestor = -100000.0f;
+            float lightReverse = lightVertex.PdfToAncestor;
+            lightVertex.PdfToAncestor = -100000.0f;
 
             return computer.BidirConnectMis(cameraPath, lightVertex,
                 pdfCameraReverse: 1, // light tracer connections are deterministic
@@ -148,9 +148,9 @@ namespace SeeSharp.Integrators.Tests {
             float pdfNextEvt = verts[1].pdfFromAncestor * verts[2].pdfFromAncestor *  (1.0f / dummyPath.lightArea);
 
             var lightVerts = dummyPath.pathCache;
-            float pdfLightTracer = lightVerts[1].pdfFromAncestor * lightVerts[2].pdfFromAncestor * dummyPath.numLightPaths;
+            float pdfLightTracer = lightVerts[1].PdfFromAncestor * lightVerts[2].PdfFromAncestor * dummyPath.numLightPaths;
 
-            float pdfConnectFirst = verts[1].pdfFromAncestor * lightVerts[1].pdfFromAncestor;
+            float pdfConnectFirst = verts[1].pdfFromAncestor * lightVerts[1].PdfFromAncestor;
 
             float pdfSum = pdfHit + pdfNextEvt + pdfLightTracer + pdfConnectFirst;
 

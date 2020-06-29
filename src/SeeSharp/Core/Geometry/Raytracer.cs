@@ -27,35 +27,35 @@ namespace SeeSharp.Core.Geometry {
                 return new SurfacePoint();
 
             SurfacePoint hit = new SurfacePoint {
-                barycentricCoords = new Vector2(minHit.u, minHit.v),
-                distance = minHit.distance,
-                mesh = meshMap[minHit.meshId],
-                primId = minHit.primId
+                BarycentricCoords = new Vector2(minHit.u, minHit.v),
+                Distance = minHit.distance,
+                Mesh = meshMap[minHit.meshId],
+                PrimId = minHit.primId
             };
 
             // Compute the position and face normal from the barycentric coordinates
-            hit.position = hit.mesh.ComputePosition((int)hit.primId, hit.barycentricCoords);
-            hit.normal = hit.mesh.FaceNormals[hit.primId];
+            hit.Position = hit.Mesh.ComputePosition((int)hit.PrimId, hit.BarycentricCoords);
+            hit.Normal = hit.Mesh.FaceNormals[hit.PrimId];
 
             // Compute the error offset (formula taken from Embree example renderer)
-            hit.errorOffset = Math.Max(
-                Math.Max(Math.Abs(hit.position.X), Math.Abs(hit.position.Y)),
-                Math.Max(Math.Abs(hit.position.Z), hit.distance)
+            hit.ErrorOffset = Math.Max(
+                Math.Max(Math.Abs(hit.Position.X), Math.Abs(hit.Position.Y)),
+                Math.Max(Math.Abs(hit.Position.Z), hit.Distance)
             ) * 32.0f * 1.19209e-07f;
 
             return hit;
         }
 
         Vector3 OffsetPoint(SurfacePoint from, Vector3 dir) {
-            float sign = Vector3.Dot(dir, from.normal) < 0.0f ? -1.0f : 1.0f;
-            return from.position + sign * from.errorOffset * from.normal;
+            float sign = Vector3.Dot(dir, from.Normal) < 0.0f ? -1.0f : 1.0f;
+            return from.Position + sign * from.ErrorOffset * from.Normal;
         }
 
         public bool IsOccluded(SurfacePoint from, SurfacePoint to) {
             const float shadowEpsilon = 1e-5f;
 
             // Compute the ray with proper offsets
-            var dir = to.position - from.position;
+            var dir = to.Position - from.Position;
             var p0 = OffsetPoint(from, dir);
             var p1 = OffsetPoint(to, -dir);
             dir = p1 - p0;
@@ -69,14 +69,14 @@ namespace SeeSharp.Core.Geometry {
             // TODO use a proper optimized method here that does not compute the actual closest hit.
             var p = Trace(ray);
 
-            bool occluded = p.mesh != null && p.distance < 1 - shadowEpsilon;
+            bool occluded = p.Mesh != null && p.Distance < 1 - shadowEpsilon;
 
             return occluded;
         }
 
         public bool IsOccluded(SurfacePoint from, Vector3 target) {
             // Compute the ray with proper offsets
-            var dir = target - from.position;
+            var dir = target - from.Position;
             var dist = dir.Length();
             dir /= dist;
 
@@ -85,8 +85,8 @@ namespace SeeSharp.Core.Geometry {
             // TODO use a proper optimized method here that does not compute the actual closest hit.
             var p = Trace(ray);
 
-            bool occluded = p.mesh != null
-                && p.distance < dist - from.errorOffset;
+            bool occluded = p.Mesh != null
+                && p.Distance < dist - from.ErrorOffset;
 
             return occluded;
         }
@@ -97,17 +97,17 @@ namespace SeeSharp.Core.Geometry {
             // TODO use a proper optimized method here that does not compute the actual closest hit.
             var p = Trace(ray);
 
-            bool occluded = p.mesh != null;
+            bool occluded = p.Mesh != null;
 
             return !occluded;
         }
 
         public Ray SpawnRay(SurfacePoint from, Vector3 dir) {
-            float sign = Vector3.Dot(dir, from.normal) < 0.0f ? -1.0f : 1.0f;
+            float sign = Vector3.Dot(dir, from.Normal) < 0.0f ? -1.0f : 1.0f;
             return new Ray {
-                Origin = from.position + sign * from.errorOffset * from.normal,
+                Origin = from.Position + sign * from.ErrorOffset * from.Normal,
                 Direction = dir,
-                MinDistance = from.errorOffset,
+                MinDistance = from.ErrorOffset,
             };
         }
 

@@ -23,7 +23,7 @@ namespace SeeSharp.Integrators.Tests {
         float NextEventWeight() {
             var computer = new ClassicBidir();
             computer.lightPaths = new LightPathCache();
-            computer.lightPaths.pathCache = dummyPath.pathCache;
+            computer.lightPaths.PathCache = dummyPath.pathCache;
             computer.NumLightPaths = dummyPath.numLightPaths;
 
             var cameraPath = new CameraPath {
@@ -37,7 +37,7 @@ namespace SeeSharp.Integrators.Tests {
             cameraPath.vertices[^1] = dummyVert;
 
             return computer.NextEventMis(cameraPath,
-                pdfEmit: dummyPath.pathCache[1].pdfFromAncestor,
+                pdfEmit: dummyPath.pathCache[1].PdfFromAncestor,
                 pdfNextEvent: 1.0f / dummyPath.lightArea,
                 pdfHit: dummyPath.cameraVertices[2].pdfFromAncestor,
                 pdfReverse: pdfReverse);
@@ -46,18 +46,18 @@ namespace SeeSharp.Integrators.Tests {
         float LightTracerWeight() {
             var computer = new ClassicBidir();
             computer.lightPaths = new LightPathCache();
-            computer.lightPaths.pathCache = dummyPath.pathCache;
+            computer.lightPaths.PathCache = dummyPath.pathCache;
             computer.NumLightPaths = dummyPath.numLightPaths;
 
             return computer.LightTracerMis(dummyPath.pathCache[dummyPath.lightEndpointIdx],
                 pdfCamToPrimary: dummyPath.cameraVertices[1].pdfFromAncestor,
-                pdfReverse: dummyPath.pathCache[dummyPath.lightEndpointIdx].pdfToAncestor);
+                pdfReverse: dummyPath.pathCache[dummyPath.lightEndpointIdx].PdfToAncestor);
         }
 
         float HitWeight() {
             var computer = new ClassicBidir();
             computer.lightPaths = new LightPathCache();
-            computer.lightPaths.pathCache = dummyPath.pathCache;
+            computer.lightPaths.PathCache = dummyPath.pathCache;
             computer.NumLightPaths = dummyPath.numLightPaths;
 
             var cameraPath = new CameraPath {
@@ -65,7 +65,7 @@ namespace SeeSharp.Integrators.Tests {
             };
 
             return computer.EmitterHitMis(cameraPath,
-                pdfEmit: dummyPath.pathCache[1].pdfFromAncestor,
+                pdfEmit: dummyPath.pathCache[1].PdfFromAncestor,
                 pdfNextEvent: 1.0f / dummyPath.lightArea);
         }
 
@@ -113,7 +113,7 @@ namespace SeeSharp.Integrators.Tests {
             float pdfNextEvt = verts[1].pdfFromAncestor * (1.0f / dummyPath.lightArea);
 
             var lightVerts = dummyPath.pathCache;
-            float pdfLightTracer = lightVerts[1].pdfFromAncestor * dummyPath.numLightPaths;
+            float pdfLightTracer = lightVerts[1].PdfFromAncestor * dummyPath.numLightPaths;
 
             float pdfSum = pdfHit + pdfNextEvt + pdfLightTracer;
 

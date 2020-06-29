@@ -61,7 +61,7 @@ namespace SeeSharp.Core.Tests {
             var hit = scene.Raytracer.Trace(scene.Camera.GenerateRay(new Vector2(0.5f, 0.5f)));
 
             Assert.True(hit);
-            Assert.Equal(10.0f, hit.distance, 4);
+            Assert.Equal(10.0f, hit.Distance, 4);
         }
 
         [Fact]
@@ -74,12 +74,12 @@ namespace SeeSharp.Core.Tests {
             Assert.Single(scene.Emitters);
 
             SurfacePoint dummyHit = new SurfacePoint {
-                mesh = scene.Meshes[0]
+                Mesh = scene.Meshes[0]
             };
             Assert.Same(scene.Emitters[0], scene.QueryEmitter(dummyHit));
 
             dummyHit = new SurfacePoint {
-                mesh = scene.Meshes[1]
+                Mesh = scene.Meshes[1]
             };
             Assert.Null(scene.QueryEmitter(dummyHit));
         }

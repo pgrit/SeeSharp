@@ -148,9 +148,9 @@ namespace SeeSharp.Core.Sampling {
         /// <param name="to">The point on the surface area that is projected onto the hemisphere.</param>
         /// <returns>Inverse jacobian, multiply solid angle densities by this value.</returns>
         public static float SurfaceAreaToSolidAngle(SurfacePoint from, SurfacePoint to) {
-            var dir = to.position - from.position;
+            var dir = to.Position - from.Position;
             var distSqr = dir.LengthSquared();
-            return MathF.Abs(Vector3.Dot(to.normal, -dir)) / (distSqr * MathF.Sqrt(distSqr));
+            return MathF.Abs(Vector3.Dot(to.Normal, -dir)) / (distSqr * MathF.Sqrt(distSqr));
         }
     }
 }

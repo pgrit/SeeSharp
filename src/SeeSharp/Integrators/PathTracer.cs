@@ -149,7 +149,7 @@ namespace SeeSharp.Integrators {
             var lightSample = light.SampleArea(rng.NextFloat2D());
 
             if (!scene.Raytracer.IsOccluded(hit, lightSample.point)) {
-                Vector3 lightToSurface = hit.position - lightSample.point.position;
+                Vector3 lightToSurface = hit.Position - lightSample.point.Position;
                 var emission = light.EmittedRadiance(lightSample.point, lightToSurface);
 
                 // Compute the jacobian for surface area -> solid angle

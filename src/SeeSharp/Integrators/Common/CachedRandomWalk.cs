@@ -20,12 +20,12 @@ namespace SeeSharp.Integrators.Common {
             lastId = cache.AddVertex(new PathVertex {
                 // TODO are any of these actually useful? Only the point right now, but only because we do not pre-compute
                 //      the next event weight (which would be more efficient to begin with)
-                point = emitterSample.point,
-                pdfFromAncestor = 0.0f, // unused
-                pdfToAncestor = 0.0f, // unused
-                weight = ColorRGB.Black, // the first known weight is that at the first hit point
-                ancestorId = -1,
-                depth = 0
+                Point = emitterSample.point,
+                PdfFromAncestor = 0.0f, // unused
+                PdfToAncestor = 0.0f, // unused
+                Weight = ColorRGB.Black, // the first known weight is that at the first hit point
+                AncestorId = -1,
+                Depth = 0
             });
             return base.StartFromEmitter(emitterSample, initialWeight);
         }
@@ -35,12 +35,12 @@ namespace SeeSharp.Integrators.Common {
             lastId = cache.AddVertex(new PathVertex {
                 // TODO are any of these actually useful? Only the point right now, but only because we do not pre-compute
                 //      the next event weight (which would be more efficient to begin with)
-                point = new SurfacePoint { position = ray.Origin },
-                pdfFromAncestor = 0.0f, // unused
-                pdfToAncestor = 0.0f, // unused
-                weight = ColorRGB.Black, // the first known weight is that at the first hit point
-                ancestorId = -1,
-                depth = 0
+                Point = new SurfacePoint { Position = ray.Origin },
+                PdfFromAncestor = 0.0f, // unused
+                PdfToAncestor = 0.0f, // unused
+                Weight = ColorRGB.Black, // the first known weight is that at the first hit point
+                AncestorId = -1,
+                Depth = 0
             });
             return base.StartFromBackground(ray, initialWeight, pdf);
         }
@@ -49,12 +49,12 @@ namespace SeeSharp.Integrators.Common {
                                           ColorRGB throughput, int depth, float toAncestorJacobian, Vector3 nextDirection) {
             // Add the next vertex
             lastId = cache.AddVertex(new PathVertex {
-                point = hit,
-                pdfFromAncestor = pdfFromAncestor,
-                pdfToAncestor = pdfToAncestor,
-                weight = throughput,
-                ancestorId = lastId,
-                depth = (byte)depth
+                Point = hit,
+                PdfFromAncestor = pdfFromAncestor,
+                PdfToAncestor = pdfToAncestor,
+                Weight = throughput,
+                AncestorId = lastId,
+                Depth = (byte)depth
             });
             return ColorRGB.Black;
         }

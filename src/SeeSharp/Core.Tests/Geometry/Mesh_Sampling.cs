@@ -27,7 +27,7 @@ namespace SeeSharp.Core.Tests.Geometry {
             for (float u = 0.0f; u <= 1.0f; u += 1.0f / numSteps) {
                 for (float v = 0.0f; v <= 1.0f; v += 1.0f / numSteps) {
                     var sample = mesh.Sample(new Vector2(u, v));
-                    if (sample.point.primId == 0)
+                    if (sample.point.PrimId == 0)
                         samplesOnFirst++;
                 }
             }
@@ -64,7 +64,7 @@ namespace SeeSharp.Core.Tests.Geometry {
             for (float u = 0.0f; u <= 1.0f; u += 1.0f / numSteps) {
                 for (float v = 0.0f; v <= 1.0f; v += 1.0f / numSteps) {
                     var sample = mesh.Sample(new Vector2(u, v));
-                    if (sample.point.primId == 0)
+                    if (sample.point.PrimId == 0)
                         samplesOnFirst++;
                     Assert.Equal(1.0f / 2.5f, sample.pdf, 2);
                 }
@@ -97,10 +97,10 @@ namespace SeeSharp.Core.Tests.Geometry {
             int res = 10;
             var grid = new int[res, res];
             void Splat(SurfaceSample s) {
-                var relX = (s.point.position.X + 1.0f) / 2.0f;
+                var relX = (s.point.Position.X + 1.0f) / 2.0f;
                 var xIdx = (int)Math.Max(Math.Min(relX * res, res - 1), 0);
 
-                var relY = (s.point.position.Z + 1.0f) / 2.0f;
+                var relY = (s.point.Position.Z + 1.0f) / 2.0f;
                 var yIdx = (int)Math.Max(Math.Min(relY * res, res - 1), 0);
 
                 grid[xIdx, yIdx]++;

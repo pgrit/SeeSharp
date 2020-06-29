@@ -3,7 +3,7 @@
   <PropertyGroup>
     <TargetFramework>netcoreapp3.1</TargetFramework>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
-    <RootNamespace>SeeSharp</RootNamespace>
+    <RootNamespace>SeeSharp.Core</RootNamespace>
   </PropertyGroup>
 
   <ItemGroup>

@@ -23,11 +23,11 @@ namespace SeeSharp.Core.Tests.Shading {
             });
 
             SurfacePoint hit = new SurfacePoint {
-                barycentricCoords = new Vector2(0.5f, 0.2f),
-                normal = new Vector3(0, 0, 1),
-                mesh = mesh,
-                primId = 0,
-                position = new Vector3(0, 0, 0),
+                BarycentricCoords = new Vector2(0.5f, 0.2f),
+                Normal = new Vector3(0, 0, 1),
+                Mesh = mesh,
+                PrimId = 0,
+                Position = new Vector3(0, 0, 0),
             };
 
             var bsdf = mtl.GetBsdf(hit);

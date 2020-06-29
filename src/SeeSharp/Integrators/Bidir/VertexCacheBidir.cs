@@ -94,7 +94,7 @@ namespace SeeSharp.Integrators.Bidir {
         }
 
         public override void ProcessPathCache() {
-            vertexSelector = new VertexSelector(lightPaths.pathCache);
+            vertexSelector = new VertexSelector(lightPaths.PathCache);
 
             if (EnableLightTracer)
                 SplatLightVertices();
@@ -132,7 +132,7 @@ namespace SeeSharp.Integrators.Bidir {
 
             if (numPdfs == 1) return 1.0f; // sole technique for rendering directly visible lights.
 
-            var pathPdfs = new BidirPathPdfs(lightPaths.pathCache, numPdfs);
+            var pathPdfs = new BidirPathPdfs(lightPaths.PathCache, numPdfs);
             pathPdfs.GatherCameraPdfs(cameraPath, lastCameraVertexIdx);
 
             pathPdfs.pdfsLightToCamera[^2] = pdfEmit;
@@ -152,10 +152,10 @@ namespace SeeSharp.Integrators.Bidir {
         }
 
         public override float LightTracerMis(PathVertex lightVertex, float pdfCamToPrimary, float pdfReverse) {
-            int numPdfs = lightVertex.depth + 1;
+            int numPdfs = lightVertex.Depth + 1;
             int lastCameraVertexIdx = -1;
 
-            var pathPdfs = new BidirPathPdfs(lightPaths.pathCache, numPdfs);
+            var pathPdfs = new BidirPathPdfs(lightPaths.PathCache, numPdfs);
 
             pathPdfs.GatherLightPdfs(lightVertex, lastCameraVertexIdx, numPdfs);
 
@@ -171,10 +171,10 @@ namespace SeeSharp.Integrators.Bidir {
 
         public override float BidirConnectMis(CameraPath cameraPath, PathVertex lightVertex, float pdfCameraReverse,
                                               float pdfCameraToLight, float pdfLightReverse, float pdfLightToCamera) {
-            int numPdfs = cameraPath.vertices.Count + lightVertex.depth + 1;
+            int numPdfs = cameraPath.vertices.Count + lightVertex.Depth + 1;
             int lastCameraVertexIdx = cameraPath.vertices.Count - 1;
 
-            var pathPdfs = new BidirPathPdfs(lightPaths.pathCache, numPdfs);
+            var pathPdfs = new BidirPathPdfs(lightPaths.PathCache, numPdfs);
             pathPdfs.GatherCameraPdfs(cameraPath, lastCameraVertexIdx);
             pathPdfs.GatherLightPdfs(lightVertex, lastCameraVertexIdx, numPdfs);
 
@@ -198,7 +198,7 @@ namespace SeeSharp.Integrators.Bidir {
             int numPdfs = cameraPath.vertices.Count + 1;
             int lastCameraVertexIdx = numPdfs - 2;
 
-            var pathPdfs = new BidirPathPdfs(lightPaths.pathCache, numPdfs);
+            var pathPdfs = new BidirPathPdfs(lightPaths.PathCache, numPdfs);
 
             pathPdfs.GatherCameraPdfs(cameraPath, lastCameraVertexIdx);
 

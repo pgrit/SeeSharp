@@ -73,12 +73,12 @@ namespace SeeSharp.Core.Geometry {
 
             return new SurfaceSample {
                 point = new SurfacePoint {
-                    barycentricCoords = barycentric,
-                    primId = (uint)faceIdx,
-                    normal = FaceNormals[faceIdx],
-                    position = ComputePosition(faceIdx, barycentric),
-                    errorOffset = ComputeErrorOffset(faceIdx, barycentric),
-                    mesh = this
+                    BarycentricCoords = barycentric,
+                    PrimId = (uint)faceIdx,
+                    Normal = FaceNormals[faceIdx],
+                    Position = ComputePosition(faceIdx, barycentric),
+                    ErrorOffset = ComputeErrorOffset(faceIdx, barycentric),
+                    Mesh = this
                 },
                 pdf = 1.0f / SurfaceArea
             };

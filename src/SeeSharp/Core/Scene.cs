@@ -107,7 +107,7 @@ namespace SeeSharp.Core {
         /// <returns>The attached emitter reference, or null.</returns>
         public Emitter QueryEmitter(SurfacePoint point) {
             Emitter emitter;
-            if (!meshToEmitter.TryGetValue(point.mesh, out emitter))
+            if (!meshToEmitter.TryGetValue(point.Mesh, out emitter))
                 return null;
             return emitter;
         }

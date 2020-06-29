@@ -24,7 +24,7 @@ namespace SeeSharp.Core.Tests.Shading {
 
             var sample = emitter.SampleRay(new Vector2(0.3f, 0.8f), new Vector2(0.56f, 0.03f));
 
-            Assert.True(sample.point.errorOffset > 0);
+            Assert.True(sample.point.ErrorOffset > 0);
         }
 
         [Fact]
@@ -101,7 +101,7 @@ namespace SeeSharp.Core.Tests.Shading {
             var emitter = new DiffuseEmitter(mesh, ColorRGB.White);
 
             var dummyHit = new SurfacePoint {
-                mesh = mesh
+                Mesh = mesh
             };
 
             var r1 = emitter.EmittedRadiance(dummyHit, new Vector3(0, 1, 1));
@@ -133,7 +133,7 @@ namespace SeeSharp.Core.Tests.Shading {
             var emitter = new DiffuseEmitter(mesh, ColorRGB.White);
 
             var dummyHit = new SurfacePoint {
-                mesh = mesh
+                Mesh = mesh
             };
 
             var p1 = emitter.PdfRay(dummyHit, new Vector3(0, 1, 1));

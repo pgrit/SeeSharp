@@ -41,7 +41,8 @@ namespace SeeSharp.Integrators.Bidir {
             }
         }
 
-        public virtual float BackgroundProbability => 1 / (1.0f + Scene.Emitters.Count);
+        public virtual float BackgroundProbability 
+            => Scene.Background != null ? 1 / (1.0f + Scene.Emitters.Count) : 0;
 
         /// <summary>
         /// Resets the path cache and populates it with a new set of light paths.
@@ -74,7 +75,8 @@ namespace SeeSharp.Integrators.Bidir {
                                               ColorRGB throughput, int depth, float toAncestorJacobian, Vector3 nextDirection) {
                 var ancestor = cache[lastId];
                 var weight = base.OnHit(ray, hit, pdfFromAncestor, pdfToAncestor, throughput, depth, toAncestorJacobian, nextDirection);
-                callback(ref cache[lastId], ancestor, nextDirection);
+                if (callback != null)
+                    callback(ref cache[lastId], ancestor, nextDirection);
                 return weight;
             }
         }

@@ -2,6 +2,7 @@
 using SeeSharp.Core.Geometry;
 using SeeSharp.Core.Sampling;
 using SeeSharp.Core.Shading;
+using System;
 using System.Numerics;
 using System.Threading.Tasks;
 
@@ -43,10 +44,35 @@ namespace SeeSharp.Integrators.Bidir {
         public virtual ColorRGB EstimatePixelValue(SurfacePoint cameraPoint, Vector2 filmPosition, Ray primaryRay,
                                                    float pdfFromCamera, ColorRGB initialWeight, RNG rng) {
             // Trace the primary ray into the scene
+            var hit = scene.Raytracer.Trace(primaryRay);
+            if (!hit)
+                return scene.Background != null ? scene.Background.EmittedRadiance(primaryRay.Direction) : ColorRGB.Black;
 
             // Gather nearby photons
+            float radius = scene.SceneRadius / 100.0f;
+            ColorRGB estimate = ColorRGB.Black;
+            photonMap.Query(hit.Position, (vertexIdx, mergeDistanceSquared) => {
+                // Compute the contribution of the photon
+                var photon = lightPaths.PathCache[vertexIdx];
+                var ancestor = lightPaths.PathCache[photon.AncestorId];
+                var dirToAncestor = ancestor.Point.Position - photon.Point.Position;
+                var bsdfValue = photon.Point.Bsdf.EvaluateBsdfOnly(-primaryRay.Direction, dirToAncestor, false);
+                var photonContrib = photon.Weight * bsdfValue / NumLightPaths;
 
-            return ColorRGB.Black;
+                // Epanechnikov kernel
+                float radiusSquared = radius * radius;
+                photonContrib *= (radiusSquared - mergeDistanceSquared) * 2.0f / (radiusSquared * radiusSquared * MathF.PI);
+
+                estimate += photonContrib;
+            }, radius);
+
+            // Add contribution from directly visible light sources
+            var light = scene.QueryEmitter(hit);
+            if (light != null) {
+                estimate += light.EmittedRadiance(hit, -primaryRay.Direction);
+            }
+
+            return estimate;
         }
 
         private void RenderPixel(uint row, uint col, RNG rng) {

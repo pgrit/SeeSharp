@@ -9,8 +9,8 @@ namespace SeeSharp.Validation {
                 //new Validate_SingleBounceGlossy(),
                 //new Validate_MultiLight(),
                 //new Validate_GlossyLight(),
-                //new Validate_CornellBox(),
-                new Validate_Environment()
+                new Validate_CornellBox(),
+                //new Validate_Environment()
             };
 
             foreach (var test in allTests)

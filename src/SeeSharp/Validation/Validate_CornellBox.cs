@@ -2,7 +2,7 @@ using SeeSharp.Core;
 
 namespace SeeSharp.Validation {
     class Validate_CornellBox : ValidationSceneFactory {
-        public override int SamplesPerPixel => 10;
+        public override int SamplesPerPixel => 8;
 
         public override int MaxDepth => 5;
 

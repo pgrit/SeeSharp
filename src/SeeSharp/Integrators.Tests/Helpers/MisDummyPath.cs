@@ -78,13 +78,13 @@ namespace SeeSharp.Integrators.Tests.Helpers {
 
                 // sampling the camera itself / a point on the lens 
                 cameraVertices[0] = new PathPdfPair {
-                    pdfFromAncestor = 1.0f, // lens / sensor sampling is deterministic
+                    PdfFromAncestor = 1.0f, // lens / sensor sampling is deterministic
                     pdfToAncestor = 0.0f
                 };
 
                 // primary surface vertex
                 cameraVertices[1] = new PathPdfPair {
-                    pdfFromAncestor = numLightPaths * 0.8f, // surface area pdf of sampling this vertex from the camera
+                    PdfFromAncestor = numLightPaths * 0.8f, // surface area pdf of sampling this vertex from the camera
                     pdfToAncestor = 1.0f
                 };
 
@@ -94,7 +94,7 @@ namespace SeeSharp.Integrators.Tests.Helpers {
                     var lightVert = pathCache[lightVertIdx];
 
                     cameraVertices[idx] = new PathPdfPair {
-                        pdfFromAncestor = lightVert.PdfToAncestor,
+                        PdfFromAncestor = lightVert.PdfToAncestor,
                         pdfToAncestor = lightVert.PdfFromAncestor
                     };
 
@@ -106,7 +106,7 @@ namespace SeeSharp.Integrators.Tests.Helpers {
                 var cossurf = Vector3.Dot(Vector3.Normalize(dir), pathCache[1].Point.Normal);
                 var coslight = Vector3.Dot(Vector3.Normalize(-dir), pathCache[0].Point.Normal);
                 var distsqr = dir.LengthSquared();
-                cameraVertices[^1].pdfFromAncestor = cossurf * coslight / distsqr / MathF.PI;
+                cameraVertices[^1].PdfFromAncestor = cossurf * coslight / distsqr / MathF.PI;
                 cameraVertices[^1].pdfToAncestor = -100000.0f;
             }
         }

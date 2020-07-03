@@ -127,7 +127,7 @@ namespace SeeSharp.Integrators.Bidir {
         }
 
         public override float EmitterHitMis(CameraPath cameraPath, float pdfEmit, float pdfNextEvent) {
-            int numPdfs = cameraPath.vertices.Count;
+            int numPdfs = cameraPath.Vertices.Count;
             int lastCameraVertexIdx = numPdfs - 1;
 
             if (numPdfs == 1) return 1.0f; // sole technique for rendering directly visible lights.
@@ -137,7 +137,7 @@ namespace SeeSharp.Integrators.Bidir {
 
             pathPdfs.pdfsLightToCamera[^2] = pdfEmit;
 
-            float pdfThis = cameraPath.vertices[^1].pdfFromAncestor;
+            float pdfThis = cameraPath.Vertices[^1].PdfFromAncestor;
 
             // Compute the actual weight
             float sumReciprocals = 1.0f;
@@ -171,8 +171,8 @@ namespace SeeSharp.Integrators.Bidir {
 
         public override float BidirConnectMis(CameraPath cameraPath, PathVertex lightVertex, float pdfCameraReverse,
                                               float pdfCameraToLight, float pdfLightReverse, float pdfLightToCamera) {
-            int numPdfs = cameraPath.vertices.Count + lightVertex.Depth + 1;
-            int lastCameraVertexIdx = cameraPath.vertices.Count - 1;
+            int numPdfs = cameraPath.Vertices.Count + lightVertex.Depth + 1;
+            int lastCameraVertexIdx = cameraPath.Vertices.Count - 1;
 
             var pathPdfs = new BidirPathPdfs(lightPaths.PathCache, numPdfs);
             pathPdfs.GatherCameraPdfs(cameraPath, lastCameraVertexIdx);
@@ -181,7 +181,7 @@ namespace SeeSharp.Integrators.Bidir {
             // Set the pdf values that are unique to this combination of paths
             if (lastCameraVertexIdx > 0) // only if this is not the primary hit point
                 pathPdfs.pdfsLightToCamera[lastCameraVertexIdx - 1] = pdfCameraReverse;
-            pathPdfs.pdfsCameraToLight[lastCameraVertexIdx] = cameraPath.vertices[^1].pdfFromAncestor;
+            pathPdfs.pdfsCameraToLight[lastCameraVertexIdx] = cameraPath.Vertices[^1].PdfFromAncestor;
             pathPdfs.pdfsLightToCamera[lastCameraVertexIdx] = pdfLightToCamera;
             pathPdfs.pdfsCameraToLight[lastCameraVertexIdx + 1] = pdfCameraToLight;
             pathPdfs.pdfsCameraToLight[lastCameraVertexIdx + 2] = pdfLightReverse;
@@ -195,14 +195,14 @@ namespace SeeSharp.Integrators.Bidir {
         }
 
         public override float NextEventMis(CameraPath cameraPath, float pdfEmit, float pdfNextEvent, float pdfHit, float pdfReverse) {
-            int numPdfs = cameraPath.vertices.Count + 1;
+            int numPdfs = cameraPath.Vertices.Count + 1;
             int lastCameraVertexIdx = numPdfs - 2;
 
             var pathPdfs = new BidirPathPdfs(lightPaths.PathCache, numPdfs);
 
             pathPdfs.GatherCameraPdfs(cameraPath, lastCameraVertexIdx);
 
-            pathPdfs.pdfsCameraToLight[^2] = cameraPath.vertices[^1].pdfFromAncestor;
+            pathPdfs.pdfsCameraToLight[^2] = cameraPath.Vertices[^1].PdfFromAncestor;
             pathPdfs.pdfsLightToCamera[^2] = pdfEmit;
             if (numPdfs > 2) // not for direct illumination
                 pathPdfs.pdfsLightToCamera[^3] = pdfReverse;

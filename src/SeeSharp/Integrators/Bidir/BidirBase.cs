@@ -22,7 +22,7 @@ namespace SeeSharp.Integrators.Bidir {
         public LightPathCache lightPaths;
 
         public struct PathPdfPair {
-            public float pdfFromAncestor;
+            public float PdfFromAncestor;
             public float pdfToAncestor;
         }
 
@@ -40,7 +40,7 @@ namespace SeeSharp.Integrators.Bidir {
             /// <summary>
             /// The pdf values for sampling this path.
             /// </summary>
-            public List<PathPdfPair> vertices;
+            public List<PathPdfPair> Vertices;
         }
 
         /// <summary>
@@ -234,7 +234,7 @@ namespace SeeSharp.Integrators.Bidir {
 
             void Connect(PathVertex vertex, PathVertex ancestor, Vector3 dirToAncestor) {
                 // Only allow connections that do not exceed the maximum total path length
-                int depth = vertex.Depth + path.vertices.Count + 1;
+                int depth = vertex.Depth + path.Vertices.Count + 1;
                 if (depth > MaxDepth) return;
 
                 // Trace shadow ray
@@ -279,7 +279,7 @@ namespace SeeSharp.Integrators.Bidir {
                 result += misWeight * weight;
 
                 RegisterSample(weight * path.throughput, misWeight, path.pixel,
-                               path.vertices.Count, vertex.Depth, depth);
+                               path.Vertices.Count, vertex.Depth, depth);
             }
 
             if (!connectAncestors) {
@@ -347,7 +347,7 @@ namespace SeeSharp.Integrators.Bidir {
                     // Compute and log the final sample weight
                     var weight = sample.Weight * bsdfTimesCosine;
                     RegisterSample(weight * path.throughput, misWeight, path.pixel,
-                                   path.vertices.Count, 0, path.vertices.Count + 1);
+                                   path.Vertices.Count, 0, path.Vertices.Count + 1);
                     return misWeight * weight;
                 }
             } else { // Connect to an emissive surface
@@ -384,7 +384,7 @@ namespace SeeSharp.Integrators.Bidir {
 
                     var weight = emission * bsdfTimesCosine * (jacobian / lightSample.pdf);
                     RegisterSample(weight * path.throughput, misWeight, path.pixel,
-                                   path.vertices.Count, 0, path.vertices.Count + 1);
+                                   path.Vertices.Count, 0, path.Vertices.Count + 1);
                     return misWeight * weight;
                 }
             }
@@ -406,7 +406,7 @@ namespace SeeSharp.Integrators.Bidir {
 
             float misWeight = EmitterHitMis(path, pdfEmit, pdfNextEvent);
             RegisterSample(emission * path.throughput, misWeight, path.pixel,
-                           path.vertices.Count, 0, path.vertices.Count);
+                           path.Vertices.Count, 0, path.Vertices.Count);
             return misWeight * emission;
         }
 
@@ -426,7 +426,7 @@ namespace SeeSharp.Integrators.Bidir {
             float misWeight = EmitterHitMis(path, pdfEmit, pdfNextEvent);
             var emission = scene.Background.EmittedRadiance(ray.Direction);
             RegisterSample(emission * path.throughput, misWeight, path.pixel,
-                           path.vertices.Count, 0, path.vertices.Count);
+                           path.Vertices.Count, 0, path.Vertices.Count);
             return misWeight * emission * path.throughput;
         }
 
@@ -444,13 +444,13 @@ namespace SeeSharp.Integrators.Bidir {
                 : base(integrator.scene, rng, integrator.MaxDepth + 1) {
                 this.pixelIndex = pixelIndex;
                 this.integrator = integrator;
-                path.vertices = new List<PathPdfPair>(integrator.MaxDepth);
+                path.Vertices = new List<PathPdfPair>(integrator.MaxDepth);
                 path.pixel = filmPosition;
             }
 
             protected override ColorRGB OnInvalidHit(Ray ray, float pdfFromAncestor, ColorRGB throughput) {
-                path.vertices.Add(new PathPdfPair {
-                    pdfFromAncestor = pdfFromAncestor,
+                path.Vertices.Add(new PathPdfPair {
+                    PdfFromAncestor = pdfFromAncestor,
                     pdfToAncestor = 0
                 });
                 path.throughput = throughput;
@@ -460,8 +460,8 @@ namespace SeeSharp.Integrators.Bidir {
             protected override ColorRGB OnHit(Ray ray, SurfacePoint hit, float pdfFromAncestor,
                                               float pdfToAncestor, ColorRGB throughput, int depth,
                                               float toAncestorJacobian, Vector3 nextDirection) {
-                path.vertices.Add(new PathPdfPair {
-                    pdfFromAncestor = pdfFromAncestor,
+                path.Vertices.Add(new PathPdfPair {
+                    PdfFromAncestor = pdfFromAncestor,
                     pdfToAncestor = pdfToAncestor
                 });
                 path.throughput = throughput;

@@ -30,19 +30,19 @@ namespace SeeSharp.Integrators.Tests {
             computer.NumLightPaths = dummyPath.numLightPaths;
 
             var cameraPath = new CameraPath {
-                vertices = new List<PathPdfPair>(dummyPath.cameraVertices[1..3])
+                Vertices = new List<PathPdfPair>(dummyPath.cameraVertices[1..3])
             };
 
             float pdfReverse = dummyPath.cameraVertices[^2].pdfToAncestor;
             // Set a guard value to make sure that the correct pdf is used!
-            var dummyVert = cameraPath.vertices[^1];
+            var dummyVert = cameraPath.Vertices[^1];
             dummyVert.pdfToAncestor = -1000.0f;
-            cameraPath.vertices[^1] = dummyVert;
+            cameraPath.Vertices[^1] = dummyVert;
 
             return computer.NextEventMis(cameraPath,
                 pdfEmit: dummyPath.pathCache[1].PdfFromAncestor,
                 pdfNextEvent: 1.0f / dummyPath.lightArea,
-                pdfHit: dummyPath.cameraVertices[^1].pdfFromAncestor,
+                pdfHit: dummyPath.cameraVertices[^1].PdfFromAncestor,
                 pdfReverse: pdfReverse);
         }
 
@@ -53,7 +53,7 @@ namespace SeeSharp.Integrators.Tests {
             computer.NumLightPaths = dummyPath.numLightPaths;
 
             return computer.LightTracerMis(dummyPath.pathCache[dummyPath.lightEndpointIdx],
-                pdfCamToPrimary: dummyPath.cameraVertices[1].pdfFromAncestor,
+                pdfCamToPrimary: dummyPath.cameraVertices[1].PdfFromAncestor,
                 pdfReverse: dummyPath.pathCache[dummyPath.lightEndpointIdx].PdfToAncestor);
         }
 
@@ -64,7 +64,7 @@ namespace SeeSharp.Integrators.Tests {
             computer.NumLightPaths = dummyPath.numLightPaths;
 
             var cameraPath = new CameraPath {
-                vertices = new List<PathPdfPair>(dummyPath.cameraVertices[1..4])
+                Vertices = new List<PathPdfPair>(dummyPath.cameraVertices[1..4])
             };
 
             return computer.EmitterHitMis(cameraPath,
@@ -79,7 +79,7 @@ namespace SeeSharp.Integrators.Tests {
             computer.NumLightPaths = dummyPath.numLightPaths;
 
             var cameraPath = new CameraPath {
-                vertices = new List<PathPdfPair>(dummyPath.cameraVertices[1..2])
+                Vertices = new List<PathPdfPair>(dummyPath.cameraVertices[1..2])
             };
 
             var lightVertex = dummyPath.pathCache[dummyPath.pathCache[dummyPath.lightEndpointIdx].AncestorId];
@@ -90,7 +90,7 @@ namespace SeeSharp.Integrators.Tests {
 
             return computer.BidirConnectMis(cameraPath, lightVertex,
                 pdfCameraReverse: 1, // light tracer connections are deterministic
-                pdfCameraToLight: dummyPath.cameraVertices[2].pdfFromAncestor,
+                pdfCameraToLight: dummyPath.cameraVertices[2].PdfFromAncestor,
                 pdfLightReverse: lightReverse,
                 pdfLightToCamera: dummyPath.cameraVertices[2].pdfToAncestor);
         }
@@ -144,13 +144,13 @@ namespace SeeSharp.Integrators.Tests {
 
             // Compute the ground truth values
             var verts = dummyPath.cameraVertices;
-            float pdfHit = verts[1].pdfFromAncestor * verts[2].pdfFromAncestor * verts[3].pdfFromAncestor;
-            float pdfNextEvt = verts[1].pdfFromAncestor * verts[2].pdfFromAncestor *  (1.0f / dummyPath.lightArea);
+            float pdfHit = verts[1].PdfFromAncestor * verts[2].PdfFromAncestor * verts[3].PdfFromAncestor;
+            float pdfNextEvt = verts[1].PdfFromAncestor * verts[2].PdfFromAncestor *  (1.0f / dummyPath.lightArea);
 
             var lightVerts = dummyPath.pathCache;
             float pdfLightTracer = lightVerts[1].PdfFromAncestor * lightVerts[2].PdfFromAncestor * dummyPath.numLightPaths;
 
-            float pdfConnectFirst = verts[1].pdfFromAncestor * lightVerts[1].PdfFromAncestor;
+            float pdfConnectFirst = verts[1].PdfFromAncestor * lightVerts[1].PdfFromAncestor;
 
             float pdfSum = pdfHit + pdfNextEvt + pdfLightTracer + pdfConnectFirst;
 

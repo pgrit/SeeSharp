@@ -24,9 +24,9 @@ namespace SeeSharp.Integrators {
         public void GatherCameraPdfs(CameraPath cameraPath, int lastCameraVertexIdx) {
             // Gather the pdf values along the camera sub-path
             for (int i = 0; i < lastCameraVertexIdx; ++i) {
-                pdfsCameraToLight[i] = cameraPath.vertices[i].pdfFromAncestor;
+                pdfsCameraToLight[i] = cameraPath.Vertices[i].PdfFromAncestor;
                 if (i < lastCameraVertexIdx - 1)
-                    pdfsLightToCamera[i] = cameraPath.vertices[i + 1].pdfToAncestor;
+                    pdfsLightToCamera[i] = cameraPath.Vertices[i + 1].pdfToAncestor;
             }
         }
 

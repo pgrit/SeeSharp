@@ -5,9 +5,9 @@ using Xunit;
 using static SeeSharp.Integrators.Bidir.BidirBase;
 
 namespace SeeSharp.Integrators.Tests {
-    public class ClassicBidir_Mis_DirectIllum {
+    public class Vcm_Mis_DirectIllum {
 
-        Helpers.MisDummyPath dummyPath = new Helpers.MisDummyPath(
+        static Helpers.MisDummyPath dummyPath = new Helpers.MisDummyPath(
             lightArea: 2.0f,
             numLightPaths: 500,
             positions: new Vector3[] {
@@ -20,12 +20,17 @@ namespace SeeSharp.Integrators.Tests {
                 Vector3.Normalize(new Vector3 { X = 1, Y =  1, Z = 0 }), // surface
             });
 
-        float NextEventWeight() {
-            var computer = new ClassicBidir();
-            computer.lightPaths = new LightPathCache();
-            computer.lightPaths.PathCache = dummyPath.pathCache;
-            computer.NumLightPaths = dummyPath.numLightPaths;
+        // We don't create an actual scene, so we need to set the radius somehow for MIS
+        class FixedRadiusVcm : VertexConnectionAndMerging {
+            public override float Radius => 0.03f;
+        }
 
+        static VertexConnectionAndMerging dummyVcm = new FixedRadiusVcm {
+            lightPaths = new LightPathCache() { PathCache = dummyPath.pathCache },
+            NumLightPaths = dummyPath.numLightPaths
+        };
+
+        float NextEventWeight() {
             var cameraPath = new CameraPath {
                 Vertices = new List<PathPdfPair>(dummyPath.cameraVertices[1..2])
             };
@@ -36,7 +41,7 @@ namespace SeeSharp.Integrators.Tests {
             dummyVert.pdfToAncestor = -1000.0f;
             cameraPath.Vertices[^1] = dummyVert;
 
-            return computer.NextEventMis(cameraPath,
+            return dummyVcm.NextEventMis(cameraPath,
                 pdfEmit: dummyPath.pathCache[1].PdfFromAncestor,
                 pdfNextEvent: 1.0f / dummyPath.lightArea,
                 pdfHit: dummyPath.cameraVertices[2].PdfFromAncestor,
@@ -44,29 +49,37 @@ namespace SeeSharp.Integrators.Tests {
         }
 
         float LightTracerWeight() {
-            var computer = new ClassicBidir();
-            computer.lightPaths = new LightPathCache();
-            computer.lightPaths.PathCache = dummyPath.pathCache;
-            computer.NumLightPaths = dummyPath.numLightPaths;
-
-            return computer.LightTracerMis(dummyPath.pathCache[dummyPath.lightEndpointIdx],
+            return dummyVcm.LightTracerMis(dummyPath.pathCache[dummyPath.lightEndpointIdx],
                 pdfCamToPrimary: dummyPath.cameraVertices[1].PdfFromAncestor,
                 pdfReverse: dummyPath.pathCache[dummyPath.lightEndpointIdx].PdfToAncestor);
         }
 
         float HitWeight() {
-            var computer = new ClassicBidir();
-            computer.lightPaths = new LightPathCache();
-            computer.lightPaths.PathCache = dummyPath.pathCache;
-            computer.NumLightPaths = dummyPath.numLightPaths;
-
             var cameraPath = new CameraPath {
                 Vertices = new List<PathPdfPair>(dummyPath.cameraVertices[1..3])
             };
 
-            return computer.EmitterHitMis(cameraPath,
+            return dummyVcm.EmitterHitMis(cameraPath,
                 pdfEmit: dummyPath.pathCache[1].PdfFromAncestor,
                 pdfNextEvent: 1.0f / dummyPath.lightArea);
+        }
+
+        float MergeWeight() {
+            var cameraPath = new CameraPath {
+                Vertices = new List<PathPdfPair>(dummyPath.cameraVertices[1..2])
+            };
+
+            var photon = dummyPath.pathCache[dummyPath.lightEndpointIdx];
+            return dummyVcm.MergeMis(cameraPath, photon, 
+                                     pdfCameraReverse: dummyPath.cameraVertices[^2].pdfToAncestor, 
+                                     pdfLightReverse: photon.PdfToAncestor);
+        }
+
+        [Fact]
+        public void Merge_ShouldBeValid() {
+            float weightMerge = MergeWeight();
+            Assert.True(weightMerge <= 1.0f);
+            Assert.True(weightMerge >= 0.0f);
         }
 
         [Fact]
@@ -95,8 +108,9 @@ namespace SeeSharp.Integrators.Tests {
             float weightNextEvt = NextEventWeight();
             float weightLightTracer = LightTracerWeight();
             float weightBsdf = HitWeight();
+            float weightMerge = MergeWeight();
 
-            float weightSum = weightNextEvt + weightBsdf + weightLightTracer;
+            float weightSum = weightNextEvt + weightBsdf + weightLightTracer + weightMerge;
 
             Assert.Equal(1.0f, weightSum, 2);
         }
@@ -106,6 +120,7 @@ namespace SeeSharp.Integrators.Tests {
             float weightNextEvt = NextEventWeight();
             float weightLightTracer = LightTracerWeight();
             float weightBsdf = HitWeight();
+            float weightMerge = MergeWeight();
 
             // Compute the ground truth values
             var verts = dummyPath.cameraVertices;
@@ -115,15 +130,20 @@ namespace SeeSharp.Integrators.Tests {
             var lightVerts = dummyPath.pathCache;
             float pdfLightTracer = lightVerts[1].PdfFromAncestor * dummyPath.numLightPaths;
 
-            float pdfSum = pdfHit + pdfNextEvt + pdfLightTracer;
+            float pdfMerge = verts[1].PdfFromAncestor * lightVerts[1].PdfFromAncestor
+                * dummyPath.numLightPaths * System.MathF.PI * dummyVcm.Radius * dummyVcm.Radius;
+
+            float pdfSum = pdfHit + pdfNextEvt + pdfLightTracer + pdfMerge;
 
             float expectedWeightNextEvt = pdfNextEvt / pdfSum;
             float expectedWeightHit = pdfHit / pdfSum;
             float expectedWeightLightTracer = pdfLightTracer / pdfSum;
+            float expectedWeightMerge = pdfMerge / pdfSum;
 
             Assert.Equal(weightNextEvt, expectedWeightNextEvt, 3);
             Assert.Equal(weightBsdf, expectedWeightHit, 3);
             Assert.Equal(weightLightTracer, expectedWeightLightTracer, 3);
+            Assert.Equal(weightMerge, expectedWeightMerge, 3);
         }
     }
 }

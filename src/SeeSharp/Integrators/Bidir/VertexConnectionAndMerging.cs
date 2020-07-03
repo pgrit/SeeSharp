@@ -17,7 +17,7 @@ namespace SeeSharp.Integrators.Bidir {
         protected PhotonHashGrid photonMap = new PhotonHashGrid();
 
         // TODO make this pixel dependent and progressive!
-        public virtual float Radius => scene.SceneRadius / 100.0f;
+        public virtual float Radius => scene.SceneRadius / 1000.0f;
 
         public override void RegisterSample(ColorRGB weight, float misWeight, Vector2 pixel,
                                             int cameraPathLength, int lightPathLength, int fullLength) {

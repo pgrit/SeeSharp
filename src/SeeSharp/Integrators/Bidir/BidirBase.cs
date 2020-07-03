@@ -317,7 +317,7 @@ namespace SeeSharp.Integrators.Bidir {
         }
 
         public virtual float ComputeNextEventBackgroundProbability(/*SurfacePoint from*/) 
-            => 1 / (1.0f + scene.Emitters.Count);
+            => scene.Background == null ? 0 : 1 / (1.0f + scene.Emitters.Count);
 
         public ColorRGB PerformNextEventEstimation(Ray ray, SurfacePoint hit, RNG rng, CameraPath path,
                                                    float reversePdfJacobian) {

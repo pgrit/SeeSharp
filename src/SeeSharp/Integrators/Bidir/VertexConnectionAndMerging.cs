@@ -76,6 +76,9 @@ namespace SeeSharp.Integrators.Bidir {
                 var (pdfLightReverse, pdfCameraReverse) = bsdf.Pdf(-ray.Direction, dirToAncestor, false);
                 pdfCameraReverse *= cameraJacobian;
                 pdfLightReverse *= SampleWrap.SurfaceAreaToSolidAngle(hit, ancestor.Point);
+                if (photon.Depth == 1) {
+                    pdfLightReverse += NextEventPdf(hit, ancestor.Point);
+                }
                 float misWeight = MergeMis(path, photon, pdfCameraReverse, pdfLightReverse);
 
                 // Epanechnikov kernel

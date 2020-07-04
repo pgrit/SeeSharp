@@ -79,6 +79,8 @@ namespace SeeSharp.Integrators.Bidir {
             return walk.StartFromCamera(filmPosition, cameraPoint, pdfFromCamera, primaryRay, initialWeight);
         }
 
+        public virtual void PostIteration(uint iteration) { }
+
         public override void Render(Scene scene) {
             this.scene = scene;
 
@@ -96,10 +98,13 @@ namespace SeeSharp.Integrators.Bidir {
 
             for (uint iter = 0; iter < NumIterations; ++iter) {
                 scene.FrameBuffer.StartIteration();
+                
                 lightPaths.TraceAllPaths(iter, AddNextEventPdf);
                 ProcessPathCache();
                 TraceAllCameraPaths(iter);
+                
                 scene.FrameBuffer.EndIteration();
+                PostIteration(iter);
             }
         }
 

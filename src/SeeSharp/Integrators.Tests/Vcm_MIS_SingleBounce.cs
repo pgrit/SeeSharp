@@ -1,4 +1,5 @@
-﻿using SeeSharp.Integrators.Bidir;
+﻿using SeeSharp.Core;
+using SeeSharp.Integrators.Bidir;
 using System.Collections.Generic;
 using System.Numerics;
 using Xunit;
@@ -24,7 +25,7 @@ namespace SeeSharp.Integrators.Tests {
 
         // We don't create an actual scene, so we need to set the radius somehow for MIS
         class FixedRadiusVcm : VertexConnectionAndMerging {
-            public override float Radius => 0.1f;
+            public override void InitializeRadius(Scene scene) => Radius = 0.1f;
         }
 
         static VertexConnectionAndMerging dummyVcm = new FixedRadiusVcm {

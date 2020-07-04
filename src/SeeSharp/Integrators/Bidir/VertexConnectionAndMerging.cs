@@ -16,8 +16,56 @@ namespace SeeSharp.Integrators.Bidir {
 
         protected PhotonHashGrid photonMap = new PhotonHashGrid();
 
-        // TODO make this pixel dependent and progressive!
-        public virtual float Radius => scene.SceneRadius / 300.0f;
+        public float Radius;
+
+        /// <summary>
+        /// Initializes the radius for photon mapping. The default implementation samples three rays
+        /// on the diagonal of the image. The average pixel footprints at these positions are used to compute
+        /// a radius that roughly spans a 3x3 pixel area in the image plane.
+        /// </summary>
+        public virtual void InitializeRadius(Scene scene) {
+            // Sample a small number of primary rays and compute the average pixel footprint area
+            var primarySamples = new Vector2[] {
+                new Vector2(0.5f, 0.5f),
+                new Vector2(0.25f, 0.25f),
+                new Vector2(0.75f, 0.75f)
+            };
+            var resolution = new Vector2(scene.FrameBuffer.Width, scene.FrameBuffer.Height);
+            float averageArea = 0; int numHits = 0;
+            for (int i = 0; i < primarySamples.Length; ++i) {
+                Ray ray = scene.Camera.GenerateRay(primarySamples[i] * resolution);
+                var hit = scene.Raytracer.Trace(ray);
+                if (!hit) continue;
+
+                float areaToAngle = scene.Camera.SurfaceAreaToSolidAngleJacobian(hit.Position, hit.Normal);
+                float angleToPixel = scene.Camera.SolidAngleToPixelJacobian(ray.Direction);
+                float pixelFootprintArea = 1 / (angleToPixel * areaToAngle);
+                averageArea += pixelFootprintArea;
+                numHits++;
+            }
+
+            if (numHits == 0) {
+                Console.WriteLine("Error determining pixel footprint: no intersections reported." +
+                    "Falling back to scene radius fraction.");
+                Radius = scene.SceneRadius / 300.0f;
+                return;
+            }
+
+            averageArea /= numHits;
+
+            // Compute the radius based on the approximated average footprint area
+            // Our heuristic aims to have each photon cover roughly a 3x3 region on the image
+            Radius = MathF.Sqrt(averageArea) * 1.5f;
+
+            //Console.WriteLine($"PM radius is: {Radius}, scene size fraction would have been {scene.SceneRadius / 300.0f}");
+        }
+
+        public virtual void ShrinkRadius() {
+        }
+
+        public override void PostIteration(uint iteration) {
+            ShrinkRadius();
+        }
 
         public override void RegisterSample(ColorRGB weight, float misWeight, Vector2 pixel,
                                             int cameraPathLength, int lightPathLength, int fullLength) {
@@ -39,6 +87,8 @@ namespace SeeSharp.Integrators.Bidir {
             // Classic Bidir requires exactly one light path for every camera path.
             NumLightPaths = scene.FrameBuffer.Width * scene.FrameBuffer.Height;
 
+            InitializeRadius(scene);
+
             base.Render(scene);
 
             // Store the technique pyramids
@@ -58,6 +108,7 @@ namespace SeeSharp.Integrators.Bidir {
 
         public virtual ColorRGB PerformMerging(Ray ray, SurfacePoint hit, CameraPath path, float cameraJacobian) {
             ColorRGB estimate = ColorRGB.Black;
+            var bsdf = hit.Bsdf;
             photonMap.Query(hit.Position, (vertexIdx, mergeDistanceSquared) => {
                 var photon = lightPaths.PathCache[vertexIdx];
 
@@ -66,7 +117,6 @@ namespace SeeSharp.Integrators.Bidir {
                 if (depth > MaxDepth) return;
 
                 // Compute the contribution of the photon
-                var bsdf = hit.Bsdf;
                 var ancestor = lightPaths.PathCache[photon.AncestorId];
                 var dirToAncestor = ancestor.Point.Position - photon.Point.Position;
                 var bsdfValue = bsdf.EvaluateBsdfOnly(-ray.Direction, dirToAncestor, false);

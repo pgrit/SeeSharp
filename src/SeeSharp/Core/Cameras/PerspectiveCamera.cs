@@ -80,6 +80,13 @@ namespace SeeSharp.Core.Cameras {
             return jacobian;
         }
 
+        public override float SurfaceAreaToSolidAngleJacobian(Vector3 point, Vector3 normal) {
+            var dirToCam = Position - point;
+            float distToCam = dirToCam.Length();
+            float cosToCam = Math.Abs(Vector3.Dot(normal, dirToCam)) / distToCam;
+            return cosToCam / (distToCam * distToCam);
+        }
+
         Matrix4x4 cameraToView;
         Matrix4x4 viewToCamera;
         float aspectRatio;

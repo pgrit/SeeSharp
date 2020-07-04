@@ -33,6 +33,8 @@ namespace SeeSharp.Core.Cameras {
         /// <returns>The jacobian.</returns>
         public abstract float SolidAngleToPixelJacobian(Vector3 dir);
 
+        public abstract float SurfaceAreaToSolidAngleJacobian(Vector3 point, Vector3 normal);
+
         protected Matrix4x4 worldToCamera;
         protected Matrix4x4 cameraToWorld;
     }

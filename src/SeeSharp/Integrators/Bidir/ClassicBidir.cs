@@ -139,7 +139,7 @@ namespace SeeSharp.Integrators.Bidir {
         
         public override float NextEventMis(CameraPath cameraPath, float pdfEmit, float pdfNextEvent, float pdfHit, float pdfReverse) {
             int numPdfs = cameraPath.Vertices.Count + 1;
-            int lastCameraVertexIdx = numPdfs - 2; // TODO ?? why only -1 here?
+            int lastCameraVertexIdx = numPdfs - 2;
 
             var pathPdfs = new BidirPathPdfs(lightPaths.PathCache, numPdfs);
 

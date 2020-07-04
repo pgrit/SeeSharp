@@ -4,7 +4,7 @@ namespace SeeSharp.Validation {
     class Validate_CornellBox : ValidationSceneFactory {
         public override int SamplesPerPixel => 8;
 
-        public override int MaxDepth => 5;
+        public override int MaxDepth => 2;
 
         public override string Name => "CornellBox";
 

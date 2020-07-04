@@ -22,7 +22,7 @@ namespace SeeSharp.Integrators.Tests {
 
         // We don't create an actual scene, so we need to set the radius somehow for MIS
         class FixedRadiusVcm : VertexConnectionAndMerging {
-            public override float Radius => 0.03f;
+            public override float Radius => 0.3f;
         }
 
         static VertexConnectionAndMerging dummyVcm = new FixedRadiusVcm {

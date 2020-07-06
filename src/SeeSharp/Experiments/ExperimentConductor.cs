@@ -1,10 +1,10 @@
 ﻿using SeeSharp.Core;
-using SeeSharp.Experiments;
 using SeeSharp.Integrators;
+using System;
 using System.Collections.Generic;
 using System.IO;
 
-namespace Experiments {
+namespace SeeSharp.Experiments {
     public class ExperimentConductor {
         public ExperimentConductor(ExperimentFactory experimentFactory,
                                    string workingDirectory,
@@ -33,7 +33,9 @@ namespace Experiments {
             var methods = factory.MakeMethods();
             foreach (var method in methods) {
                 string path = Path.Join(workingDirectory, method.name);
-                Render(path, "render.exr", method.integrator, scene);
+                Console.WriteLine($"Starting {method.name}...");
+                var timeSeconds = Render(path, "render.exr", method.integrator, scene);
+                Console.WriteLine($"{method.name} done after {timeSeconds} seconds");
 
                 allImages.Add(Path.Join(method.name, "render.exr"));
                 allImages.AddRange(method.files);
@@ -53,7 +55,16 @@ namespace Experiments {
             if (!exists || force) {
                 var integrator = factory.MakeReferenceIntegrator();
                 scene.FrameBuffer = new FrameBuffer(width, height, filepath);
+
+                Console.WriteLine($"Starting reference...");
+                var stopwatch = System.Diagnostics.Stopwatch.StartNew();
+
                 integrator.Render(scene);
+
+                stopwatch.Stop();
+                var timeSeconds = stopwatch.ElapsedMilliseconds / 1000.0;
+                Console.WriteLine($"Reference done after {timeSeconds} seconds");
+
                 scene.FrameBuffer.WriteToFile();
             }
         }

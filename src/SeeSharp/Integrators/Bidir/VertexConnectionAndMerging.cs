@@ -56,8 +56,6 @@ namespace SeeSharp.Integrators.Bidir {
             // Compute the radius based on the approximated average footprint area
             // Our heuristic aims to have each photon cover roughly a 3x3 region on the image
             Radius = MathF.Sqrt(averageArea) * 1.5f;
-
-            //Console.WriteLine($"PM radius is: {Radius}, scene size fraction would have been {scene.SceneRadius / 300.0f}");
         }
 
         public virtual void ShrinkRadius() {
@@ -133,7 +131,8 @@ namespace SeeSharp.Integrators.Bidir {
 
                 // Epanechnikov kernel
                 float radiusSquared = Radius * Radius;
-                photonContrib *= (radiusSquared - mergeDistanceSquared) * 2.0f / (radiusSquared * radiusSquared * MathF.PI);
+                photonContrib *= 2 * (radiusSquared - mergeDistanceSquared);
+                photonContrib /= MathF.PI * radiusSquared * radiusSquared;
 
                 RegisterSample(photonContrib * path.throughput, misWeight, path.pixel, path.Vertices.Count, photon.Depth, depth);
                 photonContrib *= misWeight;

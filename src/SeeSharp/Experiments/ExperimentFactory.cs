@@ -4,7 +4,7 @@ using System.Collections.Generic;
 
 namespace SeeSharp.Experiments {
     public abstract class ExperimentFactory {
-        public abstract FrameBuffer.Flags FrameBufferFlags { get; }
+        public virtual FrameBuffer.Flags FrameBufferFlags => FrameBuffer.Flags.None;
 
         public readonly struct Method {
             public readonly string name;

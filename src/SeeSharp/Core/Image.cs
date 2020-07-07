@@ -41,10 +41,12 @@ namespace SeeSharp.Core {
         int IndexOf(float x, float y) {
             int row = (int)y;
             int col = (int)x;
+            return IndexOf(col, row);
+        }
 
+        int IndexOf(int col, int row) {
             row = System.Math.Clamp(row, 0, Height - 1);
             col = System.Math.Clamp(col, 0, Width - 1);
-
             return col + row * Width;
         }
 
@@ -56,6 +58,11 @@ namespace SeeSharp.Core {
         /// <param name="y">Vertical coordinate [0, height], top to bottom.</param>
         /// <returns>The pixel color.</returns>
         public ColorRGB this[float x, float y] {
+            get => data[IndexOf(x, y)];
+            set => data[IndexOf(x, y)] = value;
+        }
+
+        public ColorRGB this[int x, int y] {
             get => data[IndexOf(x, y)];
             set => data[IndexOf(x, y)] = value;
         }

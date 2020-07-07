@@ -80,6 +80,7 @@ namespace SeeSharp.Integrators.Bidir {
         }
 
         public virtual void PostIteration(uint iteration) { }
+        public virtual void PreIteration(uint iteration) { }
 
         public override void Render(Scene scene) {
             this.scene = scene;
@@ -98,11 +99,12 @@ namespace SeeSharp.Integrators.Bidir {
 
             for (uint iter = 0; iter < NumIterations; ++iter) {
                 scene.FrameBuffer.StartIteration();
-                
+                PreIteration(iter);
+
                 lightPaths.TraceAllPaths(iter, AddNextEventPdf);
                 ProcessPathCache();
                 TraceAllCameraPaths(iter);
-                
+
                 scene.FrameBuffer.EndIteration();
                 PostIteration(iter);
             }
@@ -183,7 +185,7 @@ namespace SeeSharp.Integrators.Bidir {
                 // Second: map the solid angle to the pixel area
                 float solidAngleToPixel = scene.Camera.SolidAngleToPixelJacobian(vertex.Point.Position);
 
-                // Third: combine to get the full jacobian 
+                // Third: combine to get the full jacobian
                 float surfaceToPixelJacobian = surfaceToSolidAngle * solidAngleToPixel;
 
                 // Trace shadow ray
@@ -321,7 +323,7 @@ namespace SeeSharp.Integrators.Bidir {
             return (light, lightSample);
         }
 
-        public virtual float ComputeNextEventBackgroundProbability(/*SurfacePoint from*/) 
+        public virtual float ComputeNextEventBackgroundProbability(/*SurfacePoint from*/)
             => scene.Background == null ? 0 : 1 / (1.0f + scene.Emitters.Count);
 
         public ColorRGB PerformNextEventEstimation(Ray ray, SurfacePoint hit, RNG rng, CameraPath path,

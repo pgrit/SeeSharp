@@ -156,7 +156,7 @@ namespace SeeSharp.Integrators.Bidir {
                                            int cameraPathLength, int lightPathLength, int fullLength) {
         }
 
-        public abstract float LightTracerMis(PathVertex lightVertex, float pdfCamToPrimary, float pdfReverse);
+        public abstract float LightTracerMis(PathVertex lightVertex, float pdfCamToPrimary, float pdfReverse, Vector2 pixel);
 
         public void SplatLightVertices() {
             Parallel.For(0, lightPaths.Endpoints.Length, idx => {
@@ -170,6 +170,7 @@ namespace SeeSharp.Integrators.Bidir {
                 var raster = scene.Camera.WorldToFilm(vertex.Point.Position);
                 if (!raster.HasValue)
                     return;
+                var pixel = new Vector2(raster.Value.X, raster.Value.Y);
 
                 // Perform a change of variables from scene surface to pixel area.
                 // TODO this could be computed by the camera itself...
@@ -205,13 +206,11 @@ namespace SeeSharp.Integrators.Bidir {
                     pdfReverse += NextEventPdf(vertex.Point, ancestor.Point);
                 }
 
-                float misWeight = LightTracerMis(vertex, surfaceToPixelJacobian, pdfReverse);
+                float misWeight = LightTracerMis(vertex, surfaceToPixelJacobian, pdfReverse, pixel);
 
                 // Compute image contribution and splat
                 ColorRGB weight = vertex.Weight * bsdfValue * surfaceToPixelJacobian / NumLightPaths;
-                scene.FrameBuffer.Splat(raster.Value.X, raster.Value.Y, misWeight * weight);
-
-                var pixel = new Vector2(raster.Value.X, raster.Value.Y);
+                scene.FrameBuffer.Splat(pixel.X, pixel.Y, misWeight * weight);
                 RegisterSample(weight, misWeight, pixel, 0, vertex.Depth, vertex.Depth + 1);
             });
         }

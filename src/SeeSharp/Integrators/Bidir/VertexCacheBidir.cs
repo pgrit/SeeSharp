@@ -151,7 +151,7 @@ namespace SeeSharp.Integrators.Bidir {
             return 1 / sumReciprocals;
         }
 
-        public override float LightTracerMis(PathVertex lightVertex, float pdfCamToPrimary, float pdfReverse) {
+        public override float LightTracerMis(PathVertex lightVertex, float pdfCamToPrimary, float pdfReverse, Vector2 pixel) {
             int numPdfs = lightVertex.Depth + 1;
             int lastCameraVertexIdx = -1;
 

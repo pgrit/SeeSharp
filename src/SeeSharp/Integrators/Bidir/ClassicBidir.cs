@@ -29,7 +29,7 @@ namespace SeeSharp.Integrators.Bidir {
                 techPyramidWeighted = new TechPyramid(scene.FrameBuffer.Width, scene.FrameBuffer.Height,
                                                       minDepth: 1, maxDepth: MaxDepth, merges: false);
             }
-            
+
             // Classic Bidir requires exactly one light path for every camera path.
             NumLightPaths = scene.FrameBuffer.Width * scene.FrameBuffer.Height;
 
@@ -50,7 +50,7 @@ namespace SeeSharp.Integrators.Bidir {
         }
 
         public override ColorRGB OnCameraHit(CameraPath path, RNG rng, int pixelIndex, Ray ray, SurfacePoint hit,
-                                             float pdfFromAncestor, float pdfToAncestor, ColorRGB throughput, 
+                                             float pdfFromAncestor, float pdfToAncestor, ColorRGB throughput,
                                              int depth, float toAncestorJacobian) {
             ColorRGB value = ColorRGB.Black;
 
@@ -94,7 +94,7 @@ namespace SeeSharp.Integrators.Bidir {
             return 1 / sumReciprocals;
         }
 
-        public override float LightTracerMis(PathVertex lightVertex, float pdfCamToPrimary, float pdfReverse) {
+        public override float LightTracerMis(PathVertex lightVertex, float pdfCamToPrimary, float pdfReverse, Vector2 pixel) {
             int numPdfs = lightVertex.Depth + 1;
             int lastCameraVertexIdx = -1;
 
@@ -136,7 +136,7 @@ namespace SeeSharp.Integrators.Bidir {
 
             return 1 / sumReciprocals;
         }
-        
+
         public override float NextEventMis(CameraPath cameraPath, float pdfEmit, float pdfNextEvent, float pdfHit, float pdfReverse) {
             int numPdfs = cameraPath.Vertices.Count + 1;
             int lastCameraVertexIdx = numPdfs - 2;

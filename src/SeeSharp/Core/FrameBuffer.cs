@@ -34,7 +34,7 @@ namespace SeeSharp.Core {
             this.flags = flags;
         }
 
-        public void Splat(float x, float y, ColorRGB value) 
+        public void Splat(float x, float y, ColorRGB value)
             => image.Splat(x, y, value / curIteration);
 
         public void StartIteration() {
@@ -53,6 +53,11 @@ namespace SeeSharp.Core {
 
             if (flags.HasFlag(Flags.WriteContinously))
                 WriteToFile();
+        }
+
+        public void Reset() {
+            curIteration = 0;
+            image.Scale(0);
         }
 
         public void WriteToFile() => image.WriteToFile(filename);

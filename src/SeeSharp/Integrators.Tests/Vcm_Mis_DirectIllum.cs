@@ -52,7 +52,8 @@ namespace SeeSharp.Integrators.Tests {
         float LightTracerWeight() {
             return dummyVcm.LightTracerMis(dummyPath.pathCache[dummyPath.lightEndpointIdx],
                 pdfCamToPrimary: dummyPath.cameraVertices[1].PdfFromAncestor,
-                pdfReverse: dummyPath.pathCache[dummyPath.lightEndpointIdx].PdfToAncestor);
+                pdfReverse: dummyPath.pathCache[dummyPath.lightEndpointIdx].PdfToAncestor,
+                pixel: Vector2.Zero);
         }
 
         float HitWeight() {
@@ -71,8 +72,8 @@ namespace SeeSharp.Integrators.Tests {
             };
 
             var photon = dummyPath.pathCache[dummyPath.lightEndpointIdx];
-            return dummyVcm.MergeMis(cameraPath, photon, 
-                                     pdfCameraReverse: dummyPath.cameraVertices[^2].pdfToAncestor, 
+            return dummyVcm.MergeMis(cameraPath, photon,
+                                     pdfCameraReverse: dummyPath.cameraVertices[^2].pdfToAncestor,
                                      pdfLightReverse: photon.PdfToAncestor);
         }
 

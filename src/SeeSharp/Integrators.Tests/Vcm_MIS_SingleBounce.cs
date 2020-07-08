@@ -50,7 +50,8 @@ namespace SeeSharp.Integrators.Tests {
         float LightTracerWeight() {
             return dummyVcm.LightTracerMis(dummyPath.pathCache[dummyPath.lightEndpointIdx],
                 pdfCamToPrimary: dummyPath.cameraVertices[1].PdfFromAncestor,
-                pdfReverse: dummyPath.pathCache[dummyPath.lightEndpointIdx].PdfToAncestor);
+                pdfReverse: dummyPath.pathCache[dummyPath.lightEndpointIdx].PdfToAncestor,
+                pixel: Vector2.Zero);
         }
 
         float HitWeight() {
@@ -151,7 +152,7 @@ namespace SeeSharp.Integrators.Tests {
             float weightMergeSecond = MergeSecondWeight();
             float weightConnect = ConnectFirstToSecondWeight();
 
-            float weightSum = weightNextEvt + weightBsdf + weightLightTracer + weightMergeFirst 
+            float weightSum = weightNextEvt + weightBsdf + weightLightTracer + weightMergeFirst
                             + weightMergeSecond + weightConnect;
 
             Assert.Equal(1.0f, weightSum, 2);

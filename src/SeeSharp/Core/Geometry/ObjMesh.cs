@@ -46,7 +46,7 @@ namespace SeeSharp.Core.Geometry {
             public List<Index> indices = new List<Index>();
 
             // Index into the material names of the model
-            public int material;  
+            public int material;
         }
 
         /// <summary>A group of faces in the model.</summary>
@@ -66,21 +66,21 @@ namespace SeeSharp.Core.Geometry {
         }
 
         public class Material {
-            public ColorRGB ambient;          
-            public ColorRGB diffuse;          
-            public ColorRGB specular;         
-            public ColorRGB emission;         
-            public float specularIndex;       
-            public float indexOfRefraction;   
-            public ColorRGB transmittance;    
-            public float transparency;        
-            public float dissolveFactor;      
-            public int illuminationModel;     
-            public string ambientTexture;     
-            public string diffuseTexture;     
-            public string specularTexture;    
-            public string emittingTexture; 
-            public string bumpMap;      
+            public ColorRGB ambient;
+            public ColorRGB diffuse;
+            public ColorRGB specular;
+            public ColorRGB emission;
+            public float specularIndex;
+            public float indexOfRefraction;
+            public ColorRGB transmittance;
+            public float transparency;
+            public float dissolveFactor;
+            public int illuminationModel;
+            public string ambientTexture;
+            public string diffuseTexture;
+            public string specularTexture;
+            public string emittingTexture;
+            public string bumpMap;
             public string dissolveTexture;
         }
 
@@ -126,7 +126,7 @@ namespace SeeSharp.Core.Geometry {
             // Add an empty object to the scene
             int cur_object = 0;
             file.objects.Add(new Object(""));
-            
+
             // Add an empty group to this object
             int cur_group = 0;
             file.objects[0].groups.Add(new Group(""));
@@ -158,8 +158,10 @@ namespace SeeSharp.Core.Geometry {
             Vector2 ParseVector2() {
                 Vector2 v = new Vector2();
                 var matches = regexFloat.Matches(line);
-                if (matches.Count != 2)
-                    errors.Add($"Invalid vector (line {cur_line}).");
+                if (matches.Count != 2) {
+                    errors.Add($"Invalid vector (line {cur_line}) '{line}'. Replaced by (0,0).");
+                    return Vector2.Zero;
+                }
                 v.X = float.Parse(matches[0].Value);
                 v.Y = float.Parse(matches[1].Value);
                 return v;
@@ -167,7 +169,7 @@ namespace SeeSharp.Core.Geometry {
 
             List<Index> ReadFace() {
                 var matches = regexIndex.Matches(line);
-                
+
                 var indices = new List<Index>(matches.Count);
                 for (int i = 0; i < matches.Count; ++i) {
                     if (matches[i].Groups[1].Value == "") // vertex index is mandatory
@@ -179,13 +181,13 @@ namespace SeeSharp.Core.Geometry {
                         idx.t = int.Parse(matches[i].Groups[2].Value);
                     if (matches[i].Groups[3].Value != "") // normal is optional
                         idx.n = int.Parse(matches[i].Groups[3].Value);
-                    
+
                     indices.Add(idx);
                 }
 
                 if (matches.Count == 0)
                     errors.Add($"Invalid face (line {cur_line}).");
-                
+
                 return indices;
             }
 
@@ -332,7 +334,7 @@ namespace SeeSharp.Core.Geometry {
                     } else if (line[1] == 'e' && char.IsWhiteSpace(line[2])) {
                         var mat = current_material();
                         mat.emission = ParseRGB();
-                    } else 
+                    } else
                         errors.Add($"Invalid command '{line}' (line {cur_line}).");
                 } else if (line[0] == 'N') {
                     if (line[1] == 's' && char.IsWhiteSpace(line[2])) {
@@ -341,7 +343,7 @@ namespace SeeSharp.Core.Geometry {
                     } else if (line[1] == 'i' && char.IsWhiteSpace(line[2])) {
                         var mat = current_material();
                         mat.indexOfRefraction = float.Parse(line.Substring(3));
-                    } else 
+                    } else
                         errors.Add($"Invalid command '{line}' (line {cur_line}).");
                 } else if (line[0] == 'T') {
                     if (line[1] == 'f' && char.IsWhiteSpace(line[2])) {

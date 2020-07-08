@@ -10,6 +10,9 @@ def export_obj_meshes(filepath):
         axis_forward='-Z', axis_up='Y',
         group_by_material=True, group_by_object=True)
 
+def map_rgb(rgb):
+    return { "type": "rgb", "value": [ rgb[0], rgb[1], rgb[2] ] }
+
 def map_texture_or_color(node):
     default_rgb = [node.default_value[0], node.default_value[1], node.default_value[2]]
     try:
@@ -44,14 +47,15 @@ def map_diffuse(shader):
     }
 
 def map_view_shader(material):
-    # TODO export at least the diffuse color / texture
-    return {}
+    return {
+        "type": "diffuse",
+        "baseColor": map_rgb(material.diffuse_color)
+    }
 
 shader_matcher = {
     "Principled BSDF": map_principled,
     "Diffuse BSDF": map_diffuse,
     # TODO: support black body emitters
-    # TODO: support simple graphs (in particular diffuse + glossy combinations)
 }
 
 def export_materials(result):

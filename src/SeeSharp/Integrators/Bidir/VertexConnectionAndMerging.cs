@@ -28,7 +28,9 @@ namespace SeeSharp.Integrators.Bidir {
             var primarySamples = new Vector2[] {
                 new Vector2(0.5f, 0.5f),
                 new Vector2(0.25f, 0.25f),
-                new Vector2(0.75f, 0.75f)
+                new Vector2(0.75f, 0.75f),
+                new Vector2(0.1f, 0.9f),
+                new Vector2(0.9f, 0.1f)
             };
             var resolution = new Vector2(scene.FrameBuffer.Width, scene.FrameBuffer.Height);
             float averageArea = 0; int numHits = 0;

@@ -49,7 +49,7 @@ namespace SeeSharp.Core {
             }
             SceneCenter = center / totalVertices;
 
-            // 2) Compute the radius of the tight bounding box: the distance to the furthest vertex 
+            // 2) Compute the radius of the tight bounding box: the distance to the furthest vertex
             float radius = 0;
             for (int idx = 0; idx < Meshes.Count; ++idx) {
                 foreach (var vert in Meshes[idx].Vertices) {
@@ -210,6 +210,8 @@ namespace SeeSharp.Core {
                 }
 
                 // Parse all materials
+                var watch = System.Diagnostics.Stopwatch.StartNew();
+                System.Console.WriteLine("Start parsing materials...");
                 var namedMaterials = new Dictionary<string, Material>();
                 JsonElement materials;
                 if (root.TryGetProperty("materials", out materials)) {
@@ -258,6 +260,8 @@ namespace SeeSharp.Core {
                         }
                     }
                 }
+                watch.Stop();
+                System.Console.WriteLine($"Done parsing materials after {watch.ElapsedMilliseconds}ms.");
 
                 // Parse all triangle meshes
                 var namedMeshes = new Dictionary<string, Mesh>();

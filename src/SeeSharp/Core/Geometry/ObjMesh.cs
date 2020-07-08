@@ -106,17 +106,25 @@ namespace SeeSharp.Core.Geometry {
             string full = System.IO.Path.GetFullPath(filename);
             mesh.basePath = System.IO.Path.GetDirectoryName(full);
 
+            var watch = System.Diagnostics.Stopwatch.StartNew();
+            System.Console.WriteLine($"Parsing {filename}...");
             // Parse the .obj itself
             using (var file = new System.IO.StreamReader(filename))
                 mesh.errors.AddRange(mesh.ParseObjFile(file));
+            watch.Stop();
+            System.Console.WriteLine($"Done parsing .obj after {watch.ElapsedMilliseconds}ms.");
 
             // Parse all linked .mtl files
             foreach (string mtlFilename in mesh.file.mtlFiles) {
                 // the mtl files are expected to be relative to the .obj itself
                 string mtlPath = System.IO.Path.Join(mesh.basePath, mtlFilename);
 
-                using (var file = new System.IO.StreamReader(mtlPath))
-                    mesh.errors.AddRange(mesh.ParseMtlFile(file));
+                try {
+                    using (var file = new System.IO.StreamReader(mtlPath))
+                        mesh.errors.AddRange(mesh.ParseMtlFile(file));
+                } catch (System.IO.FileNotFoundException) {
+                    System.Console.WriteLine($".mtl not found: {mtlPath}");
+                }
             }
 
             return mesh;

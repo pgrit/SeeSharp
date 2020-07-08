@@ -130,21 +130,39 @@ namespace SeeSharp.Core {
 
         static Image LoadImageFromLDR(string filename) {
             Image image;
-            using (var b = (Bitmap)System.Drawing.Image.FromFile(filename)) {
-                image = new Image(b.Width, b.Height);
-                for (int x = 0; x < b.Width; ++x) {
-                    for (int y = 0; y < b.Height; ++y) {
-                        var clr = b.GetPixel(x, y);
-                        var rgb = new ColorRGB(clr.R / (float)255, clr.G / (float)255, clr.B / (float)255);
+            try {
+                using (var b = (Bitmap)System.Drawing.Image.FromFile(filename)) {
+                    image = new Image(b.Width, b.Height);
+                    
+                    var bits = b.LockBits(new Rectangle(0, 0, b.Width, b.Height),
+                        System.Drawing.Imaging.ImageLockMode.ReadOnly, System.Drawing.Imaging.PixelFormat.Format32bppArgb);
+                    var depth = Bitmap.GetPixelFormatSize(bits.PixelFormat) / 8;
 
-                        // perform inverse gamma correction
-                        rgb.R = MathF.Pow(rgb.R, 2.2f);
-                        rgb.G = MathF.Pow(rgb.G, 2.2f);
-                        rgb.B = MathF.Pow(rgb.B, 2.2f);
+                    for (int x = 0; x < b.Width; ++x) {
+                        for (int y = 0; y < b.Height; ++y) {
+                            byte red, green, blue;
+                            unsafe {
+                                byte* scan0 = (byte*)bits.Scan0.ToPointer();
+                                var addr = scan0 + y * bits.Stride + x * depth;
+                                blue = *addr++;
+                                green = *addr++;
+                                red = *addr++;
+                            }
 
-                        image[x, y] = rgb;
+                            var rgb = new ColorRGB(red / (float)255, green / (float)255, blue / (float)255);
+
+                            // perform inverse gamma correction
+                            rgb.R = MathF.Pow(rgb.R, 2.2f);
+                            rgb.G = MathF.Pow(rgb.G, 2.2f);
+                            rgb.B = MathF.Pow(rgb.B, 2.2f);
+
+                            image[x, y] = rgb;
+                        }
                     }
                 }
+            } catch (System.OutOfMemoryException) {
+                Console.WriteLine($"Unsupported image file format: {filename}. Replaced by a white 1x1 image.");
+                image = Image.Constant(ColorRGB.White);
             }
             return image;
         }

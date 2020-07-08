@@ -64,7 +64,7 @@ namespace SeeSharp.Core.Geometry {
                         ? Image.Constant(objMaterial.diffuse)
                         : Image.LoadFromFile(System.IO.Path.Join(mesh.basePath, objMaterial.diffuseTexture));
 
-                    // We coarsely map the "ns" term to roughness, use the diffuse color as base color, 
+                    // We coarsely map the "ns" term to roughness, use the diffuse color as base color,
                     // and ignore everything else.
                     materialParameters = new GenericMaterial.Parameters {
                         baseColor = baseColor,
@@ -118,8 +118,7 @@ namespace SeeSharp.Core.Geometry {
 
                 if (empty) continue;
 
-                // Create a mesh for each triangle 
-                // TODO we could process groups and triangle sets in parallel here! (measure cost first to check if that would be worth it)
+                // Create a mesh for each group of triangles with identical materials
                 foreach (var group in triangleGroups) {
                     foreach (var triangleSet in group) {
                         string materialName = mesh.file.materials[triangleSet.Key];

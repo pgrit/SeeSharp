@@ -120,8 +120,11 @@ def export_cameras(result):
     # TODO support multiple named cameras
     if bpy.context.scene is None:
         camera = bpy.data.scenes[0].camera
+        scene = bpy.data.scenes[0]
     else:
         camera = bpy.context.scene.camera
+        scene = bpy.context.scene
+    aspect_ratio = scene.render.resolution_y / scene.render.resolution_x
 
     result["transforms"] = [
         {
@@ -142,7 +145,7 @@ def export_cameras(result):
 
     result["cameras"] = [
         {
-            "fov": degrees(camera.data.angle),
+            "fov": degrees(camera.data.angle) * aspect_ratio,
             "transform": "camera",
             "name": "default",
             "type": "perspective"
@@ -195,7 +198,7 @@ class ExportSomeData(Operator, ExportHelper):
         return write_some_data(context, self.filepath)
 
 def menu_func_export(self, context):
-    self.layout.operator(ExportSomeData.bl_idname, text="Text Export Operator")
+    self.layout.operator(ExportSomeData.bl_idname, text="SeeSharp Export")
 
 def register():
     bpy.utils.register_class(ExportSomeData)

@@ -2,6 +2,14 @@
 
 # SeeSharp
 
+Meet SeeSharp - the worlds first renderer designed to be (not too) slow!
+In contrast to other rendering frameworks out there, the one and only goal of SeeSharp is
+ultimate flexibility when it comes to prototyping rendering algorithms.
+SeeSharp is designed to quickly implement arbitrarily complex rendering algorithms and compare them
+on the type of scenes that are common in current research projects.
+To achieve that flexibility, performance is (almost) completely ignored.
+Nevertheless, SeeSharp currently performs on par with PBRTv3, so not too shabby!
+
 Traditional rendering frameworks are almost exclusively written in C++. They offer great
 performance, but require quite some implementation effort. Hence, quickly testing various
 ideas, both large and small, can be quite a chore. The SeeSharp rendering framwork tackles
@@ -10,8 +18,8 @@ that problem.
 In principle, SeeSharp is yet another rendering framework. It combines the Embree traversal
 kernels with a PBRT-style material system and a variety of rendering algorithms (integrators).
 The key difference is the choice of programming language: C#. Thanks to C# and .NET core,
-rendering experiments can benefit from short compile times, far easier debuging, no nasty
-segfaults, and even a REPL.
+rendering experiments can benefit from short compile times, powerful debugging, no nasty
+segfaults, a proper build system, and even a REPL.
 
 At the cost of a surprisingly small reduction in performance, experiments can be done much
 quicker, and without wasting time on debugging undefined behaviour only because you yet again forgot a -1 somewhere.

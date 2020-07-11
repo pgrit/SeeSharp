@@ -45,8 +45,12 @@ namespace SeeSharp.Core {
         }
 
         int IndexOf(int col, int row) {
-            row = System.Math.Clamp(row, 0, Height - 1);
-            col = System.Math.Clamp(col, 0, Width - 1);
+            // TODO make border handling mode programmable, we go with repeat as the hard-coded default.
+            row = (row % Height + Height) % Height;
+            col = (col % Width + Width) % Width;
+            // e.g. for clamp:
+            // row = System.Math.Clamp(row, 0, Height - 1);
+            // col = System.Math.Clamp(col, 0, Width - 1);
             return col + row * Width;
         }
 
@@ -133,7 +137,7 @@ namespace SeeSharp.Core {
             try {
                 using (var b = (Bitmap)System.Drawing.Image.FromFile(filename)) {
                     image = new Image(b.Width, b.Height);
-                    
+
                     var bits = b.LockBits(new Rectangle(0, 0, b.Width, b.Height),
                         System.Drawing.Imaging.ImageLockMode.ReadOnly, System.Drawing.Imaging.PixelFormat.Format32bppArgb);
                     var depth = Bitmap.GetPixelFormatSize(bits.PixelFormat) / 8;

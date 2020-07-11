@@ -52,10 +52,22 @@ def map_view_shader(material):
         "baseColor": map_rgb(material.diffuse_color)
     }
 
+def map_emission(shader):
+    # get the W/m2 scaling factor
+    strength = shader.inputs['Strength'].default_value
+    print(strength)
+    color = shader.inputs['Color'].default_value
+    print(color)
+    return {
+        "type": "diffuse",
+        "baseColor": { "type": "rgb", "value": [0,0,0] },
+        "emission": map_rgb([color[0] * strength, color[1] * strength, color[2] * strength])
+    }
+
 shader_matcher = {
     "Principled BSDF": map_principled,
     "Diffuse BSDF": map_diffuse,
-    # TODO: support black body emitters
+    "Emission": map_emission
 }
 
 def export_materials(result):

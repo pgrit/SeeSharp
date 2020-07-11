@@ -15,7 +15,8 @@ namespace SeeSharp.Core.Geometry {
             }
         }
 
-        public static void AddToScene(ObjMesh mesh, Scene scene, Dictionary<string, Material> materialOverride) {
+        public static void AddToScene(ObjMesh mesh, Scene scene, Dictionary<string, Material> materialOverride,
+                                      Dictionary<string, ColorRGB> emissionOverride = null) {
             // Create a dummy constant texture color for incorrect texture references
             var dummyColor  = Image.Constant(new ColorRGB(1.0f, 1.0f, 1.0f));
             var dummyMaterial = new GenericMaterial(new GenericMaterial.Parameters{
@@ -170,9 +171,11 @@ namespace SeeSharp.Core.Geometry {
                         scene.Meshes.Add(m);
 
                         // Create an emitter if the obj material is emissive
-                        // TODO support overrides for this, too?
                         ColorRGB emission;
-                        if (emitters.TryGetValue(materialName, out emission)) {
+                        if (emissionOverride != null && emissionOverride.TryGetValue(materialName, out emission)) {
+                            var emitter = new DiffuseEmitter(m, emission);
+                            scene.Emitters.Add(emitter);
+                        } else if (emitters.TryGetValue(materialName, out emission)) {
                             var emitter = new DiffuseEmitter(m, emission);
                             scene.Emitters.Add(emitter);
                         }

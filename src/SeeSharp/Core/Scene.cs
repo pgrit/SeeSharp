@@ -213,6 +213,7 @@ namespace SeeSharp.Core {
                 var watch = System.Diagnostics.Stopwatch.StartNew();
                 System.Console.WriteLine("Start parsing materials...");
                 var namedMaterials = new Dictionary<string, Material>();
+                var emissiveMaterials = new Dictionary<string, ColorRGB>();
                 JsonElement materials;
                 if (root.TryGetProperty("materials", out materials)) {
                     foreach (var m in materials.EnumerateArray()) {
@@ -257,6 +258,11 @@ namespace SeeSharp.Core {
                                 thin = ReadOptionalBool("thin", false)
                             };
                             namedMaterials[name] = new GenericMaterial(parameters);
+                        }
+
+                        // Check if the material is emissive
+                        if (m.TryGetProperty("emission", out elem)) {
+                            emissiveMaterials.Add(name, ReadColorRGB(elem));
                         }
                     }
                 }
@@ -336,7 +342,7 @@ namespace SeeSharp.Core {
                         // Load the mesh and add it to the scene. We pass all materials defined in the .json along
                         // they will replace any equally named materials from the .mtl file.
                         var objMesh = ObjMesh.FromFile(filename);
-                        ObjConverter.AddToScene(objMesh, resultScene, namedMaterials);
+                        ObjConverter.AddToScene(objMesh, resultScene, namedMaterials, emissiveMaterials);
                     }
                 }
             }

@@ -132,15 +132,15 @@ namespace SeeSharp.Core {
                 return new ColorRGB(vec.X, vec.Y, vec.Z);
             }
 
-            Image ReadColorOrTexture(JsonElement json) {
+            Image<ColorRGB> ReadColorOrTexture(JsonElement json) {
                 string type = json.GetProperty("type").GetString();
                 if (type == "rgb") {
                     var rgb = ReadColorRGB(json);
-                    return Image.Constant(rgb);
+                    return Image<ColorRGB>.Constant(rgb);
                 } else if (type == "texture") {
                     var texturePath = json.GetProperty("path").GetString();
                     texturePath = Path.Join(Path.GetDirectoryName(path), texturePath);
-                    return Image.LoadFromFile(texturePath);
+                    return Image<ColorRGB>.LoadFromFile(texturePath);
                 } else
                     return null;
             }
@@ -205,7 +205,7 @@ namespace SeeSharp.Core {
                         string dir = Path.GetDirectoryName(path);
                         filename = Path.Join(dir, filename);
 
-                        resultScene.Background = new EnvironmentMap(Image.LoadFromFile(filename));
+                        resultScene.Background = new EnvironmentMap(Image<ColorRGB>.LoadFromFile(filename));
                     }
                 }
 

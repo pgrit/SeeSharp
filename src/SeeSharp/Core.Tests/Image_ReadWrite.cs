@@ -5,7 +5,7 @@ namespace SeeSharp.Core.Tests {
     public class Image_ReadWrite {
         [Fact]
         public void Default_ShouldBeBlack() {
-            Image image = new Image(2, 2);
+            Image<ColorRGB> image = new Image<ColorRGB>(2, 2);
             Assert.Equal(0.0f, image[0, 0].R);
             Assert.Equal(0.0f, image[0, 0].G);
             Assert.Equal(0.0f, image[0, 0].B);
@@ -25,7 +25,7 @@ namespace SeeSharp.Core.Tests {
 
         [Fact]
         public void Written_ShouldBeRead() {
-            Image image = new Image(2, 2);
+            Image<ColorRGB> image = new Image<ColorRGB>(2, 2);
             image[0, 0] = new ColorRGB(0, 0, 0);
             image[1, 0] = new ColorRGB(1, 0, 0);
             image[0, 1] = new ColorRGB(0, 1, 0);
@@ -50,7 +50,7 @@ namespace SeeSharp.Core.Tests {
 
         [Fact]
         public void BorderHandling_ShouldBeClamp() {
-            Image image = new Image(2, 2);
+            Image<ColorRGB> image = new Image<ColorRGB>(2, 2);
             image[0, 0] = new ColorRGB(0, 0, 0);
             image[1, 0] = new ColorRGB(1, 0, 0);
             image[0, 1] = new ColorRGB(0, 1, 0);
@@ -75,7 +75,7 @@ namespace SeeSharp.Core.Tests {
 
         [Fact]
         public void Interpolation_ShouldBeNearest() {
-            Image image = new Image(2, 2);
+            Image<ColorRGB> image = new Image<ColorRGB>(2, 2);
             image[0, 0] = new ColorRGB(0, 0, 0);
             image[1, 0] = new ColorRGB(1, 0, 0);
             image[0, 1] = new ColorRGB(0, 1, 0);
@@ -88,14 +88,14 @@ namespace SeeSharp.Core.Tests {
 
         [Fact]
         public void WrittenFile_ShouldBeReadBack() {
-            Image image = new Image(2, 2);
+            Image<ColorRGB> image = new Image<ColorRGB>(2, 2);
             image[0, 0] = new ColorRGB(0, 0, 0);
             image[1, 0] = new ColorRGB(1, 0, 0);
             image[0, 1] = new ColorRGB(0, 1, 0);
             image[1, 1] = new ColorRGB(0, 0, 1);
 
-            image.WriteToFile("test.exr");
-            Image read = Image.LoadFromFile("test.exr");
+            Image<ColorRGB>.WriteToFile(image, "test.exr");
+            Image<ColorRGB> read = Image<ColorRGB>.LoadFromFile("test.exr");
 
             Assert.NotNull(read);
             Assert.Equal(0, read[0, 0].R);

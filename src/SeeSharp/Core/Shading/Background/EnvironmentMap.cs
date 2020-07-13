@@ -1,5 +1,4 @@
 using System;
-using System.Drawing;
 using System.Numerics;
 using SeeSharp.Core.Geometry;
 using SeeSharp.Core.Sampling;
@@ -16,7 +15,7 @@ namespace SeeSharp.Core.Shading.Background {
     /// worldspace positive z axis. Rotation is CCW about the y axis.
     /// </summary>
     public class EnvironmentMap : Background {
-        public EnvironmentMap(Image image) {
+        public EnvironmentMap(Image<ColorRGB> image) {
             this.image = image;
             directionSampler = BuildSamplingGrid(image);
         }
@@ -49,7 +48,7 @@ namespace SeeSharp.Core.Shading.Background {
                     Weight = ColorRGB.Black
                 };
             }
-            pdf /= jacobian; 
+            pdf /= jacobian;
             // TODO we could (and should) pre-multiply the pdf by the sine, to avoid oversampling regions that will receive zero weight
 
             // Compute the sample weight
@@ -105,7 +104,7 @@ namespace SeeSharp.Core.Shading.Background {
         /// </summary>
         /// <param name="image">The source image to importance sample</param>
         /// <returns>Tabulated pdf for the image.</returns>
-        public virtual RegularGrid2d BuildSamplingGrid(Image image) {
+        public virtual RegularGrid2d BuildSamplingGrid(Image<ColorRGB> image) {
             var result = new RegularGrid2d(image.Width, image.Height);
 
             for (int row = 0; row < image.Height; ++row) {
@@ -130,13 +129,13 @@ namespace SeeSharp.Core.Shading.Background {
             return ShadingSpace.ShadingToWorld(Vector3.UnitY, dir);
         }
 
-        Vector2 SphericalToPixel(Vector2 sphericalDir) 
+        Vector2 SphericalToPixel(Vector2 sphericalDir)
             => new Vector2(sphericalDir.X / (2 * MathF.PI), sphericalDir.Y / MathF.PI);
 
         Vector2 PixelToSpherical(Vector2 pixel)
             => new Vector2(pixel.X * 2 * MathF.PI, pixel.Y * MathF.PI);
 
-        readonly Image image;
+        readonly Image<ColorRGB> image;
         readonly RegularGrid2d directionSampler;
     }
 }

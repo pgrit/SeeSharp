@@ -10,7 +10,7 @@ namespace SeeSharp.Core.Tests {
         [Fact]
         public void NoLightLeaks() {
             Material mtl = new DiffuseMaterial(new DiffuseMaterial.Parameters {
-                baseColor = Image.Constant(new ColorRGB(1, 1, 1))
+                baseColor = Image<ColorRGB>.Constant(new ColorRGB(1, 1, 1))
             });
 
             var mesh = new Mesh(new Vector3[] {
@@ -49,7 +49,7 @@ namespace SeeSharp.Core.Tests {
         [Fact]
         public void ForwardAndReverse_ShouldMatch() {
             Material mtl = new DiffuseMaterial(new DiffuseMaterial.Parameters {
-                baseColor = Image.Constant(new ColorRGB(1, 1, 1))
+                baseColor = Image<ColorRGB>.Constant(new ColorRGB(1, 1, 1))
             });
 
             var mesh = new Mesh(new Vector3[] {
@@ -91,7 +91,7 @@ namespace SeeSharp.Core.Tests {
         [Fact]
         public void Albedo_ShouldBeWhite() {
             Material mtl = new DiffuseMaterial(new DiffuseMaterial.Parameters {
-                baseColor = Image.Constant(new ColorRGB(1, 1, 1))
+                baseColor = Image<ColorRGB>.Constant(new ColorRGB(1, 1, 1))
             });
 
             var mesh = new Mesh(new Vector3[] {
@@ -133,7 +133,7 @@ namespace SeeSharp.Core.Tests {
         [Fact]
         public void Albedo_ShouldBeRed() {
             Material mtl = new DiffuseMaterial(new DiffuseMaterial.Parameters {
-                baseColor = Image.Constant(new ColorRGB(1, 0, 0))
+                baseColor = Image<ColorRGB>.Constant(new ColorRGB(1, 0, 0))
             });
 
             var mesh = new Mesh(new Vector3[] {
@@ -175,7 +175,7 @@ namespace SeeSharp.Core.Tests {
         [Fact]
         public void EdgeCases_ShouldNotCauseOutliers() {
             Material mtl = new DiffuseMaterial(new DiffuseMaterial.Parameters {
-                baseColor = Image.Constant(new ColorRGB(1, 1, 1))
+                baseColor = Image<ColorRGB>.Constant(new ColorRGB(1, 1, 1))
             });
 
             var mesh = new Mesh(new Vector3[] {

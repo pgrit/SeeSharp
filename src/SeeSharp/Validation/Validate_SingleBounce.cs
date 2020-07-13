@@ -27,7 +27,7 @@ namespace SeeSharp.Validation {
                 0, 1, 2, 0, 2, 3
             }));
             scene.Meshes[^1].Material = new GenericMaterial(new GenericMaterial.Parameters {
-                baseColor = Image.Constant(ColorRGB.White)
+                baseColor = Image<ColorRGB>.Constant(ColorRGB.White)
             });
 
             // Emitter
@@ -47,7 +47,7 @@ namespace SeeSharp.Validation {
                 new Vector3(0, 0, 1),
             }));
             scene.Meshes[^1].Material = new GenericMaterial(new GenericMaterial.Parameters {
-                baseColor = Image.Constant(ColorRGB.Black)
+                baseColor = Image<ColorRGB>.Constant(ColorRGB.Black)
             });
             scene.Emitters.Add(new DiffuseEmitter(scene.Meshes[^1], ColorRGB.White * 1000));
 
@@ -67,7 +67,7 @@ namespace SeeSharp.Validation {
                 new Vector3(0, 0, 1),
             }));
             scene.Meshes[^1].Material = new GenericMaterial(new GenericMaterial.Parameters {
-                baseColor = Image.Constant(ColorRGB.White)
+                baseColor = Image<ColorRGB>.Constant(ColorRGB.White)
             });
 
             scene.Camera = new PerspectiveCamera(Matrix4x4.CreateLookAt(Vector3.Zero, -Vector3.UnitZ, Vector3.UnitY), 40, null);

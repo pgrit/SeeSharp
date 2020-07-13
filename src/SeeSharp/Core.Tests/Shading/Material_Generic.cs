@@ -9,7 +9,7 @@ namespace SeeSharp.Core.Tests.Shading {
         [Fact]
         public void Pdfs_ShouldBeConsistent() {
             Material mtl = new GenericMaterial(new GenericMaterial.Parameters {
-                baseColor = Image.Constant(new ColorRGB(1, 1, 1))
+                baseColor = Image<ColorRGB>.Constant(new ColorRGB(1, 1, 1))
             });
 
             var mesh = new Mesh(new Vector3[] {

@@ -27,7 +27,7 @@ namespace SeeSharp.Validation {
                 0, 1, 2, 0, 2, 3
             }));
             scene.Meshes[^1].Material = new DiffuseMaterial(new DiffuseMaterial.Parameters {
-                baseColor = Image.Constant(ColorRGB.White)
+                baseColor = Image<ColorRGB>.Constant(ColorRGB.White)
             });
 
             // Three emitters
@@ -49,7 +49,7 @@ namespace SeeSharp.Validation {
                     new Vector3(0, 0, -1),
                 }));
                 scene.Meshes[^1].Material = new DiffuseMaterial(new DiffuseMaterial.Parameters {
-                    baseColor = Image.Constant(ColorRGB.Black)
+                    baseColor = Image<ColorRGB>.Constant(ColorRGB.Black)
                 });
                 scene.Emitters.Add(new DiffuseEmitter(scene.Meshes[^1], ColorRGB.White * 1000));
             }

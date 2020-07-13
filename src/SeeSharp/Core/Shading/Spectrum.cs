@@ -1,9 +1,27 @@
 ﻿using System;
 
 namespace SeeSharp.Core.Shading {
+    public interface ISpectrum {
+        void Add(ISpectrum other);
+        void Scale(float factor);
+    }
+
+    public struct Scalar : ISpectrum {
+        public float Value;
+
+        public void Add(ISpectrum other) {
+            var o = (Scalar) other;
+            Value += o.Value;
+        }
+
+        public void Scale(float factor) {
+            Value *= factor;
+        }
+    }
+
 #pragma warning disable CS0660 // Type defines operator == or operator != but does not override Object.Equals(object o)
 #pragma warning disable CS0661 // Type defines operator == or operator != but does not override Object.GetHashCode()
-    public struct ColorRGB {
+    public struct ColorRGB : ISpectrum {
 #pragma warning restore CS0661 // Type defines operator == or operator != but does not override Object.GetHashCode()
 #pragma warning restore CS0660 // Type defines operator == or operator != but does not override Object.Equals(object o)
         public float R, G, B;
@@ -64,6 +82,15 @@ namespace SeeSharp.Core.Shading {
 
         public static ColorRGB Lerp(float w, ColorRGB from, ColorRGB to)
             => (1 - w) * from + w * to;
+
+        public void Add(ISpectrum other) {
+            ColorRGB o = (ColorRGB) other;
+            this += o;
+        }
+
+        public void Scale(float factor) {
+            this *= factor;
+        }
 
         public float Luminance => 0.212671f * R + 0.715160f * G + 0.072169f * B;
     }

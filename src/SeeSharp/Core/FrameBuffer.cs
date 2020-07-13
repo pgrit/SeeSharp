@@ -6,7 +6,7 @@ namespace SeeSharp.Core {
         public int Width => image.Width;
         public int Height => image.Height;
 
-        public Image image;
+        public Image<ColorRGB> image;
         public int curIteration = 0; // 1-based index of the current iteration (i.e., the total number of iterations so far)
 
         public string Basename {
@@ -29,7 +29,7 @@ namespace SeeSharp.Core {
         Flags flags;
 
         public FrameBuffer(int width, int height, string filename, Flags flags = Flags.None) {
-            image = new Image(width, height);
+            image = new Image<ColorRGB>(width, height);
             this.filename = filename;
             this.flags = flags;
         }
@@ -48,7 +48,7 @@ namespace SeeSharp.Core {
         public void EndIteration() {
             if (flags.HasFlag(Flags.WriteIntermediate)) {
                 string name = Basename + "-iter" + curIteration.ToString("D3") + ".exr";
-                image.WriteToFile(name);
+                Image<ColorRGB>.WriteToFile(image, name);
             }
 
             if (flags.HasFlag(Flags.WriteContinously))
@@ -60,6 +60,6 @@ namespace SeeSharp.Core {
             image.Scale(0);
         }
 
-        public void WriteToFile() => image.WriteToFile(filename);
+        public void WriteToFile() => Image<ColorRGB>.WriteToFile(image, filename);
     }
 }

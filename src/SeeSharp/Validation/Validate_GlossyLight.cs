@@ -5,10 +5,7 @@ using SeeSharp.Core.Shading;
 using SeeSharp.Core.Shading.Emitters;
 using SeeSharp.Core.Shading.Materials;
 using SeeSharp.Validation;
-using System;
-using System.Collections.Generic;
 using System.Numerics;
-using System.Text;
 
 namespace Validation {
     class Validate_GlossyLight : ValidationSceneFactory {
@@ -31,7 +28,7 @@ namespace Validation {
                 0, 1, 2, 0, 2, 3
             }));
             scene.Meshes[^1].Material = new DiffuseMaterial(new DiffuseMaterial.Parameters {
-                baseColor = Image.Constant(ColorRGB.White),
+                baseColor = Image<ColorRGB>.Constant(ColorRGB.White),
                 transmitter = true
             });
 
@@ -53,7 +50,7 @@ namespace Validation {
                 new Vector3(0, 0, 1),
             }));
             scene.Meshes[^1].Material = new DiffuseMaterial(new DiffuseMaterial.Parameters {
-                baseColor = Image.Constant(ColorRGB.Black)
+                baseColor = Image<ColorRGB>.Constant(ColorRGB.Black)
             });
             scene.Emitters.Add(new GlossyEmitter(scene.Meshes[^1], ColorRGB.White * 1000, 200));
             //scene.Emitters.Add(new DiffuseEmitter(scene.Meshes[^1], ColorRGB.White * 1000));

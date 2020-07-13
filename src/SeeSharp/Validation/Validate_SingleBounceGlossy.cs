@@ -35,7 +35,7 @@ namespace SeeSharp.Validation {
                 0, 2, 3,
             });
             mesh.Material = new GenericMaterial(new GenericMaterial.Parameters {
-                baseColor = Image.Constant(ColorRGB.White),
+                baseColor = Image<ColorRGB>.Constant(ColorRGB.White),
                 roughness = 0.01f,
                 specularTransmittance = 1,
                 thin = true,
@@ -53,7 +53,7 @@ namespace SeeSharp.Validation {
                 0, 2, 3,
             });
             mesh.Material = new GenericMaterial(new GenericMaterial.Parameters {
-                baseColor = Image.Constant(ColorRGB.White),
+                baseColor = Image<ColorRGB>.Constant(ColorRGB.White),
                 roughness = 1,
                 thin = true,
                 diffuseTransmittance = 1,
@@ -78,7 +78,7 @@ namespace SeeSharp.Validation {
                 -Vector3.UnitZ,
             });
             lightMesh.Material = new DiffuseMaterial(new DiffuseMaterial.Parameters {
-                baseColor = Image.Constant(ColorRGB.Black)
+                baseColor = Image<ColorRGB>.Constant(ColorRGB.Black)
             });
             scene.Meshes.Add(lightMesh);
             var lightPower = 500;

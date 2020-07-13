@@ -4,7 +4,7 @@ using SeeSharp.Core.Shading.Bsdfs;
 namespace SeeSharp.Core.Shading.Materials {
     public class DiffuseMaterial : Material {
         public class Parameters {
-            public Image baseColor = Image.Constant(ColorRGB.White);
+            public Image<ColorRGB> baseColor = Image<ColorRGB>.Constant(ColorRGB.White);
             public bool transmitter = false;
         }
         public DiffuseMaterial(Parameters parameters) => this.parameters = parameters;

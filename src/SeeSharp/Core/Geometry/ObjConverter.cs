@@ -18,7 +18,7 @@ namespace SeeSharp.Core.Geometry {
         public static void AddToScene(ObjMesh mesh, Scene scene, Dictionary<string, Material> materialOverride,
                                       Dictionary<string, ColorRGB> emissionOverride = null) {
             // Create a dummy constant texture color for incorrect texture references
-            var dummyColor  = Image.Constant(new ColorRGB(1.0f, 1.0f, 1.0f));
+            var dummyColor  = Image<ColorRGB>.Constant(new ColorRGB(1.0f, 1.0f, 1.0f));
             var dummyMaterial = new GenericMaterial(new GenericMaterial.Parameters{
                 baseColor = dummyColor
             });
@@ -42,7 +42,7 @@ namespace SeeSharp.Core.Geometry {
                 switch (objMaterial.illuminationModel) {
                 case 5: // perfect mirror
                     materialParameters = new GenericMaterial.Parameters {
-                        baseColor = Image.Constant(objMaterial.specular),
+                        baseColor = Image<ColorRGB>.Constant(objMaterial.specular),
                         specularTintStrength = 1.0f,
                         metallic = 1,
                         roughness = 0,
@@ -50,7 +50,7 @@ namespace SeeSharp.Core.Geometry {
                     break;
                 case 7: // perfect glass
                     materialParameters = new GenericMaterial.Parameters {
-                        baseColor = Image.Constant(objMaterial.specular),
+                        baseColor = Image<ColorRGB>.Constant(objMaterial.specular),
                         metallic = 0,
                         roughness = 0,
                         indexOfRefraction = objMaterial.indexOfRefraction,
@@ -60,10 +60,10 @@ namespace SeeSharp.Core.Geometry {
                     break;
                 case 2:
                 default: // We pretend that anything else would be "2", aka, a phong shader
-                    Image baseColor;
+                    Image<ColorRGB> baseColor;
                     baseColor = string.IsNullOrEmpty(objMaterial.diffuseTexture)
-                        ? Image.Constant(objMaterial.diffuse)
-                        : Image.LoadFromFile(System.IO.Path.Join(mesh.basePath, objMaterial.diffuseTexture));
+                        ? Image<ColorRGB>.Constant(objMaterial.diffuse)
+                        : Image<ColorRGB>.LoadFromFile(System.IO.Path.Join(mesh.basePath, objMaterial.diffuseTexture));
 
                     // We coarsely map the "ns" term to roughness, use the diffuse color as base color,
                     // and ignore everything else.

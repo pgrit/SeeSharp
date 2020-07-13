@@ -8,7 +8,7 @@ namespace SeeSharp.Core.Tests.Shading {
     public class Background_EnvironmentMap {
         Background MakeSimpleMap() {
             // The basis is a black image.
-            Image image = new Image(512, 256);
+            Image<ColorRGB> image = new Image<ColorRGB>(512, 256);
 
             // Create a "sun".
             image.Splat(128, 64, ColorRGB.White * 10);

@@ -4,7 +4,7 @@ using System.Drawing;
 using System.Runtime.InteropServices;
 
 namespace SeeSharp.Core {
-    public class Image {
+    public class Image<T> where T : ISpectrum {
         public int Width {
             get; private set;
         }
@@ -21,19 +21,19 @@ namespace SeeSharp.Core {
             Width = width;
             Height = height;
 
-            data = new ColorRGB[width * height];
+            data = new T[width * height];
         }
 
-        public void Splat(float x, float y, ColorRGB value) {
+        public void Splat(float x, float y, T value) {
             lock (this) {
-                this[x, y] += value;
+                this[x, y].Add(value);
             }
         }
 
         public void Scale(float s) {
             for (int x = 0; x < Width; ++x) {
                 for (int y = 0; y < Height; ++y) {
-                    this[x, y] *= s;
+                    this[x, y].Scale(s);
                 }
             }
         }
@@ -61,17 +61,17 @@ namespace SeeSharp.Core {
         /// <param name="x">Horizontal coordinate [0,width], left to right.</param>
         /// <param name="y">Vertical coordinate [0, height], top to bottom.</param>
         /// <returns>The pixel color.</returns>
-        public ColorRGB this[float x, float y] {
+        public T this[float x, float y] {
             get => data[IndexOf(x, y)];
             set => data[IndexOf(x, y)] = value;
         }
 
-        public ColorRGB this[int x, int y] {
+        public T this[int x, int y] {
             get => data[IndexOf(x, y)];
             set => data[IndexOf(x, y)] = value;
         }
 
-        public void WriteToFile(string filename) {
+        public static void WriteToFile(Image<ColorRGB> image, string filename) {
             var ext = System.IO.Path.GetExtension(filename);
             if (ext.ToLower() == ".exr") {
                 // First, make sure that the full path exists
@@ -79,13 +79,13 @@ namespace SeeSharp.Core {
                 if (dirname != "")
                     System.IO.Directory.CreateDirectory(dirname);
 
-                TinyExr.WriteImageToExr(data, Width, Height, 3, filename);
+                TinyExr.WriteImageToExr(image.data, image.Width, image.Height, 3, filename);
             } else {
-                WriteImageToLDR(this, filename);
+                WriteImageToLDR(image, filename);
             }
         }
 
-        public static Image LoadFromFile(string filename) {
+        public static Image<ColorRGB> LoadFromFile(string filename) {
             var ext = System.IO.Path.GetExtension(filename);
             if (ext.ToLower() == ".exr")
                 return LoadImageFromExr(filename);
@@ -94,27 +94,15 @@ namespace SeeSharp.Core {
             }
         }
 
-        public static Image Constant(ColorRGB color) {
-            var img = new Image(1, 1);
+        public static Image<ColorRGB> Constant(ColorRGB color) {
+            var img = new Image<ColorRGB>(1, 1);
             img[0, 0] = color;
             return img;
         }
 
-        readonly ColorRGB[] data;
+        readonly T[] data;
 
-        private static class TinyExr {
-            [DllImport("SeeCore", CallingConvention = CallingConvention.Cdecl)]
-            public static extern void WriteImageToExr(ColorRGB[] data, int width, int height, int numChannels,
-                                                      string filename);
-
-            [DllImport("SeeCore", CallingConvention = CallingConvention.Cdecl)]
-            public static extern int CacheExrImage(out int width, out int height, string filename);
-
-            [DllImport("SeeCore", CallingConvention = CallingConvention.Cdecl)]
-            public static extern void CopyCachedImage(int id, [Out] ColorRGB[] buffer);
-        }
-
-        static void WriteImageToLDR(Image img, string filename) {
+        static void WriteImageToLDR(Image<ColorRGB> img, string filename) {
             int width = img.Width;
             int height = img.Height;
             using (var b = new Bitmap(width, height)) {
@@ -132,11 +120,11 @@ namespace SeeSharp.Core {
             }
         }
 
-        static Image LoadImageFromLDR(string filename) {
-            Image image;
+        static Image<ColorRGB> LoadImageFromLDR(string filename) {
+            Image<ColorRGB> image;
             try {
                 using (var b = (Bitmap)System.Drawing.Image.FromFile(filename)) {
-                    image = new Image(b.Width, b.Height);
+                    image = new Image<ColorRGB>(b.Width, b.Height);
 
                     var bits = b.LockBits(new Rectangle(0, 0, b.Width, b.Height),
                         System.Drawing.Imaging.ImageLockMode.ReadOnly, System.Drawing.Imaging.PixelFormat.Format32bppArgb);
@@ -166,12 +154,12 @@ namespace SeeSharp.Core {
                 }
             } catch (System.OutOfMemoryException) {
                 Console.WriteLine($"Unsupported image file format: {filename}. Replaced by a white 1x1 image.");
-                image = Image.Constant(ColorRGB.White);
+                image = Image<ColorRGB>.Constant(ColorRGB.White);
             }
             return image;
         }
 
-        static Image LoadImageFromExr(string filename) {
+        static Image<ColorRGB> LoadImageFromExr(string filename) {
             // Read the image from the file, it is cached in nativ memory
             int width, height;
             int id = TinyExr.CacheExrImage(out width, out height, filename);
@@ -179,9 +167,21 @@ namespace SeeSharp.Core {
                 throw new System.IO.IOException($"could not load .exr file '{filename}'");
 
             // Copy to managed memory array and return
-            var img = new Image(width, height);
+            var img = new Image<ColorRGB>(width, height);
             TinyExr.CopyCachedImage(id, img.data);
             return img;
         }
+    }
+
+    static class TinyExr {
+        [DllImport("SeeCore", CallingConvention = CallingConvention.Cdecl)]
+        public static extern void WriteImageToExr(ColorRGB[] data, int width, int height, int numChannels,
+                                                    string filename);
+
+        [DllImport("SeeCore", CallingConvention = CallingConvention.Cdecl)]
+        public static extern int CacheExrImage(out int width, out int height, string filename);
+
+        [DllImport("SeeCore", CallingConvention = CallingConvention.Cdecl)]
+        public static extern void CopyCachedImage(int id, [Out] ColorRGB[] buffer);
     }
 }

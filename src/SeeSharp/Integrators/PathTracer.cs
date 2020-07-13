@@ -13,6 +13,8 @@ namespace SeeSharp.Integrators {
         public int TotalSpp = 20;
         public uint MaxDepth = 2;
         public uint MinDepth = 1;
+        public int NumShadowRays = 1;
+        public bool EnableBsdfDI = true;
 
         public override void Render(Scene scene) {
             for (uint sampleIndex = 0; sampleIndex < TotalSpp; ++sampleIndex) {
@@ -64,8 +66,10 @@ namespace SeeSharp.Integrators {
             }
 
             if (depth + 1 >= MinDepth && depth < MaxDepth) {
-                value += PerformBackgroundNextEvent(scene, ray, hit, rng);
-                value += PerformNextEventEstimation(scene, ray, hit, rng);
+                for (int i = 0; i < NumShadowRays; ++i) {
+                    value += PerformBackgroundNextEvent(scene, ray, hit, rng);
+                    value += PerformNextEventEstimation(scene, ray, hit, rng);
+                }
             }
 
             if (depth > MaxDepth) return value;
@@ -78,37 +82,39 @@ namespace SeeSharp.Integrators {
                 return value;
 
             var indirectRadiance = EstimateIncidentRadiance(scene, bsdfRay, rng,
-                depth + 1, hit, bsdfPdf);            
+                depth + 1, hit, bsdfPdf);
 
             return value + indirectRadiance * bsdfSampleWeight;
         }
 
-        private static ColorRGB OnBackgroundHit(Scene scene, Ray ray, uint depth, float previousPdf) {
-            if (scene.Background == null)
+        private ColorRGB OnBackgroundHit(Scene scene, Ray ray, uint depth, float previousPdf) {
+            if (scene.Background == null || !EnableBsdfDI)
                 return ColorRGB.Black;
 
             float misWeight = 1.0f;
             if (depth > 1) {
                 // Compute the balance heuristic MIS weight
-                float pdfNextEvent = scene.Background.DirectionPdf(ray.Direction);
+                float pdfNextEvent = scene.Background.DirectionPdf(ray.Direction) * NumShadowRays;
                 misWeight = 1 / (1 + pdfNextEvent / previousPdf);
             }
 
             return misWeight * scene.Background.EmittedRadiance(ray.Direction);
         }
 
-        private static ColorRGB OnLightHit(Scene scene, Ray ray, uint depth, SurfacePoint? previousHit, 
-                                           float previousPdf, SurfacePoint hit, Emitter light) {
+        private ColorRGB OnLightHit(Scene scene, Ray ray, uint depth, SurfacePoint? previousHit,
+                                    float previousPdf, SurfacePoint hit, Emitter light) {
             float misWeight = 1.0f;
             if (depth > 1) { // directly visible emitters are not explicitely connected
                              // Compute the surface area PDFs.
                 var jacobian = SampleWrap.SurfaceAreaToSolidAngle(previousHit.Value, hit);
-                float pdfNextEvt = light.PdfArea(hit) / scene.Emitters.Count;
+                float pdfNextEvt = light.PdfArea(hit) / scene.Emitters.Count * NumShadowRays;
                 float pdfBsdf = previousPdf * jacobian;
 
                 // Compute MIS weights
                 float pdfRatio = pdfNextEvt / pdfBsdf;
                 misWeight = 1 / (pdfRatio * pdfRatio + 1);
+
+                if (!EnableBsdfDI) misWeight = 0;
             }
 
             var emission = light.EmittedRadiance(hit, -ray.Direction);
@@ -126,10 +132,10 @@ namespace SeeSharp.Integrators {
                 var (pdfBsdf, _)= bsdf.Pdf(-ray.Direction, sample.Direction, false);
 
                 // Since the densities are in solid angle unit, no need for any conversions here
-                float misWeight = 1 / (1.0f + pdfBsdf / sample.Pdf);
+                float misWeight = EnableBsdfDI ? 1 / (1.0f + pdfBsdf / (sample.Pdf * NumShadowRays)) : 1;
 
                 var emission = sample.Weight * bsdfTimesCosine;
-                return misWeight * emission;
+                return misWeight * emission / NumShadowRays;
             }
 
             // The background is occluded
@@ -160,18 +166,18 @@ namespace SeeSharp.Integrators {
                 var bsdfCos = bsdf.EvaluateWithCosine(-ray.Direction, -lightToSurface, false);
 
                 // Compute surface area PDFs
-                float pdfNextEvt = lightSample.pdf * lightSelectProb;
+                float pdfNextEvt = lightSample.pdf * lightSelectProb * NumShadowRays;
                 float pdfBsdfSolidAngle = bsdf.Pdf(-ray.Direction, -lightToSurface, false).Item1;
                 float pdfBsdf = pdfBsdfSolidAngle * jacobian;
 
                 // Compute the resulting power heuristic weights
                 float pdfRatio = pdfBsdf / pdfNextEvt;
-                float misWeight = 1.0f / (pdfRatio * pdfRatio + 1);
+                float misWeight = EnableBsdfDI ? 1.0f / (pdfRatio * pdfRatio + 1) : 1;
 
                 // Compute the final sample weight, account for the change of variables from light source area
                 // to the hemisphere about the shading point.
 
-                var value = misWeight * emission * bsdfCos * (jacobian / lightSample.pdf / lightSelectProb);
+                var value = misWeight * emission * bsdfCos * (jacobian / lightSample.pdf / lightSelectProb) / NumShadowRays;
                 return value;
             }
 

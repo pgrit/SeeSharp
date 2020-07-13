@@ -1,6 +1,6 @@
 ﻿using SeeSharp.Core.Shading;
 using System.Collections.Generic;
-using SeeSharp.Core;
+using SeeSharp.Core.Image;
 
 using TechniqueNames = System.Collections.Generic.Dictionary
     <(int cameraPathEdges, int lightPathEdges, int totalEdges), string>;

@@ -1,6 +1,7 @@
 ﻿using SeeSharp.Core.Geometry;
 using SeeSharp.Core.Shading.Bsdfs;
 using SeeSharp.Core.Shading.MicrofacetDistributions;
+using SeeSharp.Core.Image;
 using System;
 using System.Diagnostics;
 

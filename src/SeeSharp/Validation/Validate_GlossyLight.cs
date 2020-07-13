@@ -5,6 +5,7 @@ using SeeSharp.Core.Shading;
 using SeeSharp.Core.Shading.Emitters;
 using SeeSharp.Core.Shading.Materials;
 using SeeSharp.Validation;
+using SeeSharp.Core.Image;
 using System.Numerics;
 
 namespace Validation {

@@ -16,12 +16,12 @@ namespace SeeSharp.Core.Cameras {
         /// </param>
         /// <param name="verticalFieldOfView">The full vertical opening angle in degrees.</param>
         /// <param name="frameBuffer">Frame buffer that will be used for rendering (only resolution is relevant).</param>
-        public PerspectiveCamera(Matrix4x4 worldToCamera, float verticalFieldOfView, FrameBuffer frameBuffer) : base(worldToCamera) {
+        public PerspectiveCamera(Matrix4x4 worldToCamera, float verticalFieldOfView, Image.FrameBuffer frameBuffer) : base(worldToCamera) {
             fovRadians = verticalFieldOfView * MathF.PI / 180;
             UpdateFrameBuffer(frameBuffer);
         }
 
-        public override void UpdateFrameBuffer(FrameBuffer frameBuffer) {
+        public override void UpdateFrameBuffer(Image.FrameBuffer frameBuffer) {
             if (frameBuffer == null) return;
 
             Width = frameBuffer.Width;
@@ -69,7 +69,7 @@ namespace SeeSharp.Core.Cameras {
             var local = Vector3.Transform(dir, worldToCamera);
             var cosine = local.Z / local.Length();
 
-            // Distance to the image plane point: 
+            // Distance to the image plane point:
             // computed based on the right-angled triangle it forms with the view direction
             // cosine = adjacentSide / d <=> d = adjacentSide / cosine
             float d = imagePlaneDistance / cosine;

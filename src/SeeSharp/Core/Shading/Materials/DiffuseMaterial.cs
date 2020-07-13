@@ -1,5 +1,6 @@
 ﻿using SeeSharp.Core.Geometry;
 using SeeSharp.Core.Shading.Bsdfs;
+using SeeSharp.Core.Image;
 
 namespace SeeSharp.Core.Shading.Materials {
     public class DiffuseMaterial : Material {

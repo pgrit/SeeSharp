@@ -1,5 +1,5 @@
 using System.Numerics;
-using SeeSharp.Core.Geometry;
+using SeeSharp.Core.Image;
 using SeeSharp.Core.Shading;
 using SeeSharp.Core.Shading.Background;
 using Xunit;

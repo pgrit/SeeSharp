@@ -1,5 +1,6 @@
 ﻿using SeeSharp.Core;
 using SeeSharp.Integrators;
+using SeeSharp.Core.Image;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -69,8 +70,11 @@ namespace SeeSharp.Experiments {
             }
         }
 
+        protected virtual FrameBuffer MakeFrameBuffer(string filename)
+            => new FrameBuffer(width, height, filename, factory.FrameBufferFlags);
+
         private double Render(string dir, string filename, Integrator integrator, Scene scene) {
-            scene.FrameBuffer = new FrameBuffer(width, height, Path.Join(dir, filename), factory.FrameBufferFlags);
+            scene.FrameBuffer = MakeFrameBuffer(Path.Join(dir, filename));
 
             var stopwatch = System.Diagnostics.Stopwatch.StartNew();
             integrator.Render(scene);
@@ -80,9 +84,10 @@ namespace SeeSharp.Experiments {
             return stopwatch.ElapsedMilliseconds / 1000.0;
         }
 
-        ExperimentFactory factory;
+        protected int width, height;
+        protected ExperimentFactory factory;
+
         string workingDirectory;
-        int width, height;
         List<string> allImages = new List<string>();
     }
 }

@@ -2,6 +2,7 @@ using System;
 using System.Numerics;
 using SeeSharp.Core.Geometry;
 using SeeSharp.Core.Sampling;
+using SeeSharp.Core.Image;
 
 namespace SeeSharp.Core.Shading.Background {
     /// <summary>

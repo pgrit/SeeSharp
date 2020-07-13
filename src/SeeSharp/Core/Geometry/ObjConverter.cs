@@ -1,6 +1,7 @@
 ﻿using SeeSharp.Core.Shading;
 using SeeSharp.Core.Shading.Emitters;
 using SeeSharp.Core.Shading.Materials;
+using SeeSharp.Core.Image;
 using System.Collections.Generic;
 using System.Numerics;
 

@@ -1,13 +1,13 @@
 using SeeSharp.Core.Shading;
 using System;
 
-namespace SeeSharp.Core {
+namespace SeeSharp.Core.Image {
     public class FrameBuffer {
-        public int Width => image.Width;
-        public int Height => image.Height;
+        public int Width => Image.Width;
+        public int Height => Image.Height;
 
-        public Image<ColorRGB> image;
-        public int curIteration = 0; // 1-based index of the current iteration (i.e., the total number of iterations so far)
+        public Image<ColorRGB> Image;
+        public int CurIteration = 0; // 1-based index of the current iteration (i.e., the total number of iterations so far)
 
         public string Basename {
             get {
@@ -16,8 +16,6 @@ namespace SeeSharp.Core {
                 return System.IO.Path.Combine(dir, fileBase);
             }
         }
-
-        string filename;
 
         [Flags]
         public enum Flags {
@@ -29,26 +27,26 @@ namespace SeeSharp.Core {
         Flags flags;
 
         public FrameBuffer(int width, int height, string filename, Flags flags = Flags.None) {
-            image = new Image<ColorRGB>(width, height);
+            Image = new Image<ColorRGB>(width, height);
             this.filename = filename;
             this.flags = flags;
         }
 
         public void Splat(float x, float y, ColorRGB value)
-            => image.Splat(x, y, value / curIteration);
+            => Image.Splat(x, y, value / CurIteration);
 
         public void StartIteration() {
-            curIteration++;
+            CurIteration++;
 
             // Correct the division by the number of iterations from the previous iterations
-            if (curIteration > 1)
-                image.Scale((curIteration - 1.0f) / curIteration);
+            if (CurIteration > 1)
+                Image.Scale((CurIteration - 1.0f) / CurIteration);
         }
 
         public void EndIteration() {
             if (flags.HasFlag(Flags.WriteIntermediate)) {
-                string name = Basename + "-iter" + curIteration.ToString("D3") + ".exr";
-                Image<ColorRGB>.WriteToFile(image, name);
+                string name = Basename + "-iter" + CurIteration.ToString("D3") + ".exr";
+                Image<ColorRGB>.WriteToFile(Image, name);
             }
 
             if (flags.HasFlag(Flags.WriteContinously))
@@ -56,10 +54,12 @@ namespace SeeSharp.Core {
         }
 
         public void Reset() {
-            curIteration = 0;
-            image.Scale(0);
+            CurIteration = 0;
+            Image.Scale(0);
         }
 
-        public void WriteToFile() => Image<ColorRGB>.WriteToFile(image, filename);
+        public void WriteToFile() => Image<ColorRGB>.WriteToFile(Image, filename);
+
+        string filename;
     }
 }

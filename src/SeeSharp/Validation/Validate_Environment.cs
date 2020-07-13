@@ -1,4 +1,5 @@
 ﻿using SeeSharp.Core;
+using SeeSharp.Core.Image;
 using SeeSharp.Core.Cameras;
 using SeeSharp.Core.Geometry;
 using SeeSharp.Core.Shading;

@@ -1,7 +1,7 @@
 using System;
 using SeeSharp.Core.Shading;
 
-namespace SeeSharp.Core {
+namespace SeeSharp.Core.Image {
     public abstract class Filter {
         public abstract void Apply(Image<ColorRGB> original, Image<ColorRGB> target);
     }

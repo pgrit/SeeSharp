@@ -1,4 +1,5 @@
-﻿using System;
+﻿using SeeSharp.Core.Image;
+using System;
 using System.Numerics;
 using Xunit;
 

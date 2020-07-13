@@ -1,5 +1,6 @@
 ﻿using SeeSharp.Core;
 using SeeSharp.Integrators;
+using SeeSharp.Core.Image;
 using System.Collections.Generic;
 
 namespace SeeSharp.Experiments {

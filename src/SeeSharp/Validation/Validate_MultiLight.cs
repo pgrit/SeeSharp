@@ -5,6 +5,7 @@ using SeeSharp.Core.Geometry;
 using SeeSharp.Core.Shading;
 using SeeSharp.Core.Shading.Emitters;
 using SeeSharp.Core.Shading.Materials;
+using SeeSharp.Core.Image;
 
 namespace SeeSharp.Validation {
     class Validate_MultiLight : ValidationSceneFactory {

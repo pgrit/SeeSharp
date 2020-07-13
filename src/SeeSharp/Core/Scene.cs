@@ -4,6 +4,7 @@ using SeeSharp.Core.Shading;
 using SeeSharp.Core.Shading.Background;
 using SeeSharp.Core.Shading.Emitters;
 using SeeSharp.Core.Shading.Materials;
+using SeeSharp.Core.Image;
 using System;
 using System.Collections.Generic;
 using System.IO;

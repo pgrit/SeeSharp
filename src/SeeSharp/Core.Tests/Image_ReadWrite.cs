@@ -1,4 +1,5 @@
 ﻿using SeeSharp.Core.Shading;
+using SeeSharp.Core.Image;
 using Xunit;
 
 namespace SeeSharp.Core.Tests {

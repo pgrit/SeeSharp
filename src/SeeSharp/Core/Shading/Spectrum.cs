@@ -12,9 +12,11 @@ namespace SeeSharp.Core.Shading {
         public static Scalar operator *(Scalar a, Scalar b)
             => new Scalar { Value = a.Value * b.Value };
 
+        public static Scalar operator +(Scalar a, Scalar b)
+            => new Scalar { Value = a.Value + b.Value };
+
         public void Add(ISpectrum other) {
-            var o = (Scalar) other;
-            Value += o.Value;
+            this += (Scalar) other;
         }
 
         public void Scale(float factor) {

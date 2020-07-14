@@ -5,7 +5,6 @@ namespace SeeSharp.Core.Image {
     public class FrameBuffer {
         public int Width => Image.Width;
         public int Height => Image.Height;
-
         public Image<ColorRGB> Image;
         public int CurIteration = 0; // 1-based index of the current iteration (i.e., the total number of iterations so far)
 
@@ -26,14 +25,29 @@ namespace SeeSharp.Core.Image {
 
         Flags flags;
 
-        public FrameBuffer(int width, int height, string filename, Flags flags = Flags.None) {
+        public FrameBuffer(int width, int height, string filename, Flags flags = Flags.None, int varianceTileSize = 4) {
             Image = new Image<ColorRGB>(width, height);
+            varianceEstimator = new VarianceEstimator(varianceTileSize, width, height);
             this.filename = filename;
             this.flags = flags;
         }
 
-        public void Splat(float x, float y, ColorRGB value)
-            => Image.Splat(x, y, value / CurIteration);
+        public void Splat(float x, float y, ColorRGB value) {
+            Image.Splat(x, y, value / CurIteration);
+            varianceEstimator.AddSample(x, y, value);
+        }
+
+        public float GetTileSecondMoment(float x, float y)
+            => varianceEstimator.GetSecondMoment(x, y, CurIteration);
+
+        public float GetTileMean(float x, float y)
+            => varianceEstimator.GetMean(x, y, CurIteration);
+
+        public float GetTileVariance(float x, float y) {
+            var moment = GetTileSecondMoment(x, y);
+            var mean = GetTileMean(x, y);
+            return moment - mean * mean;
+        }
 
         public void StartIteration() {
             CurIteration++;
@@ -61,5 +75,6 @@ namespace SeeSharp.Core.Image {
         public void WriteToFile() => Image<ColorRGB>.WriteToFile(Image, filename);
 
         string filename;
+        VarianceEstimator varianceEstimator;
     }
 }

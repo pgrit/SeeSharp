@@ -61,15 +61,9 @@ namespace SeeSharp.Core.Image {
         /// <param name="x">Horizontal coordinate [0,width], left to right.</param>
         /// <param name="y">Vertical coordinate [0, height], top to bottom.</param>
         /// <returns>The pixel color.</returns>
-        public T this[float x, float y] {
-            get => data[IndexOf(x, y)];
-            set => data[IndexOf(x, y)] = value;
-        }
+        public ref T this[float x, float y] => ref data[IndexOf(x, y)];
 
-        public T this[int x, int y] {
-            get => data[IndexOf(x, y)];
-            set => data[IndexOf(x, y)] = value;
-        }
+        public ref T this[int x, int y] => ref data[IndexOf(x, y)];
 
         public static void WriteToFile(Image<ColorRGB> image, string filename) {
             var ext = System.IO.Path.GetExtension(filename);

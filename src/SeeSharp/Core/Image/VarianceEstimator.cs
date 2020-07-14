@@ -31,20 +31,20 @@ namespace SeeSharp.Core.Image {
 
         public float GetVariance(float x, float y, int numSamples) {
             var (col, row) = ComputeTile(x, y);
-            var moment = tileMoments[col, row].Value / numSamples;
-            var mean = tileMeans[col, row].Value / numSamples;
+            var moment = tileMoments[col, row].Value / (numSamples * tileSize * tileSize);
+            var mean = tileMeans[col, row].Value / (numSamples * tileSize * tileSize);
             return moment - mean * mean;
         }
 
         public float GetSecondMoment(float x, float y, int numSamples) {
             var (col, row) = ComputeTile(x, y);
-            var moment = tileMoments[col, row].Value / numSamples;
+            var moment = tileMoments[col, row].Value / (numSamples * tileSize * tileSize);
             return moment;
         }
 
         public float GetMean(float x, float y, int numSamples) {
             var (col, row) = ComputeTile(x, y);
-            var mean = tileMeans[col, row].Value / numSamples;
+            var mean = tileMeans[col, row].Value / (numSamples * tileSize * tileSize);
             return mean;
         }
 

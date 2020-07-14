@@ -112,7 +112,7 @@ namespace SeeSharp.Integrators {
                 float pdfNextEvt = light.PdfArea(hit) / scene.Emitters.Count * NumShadowRays;
                 float pdfBsdf = previousPdf * jacobian;
 
-                // Compute MIS weights
+                // Compute power heuristic MIS weights
                 float pdfRatio = pdfNextEvt / pdfBsdf;
                 misWeight = 1 / (pdfRatio * pdfRatio + 1);
 

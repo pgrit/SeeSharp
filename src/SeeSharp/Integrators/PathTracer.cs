@@ -40,7 +40,7 @@ namespace SeeSharp.Integrators {
             // Sample a ray from the camera
             var offset = rng.NextFloat2D();
             var pixel = new Vector2(col, row) + offset;
-            Ray primaryRay = scene.Camera.GenerateRay(pixel);
+            Ray primaryRay = scene.Camera.GenerateRay(pixel).Item1;
 
             var value = EstimateIncidentRadiance(scene, primaryRay, rng, pixel, ColorRGB.White);
 

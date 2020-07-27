@@ -30,11 +30,11 @@ namespace SeeSharp.Integrators.Common {
 
             // Find the first actual hitpoint on scene geometry
             var hit = scene.Raytracer.Trace(ray);
-            if (!hit) 
-                return OnInvalidHit(ray, pdf, initialWeight);
+            if (!hit)
+                return OnInvalidHit(ray, pdf, initialWeight, 1);
 
             // Sample the next direction (required to know the reverse pdf)
-            var (pdfNext, pdfReverse, weight, direction) = SampleNextDirection(hit, ray);
+            var (pdfNext, pdfReverse, weight, direction) = SampleNextDirection(hit, ray, initialWeight, 1);
 
             // Both pdfs have unit sr-1
             float pdfFromAncestor = pdf;
@@ -43,11 +43,11 @@ namespace SeeSharp.Integrators.Common {
             ColorRGB estimate = OnHit(ray, hit, pdfFromAncestor, pdfToAncestor, initialWeight, 1, 1.0f, direction);
 
             // Terminate if the maximum depth has been reached
-            if (1 >= maxDepth) 
+            if (1 >= maxDepth)
                 return estimate;
 
             // Every so often, the BSDF samples an invalid direction (e.g., due to shading normals or imperfect sampling)
-            if (pdfNext == 0 || weight == ColorRGB.Black) 
+            if (pdfNext == 0 || weight == ColorRGB.Black)
                 return estimate;
 
             // Continue the path with the next ray
@@ -55,12 +55,13 @@ namespace SeeSharp.Integrators.Common {
             return estimate + ContinueWalk(ray, hit, pdfNext, initialWeight * weight, 2);
         }
 
-        // TODO implement this function for splitting support!
-        //public ColorRGB StartOnSurface(bool isOnLightSubpath) {
-        //    this.isOnLightSubpath = isOnLightSubpath;
-        //}
+        public ColorRGB StartOnSurface(Ray ray, SurfacePoint hit, ColorRGB throughput, int initialDepth, bool isOnLightSubpath) {
+           this.isOnLightSubpath = isOnLightSubpath;
+           var (pdfNext, pdfReverse, weight, direction) = SampleNextDirection(hit, ray, throughput, initialDepth);
+           return ContinueWalk(ray, hit, pdfNext, throughput, initialDepth);
+        }
 
-        protected virtual ColorRGB OnInvalidHit(Ray ray, float pdfFromAncestor, ColorRGB throughput) {
+        protected virtual ColorRGB OnInvalidHit(Ray ray, float pdfFromAncestor, ColorRGB throughput, int depth) {
             return ColorRGB.Black;
         }
 
@@ -69,7 +70,7 @@ namespace SeeSharp.Integrators.Common {
             return ColorRGB.Black;
         }
 
-        protected virtual (float, float, ColorRGB, Vector3) SampleNextDirection(SurfacePoint hit, Ray ray) {
+        protected virtual (float, float, ColorRGB, Vector3) SampleNextDirection(SurfacePoint hit, Ray ray, ColorRGB throughput, int depth) {
             // Sample the next direction from the BSDF
             var bsdfSample = hit.Bsdf.Sample(-ray.Direction, isOnLightSubpath, rng.NextFloat2D());
             return (
@@ -85,7 +86,7 @@ namespace SeeSharp.Integrators.Common {
             for (int depth = initialDepth; depth < maxDepth; ++depth) {
                 var hit = scene.Raytracer.Trace(ray);
                 if (!hit) {
-                    estimate += OnInvalidHit(ray, pdfDirection, throughput);
+                    estimate += OnInvalidHit(ray, pdfDirection, throughput, depth);
                     break;
                 }
 
@@ -93,7 +94,7 @@ namespace SeeSharp.Integrators.Common {
                 float pdfFromAncestor = pdfDirection * SampleWrap.SurfaceAreaToSolidAngle(previousPoint, hit);
 
                 // Sample the next direction (required to know the reverse pdf)
-                var (pdfNext, pdfReverse, weight, direction) = SampleNextDirection(hit, ray);
+                var (pdfNext, pdfReverse, weight, direction) = SampleNextDirection(hit, ray, throughput, depth);
 
                 // Compute the surface area pdf of sampling the previous path segment backwards
                 float pdfToAncestor = pdfReverse * SampleWrap.SurfaceAreaToSolidAngle(hit, previousPoint);

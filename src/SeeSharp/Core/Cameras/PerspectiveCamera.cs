@@ -1,4 +1,5 @@
 ﻿using SeeSharp.Core.Geometry;
+using SeeSharp.Core.Shading;
 using System;
 using System.Numerics;
 
@@ -35,7 +36,7 @@ namespace SeeSharp.Core.Cameras {
             imagePlaneDistance = Height / (2 * tanHalf);
         }
 
-        public override Ray GenerateRay(Vector2 filmPos) {
+        public override (Ray, float, ColorRGB, SurfacePoint) GenerateRay(Vector2 filmPos) {
             // Transform the direction from film to world space
             var view = new Vector3(filmPos.X / Width * 2 - 1, filmPos.Y / Height * 2 - 1, 0);
             var localDir = Vector3.Transform(view, viewToCamera);
@@ -45,7 +46,14 @@ namespace SeeSharp.Core.Cameras {
             // Compute the camera position
             var pos = Vector3.Transform(new Vector3(0, 0, 0), cameraToWorld);
 
-            return new Ray { Direction = Vector3.Normalize(dir), MinDistance = 0, Origin = pos };
+            var ray = new Ray { Direction = Vector3.Normalize(dir), MinDistance = 0, Origin = pos };
+
+            return (
+                ray,
+                SolidAngleToPixelJacobian(ray.Direction),
+                ColorRGB.White,
+                new SurfacePoint { Position = Position, Normal = Direction }
+            );
         }
 
         public override Vector3? WorldToFilm(Vector3 pos) {

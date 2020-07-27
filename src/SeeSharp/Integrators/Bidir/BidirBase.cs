@@ -127,16 +127,7 @@ namespace SeeSharp.Integrators.Bidir {
             // Sample a ray from the camera
             var offset = rng.NextFloat2D();
             var filmSample = new Vector2(col, row) + offset;
-            Ray primaryRay = scene.Camera.GenerateRay(filmSample);
-
-            // Compute the corresponding solid angle pdf (required for MIS)
-            float pdfFromCamera = scene.Camera.SolidAngleToPixelJacobian(primaryRay.Direction); // TODO this should be returned by Camera.Sample() which should replace GenerateRay() to follow conventions similar to the BSDF system
-            var initialWeight = ColorRGB.White; // TODO this should be computed by the camera and returned by SampleCamera()
-            var cameraPoint = new SurfacePoint {
-                Position = scene.Camera.Position,
-                Normal = scene.Camera.Direction
-            };
-
+            var (primaryRay, pdfFromCamera, initialWeight, cameraPoint) = scene.Camera.GenerateRay(filmSample);
             var value = EstimatePixelValue(cameraPoint, filmSample, primaryRay, pdfFromCamera, initialWeight, rng);
 
             // TODO we do nearest neighbor splatting manually here, to avoid numerical
@@ -454,7 +445,7 @@ namespace SeeSharp.Integrators.Bidir {
                 path.pixel = filmPosition;
             }
 
-            protected override ColorRGB OnInvalidHit(Ray ray, float pdfFromAncestor, ColorRGB throughput) {
+            protected override ColorRGB OnInvalidHit(Ray ray, float pdfFromAncestor, ColorRGB throughput, int depth) {
                 path.Vertices.Add(new PathPdfPair {
                     PdfFromAncestor = pdfFromAncestor,
                     pdfToAncestor = 0

@@ -32,7 +32,7 @@ namespace SeeSharp.Integrators {
 
             // Sample a ray from the camera
             var offset = rng.NextFloat2D();
-            Ray primaryRay = scene.Camera.GenerateRay(new Vector2(col, row) + offset);
+            Ray primaryRay = scene.Camera.GenerateRay(new Vector2(col, row) + offset).Item1;
 
             var hit = scene.Raytracer.Trace(primaryRay);
             ColorRGB value = ColorRGB.Black;

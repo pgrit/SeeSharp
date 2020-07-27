@@ -59,7 +59,7 @@ namespace SeeSharp.Core.Tests {
             var scene = MakeDummyScene();
 
             scene.Prepare();
-            var hit = scene.Raytracer.Trace(scene.Camera.GenerateRay(new Vector2(0.5f, 0.5f)));
+            var hit = scene.Raytracer.Trace(scene.Camera.GenerateRay(new Vector2(0.5f, 0.5f)).Item1);
 
             Assert.True(hit);
             Assert.Equal(10.0f, hit.Distance, 4);

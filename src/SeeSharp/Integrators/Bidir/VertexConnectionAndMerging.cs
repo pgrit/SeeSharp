@@ -35,7 +35,7 @@ namespace SeeSharp.Integrators.Bidir {
             var resolution = new Vector2(scene.FrameBuffer.Width, scene.FrameBuffer.Height);
             float averageArea = 0; int numHits = 0;
             for (int i = 0; i < primarySamples.Length; ++i) {
-                Ray ray = scene.Camera.GenerateRay(primarySamples[i] * resolution);
+                Ray ray = scene.Camera.GenerateRay(primarySamples[i] * resolution).Item1;
                 var hit = scene.Raytracer.Trace(ray);
                 if (!hit) continue;
 

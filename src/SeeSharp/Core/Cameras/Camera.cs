@@ -1,4 +1,5 @@
 ﻿using SeeSharp.Core.Geometry;
+using SeeSharp.Core.Shading;
 using System.Numerics;
 
 namespace SeeSharp.Core.Cameras {
@@ -16,7 +17,7 @@ namespace SeeSharp.Core.Cameras {
 
         public abstract void UpdateFrameBuffer(Image.FrameBuffer value);
 
-        public abstract Ray GenerateRay(Vector2 filmPos);
+        public abstract (Ray, float, ColorRGB, SurfacePoint) GenerateRay(Vector2 filmPos);
 
         /// <summary>
         /// Projects the given world space point onto the camera.

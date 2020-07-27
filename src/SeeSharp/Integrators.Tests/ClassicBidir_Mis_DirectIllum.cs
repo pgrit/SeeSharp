@@ -30,10 +30,10 @@ namespace SeeSharp.Integrators.Tests {
                 Vertices = new List<PathPdfPair>(dummyPath.cameraVertices[1..2])
             };
 
-            float pdfReverse = dummyPath.cameraVertices[^2].pdfToAncestor;
+            float pdfReverse = dummyPath.cameraVertices[^2].PdfToAncestor;
             // Set a guard value to make sure that the correct pdf is used!
             var dummyVert = cameraPath.Vertices[^1];
-            dummyVert.pdfToAncestor = -1000.0f;
+            dummyVert.PdfToAncestor = -1000.0f;
             cameraPath.Vertices[^1] = dummyVert;
 
             return computer.NextEventMis(cameraPath,

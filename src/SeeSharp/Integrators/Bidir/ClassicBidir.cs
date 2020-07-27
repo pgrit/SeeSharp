@@ -50,8 +50,7 @@ namespace SeeSharp.Integrators.Bidir {
         }
 
         public override ColorRGB OnCameraHit(CameraPath path, RNG rng, int pixelIndex, Ray ray, SurfacePoint hit,
-                                             float pdfFromAncestor, float pdfToAncestor, ColorRGB throughput,
-                                             int depth, float toAncestorJacobian) {
+                                             float pdfFromAncestor, ColorRGB throughput, int depth, float toAncestorJacobian) {
             ColorRGB value = ColorRGB.Black;
 
             // Was a light hit?

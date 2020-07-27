@@ -38,7 +38,7 @@ namespace SeeSharp.Integrators.Tests {
                 Vertices = new List<PathPdfPair>(dummyPath.cameraVertices[1..3])
             };
 
-            float pdfReverse = dummyPath.cameraVertices[^2].pdfToAncestor;
+            float pdfReverse = dummyPath.cameraVertices[^2].PdfToAncestor;
 
             return dummyVcm.NextEventMis(cameraPath,
                 pdfEmit: dummyPath.pathCache[1].PdfFromAncestor,
@@ -76,7 +76,7 @@ namespace SeeSharp.Integrators.Tests {
                 pdfCameraReverse: 1, // light tracer connections are deterministic
                 pdfCameraToLight: dummyPath.cameraVertices[2].PdfFromAncestor,
                 pdfLightReverse: lightReverse,
-                pdfLightToCamera: dummyPath.cameraVertices[2].pdfToAncestor);
+                pdfLightToCamera: dummyPath.cameraVertices[2].PdfToAncestor);
         }
 
         float MergeFirstWeight() {
@@ -86,7 +86,7 @@ namespace SeeSharp.Integrators.Tests {
 
             var photon = dummyPath.pathCache[dummyPath.lightEndpointIdx];
             return dummyVcm.MergeMis(cameraPath, photon,
-                                     pdfCameraReverse: dummyPath.cameraVertices[^3].pdfToAncestor,
+                                     pdfCameraReverse: dummyPath.cameraVertices[^3].PdfToAncestor,
                                      pdfLightReverse: photon.PdfToAncestor);
         }
 
@@ -97,7 +97,7 @@ namespace SeeSharp.Integrators.Tests {
 
             var photon = dummyPath.pathCache[dummyPath.pathCache[dummyPath.lightEndpointIdx].AncestorId];
             return dummyVcm.MergeMis(cameraPath, photon,
-                                     pdfCameraReverse: dummyPath.cameraVertices[^2].pdfToAncestor,
+                                     pdfCameraReverse: dummyPath.cameraVertices[^2].PdfToAncestor,
                                      pdfLightReverse: photon.PdfToAncestor);
         }
 

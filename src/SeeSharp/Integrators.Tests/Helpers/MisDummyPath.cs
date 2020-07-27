@@ -29,7 +29,7 @@ namespace SeeSharp.Integrators.Tests.Helpers {
                         Normal = normals[0],
                     },
                     PdfFromAncestor = -10000.0f,
-                    PdfToAncestor = -10000.0f, // Guard value: this is unused!
+                    PdfReverseAncestor = -10000.0f, // Guard value: this is unused!
                     AncestorId = -1,
                     Depth = 0
                 };
@@ -58,6 +58,8 @@ namespace SeeSharp.Integrators.Tests.Helpers {
 
                     // pdf for diffuse sampling of the emission direction
                     surfaceVertex.PdfFromAncestor = (cosLightToSurf / MathF.PI) * (cosSurfToLight / distSqr);
+
+                    // FIXME this needs to be computed differently now, with the new conventions
                     surfaceVertex.PdfToAncestor = (cosSurfToLight / MathF.PI) * (cosLightToSurf / distSqr);
                     if (idx == 1) {
                         surfaceVertex.PdfFromAncestor *= 1.0f / lightArea;
@@ -76,16 +78,16 @@ namespace SeeSharp.Integrators.Tests.Helpers {
             { // Create the camera path
                 cameraVertices = new PathPdfPair[positions.Length];
 
-                // sampling the camera itself / a point on the lens 
+                // sampling the camera itself / a point on the lens
                 cameraVertices[0] = new PathPdfPair {
                     PdfFromAncestor = 1.0f, // lens / sensor sampling is deterministic
-                    pdfToAncestor = 0.0f
+                    PdfToAncestor = 0.0f
                 };
 
                 // primary surface vertex
                 cameraVertices[1] = new PathPdfPair {
                     PdfFromAncestor = numLightPaths * 0.8f, // surface area pdf of sampling this vertex from the camera
-                    pdfToAncestor = 1.0f
+                    PdfToAncestor = 1.0f
                 };
 
                 // All other surface vertices
@@ -95,7 +97,7 @@ namespace SeeSharp.Integrators.Tests.Helpers {
 
                     cameraVertices[idx] = new PathPdfPair {
                         PdfFromAncestor = lightVert.PdfToAncestor,
-                        pdfToAncestor = lightVert.PdfFromAncestor
+                        PdfToAncestor = lightVert.PdfFromAncestor
                     };
 
                     lightVertIdx = lightVert.AncestorId;
@@ -107,7 +109,7 @@ namespace SeeSharp.Integrators.Tests.Helpers {
                 var coslight = Vector3.Dot(Vector3.Normalize(-dir), pathCache[0].Point.Normal);
                 var distsqr = dir.LengthSquared();
                 cameraVertices[^1].PdfFromAncestor = cossurf * coslight / distsqr / MathF.PI;
-                cameraVertices[^1].pdfToAncestor = -100000.0f;
+                cameraVertices[^1].PdfToAncestor = -100000.0f;
             }
         }
     }

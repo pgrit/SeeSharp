@@ -33,10 +33,10 @@ namespace SeeSharp.Integrators.Tests {
                 Vertices = new List<PathPdfPair>(dummyPath.cameraVertices[1..3])
             };
 
-            float pdfReverse = dummyPath.cameraVertices[^2].pdfToAncestor;
+            float pdfReverse = dummyPath.cameraVertices[^2].PdfToAncestor;
             // Set a guard value to make sure that the correct pdf is used!
             var dummyVert = cameraPath.Vertices[^1];
-            dummyVert.pdfToAncestor = -1000.0f;
+            dummyVert.PdfToAncestor = -1000.0f;
             cameraPath.Vertices[^1] = dummyVert;
 
             return computer.NextEventMis(cameraPath,
@@ -93,7 +93,7 @@ namespace SeeSharp.Integrators.Tests {
                 pdfCameraReverse: 1, // light tracer connections are deterministic
                 pdfCameraToLight: dummyPath.cameraVertices[2].PdfFromAncestor,
                 pdfLightReverse: lightReverse,
-                pdfLightToCamera: dummyPath.cameraVertices[2].pdfToAncestor);
+                pdfLightToCamera: dummyPath.cameraVertices[2].PdfToAncestor);
         }
 
         [Fact]

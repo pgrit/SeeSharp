@@ -41,14 +41,14 @@ namespace SeeSharp.Integrators.Bidir {
             }
         }
 
-        public virtual float BackgroundProbability 
+        public virtual float BackgroundProbability
             => Scene.Background != null ? 1 / (1.0f + Scene.Emitters.Count) : 0;
 
         /// <summary>
         /// Resets the path cache and populates it with a new set of light paths.
         /// </summary>
         /// <param name="iter">Index of the current iteration, used to seed the random number generator.</param>
-        public void TraceAllPaths(uint iter, OnHitCallback onHit) {
+        public void TraceAllPaths(uint iter, NextEventPdfCallback nextEventPdfCallback) {
             if (PathCache == null)
                 PathCache = new PathCache(MaxDepth * NumPaths);
             else
@@ -59,24 +59,31 @@ namespace SeeSharp.Integrators.Bidir {
             Parallel.For(0, NumPaths, idx => {
                 var seed = RNG.HashSeed(BaseSeed, (uint)idx, iter);
                 var rng = new RNG(seed);
-                Endpoints[idx] = TraceLightPath(rng, onHit);
+                Endpoints[idx] = TraceLightPath(rng, nextEventPdfCallback);
             });
         }
 
-        public delegate void OnHitCallback(ref PathVertex newVertex, PathVertex ancestor, Vector3 nextDirection);
+        public delegate float NextEventPdfCallback(PathVertex origin, PathVertex primary, Vector3 nextDirection);
 
         class NotifyingCachedWalk : CachedRandomWalk {
-            public OnHitCallback callback;
-            public NotifyingCachedWalk(Scene scene, RNG rng, int maxDepth, PathCache cache) 
+            public NextEventPdfCallback callback;
+            public NotifyingCachedWalk(Scene scene, RNG rng, int maxDepth, PathCache cache)
                 : base(scene, rng, maxDepth, cache) {
             }
 
-            protected override ColorRGB OnHit(Ray ray, SurfacePoint hit, float pdfFromAncestor, float pdfToAncestor, 
-                                              ColorRGB throughput, int depth, float toAncestorJacobian, Vector3 nextDirection) {
-                var ancestor = cache[lastId];
-                var weight = base.OnHit(ray, hit, pdfFromAncestor, pdfToAncestor, throughput, depth, toAncestorJacobian, nextDirection);
-                if (callback != null)
-                    callback(ref cache[lastId], ancestor, nextDirection);
+            protected override ColorRGB OnHit(Ray ray, SurfacePoint hit, float pdfFromAncestor,
+                                              ColorRGB throughput, int depth, float toAncestorJacobian) {
+                // Call the base first, so the vertex gets created
+                var weight = base.OnHit(ray, hit, pdfFromAncestor, throughput, depth, toAncestorJacobian);
+
+                // The next event pdf is computed once the path has three vertices
+                if (depth == 2 && callback != null) {
+                    var vertex = cache[lastId];
+                    var primary = cache[vertex.AncestorId];
+                    var origin = cache[primary.AncestorId];
+                    vertex.PdfReverseAncestor += callback(origin, primary, ray.Direction);
+                }
+
                 return weight;
             }
         }
@@ -87,7 +94,7 @@ namespace SeeSharp.Integrators.Bidir {
         /// <returns>
         /// The index of the last vertex along the path.
         /// </returns>
-        public virtual int TraceLightPath(RNG rng, OnHitCallback onHit) {
+        public virtual int TraceLightPath(RNG rng, NextEventPdfCallback onHit) {
             // Select an emitter or the background
             float lightSelPrimary = rng.NextFloat();
             if (lightSelPrimary > BackgroundProbability) { // Sample from an emitter in the scene
@@ -119,7 +126,7 @@ namespace SeeSharp.Integrators.Bidir {
             }
         }
 
-        int TraceEmitterPath(RNG rng, float lightSelPrimary, OnHitCallback onHit) {
+        int TraceEmitterPath(RNG rng, float lightSelPrimary, NextEventPdfCallback nextEventPdfCallback) {
             var (emitter, selectProb, _) = SelectLight(lightSelPrimary);
             selectProb *= 1 - BackgroundProbability;
 
@@ -133,12 +140,12 @@ namespace SeeSharp.Integrators.Bidir {
 
             // Perform a random walk through the scene, storing all vertices along the path
             var walker = new NotifyingCachedWalk(Scene, rng, MaxDepth, PathCache);
-            walker.callback = onHit;
+            walker.callback = nextEventPdfCallback;
             walker.StartFromEmitter(emitterSample, emitterSample.weight / selectProb);
             return walker.lastId;
         }
 
-        int TraceBackgroundPath(RNG rng, OnHitCallback onHit) {
+        int TraceBackgroundPath(RNG rng, NextEventPdfCallback nextEventPdfCallback) {
             // Sample a ray from the background towards the scene
             var primaryPos = rng.NextFloat2D();
             var primaryDir = rng.NextFloat2D();
@@ -150,7 +157,7 @@ namespace SeeSharp.Integrators.Bidir {
 
             // Perform a random walk through the scene, storing all vertices along the path
             var walker = new NotifyingCachedWalk(Scene, rng, MaxDepth, PathCache);
-            walker.callback = onHit;
+            walker.callback = nextEventPdfCallback;
             walker.StartFromBackground(ray, weight, pdf);
             return walker.lastId;
         }

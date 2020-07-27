@@ -40,10 +40,12 @@ namespace SeeSharp.Integrators.Common {
             float pdfFromAncestor = pdf;
             float pdfToAncestor = pdfReverse;
 
-            ColorRGB estimate = OnHit(ray, hit, pdfFromAncestor, pdfToAncestor, initialWeight, 1, 1.0f, direction);
+            ColorRGB estimate = OnHit(ray, hit, pdfFromAncestor, initialWeight, 1, 1.0f);
+
+            // TODO / FIXME add splitting support and call the correct OnContinue() event handler for bidir support!
 
             // Terminate if the maximum depth has been reached
-            if (1 >= maxDepth)
+            if (maxDepth <= 1)
                 return estimate;
 
             // Every so often, the BSDF samples an invalid direction (e.g., due to shading normals or imperfect sampling)
@@ -56,19 +58,26 @@ namespace SeeSharp.Integrators.Common {
         }
 
         public ColorRGB StartOnSurface(Ray ray, SurfacePoint hit, ColorRGB throughput, int initialDepth, bool isOnLightSubpath) {
-           this.isOnLightSubpath = isOnLightSubpath;
-           var (pdfNext, pdfReverse, weight, direction) = SampleNextDirection(hit, ray, throughput, initialDepth);
-           return ContinueWalk(ray, hit, pdfNext, throughput, initialDepth);
+            this.isOnLightSubpath = isOnLightSubpath;
+            var (pdfNext, pdfReverse, weight, direction) = SampleNextDirection(hit, ray, throughput, initialDepth);
+
+            // Avoid NaNs if the surface is not reflective, or an invalid sample was generated.
+            if (pdfNext == 0.0f || weight == ColorRGB.Black)
+                return ColorRGB.Black;
+
+            return ContinueWalk(ray, hit, pdfNext, throughput, initialDepth + 1);
         }
 
         protected virtual ColorRGB OnInvalidHit(Ray ray, float pdfFromAncestor, ColorRGB throughput, int depth) {
             return ColorRGB.Black;
         }
 
-        protected virtual ColorRGB OnHit(Ray ray, SurfacePoint hit, float pdfFromAncestor, float pdfToAncestor,
-                                         ColorRGB throughput, int depth, float toAncestorJacobian, Vector3 nextDirection) {
+        protected virtual ColorRGB OnHit(Ray ray, SurfacePoint hit, float pdfFromAncestor, ColorRGB throughput,
+                                         int depth, float toAncestorJacobian) {
             return ColorRGB.Black;
         }
+
+        protected virtual void OnContinue(float pdfToAncestor) { }
 
         protected virtual (float, float, ColorRGB, Vector3) SampleNextDirection(SurfacePoint hit, Ray ray, ColorRGB throughput, int depth) {
             // Sample the next direction from the BSDF
@@ -81,38 +90,46 @@ namespace SeeSharp.Integrators.Common {
             );
         }
 
-        ColorRGB ContinueWalk(Ray ray, SurfacePoint previousPoint, float pdfDirection, ColorRGB throughput, int initialDepth) {
-            ColorRGB estimate = ColorRGB.Black;
-            for (int depth = initialDepth; depth < maxDepth; ++depth) {
-                var hit = scene.Raytracer.Trace(ray);
-                if (!hit) {
-                    estimate += OnInvalidHit(ray, pdfDirection, throughput, depth);
-                    break;
-                }
+        protected virtual int ComputeSplitFactor(SurfacePoint hit, Ray ray, ColorRGB throughput, int depth) => 1;
+        protected virtual float ComputeSurvivalProbability(SurfacePoint hit, Ray ray, ColorRGB throughput, int depth) => 1.0f;
 
-                // Convert the PDF of the previous hemispherical sample to surface area
-                float pdfFromAncestor = pdfDirection * SampleWrap.SurfaceAreaToSolidAngle(previousPoint, hit);
+        ColorRGB ContinueWalk(Ray ray, SurfacePoint previousPoint, float pdfDirection, ColorRGB throughput, int depth) {
+            var hit = scene.Raytracer.Trace(ray);
+            if (!hit)
+                return OnInvalidHit(ray, pdfDirection, throughput, depth);
 
+            // Convert the PDF of the previous hemispherical sample to surface area
+            float pdfFromAncestor = pdfDirection * SampleWrap.SurfaceAreaToSolidAngle(previousPoint, hit);
+
+            ColorRGB estimate = OnHit(ray, hit, pdfFromAncestor, throughput, depth,
+                                      SampleWrap.SurfaceAreaToSolidAngle(hit, previousPoint));
+
+            // Terminate if the maximum depth has been reached
+            if (depth >= maxDepth) return estimate;
+
+            // Terminate with Russian roulette
+            float survivalProb = ComputeSurvivalProbability(hit, ray, throughput, depth);
+            if (rng.NextFloat() > survivalProb) return estimate;
+
+            // Continue based on the splitting factor
+            int numSplits = ComputeSplitFactor(hit, ray, throughput, depth);
+            for (int i = 0; i < numSplits; ++i) {
                 // Sample the next direction (required to know the reverse pdf)
                 var (pdfNext, pdfReverse, weight, direction) = SampleNextDirection(hit, ray, throughput, depth);
+                if (pdfNext == 0 || weight == ColorRGB.Black)
+                    continue;
 
                 // Compute the surface area pdf of sampling the previous path segment backwards
                 float pdfToAncestor = pdfReverse * SampleWrap.SurfaceAreaToSolidAngle(hit, previousPoint);
 
-                estimate += OnHit(ray, hit, pdfFromAncestor, pdfToAncestor, throughput, depth,
-                                  SampleWrap.SurfaceAreaToSolidAngle(hit, previousPoint), direction);
+                OnContinue(pdfToAncestor);
 
-                // Terminate if the maximum depth has been reached
-                if (depth >= maxDepth) break;
-
-                // Every so often, the BSDF samples an invalid direction (e.g., due to shading normals or imperfect sampling)
-                if (pdfNext == 0 || weight == ColorRGB.Black) break;
+                // Account for splitting and roulette in the weight
+                weight *= 1.0f / (survivalProb * numSplits);
 
                 // Continue the path with the next ray
-                ray = scene.Raytracer.SpawnRay(hit, direction);
-                throughput *= weight;
-                pdfDirection = pdfNext;
-                previousPoint = hit;
+                var nextRay = scene.Raytracer.SpawnRay(hit, direction);
+                estimate += ContinueWalk(nextRay, hit, pdfNext, throughput * weight, depth + 1);
             }
 
             return estimate;

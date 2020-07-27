@@ -23,19 +23,19 @@ namespace SeeSharp.Integrators.Bidir {
 
         public struct PathPdfPair {
             public float PdfFromAncestor;
-            public float pdfToAncestor;
+            public float PdfToAncestor;
         }
 
         public struct CameraPath {
             /// <summary>
             /// The pixel position where the path was started.
             /// </summary>
-            public Vector2 pixel;
+            public Vector2 Pixel;
 
             /// <summary>
             /// The product of the local estimators along the path (BSDF * cos / pdf)
             /// </summary>
-            public ColorRGB throughput;
+            public ColorRGB Throughput;
 
             /// <summary>
             /// The pdf values for sampling this path.
@@ -91,17 +91,11 @@ namespace SeeSharp.Integrators.Bidir {
 
             lightPaths = new LightPathCache { MaxDepth = MaxDepth, NumPaths = NumLightPaths, Scene = scene };
 
-            void AddNextEventPdf(ref PathVertex vertex, PathVertex ancestor, Vector3 nextDirection) {
-                if (vertex.Depth == 1) {
-                    vertex.PdfToAncestor += NextEventPdf(vertex.Point, ancestor.Point);
-                }
-            }
-
             for (uint iter = 0; iter < NumIterations; ++iter) {
                 scene.FrameBuffer.StartIteration();
                 PreIteration(iter);
 
-                lightPaths.TraceAllPaths(iter, AddNextEventPdf);
+                lightPaths.TraceAllPaths(iter, (origin, primary, nextDirection) => NextEventPdf(primary.Point, origin.Point));
                 ProcessPathCache();
                 TraceAllCameraPaths(iter);
 
@@ -275,7 +269,7 @@ namespace SeeSharp.Integrators.Bidir {
                 ColorRGB weight = vertex.Weight * bsdfWeightLight * bsdfWeightCam / distanceSqr;
                 result += misWeight * weight;
 
-                RegisterSample(weight * path.throughput, misWeight, path.pixel,
+                RegisterSample(weight * path.Throughput, misWeight, path.Pixel,
                                path.Vertices.Count, vertex.Depth, depth);
             }
 
@@ -343,7 +337,7 @@ namespace SeeSharp.Integrators.Bidir {
 
                     // Compute and log the final sample weight
                     var weight = sample.Weight * bsdfTimesCosine;
-                    RegisterSample(weight * path.throughput, misWeight, path.pixel,
+                    RegisterSample(weight * path.Throughput, misWeight, path.Pixel,
                                    path.Vertices.Count, 0, path.Vertices.Count + 1);
                     return misWeight * weight;
                 }
@@ -380,7 +374,7 @@ namespace SeeSharp.Integrators.Bidir {
                     float misWeight = NextEventMis(path, pdfEmit, lightSample.pdf, bsdfForwardPdf, bsdfReversePdf);
 
                     var weight = emission * bsdfTimesCosine * (jacobian / lightSample.pdf);
-                    RegisterSample(weight * path.throughput, misWeight, path.pixel,
+                    RegisterSample(weight * path.Throughput, misWeight, path.Pixel,
                                    path.Vertices.Count, 0, path.Vertices.Count + 1);
                     return misWeight * weight;
                 }
@@ -402,7 +396,7 @@ namespace SeeSharp.Integrators.Bidir {
             float pdfNextEvent = NextEventPdf(new SurfacePoint(), hit); // TODO get the actual previous point!
 
             float misWeight = EmitterHitMis(path, pdfEmit, pdfNextEvent);
-            RegisterSample(emission * path.throughput, misWeight, path.pixel,
+            RegisterSample(emission * path.Throughput, misWeight, path.Pixel,
                            path.Vertices.Count, 0, path.Vertices.Count);
             return misWeight * emission;
         }
@@ -422,14 +416,13 @@ namespace SeeSharp.Integrators.Bidir {
 
             float misWeight = EmitterHitMis(path, pdfEmit, pdfNextEvent);
             var emission = scene.Background.EmittedRadiance(ray.Direction);
-            RegisterSample(emission * path.throughput, misWeight, path.pixel,
+            RegisterSample(emission * path.Throughput, misWeight, path.Pixel,
                            path.Vertices.Count, 0, path.Vertices.Count);
-            return misWeight * emission * path.throughput;
+            return misWeight * emission * path.Throughput;
         }
 
-        public abstract ColorRGB OnCameraHit(CameraPath path, RNG rng, int pixelIndex, Ray ray,
-                                             SurfacePoint hit, float pdfFromAncestor,
-                                             float pdfToAncestor, ColorRGB throughput, int depth,
+        public abstract ColorRGB OnCameraHit(CameraPath path, RNG rng, int pixelIndex, Ray ray, SurfacePoint hit,
+                                             float pdfFromAncestor, ColorRGB throughput, int depth,
                                              float toAncestorJacobian);
 
         class CameraRandomWalk : RandomWalk {
@@ -442,28 +435,37 @@ namespace SeeSharp.Integrators.Bidir {
                 this.pixelIndex = pixelIndex;
                 this.integrator = integrator;
                 path.Vertices = new List<PathPdfPair>(integrator.MaxDepth);
-                path.pixel = filmPosition;
+                path.Pixel = filmPosition;
             }
 
             protected override ColorRGB OnInvalidHit(Ray ray, float pdfFromAncestor, ColorRGB throughput, int depth) {
                 path.Vertices.Add(new PathPdfPair {
                     PdfFromAncestor = pdfFromAncestor,
-                    pdfToAncestor = 0
+                    PdfToAncestor = 0
                 });
-                path.throughput = throughput;
+                path.Throughput = throughput;
                 return integrator.OnBackgroundHit(ray, path);
             }
 
-            protected override ColorRGB OnHit(Ray ray, SurfacePoint hit, float pdfFromAncestor,
-                                              float pdfToAncestor, ColorRGB throughput, int depth,
-                                              float toAncestorJacobian, Vector3 nextDirection) {
+            protected override ColorRGB OnHit(Ray ray, SurfacePoint hit, float pdfFromAncestor, ColorRGB throughput,
+                                              int depth, float toAncestorJacobian) {
                 path.Vertices.Add(new PathPdfPair {
                     PdfFromAncestor = pdfFromAncestor,
-                    pdfToAncestor = pdfToAncestor
+                    PdfToAncestor = 0
                 });
-                path.throughput = throughput;
+                path.Throughput = throughput;
                 return integrator.OnCameraHit(path, rng, pixelIndex, ray, hit, pdfFromAncestor,
-                                              pdfToAncestor, throughput, depth, toAncestorJacobian);
+                                              throughput, depth, toAncestorJacobian);
+            }
+
+            protected override void OnContinue(float pdfToAncestor) {
+                // Update the reverse pdf of the previous vertex.
+                // TODO this currently assumes that no splitting is happening!
+                var lastVert = path.Vertices[^1];
+                path.Vertices[^1] = new PathPdfPair {
+                    PdfFromAncestor = lastVert.PdfFromAncestor,
+                    PdfToAncestor = pdfToAncestor
+                };
             }
         }
     }

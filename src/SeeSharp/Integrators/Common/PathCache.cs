@@ -10,9 +10,8 @@ namespace SeeSharp.Integrators.Common {
         // i.e., the actual density this vertex was sampled from
         public float PdfFromAncestor;
 
-        // Surface area pdf to sample the previous vertex from this one,
-        // i.e., the reverse direction of the path.
-        public float PdfToAncestor;
+        // Surface area pdf to sample the ancestor of the previous vertex.
+        public float PdfReverseAncestor;
 
         public ColorRGB Weight;
 

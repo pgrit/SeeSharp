@@ -24,6 +24,16 @@ namespace SeeSharp.Core.Shading.Materials {
 
         public GenericMaterial(Parameters parameters) => this.parameters = parameters;
 
+        float Material.GetRoughness(SurfacePoint hit) {
+            return parameters.roughness;
+        }
+
+        ColorRGB Material.GetScatterStrength(SurfacePoint hit) {
+            var tex = hit.TextureCoordinates;
+            var baseColor = parameters.baseColor[tex.X * parameters.baseColor.Width, tex.Y * parameters.baseColor.Height];
+            return baseColor;
+        }
+
         Bsdf Material.GetBsdf(SurfacePoint hit) {
             var tex = hit.TextureCoordinates;
 

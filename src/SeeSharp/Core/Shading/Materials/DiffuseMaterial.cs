@@ -8,12 +8,20 @@ namespace SeeSharp.Core.Shading.Materials {
             public Image<ColorRGB> baseColor = Image<ColorRGB>.Constant(ColorRGB.White);
             public bool transmitter = false;
         }
+
         public DiffuseMaterial(Parameters parameters) => this.parameters = parameters;
 
-        Bsdf Material.GetBsdf(SurfacePoint hit) {
-            var tex = hit.TextureCoordinates;
+        float Material.GetRoughness(SurfacePoint hit) => 1;
 
-            // Evaluate textures // TODO make those actual textures
+        ColorRGB Material.GetScatterStrength(SurfacePoint hit) {
+            var tex = hit.TextureCoordinates;
+            var baseColor = parameters.baseColor[tex.X * parameters.baseColor.Width, tex.Y * parameters.baseColor.Height];
+            return baseColor;
+        }
+
+        Bsdf Material.GetBsdf(SurfacePoint hit) {
+            // Evaluate textures
+            var tex = hit.TextureCoordinates;
             var baseColor = parameters.baseColor[tex.X * parameters.baseColor.Width, tex.Y * parameters.baseColor.Height];
 
             if (parameters.transmitter) {

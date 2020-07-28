@@ -54,7 +54,7 @@ namespace SeeSharp.Integrators.Tests {
 
             return computer.LightTracerMis(dummyPath.pathCache[dummyPath.lightEndpointIdx],
                 pdfCamToPrimary: dummyPath.cameraVertices[1].PdfFromAncestor,
-                pdfReverse: dummyPath.pathCache[dummyPath.lightEndpointIdx].PdfToAncestor,
+                pdfReverse: dummyPath.cameraVertices[2].PdfFromAncestor,
                 pixel: Vector2.Zero);
         }
 
@@ -85,14 +85,10 @@ namespace SeeSharp.Integrators.Tests {
 
             var lightVertex = dummyPath.pathCache[dummyPath.pathCache[dummyPath.lightEndpointIdx].AncestorId];
 
-            // scramble the reverse pdf in the light path, to make sure it is not inadvertently used
-            float lightReverse = lightVertex.PdfToAncestor;
-            lightVertex.PdfToAncestor = -100000.0f;
-
             return computer.BidirConnectMis(cameraPath, lightVertex,
                 pdfCameraReverse: 1, // light tracer connections are deterministic
                 pdfCameraToLight: dummyPath.cameraVertices[2].PdfFromAncestor,
-                pdfLightReverse: lightReverse,
+                pdfLightReverse: dummyPath.cameraVertices[3].PdfFromAncestor,
                 pdfLightToCamera: dummyPath.cameraVertices[2].PdfToAncestor);
         }
 

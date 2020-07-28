@@ -94,6 +94,9 @@ namespace SeeSharp.Integrators.Common {
         protected virtual float ComputeSurvivalProbability(SurfacePoint hit, Ray ray, ColorRGB throughput, int depth) => 1.0f;
 
         ColorRGB ContinueWalk(Ray ray, SurfacePoint previousPoint, float pdfDirection, ColorRGB throughput, int depth) {
+            // Terminate if the maximum depth has been reached
+            if (depth >= maxDepth) return ColorRGB.Black;
+
             var hit = scene.Raytracer.Trace(ray);
             if (!hit)
                 return OnInvalidHit(ray, pdfDirection, throughput, depth);
@@ -103,9 +106,6 @@ namespace SeeSharp.Integrators.Common {
 
             ColorRGB estimate = OnHit(ray, hit, pdfFromAncestor, throughput, depth,
                                       SampleWrap.SurfaceAreaToSolidAngle(hit, previousPoint));
-
-            // Terminate if the maximum depth has been reached
-            if (depth >= maxDepth) return estimate;
 
             // Terminate with Russian roulette
             float survivalProb = ComputeSurvivalProbability(hit, ray, throughput, depth);

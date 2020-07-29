@@ -170,7 +170,7 @@ namespace SeeSharp.Core.Image {
                 Width = width,
                 Height = height,
                 NumChannels = 3,
-                ChannelNames = new string[] {"r", "g", "b"}
+                ChannelNames = new string[] {"R", "G", "B"}
             };
             var bytes = packet.IpcPacket;
             stream.Write(bytes, 0, bytes.Length);
@@ -218,7 +218,6 @@ namespace SeeSharp.Core.Image {
                 ImageName = name,
                 GrabFocus = true,
                 Width = image.Width,
-                ChannelName = "r",
                 Data = new float[image.Width * stride]
             };
 
@@ -227,7 +226,7 @@ namespace SeeSharp.Core.Image {
                 updatePacket.Top = rowStart;
                 updatePacket.Height = Math.Min(image.Height - rowStart, stride);
 
-                updatePacket.ChannelName = "r";
+                updatePacket.ChannelName = "R";
                 for (int row = rowStart; row < image.Height && row < rowStart + stride; row++) {
                     for (int col = 0; col < image.Width; col++) {
                         updatePacket.Data[(row - rowStart) * image.Width + col] = image[col, row].R;
@@ -236,7 +235,7 @@ namespace SeeSharp.Core.Image {
                 var bytes = updatePacket.IpcPacket;
                 stream.Write(bytes, 0, bytes.Length);
 
-                updatePacket.ChannelName = "g";
+                updatePacket.ChannelName = "G";
                 for (int row = rowStart; row < image.Height && row < rowStart + stride; row++) {
                     for (int col = 0; col < image.Width; col++) {
                         updatePacket.Data[(row - rowStart) * image.Width + col] = image[col, row].G;
@@ -245,7 +244,7 @@ namespace SeeSharp.Core.Image {
                 bytes = updatePacket.IpcPacket;
                 stream.Write(bytes, 0, bytes.Length);
 
-                updatePacket.ChannelName = "b";
+                updatePacket.ChannelName = "B";
                 for (int row = rowStart; row < image.Height && row < rowStart + stride; row++) {
                     for (int col = 0; col < image.Width; col++) {
                         updatePacket.Data[(row - rowStart) * image.Width + col] = image[col, row].B;

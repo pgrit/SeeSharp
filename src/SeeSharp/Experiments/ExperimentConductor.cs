@@ -33,6 +33,15 @@ namespace SeeSharp.Experiments {
             var methods = factory.MakeMethods();
             foreach (var method in methods) {
                 string path = Path.Join(workingDirectory, method.name);
+
+                // Clear old files (if there are any)
+                var dirinfo = new System.IO.DirectoryInfo(path);
+                foreach (var file in dirinfo.GetFiles()) {
+                    if (file.Extension == ".exr")
+                        file.Delete();
+                }
+
+                // Render
                 Console.WriteLine($"Starting {method.name}...");
                 var timeSeconds = Render(path, "render.exr", method.integrator, scene);
                 Console.WriteLine($"{method.name} done after {timeSeconds} seconds");

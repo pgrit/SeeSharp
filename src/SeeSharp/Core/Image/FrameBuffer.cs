@@ -64,11 +64,15 @@ namespace SeeSharp.Core.Image {
             // Correct the division by the number of iterations from the previous iterations
             if (CurIteration > 1)
                 Image.Scale((CurIteration - 1.0f) / CurIteration);
+
+            stopwatch.Start();
         }
 
         public void EndIteration() {
+            stopwatch.Stop();
+
             if (flags.HasFlag(Flags.WriteIntermediate)) {
-                string name = Basename + "-iter" + CurIteration.ToString("D3") + ".exr";
+                string name = Basename + "-iter" + CurIteration.ToString("D3") + $"-{stopwatch.ElapsedMilliseconds}ms" + ".exr";
                 Image<ColorRGB>.WriteToFile(Image, name);
             }
 
@@ -88,5 +92,6 @@ namespace SeeSharp.Core.Image {
 
         string filename;
         VarianceEstimator varianceEstimator;
+        System.Diagnostics.Stopwatch stopwatch = new System.Diagnostics.Stopwatch();
     }
 }

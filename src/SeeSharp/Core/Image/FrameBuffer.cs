@@ -20,16 +20,23 @@ namespace SeeSharp.Core.Image {
         public enum Flags {
             None = 0,
             WriteIntermediate = 1, // Write the result of each iteration into a distinct file
-            WriteContinously = 2 // Continously update the rendering result after each iteration
+            WriteContinously = 2, // Continously update the rendering result after each iteration
+            SendToTev = 4 // Like WriteContinously, but sends the data via a socket instead
         }
 
         Flags flags;
+        TevIpc tevIpc;
 
         public FrameBuffer(int width, int height, string filename, Flags flags = Flags.None, int varianceTileSize = 4) {
             Image = new Image<ColorRGB>(width, height);
             varianceEstimator = new VarianceEstimator(varianceTileSize, width, height);
             this.filename = filename;
             this.flags = flags;
+
+            if (flags.HasFlag(Flags.SendToTev)) {
+                tevIpc = new TevIpc();
+                tevIpc.CreateImage(width, height, filename);
+            }
         }
 
         public void Splat(float x, float y, ColorRGB value) {
@@ -65,6 +72,9 @@ namespace SeeSharp.Core.Image {
 
             if (flags.HasFlag(Flags.WriteContinously))
                 WriteToFile();
+
+            if (flags.HasFlag(Flags.SendToTev))
+                tevIpc.UpdateImage(Image, filename);
         }
 
         public void Reset() {

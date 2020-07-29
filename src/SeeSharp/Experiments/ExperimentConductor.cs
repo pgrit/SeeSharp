@@ -29,7 +29,6 @@ namespace SeeSharp.Experiments {
             scene.FrameBuffer = new FrameBuffer(width, height, Path.Join(workingDirectory, "reference.exr"));
             scene.Prepare();
             RenderReference(scene, forceReference);
-            allImages.Add("reference.exr");
 
             var methods = factory.MakeMethods();
             foreach (var method in methods) {
@@ -37,17 +36,7 @@ namespace SeeSharp.Experiments {
                 Console.WriteLine($"Starting {method.name}...");
                 var timeSeconds = Render(path, "render.exr", method.integrator, scene);
                 Console.WriteLine($"{method.name} done after {timeSeconds} seconds");
-
-                allImages.Add(Path.Join(method.name, "render.exr"));
-                allImages.AddRange(method.files);
             }
-
-            GenerateOpenScript();
-        }
-
-        private void GenerateOpenScript() {
-            string command = "tev " + string.Join(" ", allImages);
-            System.IO.File.WriteAllText(Path.Join(workingDirectory, "open-tev.ps1"), command);
         }
 
         private void RenderReference(Scene scene, bool force) {
@@ -55,7 +44,7 @@ namespace SeeSharp.Experiments {
             bool exists = File.Exists(filepath);
             if (!exists || force) {
                 var integrator = factory.MakeReferenceIntegrator();
-                scene.FrameBuffer = new FrameBuffer(width, height, filepath);
+                scene.FrameBuffer = new FrameBuffer(width, height, filepath, factory.FrameBufferFlags);
 
                 Console.WriteLine($"Starting reference...");
                 var stopwatch = System.Diagnostics.Stopwatch.StartNew();
@@ -86,8 +75,6 @@ namespace SeeSharp.Experiments {
 
         protected int width, height;
         protected ExperimentFactory factory;
-
         string workingDirectory;
-        List<string> allImages = new List<string>();
     }
 }

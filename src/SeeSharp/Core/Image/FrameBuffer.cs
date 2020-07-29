@@ -35,6 +35,8 @@ namespace SeeSharp.Core.Image {
 
             if (flags.HasFlag(Flags.SendToTev)) {
                 tevIpc = new TevIpc();
+                // If a file with the same name is open, close it to avoid conflicts
+                tevIpc.CloseImage(filename);
                 tevIpc.CreateImage(width, height, filename);
             }
         }

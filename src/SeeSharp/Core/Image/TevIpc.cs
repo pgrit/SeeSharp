@@ -77,6 +77,76 @@ namespace SeeSharp.Core.Image {
         }
     }
 
+    struct CloseImagePacket {
+        private const byte Type = 2;
+
+        public string ImageName;
+
+        public byte[] IpcPacket {
+            get {
+                var bytes = new List<byte>(ImageName.Length + 10);
+
+                bytes.Add(Type);
+                bytes.AddRange(Encoding.ASCII.GetBytes(ImageName));
+                bytes.Add(0); // string should be zero terminated
+
+                // Compute the size and write as bytes
+                int size = bytes.Count + 4;
+                bytes.InsertRange(0, BitConverter.GetBytes(size));
+
+                return bytes.ToArray();
+            }
+        }
+    }
+
+    struct OpenImagePacket {
+        private const byte Type = 0;
+
+        public bool GrabFocus;
+        public string ImageName;
+
+        public byte[] IpcPacket {
+            get {
+                var bytes = new List<byte>(ImageName.Length + 10);
+
+                bytes.Add(Type);
+                bytes.Add(GrabFocus ? (byte)1 : (byte)0);
+                bytes.AddRange(Encoding.ASCII.GetBytes(ImageName));
+                bytes.Add(0); // string should be zero terminated
+
+                // Compute the size and write as bytes
+                int size = bytes.Count + 4;
+                bytes.InsertRange(0, BitConverter.GetBytes(size));
+
+                return bytes.ToArray();
+            }
+        }
+    }
+
+    struct ReloadImagePacket {
+        private const byte Type = 1;
+
+        public bool GrabFocus;
+        public string ImageName;
+
+        public byte[] IpcPacket {
+            get {
+                var bytes = new List<byte>(ImageName.Length + 10);
+
+                bytes.Add(Type);
+                bytes.Add(GrabFocus ? (byte)1 : (byte)0);
+                bytes.AddRange(Encoding.ASCII.GetBytes(ImageName));
+                bytes.Add(0); // string should be zero terminated
+
+                // Compute the size and write as bytes
+                int size = bytes.Count + 4;
+                bytes.InsertRange(0, BitConverter.GetBytes(size));
+
+                return bytes.ToArray();
+            }
+        }
+    }
+
     public class TevIpc {
         TcpClient client;
         NetworkStream stream;
@@ -101,6 +171,38 @@ namespace SeeSharp.Core.Image {
                 Height = height,
                 NumChannels = 3,
                 ChannelNames = new string[] {"r", "g", "b"}
+            };
+            var bytes = packet.IpcPacket;
+            stream.Write(bytes, 0, bytes.Length);
+        }
+
+        public void CloseImage(string name) {
+            if (client == null) return;
+
+            var packet = new CloseImagePacket {
+                ImageName = name
+            };
+            var bytes = packet.IpcPacket;
+            stream.Write(bytes, 0, bytes.Length);
+        }
+
+        public void OpenImage(string name) {
+            if (client == null) return;
+
+            var packet = new OpenImagePacket {
+                GrabFocus = true,
+                ImageName = name
+            };
+            var bytes = packet.IpcPacket;
+            stream.Write(bytes, 0, bytes.Length);
+        }
+
+        public void ReloadImage(string name) {
+            if (client == null) return;
+
+            var packet = new ReloadImagePacket {
+                GrabFocus = true,
+                ImageName = name
             };
             var bytes = packet.IpcPacket;
             stream.Write(bytes, 0, bytes.Length);

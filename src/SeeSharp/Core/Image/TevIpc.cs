@@ -166,7 +166,7 @@ namespace SeeSharp.Core.Image {
 
             var packet = new CreateImagePacket {
                 ImageName = name,
-                GrabFocus = true,
+                GrabFocus = false,
                 Width = width,
                 Height = height,
                 NumChannels = 3,
@@ -190,7 +190,7 @@ namespace SeeSharp.Core.Image {
             if (client == null) return;
 
             var packet = new OpenImagePacket {
-                GrabFocus = true,
+                GrabFocus = false,
                 ImageName = name
             };
             var bytes = packet.IpcPacket;
@@ -201,7 +201,7 @@ namespace SeeSharp.Core.Image {
             if (client == null) return;
 
             var packet = new ReloadImagePacket {
-                GrabFocus = true,
+                GrabFocus = false,
                 ImageName = name
             };
             var bytes = packet.IpcPacket;
@@ -216,7 +216,7 @@ namespace SeeSharp.Core.Image {
 
             var updatePacket = new UpdateImagePacket {
                 ImageName = name,
-                GrabFocus = true,
+                GrabFocus = false,
                 Width = image.Width,
                 Data = new float[image.Width * stride]
             };

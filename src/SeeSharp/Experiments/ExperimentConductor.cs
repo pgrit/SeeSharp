@@ -35,10 +35,12 @@ namespace SeeSharp.Experiments {
                 string path = Path.Join(workingDirectory, method.name);
 
                 // Clear old files (if there are any)
-                var dirinfo = new System.IO.DirectoryInfo(path);
-                foreach (var file in dirinfo.GetFiles()) {
-                    if (file.Extension == ".exr")
-                        file.Delete();
+                if (Directory.Exists(path)) {
+                    var dirinfo = new System.IO.DirectoryInfo(path);
+                    foreach (var file in dirinfo.GetFiles()) {
+                        if (file.Extension == ".exr")
+                            file.Delete();
+                    }
                 }
 
                 // Render

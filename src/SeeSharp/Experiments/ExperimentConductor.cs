@@ -55,7 +55,7 @@ namespace SeeSharp.Experiments {
             bool exists = File.Exists(filepath);
             if (!exists || force) {
                 var integrator = factory.MakeReferenceIntegrator();
-                scene.FrameBuffer = new FrameBuffer(width, height, filepath, factory.FrameBufferFlags);
+                scene.FrameBuffer = new FrameBuffer(width, height, filepath, FrameBuffer.Flags.SendToTev);
 
                 Console.WriteLine($"Starting reference...");
                 var stopwatch = System.Diagnostics.Stopwatch.StartNew();

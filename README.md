@@ -120,3 +120,30 @@ dotnet run ./MyFirstExperiment
 ```
 
 Note that the `dist` directory, which contains the .so / .dll files of the C++ libraries, needs to be in the path (or in the current working directory).
+
+
+## Coding conventions
+
+The framework loosely follows the following coding conventions:
+
+- Class names, method names, properties, and public fields are UpperCaseNames
+- Private fields, parameters, and local variables are lowerCaseNames
+- Opening brackets are on the same line
+- Lines should be less than 100 characters long, for better readability and comparisons
+
+Example:
+
+```C#
+class SomeClass {
+    public int PublicField = 1;
+    public int PublicProperty => 13;
+    public void ComputeSomething(byte complexParameterName, int anotherVeryLongParameterName,
+                                 SomeClass mysteriousParameterThatIsNotNamedWell) {
+        if (complexParameterName == PublicProperty) {
+            int localName = 5;
+            implementationDetail = $"SeeSharp {localName}";
+        }
+    }
+    string implementationDetail;
+}
+```

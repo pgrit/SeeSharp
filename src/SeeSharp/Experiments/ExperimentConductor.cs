@@ -2,7 +2,6 @@
 using SeeSharp.Integrators;
 using SeeSharp.Core.Image;
 using System;
-using System.Collections.Generic;
 using System.IO;
 
 namespace SeeSharp.Experiments {

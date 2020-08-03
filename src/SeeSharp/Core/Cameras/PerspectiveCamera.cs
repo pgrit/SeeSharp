@@ -50,7 +50,7 @@ namespace SeeSharp.Core.Cameras {
 
             return (
                 ray,
-                SolidAngleToPixelJacobian(ray.Direction),
+                SolidAngleToPixelJacobian(pos + dir),
                 ColorRGB.White,
                 new SurfacePoint { Position = Position, Normal = Direction }
             );
@@ -72,9 +72,9 @@ namespace SeeSharp.Core.Cameras {
             return film;
         }
 
-        public override float SolidAngleToPixelJacobian(Vector3 dir) {
-            // Compute the cosine between the image plane normal (= view direction) and the direction in question
-            var local = Vector3.Transform(dir, worldToCamera);
+        public override float SolidAngleToPixelJacobian(Vector3 pos) {
+            // Compute the cosine
+            var local = Vector3.Transform(pos, worldToCamera);
             var cosine = local.Z / local.Length();
 
             // Distance to the image plane point:

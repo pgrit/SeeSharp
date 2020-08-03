@@ -30,9 +30,9 @@ namespace SeeSharp.Core.Cameras {
         /// Computes the jacobian determinant for the change of variables from film to solid angle about the view direction.
         /// That is, the change of variables performed by the <see cref="GenerateRay(Vector2)"/> method.
         /// </summary>
-        /// <param name="dir">A direction (from the camera to a point).</param>
+        /// <param name="pos">A point in world space, visible to the camera.</param>
         /// <returns>The jacobian.</returns>
-        public abstract float SolidAngleToPixelJacobian(Vector3 dir);
+        public abstract float SolidAngleToPixelJacobian(Vector3 pos);
 
         public abstract float SurfaceAreaToSolidAngleJacobian(Vector3 point, Vector3 normal);
 

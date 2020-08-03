@@ -50,7 +50,8 @@ namespace SeeSharp.Integrators.Bidir {
         }
 
         public override ColorRGB OnCameraHit(CameraPath path, RNG rng, int pixelIndex, Ray ray, SurfacePoint hit,
-                                             float pdfFromAncestor, ColorRGB throughput, int depth, float toAncestorJacobian) {
+                                             float pdfFromAncestor, ColorRGB throughput, int depth,
+                                             float toAncestorJacobian) {
             ColorRGB value = ColorRGB.Black;
 
             // Was a light hit?
@@ -93,7 +94,8 @@ namespace SeeSharp.Integrators.Bidir {
             return 1 / sumReciprocals;
         }
 
-        public override float LightTracerMis(PathVertex lightVertex, float pdfCamToPrimary, float pdfReverse, Vector2 pixel) {
+        public override float LightTracerMis(PathVertex lightVertex, float pdfCamToPrimary, float pdfReverse,
+                                             Vector2 pixel) {
             int numPdfs = lightVertex.Depth + 1;
             int lastCameraVertexIdx = -1;
 
@@ -136,7 +138,8 @@ namespace SeeSharp.Integrators.Bidir {
             return 1 / sumReciprocals;
         }
 
-        public override float NextEventMis(CameraPath cameraPath, float pdfEmit, float pdfNextEvent, float pdfHit, float pdfReverse) {
+        public override float NextEventMis(CameraPath cameraPath, float pdfEmit, float pdfNextEvent,
+                                           float pdfHit, float pdfReverse) {
             int numPdfs = cameraPath.Vertices.Count + 1;
             int lastCameraVertexIdx = numPdfs - 2;
 

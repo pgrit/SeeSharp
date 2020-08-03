@@ -9,6 +9,8 @@ def export_obj_meshes(filepath):
     bpy.ops.export_scene.obj(filepath=filepath,
         axis_forward='-Z', axis_up='Y',
         group_by_material=True, group_by_object=True)
+    mtlpath = filepath.replace(".obj", ".mtl")
+    os.remove(mtlpath)
 
 def map_rgb(rgb):
     return { "type": "rgb", "value": [ rgb[0], rgb[1], rgb[2] ] }
@@ -78,22 +80,22 @@ def export_materials(result):
             result["materials"].append(shader_matcher[last_shader.name](last_shader))
         except Exception as e: # use the view shading settings instead
             result["materials"].append(map_view_shader(material))
-        result["materials"][-1]["name"] = material.name
+        result["materials"][-1]["name"] = material.name.replace(" ", "_")
 
 def export_background(result, filepath):
     out_dir = os.path.dirname(filepath)
     texture_dir = os.path.join(out_dir, 'textures')
     if not os.path.exists(texture_dir):
         os.makedirs(texture_dir)
-    
+
     try:
         # Try to find an environment texture first
         bgn = bpy.data.worlds['World'].node_tree.nodes["Environment Texture"].image
         path = bgn.filepath_raw.replace('//', '')
-        
+
         # Next, copy the texture file to a location relative to the output file
         export_path = os.path.join(texture_dir, os.path.basename(path))
-        
+
         # If this is an .hdr, convert to .exr
         if bgn.file_format == "HDR":
             # export the image to .exr
@@ -102,17 +104,17 @@ def export_background(result, filepath):
             bgn.filepath_raw = export_path
             bgn.file_format = "OPEN_EXR"
             bgn.save()
-            
+
             # restore the original file connection - don't mess with user data!
             bgn.filepath_raw = old_path
             bgn.file_format = "HDR"
-        else:  
-            # save the image using the same file format 
+        else:
+            # save the image using the same file format
             old_path = bgn.filepath_raw
             bgn.filepath_raw = export_path
             bgn.save()
-            bgn.filepath_raw = old_path       
-        
+            bgn.filepath_raw = old_path
+
         # Store the relative file path in the scene description
         relative_path = "textures/" + os.path.basename(export_path)
         result["background"] = {

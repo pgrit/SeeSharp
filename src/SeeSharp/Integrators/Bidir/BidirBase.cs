@@ -95,7 +95,8 @@ namespace SeeSharp.Integrators.Bidir {
                 scene.FrameBuffer.StartIteration();
                 PreIteration(iter);
 
-                lightPaths.TraceAllPaths(iter, (origin, primary, nextDirection) => NextEventPdf(primary.Point, origin.Point));
+                lightPaths.TraceAllPaths(iter,
+                    (origin, primary, nextDirection) => NextEventPdf(primary.Point, origin.Point));
                 ProcessPathCache();
                 TraceAllCameraPaths(iter);
 
@@ -141,7 +142,8 @@ namespace SeeSharp.Integrators.Bidir {
                                            int cameraPathLength, int lightPathLength, int fullLength) {
         }
 
-        public abstract float LightTracerMis(PathVertex lightVertex, float pdfCamToPrimary, float pdfReverse, Vector2 pixel);
+        public abstract float LightTracerMis(PathVertex lightVertex, float pdfCamToPrimary, float pdfReverse,
+                                             Vector2 pixel);
 
         public void SplatLightVertices() {
             Parallel.For(0, lightPaths.Endpoints.Length, idx => {

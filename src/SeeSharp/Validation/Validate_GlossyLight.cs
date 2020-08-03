@@ -4,11 +4,10 @@ using SeeSharp.Core.Geometry;
 using SeeSharp.Core.Shading;
 using SeeSharp.Core.Shading.Emitters;
 using SeeSharp.Core.Shading.Materials;
-using SeeSharp.Validation;
 using SeeSharp.Core.Image;
 using System.Numerics;
 
-namespace Validation {
+namespace SeeSharp.Validation {
     class Validate_GlossyLight : ValidationSceneFactory {
         public override int SamplesPerPixel => 10;
 

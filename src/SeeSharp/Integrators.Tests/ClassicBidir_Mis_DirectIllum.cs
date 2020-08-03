@@ -49,9 +49,13 @@ namespace SeeSharp.Integrators.Tests {
             computer.lightPaths.PathCache = dummyPath.pathCache;
             computer.NumLightPaths = dummyPath.numLightPaths;
 
+            var pdfReverse = dummyPath.cameraVertices[2].PdfFromAncestor;
+            // Account for next event
+            pdfReverse += 1 / dummyPath.lightArea;
+
             return computer.LightTracerMis(dummyPath.pathCache[dummyPath.lightEndpointIdx],
                 pdfCamToPrimary: dummyPath.cameraVertices[1].PdfFromAncestor,
-                pdfReverse: dummyPath.cameraVertices[2].PdfFromAncestor,
+                pdfReverse: pdfReverse,
                 pixel: Vector2.Zero);
         }
 

@@ -73,7 +73,7 @@ namespace SeeSharp.Integrators.Tests {
             return dummyVcm.BidirConnectMis(cameraPath, lightVertex,
                 pdfCameraReverse: 1, // light tracer connections are deterministic
                 pdfCameraToLight: dummyPath.cameraVertices[2].PdfFromAncestor,
-                pdfLightReverse: dummyPath.cameraVertices[3].PdfFromAncestor,
+                pdfLightReverse: dummyPath.cameraVertices[3].PdfFromAncestor + 1 / dummyPath.lightArea,
                 pdfLightToCamera: dummyPath.cameraVertices[2].PdfToAncestor);
         }
 
@@ -85,7 +85,7 @@ namespace SeeSharp.Integrators.Tests {
             var photon = dummyPath.pathCache[dummyPath.lightEndpointIdx];
             return dummyVcm.MergeMis(cameraPath, photon,
                                      pdfCameraReverse: dummyPath.cameraVertices[^3].PdfToAncestor,
-                                     pdfLightReverse: dummyPath.cameraVertices[^2].PdfFromAncestor);
+                                     pdfLightReverse: dummyPath.cameraVertices[^2].PdfFromAncestor + 1 / dummyPath.lightArea);
         }
 
         float MergeSecondWeight() {

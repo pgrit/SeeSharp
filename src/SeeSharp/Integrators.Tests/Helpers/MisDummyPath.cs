@@ -105,13 +105,12 @@ namespace SeeSharp.Integrators.Tests.Helpers {
                 lightVertIdx = lightVert.AncestorId;
             }
 
-            // The last camera path vertex is special
-            //var dir = pathCache[0].Point.Position - pathCache[1].Point.Position;
-            //var cossurf = Vector3.Dot(Vector3.Normalize(dir), pathCache[1].Point.Normal);
-            //var coslight = Vector3.Dot(Vector3.Normalize(-dir), pathCache[0].Point.Normal);
-            //var distsqr = dir.LengthSquared();
-            //cameraVertices[^1].PdfFromAncestor = cossurf * coslight / distsqr / MathF.PI;
-            //cameraVertices[^1].PdfToAncestor = -100000.0f;
+            // The last camera path vertex is special: it should not already contain the NEE pdf
+            var dir = pathCache[0].Point.Position - pathCache[1].Point.Position;
+            var cossurf = Vector3.Dot(Vector3.Normalize(dir), pathCache[1].Point.Normal);
+            var coslight = Vector3.Dot(Vector3.Normalize(-dir), pathCache[0].Point.Normal);
+            var distsqr = dir.LengthSquared();
+            cameraVertices[^1].PdfFromAncestor = cossurf * coslight / distsqr / MathF.PI;
         }
     }
 }

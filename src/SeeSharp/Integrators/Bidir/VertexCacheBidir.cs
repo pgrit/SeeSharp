@@ -135,7 +135,7 @@ namespace SeeSharp.Integrators.Bidir {
             var pathPdfs = new BidirPathPdfs(lightPaths.PathCache, numPdfs);
             pathPdfs.GatherCameraPdfs(cameraPath, lastCameraVertexIdx);
 
-            pathPdfs.pdfsLightToCamera[^2] = pdfEmit;
+            pathPdfs.PdfsLightToCamera[^2] = pdfEmit;
 
             float pdfThis = cameraPath.Vertices[^1].PdfFromAncestor;
 
@@ -159,8 +159,8 @@ namespace SeeSharp.Integrators.Bidir {
 
             pathPdfs.GatherLightPdfs(lightVertex, lastCameraVertexIdx, numPdfs);
 
-            pathPdfs.pdfsCameraToLight[0] = pdfCamToPrimary;
-            pathPdfs.pdfsCameraToLight[1] = pdfReverse;
+            pathPdfs.PdfsCameraToLight[0] = pdfCamToPrimary;
+            pathPdfs.PdfsCameraToLight[1] = pdfReverse;
 
             // Compute the actual weight
             float sumReciprocals = LightPathReciprocals(lastCameraVertexIdx, numPdfs, pathPdfs);
@@ -180,11 +180,11 @@ namespace SeeSharp.Integrators.Bidir {
 
             // Set the pdf values that are unique to this combination of paths
             if (lastCameraVertexIdx > 0) // only if this is not the primary hit point
-                pathPdfs.pdfsLightToCamera[lastCameraVertexIdx - 1] = pdfCameraReverse;
-            pathPdfs.pdfsCameraToLight[lastCameraVertexIdx] = cameraPath.Vertices[^1].PdfFromAncestor;
-            pathPdfs.pdfsLightToCamera[lastCameraVertexIdx] = pdfLightToCamera;
-            pathPdfs.pdfsCameraToLight[lastCameraVertexIdx + 1] = pdfCameraToLight;
-            pathPdfs.pdfsCameraToLight[lastCameraVertexIdx + 2] = pdfLightReverse;
+                pathPdfs.PdfsLightToCamera[lastCameraVertexIdx - 1] = pdfCameraReverse;
+            pathPdfs.PdfsCameraToLight[lastCameraVertexIdx] = cameraPath.Vertices[^1].PdfFromAncestor;
+            pathPdfs.PdfsLightToCamera[lastCameraVertexIdx] = pdfLightToCamera;
+            pathPdfs.PdfsCameraToLight[lastCameraVertexIdx + 1] = pdfCameraToLight;
+            pathPdfs.PdfsCameraToLight[lastCameraVertexIdx + 2] = pdfLightReverse;
 
             // Compute reciprocals for hypothetical connections along the camera sub-path
             float sumReciprocals = 1.0f;
@@ -202,10 +202,10 @@ namespace SeeSharp.Integrators.Bidir {
 
             pathPdfs.GatherCameraPdfs(cameraPath, lastCameraVertexIdx);
 
-            pathPdfs.pdfsCameraToLight[^2] = cameraPath.Vertices[^1].PdfFromAncestor;
-            pathPdfs.pdfsLightToCamera[^2] = pdfEmit;
+            pathPdfs.PdfsCameraToLight[^2] = cameraPath.Vertices[^1].PdfFromAncestor;
+            pathPdfs.PdfsLightToCamera[^2] = pdfEmit;
             if (numPdfs > 2) // not for direct illumination
-                pathPdfs.pdfsLightToCamera[^3] = pdfReverse;
+                pathPdfs.PdfsLightToCamera[^3] = pdfReverse;
 
             // Compute the actual weight
             float sumReciprocals = 1.0f;
@@ -223,12 +223,12 @@ namespace SeeSharp.Integrators.Bidir {
             float sumReciprocals = 0.0f;
             float nextReciprocal = 1.0f;
             for (int i = lastCameraVertexIdx; i > 0; --i) { // all bidir connections
-                nextReciprocal *= pdfs.pdfsLightToCamera[i] / pdfs.pdfsCameraToLight[i];
+                nextReciprocal *= pdfs.PdfsLightToCamera[i] / pdfs.PdfsCameraToLight[i];
                 if (EnableConnections)
                     sumReciprocals += nextReciprocal * BidirSelectDensity();
             }
             if (EnableLightTracer)
-                sumReciprocals += nextReciprocal * pdfs.pdfsLightToCamera[0] / pdfs.pdfsCameraToLight[0] * NumLightPaths;
+                sumReciprocals += nextReciprocal * pdfs.PdfsLightToCamera[0] / pdfs.PdfsCameraToLight[0] * NumLightPaths;
             return sumReciprocals;
         }
 
@@ -236,7 +236,7 @@ namespace SeeSharp.Integrators.Bidir {
             float sumReciprocals = 0.0f;
             float nextReciprocal = 1.0f;
             for (int i = lastCameraVertexIdx + 1; i < numPdfs; ++i) {
-                nextReciprocal *= pdfs.pdfsCameraToLight[i] / pdfs.pdfsLightToCamera[i];
+                nextReciprocal *= pdfs.PdfsCameraToLight[i] / pdfs.PdfsLightToCamera[i];
                 if (i < numPdfs - 2 && EnableConnections) // Connections to the emitter (next event) are treated separately
                     sumReciprocals += nextReciprocal * BidirSelectDensity();
             }

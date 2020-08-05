@@ -5,7 +5,7 @@ namespace SeeSharp.Validation {
     class Validate_ModernHall : ValidationSceneFactory {
         public override int SamplesPerPixel => 8;
 
-        public override int MaxDepth => 2;
+        public override int MaxDepth => 5;
 
         public override string Name => "ModernHall";
 

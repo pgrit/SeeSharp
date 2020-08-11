@@ -77,7 +77,9 @@ namespace SeeSharp.Integrators.Common {
             return ColorRGB.Black;
         }
 
-        protected virtual void OnContinue(float pdfToAncestor) { }
+        protected virtual void OnContinue(float pdfToAncestor, int depth) { }
+
+        protected virtual void OnTerminate() {}
 
         protected virtual (float, float, ColorRGB, Vector3) SampleNextDirection(SurfacePoint hit, Ray ray, ColorRGB throughput, int depth) {
             // Sample the next direction from the BSDF
@@ -95,11 +97,17 @@ namespace SeeSharp.Integrators.Common {
 
         ColorRGB ContinueWalk(Ray ray, SurfacePoint previousPoint, float pdfDirection, ColorRGB throughput, int depth) {
             // Terminate if the maximum depth has been reached
-            if (depth >= maxDepth) return ColorRGB.Black;
+            if (depth >= maxDepth) {
+                OnTerminate();
+                return ColorRGB.Black;
+            }
 
             var hit = scene.Raytracer.Trace(ray);
-            if (!hit)
-                return OnInvalidHit(ray, pdfDirection, throughput, depth);
+            if (!hit) {
+                var result = OnInvalidHit(ray, pdfDirection, throughput, depth);
+                OnTerminate();
+                return result;
+            }
 
             // Convert the PDF of the previous hemispherical sample to surface area
             float pdfFromAncestor = pdfDirection * SampleWrap.SurfaceAreaToSolidAngle(previousPoint, hit);
@@ -109,7 +117,10 @@ namespace SeeSharp.Integrators.Common {
 
             // Terminate with Russian roulette
             float survivalProb = ComputeSurvivalProbability(hit, ray, throughput, depth);
-            if (rng.NextFloat() > survivalProb) return estimate;
+            if (rng.NextFloat() > survivalProb) {
+                OnTerminate();
+                return estimate;
+            }
 
             // Continue based on the splitting factor
             int numSplits = ComputeSplitFactor(hit, ray, throughput, depth);
@@ -122,7 +133,7 @@ namespace SeeSharp.Integrators.Common {
                 // Compute the surface area pdf of sampling the previous path segment backwards
                 float pdfToAncestor = pdfReverse * SampleWrap.SurfaceAreaToSolidAngle(hit, previousPoint);
 
-                OnContinue(pdfToAncestor);
+                OnContinue(pdfToAncestor, depth);
 
                 // Account for splitting and roulette in the weight
                 weight *= 1.0f / (survivalProb * numSplits);
@@ -132,6 +143,7 @@ namespace SeeSharp.Integrators.Common {
                 estimate += ContinueWalk(nextRay, hit, pdfNext, throughput * weight, depth + 1);
             }
 
+            OnTerminate();
             return estimate;
         }
 

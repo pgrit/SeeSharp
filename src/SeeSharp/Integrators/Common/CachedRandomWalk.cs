@@ -62,7 +62,7 @@ namespace SeeSharp.Integrators.Common {
             return ColorRGB.Black;
         }
 
-        protected override void OnContinue(float pdfToAncestor) {
+        protected override void OnContinue(float pdfToAncestor, int depth) {
             nextReversePdf = pdfToAncestor;
         }
     }

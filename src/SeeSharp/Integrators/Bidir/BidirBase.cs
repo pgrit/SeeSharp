@@ -460,7 +460,7 @@ namespace SeeSharp.Integrators.Bidir {
                                               throughput, depth, toAncestorJacobian);
             }
 
-            protected override void OnContinue(float pdfToAncestor) {
+            protected override void OnContinue(float pdfToAncestor, int depth) {
                 // Update the reverse pdf of the previous vertex.
                 // TODO this currently assumes that no splitting is happening!
                 var lastVert = path.Vertices[^1];

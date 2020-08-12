@@ -125,15 +125,15 @@ namespace SeeSharp.Integrators.Common {
             // Continue based on the splitting factor
             int numSplits = ComputeSplitFactor(hit, ray, throughput, depth);
             for (int i = 0; i < numSplits; ++i) {
-                // Sample the next direction (required to know the reverse pdf)
+                // Sample the next direction and convert the reverse pdf
                 var (pdfNext, pdfReverse, weight, direction) = SampleNextDirection(hit, ray, throughput, depth);
-                if (pdfNext == 0 || weight == ColorRGB.Black)
-                    continue;
-
-                // Compute the surface area pdf of sampling the previous path segment backwards
                 float pdfToAncestor = pdfReverse * SampleWrap.SurfaceAreaToSolidAngle(hit, previousPoint);
-
                 OnContinue(pdfToAncestor, depth);
+
+                if (pdfNext == 0 || weight == ColorRGB.Black) {
+                    OnTerminate();
+                    continue;
+                }
 
                 // Account for splitting and roulette in the weight
                 weight *= 1.0f / (survivalProb * numSplits);

@@ -10,6 +10,8 @@ namespace SeeSharp.Integrators.Bidir {
     public class ClassicBidir : BidirBase {
         public bool RenderTechniquePyramid = false;
 
+        public bool EnableConnections = true;
+
         TechPyramid techPyramidRaw;
         TechPyramid techPyramidWeighted;
 
@@ -62,7 +64,8 @@ namespace SeeSharp.Integrators.Bidir {
 
             // Perform connections if the maximum depth has not yet been reached
             if (depth < MaxDepth) {
-                value += throughput * BidirConnections(pixelIndex, hit, -ray.Direction, rng, path, toAncestorJacobian);
+                if (EnableConnections)
+                    value += throughput * BidirConnections(pixelIndex, hit, -ray.Direction, rng, path, toAncestorJacobian);
                 value += throughput * PerformNextEventEstimation(ray, hit, rng, path, toAncestorJacobian);
             }
 
@@ -169,7 +172,7 @@ namespace SeeSharp.Integrators.Bidir {
             float nextReciprocal = 1.0f;
             for (int i = lastCameraVertexIdx; i > 0; --i) { // all bidir connections
                 nextReciprocal *= pdfs.PdfsLightToCamera[i] / pdfs.PdfsCameraToLight[i];
-                sumReciprocals += nextReciprocal;
+                if (EnableConnections) sumReciprocals += nextReciprocal;
             }
             // Light tracer
             sumReciprocals += nextReciprocal * pdfs.PdfsLightToCamera[0] / pdfs.PdfsCameraToLight[0] * NumLightPaths;
@@ -181,7 +184,7 @@ namespace SeeSharp.Integrators.Bidir {
             float nextReciprocal = 1.0f;
             for (int i = lastCameraVertexIdx + 1; i < numPdfs; ++i) {
                 nextReciprocal *= pdfs.PdfsCameraToLight[i] / pdfs.PdfsLightToCamera[i];
-                if (i < numPdfs - 2) // Connections to the emitter (next event) are treated separately
+                if (EnableConnections && i < numPdfs - 2) // Connections to the emitter (next event) are treated separately
                     sumReciprocals += nextReciprocal;
             }
             sumReciprocals += nextReciprocal; // Next event and hitting the emitter directly

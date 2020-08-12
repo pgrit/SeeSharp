@@ -8,7 +8,8 @@ using System.Numerics;
 
 namespace SeeSharp.Integrators.Bidir {
     public class TechPyramid {
-        public TechPyramid(int width, int height, int minDepth, int maxDepth, bool merges) {
+        public TechPyramid(int width, int height, int minDepth, int maxDepth, bool merges,
+                           bool connections = true) {
             // Generate the filenames
             techniqueNames = new TechniqueNames();
             for (int depth = minDepth; depth <= maxDepth; ++depth) {
@@ -33,7 +34,7 @@ namespace SeeSharp.Integrators.Bidir {
                                    value: $"{depth}-next-event");
 
                 // All connections
-                for (int i = 1; i < depth - 1; ++i) {
+                for (int i = 1; i < depth - 1 && connections; ++i) {
                     techniqueNames.Add(key: (cameraPathEdges: i,
                                              lightPathEdges: depth - i - 1,
                                              totalEdges: depth),

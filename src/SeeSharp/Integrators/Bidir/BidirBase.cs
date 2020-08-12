@@ -74,7 +74,9 @@ namespace SeeSharp.Integrators.Bidir {
         public virtual ColorRGB EstimatePixelValue(SurfacePoint cameraPoint, Vector2 filmPosition, Ray primaryRay,
                                                    float pdfFromCamera, ColorRGB initialWeight, RNG rng) {
             // The pixel index determines which light path we connect to
-            int pixelIndex = (int)filmPosition.Y * scene.FrameBuffer.Width + (int)filmPosition.X;
+            int row = Math.Min((int)filmPosition.Y, scene.FrameBuffer.Height - 1);
+            int col = Math.Min((int)filmPosition.X, scene.FrameBuffer.Width - 1);
+            int pixelIndex = row * scene.FrameBuffer.Width + col;
             var walk = new CameraRandomWalk(rng, filmPosition, pixelIndex, this);
             return walk.StartFromCamera(filmPosition, cameraPoint, pdfFromCamera, primaryRay, initialWeight);
         }

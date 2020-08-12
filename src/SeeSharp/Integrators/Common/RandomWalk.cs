@@ -143,7 +143,6 @@ namespace SeeSharp.Integrators.Common {
                 estimate += ContinueWalk(nextRay, hit, pdfNext, throughput * weight, depth + 1);
             }
 
-            OnTerminate();
             return estimate;
         }
 

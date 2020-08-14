@@ -1,4 +1,5 @@
 ﻿using SeeSharp.Core.Geometry;
+using SeeSharp.Core.Sampling;
 using SeeSharp.Core.Shading;
 using System.Numerics;
 
@@ -17,7 +18,9 @@ namespace SeeSharp.Core.Cameras {
 
         public abstract void UpdateFrameBuffer(Image.FrameBuffer value);
 
-        public abstract (Ray, float, ColorRGB, SurfacePoint) GenerateRay(Vector2 filmPos);
+        public abstract CameraRaySample GenerateRay(Vector2 filmPos, RNG rng);
+
+        public abstract CameraResponseSample SampleResponse(SurfacePoint scenePoint, RNG rng);
 
         /// <summary>
         /// Projects the given world space point onto the camera.

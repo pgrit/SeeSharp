@@ -1,4 +1,5 @@
 ﻿using SeeSharp.Core.Geometry;
+using SeeSharp.Core.Sampling;
 using SeeSharp.Core.Shading;
 using System;
 using System.Numerics;
@@ -17,7 +18,9 @@ namespace SeeSharp.Core.Cameras {
         /// </param>
         /// <param name="verticalFieldOfView">The full vertical opening angle in degrees.</param>
         /// <param name="frameBuffer">Frame buffer that will be used for rendering (only resolution is relevant).</param>
-        public PerspectiveCamera(Matrix4x4 worldToCamera, float verticalFieldOfView, Image.FrameBuffer frameBuffer) : base(worldToCamera) {
+        public PerspectiveCamera(Matrix4x4 worldToCamera, float verticalFieldOfView, Image.FrameBuffer frameBuffer,
+                                 float lensRadius = 0, float focalDistance = 0)
+        : base(worldToCamera) {
             fovRadians = verticalFieldOfView * MathF.PI / 180;
             UpdateFrameBuffer(frameBuffer);
         }
@@ -36,7 +39,7 @@ namespace SeeSharp.Core.Cameras {
             imagePlaneDistance = Height / (2 * tanHalf);
         }
 
-        public override (Ray, float, ColorRGB, SurfacePoint) GenerateRay(Vector2 filmPos) {
+        public override CameraRaySample GenerateRay(Vector2 filmPos, RNG rng) {
             // Transform the direction from film to world space
             var view = new Vector3(filmPos.X / Width * 2 - 1, filmPos.Y / Height * 2 - 1, 0);
             var localDir = Vector3.Transform(view, viewToCamera);
@@ -48,12 +51,63 @@ namespace SeeSharp.Core.Cameras {
 
             var ray = new Ray { Direction = Vector3.Normalize(dir), MinDistance = 0, Origin = pos };
 
-            return (
+            // Sample depth of field
+            float pdfLens = 1;
+            if (lensRadius > 0) {
+                var lensSample = rng.NextFloat2D();
+                var lensPos = lensRadius * Sampling.SampleWrap.ToConcentricDisc(lensSample);
+
+                // Intersect ray with focal plane
+                var focalPoint = ray.ComputePoint(focalDistance / ray.Direction.Z);
+
+                // Update the ray
+                ray.Origin = new Vector3(lensPos, 0);
+                ray.Direction = Vector3.Normalize(focalPoint - ray.Origin);
+
+                pdfLens = 1 / (MathF.PI * lensRadius * lensRadius);
+            }
+
+            return new CameraRaySample(
                 ray,
-                SolidAngleToPixelJacobian(pos + dir),
                 ColorRGB.White,
-                new SurfacePoint { Position = Position, Normal = Direction }
+                new SurfacePoint { Position = Position, Normal = Direction },
+                SolidAngleToPixelJacobian(pos + dir) * pdfLens, pdfLens
             );
+        }
+
+        public override CameraResponseSample SampleResponse(SurfacePoint scenePoint, RNG rng) {
+            // Sample a point on the lens
+            var lensSample = rng.NextFloat2D();
+            var lensPosCam = lensRadius * Sampling.SampleWrap.ToConcentricDisc(lensSample);
+            var lensPosWorld = Vector4.Transform(new Vector4(lensPosCam.X, lensPosCam.Y, 0, 1), cameraToWorld);
+            var lensPos = new Vector3(lensPosWorld.X, lensPosWorld.Y, lensPosWorld.Z);
+
+            // Map the scene point to the film
+            var filmPos = WorldToFilm(scenePoint.Position);
+            if (!filmPos.HasValue) {
+                return new CameraResponseSample();
+            }
+
+            // Compute the sensor response
+            float solidAngleToPixel = SolidAngleToPixelJacobian(scenePoint.Position);
+            float response = solidAngleToPixel;
+
+            // Compute the change of variables from scene surface to pixel area
+            var dirToCam = lensPos - scenePoint.Position;
+            float distToCam = dirToCam.Length();
+            float cosToCam = Math.Abs(Vector3.Dot(scenePoint.Normal, dirToCam)) / distToCam;
+            float surfaceToSolidAngle = cosToCam / (distToCam * distToCam);
+            response *= surfaceToSolidAngle;
+
+            // Compute the pdfs
+            float invLensArea = 1;
+            if (lensRadius > 0)
+                invLensArea = 1 / (MathF.PI * lensRadius * lensRadius);
+            float pdfConnect = invLensArea;
+            float pdfEmit = invLensArea * surfaceToSolidAngle * solidAngleToPixel;
+
+            return new CameraResponseSample(new Vector2(filmPos.Value.X, filmPos.Value.Y),
+                                            response * ColorRGB.White, pdfConnect, pdfEmit);
         }
 
         public override Vector3? WorldToFilm(Vector3 pos) {
@@ -99,6 +153,8 @@ namespace SeeSharp.Core.Cameras {
         Matrix4x4 viewToCamera;
         float aspectRatio;
         float fovRadians;
+        float focalDistance;
+        float lensRadius;
 
         // Distance from the camera position to the virtual image plane s.t. each pixel has area one
         float imagePlaneDistance;

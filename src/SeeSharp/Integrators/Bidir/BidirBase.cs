@@ -124,8 +124,9 @@ namespace SeeSharp.Integrators.Bidir {
             // Sample a ray from the camera
             var offset = rng.NextFloat2D();
             var filmSample = new Vector2(col, row) + offset;
-            var (primaryRay, pdfFromCamera, initialWeight, cameraPoint) = scene.Camera.GenerateRay(filmSample);
-            var value = EstimatePixelValue(cameraPoint, filmSample, primaryRay, pdfFromCamera, initialWeight, rng);
+            var cameraRay = scene.Camera.GenerateRay(filmSample, rng);
+            var value = EstimatePixelValue(cameraRay.Point, filmSample, cameraRay.Ray,
+                                           cameraRay.PdfRay, cameraRay.Weight, rng);
 
             // TODO we do nearest neighbor splatting manually here, to avoid numerical
             //      issues if the primary samples are almost 1 (400 + 0.99999999f = 401)

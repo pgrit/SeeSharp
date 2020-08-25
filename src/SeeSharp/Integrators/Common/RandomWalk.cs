@@ -13,6 +13,7 @@ namespace SeeSharp.Integrators.Common {
             this.maxDepth = maxDepth;
         }
 
+        // TODO replace parameter list by a single CameraRaySample object
         public virtual ColorRGB StartFromCamera(Vector2 filmPosition, SurfacePoint cameraPoint,
                                                 float pdfFromCamera, Ray primaryRay, ColorRGB initialWeight) {
             isOnLightSubpath = false;

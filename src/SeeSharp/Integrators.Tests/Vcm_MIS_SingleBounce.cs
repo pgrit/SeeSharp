@@ -51,7 +51,7 @@ namespace SeeSharp.Integrators.Tests {
             return dummyVcm.LightTracerMis(dummyPath.pathCache[dummyPath.lightEndpointIdx],
                 pdfCamToPrimary: dummyPath.cameraVertices[1].PdfFromAncestor,
                 pdfReverse: dummyPath.cameraVertices[2].PdfFromAncestor,
-                pdfNextEventAncestor: 0,
+                pdfNextEvent: 0,
                 pixel: Vector2.Zero);
         }
 
@@ -75,7 +75,7 @@ namespace SeeSharp.Integrators.Tests {
                 pdfCameraReverse: 1, // light tracer connections are deterministic
                 pdfCameraToLight: dummyPath.cameraVertices[2].PdfFromAncestor,
                 pdfLightReverse: dummyPath.cameraVertices[3].PdfFromAncestor,
-                pdfNextEventAncestor: 1 / dummyPath.lightArea,
+                pdfNextEvent: 1 / dummyPath.lightArea,
                 pdfLightToCamera: dummyPath.cameraVertices[2].PdfToAncestor);
         }
 
@@ -87,7 +87,8 @@ namespace SeeSharp.Integrators.Tests {
             var photon = dummyPath.pathCache[dummyPath.lightEndpointIdx];
             return dummyVcm.MergeMis(cameraPath, photon,
                                      pdfCameraReverse: dummyPath.cameraVertices[^3].PdfToAncestor,
-                                     pdfLightReverse: dummyPath.cameraVertices[^2].PdfFromAncestor + 1 / dummyPath.lightArea);
+                                     pdfLightReverse: dummyPath.cameraVertices[^2].PdfFromAncestor + 1 / dummyPath.lightArea,
+                                     pdfNextEvent: 0);
         }
 
         float MergeSecondWeight() {
@@ -98,7 +99,8 @@ namespace SeeSharp.Integrators.Tests {
             var photon = dummyPath.pathCache[dummyPath.pathCache[dummyPath.lightEndpointIdx].AncestorId];
             return dummyVcm.MergeMis(cameraPath, photon,
                                      pdfCameraReverse: dummyPath.cameraVertices[^2].PdfToAncestor,
-                                     pdfLightReverse: dummyPath.cameraVertices[^1].PdfFromAncestor);
+                                     pdfLightReverse: dummyPath.cameraVertices[^1].PdfFromAncestor,
+                                     pdfNextEvent: 1 / dummyPath.lightArea);
         }
 
         [Fact]

@@ -146,7 +146,7 @@ namespace SeeSharp.Integrators.Bidir {
         }
 
         public abstract float LightTracerMis(PathVertex lightVertex, float pdfCamToPrimary, float pdfReverse,
-                                             float pdfNextEventAncestor, Vector2 pixel);
+                                             float pdfNextEvent, Vector2 pixel);
 
         public void SplatLightVertices() {
             Parallel.For(0, lightPaths.Endpoints.Length, idx => {
@@ -209,7 +209,7 @@ namespace SeeSharp.Integrators.Bidir {
         public abstract float BidirConnectMis(CameraPath cameraPath, PathVertex lightVertex,
                                               float pdfCameraReverse, float pdfCameraToLight,
                                               float pdfLightReverse, float pdfLightToCamera,
-                                              float pdfNextEventAncestor);
+                                              float pdfNextEvent);
 
         public virtual (int, bool) SelectBidirPath(int pixelIndex, RNG rng) {
             return (lightPaths.Endpoints[pixelIndex], true);

@@ -98,7 +98,7 @@ namespace SeeSharp.Integrators.Bidir {
         }
 
         public override float LightTracerMis(PathVertex lightVertex, float pdfCamToPrimary, float pdfReverse,
-                                             float pdfNextEventAncestor, Vector2 pixel) {
+                                             float pdfNextEvent, Vector2 pixel) {
             int numPdfs = lightVertex.Depth + 1;
             int lastCameraVertexIdx = -1;
 
@@ -107,7 +107,7 @@ namespace SeeSharp.Integrators.Bidir {
             pathPdfs.GatherLightPdfs(lightVertex, lastCameraVertexIdx, numPdfs);
 
             pathPdfs.PdfsCameraToLight[0] = pdfCamToPrimary;
-            pathPdfs.PdfsCameraToLight[1] = pdfReverse + pdfNextEventAncestor;
+            pathPdfs.PdfsCameraToLight[1] = pdfReverse + pdfNextEvent;
 
             // Compute the actual weight
             float sumReciprocals = LightPathReciprocals(lastCameraVertexIdx, numPdfs, pathPdfs);
@@ -118,7 +118,7 @@ namespace SeeSharp.Integrators.Bidir {
 
         public override float BidirConnectMis(CameraPath cameraPath, PathVertex lightVertex, float pdfCameraReverse,
                                               float pdfCameraToLight, float pdfLightReverse, float pdfLightToCamera,
-                                              float pdfNextEventAncestor) {
+                                              float pdfNextEvent) {
             int numPdfs = cameraPath.Vertices.Count + lightVertex.Depth + 1;
             int lastCameraVertexIdx = cameraPath.Vertices.Count - 1;
 
@@ -132,7 +132,7 @@ namespace SeeSharp.Integrators.Bidir {
             pathPdfs.PdfsCameraToLight[lastCameraVertexIdx] = cameraPath.Vertices[^1].PdfFromAncestor;
             pathPdfs.PdfsLightToCamera[lastCameraVertexIdx] = pdfLightToCamera;
             pathPdfs.PdfsCameraToLight[lastCameraVertexIdx + 1] = pdfCameraToLight;
-            pathPdfs.PdfsCameraToLight[lastCameraVertexIdx + 2] = pdfLightReverse + pdfNextEventAncestor;
+            pathPdfs.PdfsCameraToLight[lastCameraVertexIdx + 2] = pdfLightReverse + pdfNextEvent;
 
             // Compute reciprocals for hypothetical connections along the camera sub-path
             float sumReciprocals = 1.0f;

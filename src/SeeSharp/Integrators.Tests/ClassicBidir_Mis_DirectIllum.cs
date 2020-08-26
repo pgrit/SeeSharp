@@ -52,7 +52,7 @@ namespace SeeSharp.Integrators.Tests {
             return computer.LightTracerMis(dummyPath.pathCache[dummyPath.lightEndpointIdx],
                 pdfCamToPrimary: dummyPath.cameraVertices[1].PdfFromAncestor,
                 pdfReverse: dummyPath.cameraVertices[2].PdfFromAncestor,
-                pdfNextEventAncestor: 1 / dummyPath.lightArea,
+                pdfNextEvent: 1 / dummyPath.lightArea,
                 pixel: Vector2.Zero);
         }
 

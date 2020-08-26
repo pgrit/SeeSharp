@@ -39,6 +39,7 @@ namespace SeeSharp.Integrators.Tests.Helpers {
             var prevLightVertex = emitterVertex;
             int prevLightVertexIdx = emVertexId;
             float lastReverse = 0.0f;
+            float lastNee = 0.0f;
             for (int idx = 1; idx < normals.Length; ++idx) {
                 // Add the vertex on the first surface
                 var surfaceVertex = new PathVertex {
@@ -60,11 +61,14 @@ namespace SeeSharp.Integrators.Tests.Helpers {
                 // pdf for diffuse sampling of the emission direction
                 surfaceVertex.PdfFromAncestor = (cosLightToSurf / MathF.PI) * (cosSurfToLight / distSqr);
                 surfaceVertex.PdfReverseAncestor = lastReverse;
+                surfaceVertex.PdfNextEventAncestor = lastNee;
 
                 lastReverse = (cosSurfToLight / MathF.PI) * (cosLightToSurf / distSqr);
                 if (idx == 1) {
                     surfaceVertex.PdfFromAncestor *= 1.0f / lightArea; // emission surface sampling pdf
-                    lastReverse += 1.0f / lightArea; // Next event
+                    lastNee = 1.0f / lightArea; // Next event
+                } else {
+                    lastNee = 0.0f;
                 }
 
                 int lightVertexIndex = pathCache.AddVertex(surfaceVertex);

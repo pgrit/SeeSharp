@@ -146,7 +146,7 @@ namespace SeeSharp.Integrators.Bidir {
         }
 
         public abstract float LightTracerMis(PathVertex lightVertex, float pdfCamToPrimary, float pdfReverse,
-                                             Vector2 pixel);
+                                             float pdfNextEventAncestor, Vector2 pixel);
 
         public void SplatLightVertices() {
             Parallel.For(0, lightPaths.Endpoints.Length, idx => {
@@ -192,11 +192,12 @@ namespace SeeSharp.Integrators.Bidir {
                     pdfReverse *= SampleWrap.SurfaceAreaToSolidAngle(vertex.Point, ancestor.Point);
 
                 // Account for next event estimation
+                float pdfNextEvent = 0.0f;
                 if (vertex.Depth == 1) {
-                    pdfReverse += NextEventPdf(vertex.Point, ancestor.Point);
+                    pdfNextEvent = NextEventPdf(vertex.Point, ancestor.Point);
                 }
 
-                float misWeight = LightTracerMis(vertex, surfaceToPixelJacobian, pdfReverse, pixel);
+                float misWeight = LightTracerMis(vertex, surfaceToPixelJacobian, pdfReverse, pdfNextEvent, pixel);
 
                 // Compute image contribution and splat
                 ColorRGB weight = vertex.Weight * bsdfValue * surfaceToPixelJacobian / NumLightPaths;
@@ -207,7 +208,8 @@ namespace SeeSharp.Integrators.Bidir {
 
         public abstract float BidirConnectMis(CameraPath cameraPath, PathVertex lightVertex,
                                               float pdfCameraReverse, float pdfCameraToLight,
-                                              float pdfLightReverse, float pdfLightToCamera);
+                                              float pdfLightReverse, float pdfLightToCamera,
+                                              float pdfNextEventAncestor);
 
         public virtual (int, bool) SelectBidirPath(int pixelIndex, RNG rng) {
             return (lightPaths.Endpoints[pixelIndex], true);
@@ -259,12 +261,13 @@ namespace SeeSharp.Integrators.Bidir {
                     pdfLightReverse *= SampleWrap.SurfaceAreaToSolidAngle(vertex.Point, ancestor.Point);
                 pdfLightToCamera *= SampleWrap.SurfaceAreaToSolidAngle(vertex.Point, cameraPoint);
 
+                float pdfNextEvent = 0.0f;
                 if (vertex.Depth == 1) {
-                    pdfLightReverse += NextEventPdf(vertex.Point, ancestor.Point);
+                    pdfNextEvent = NextEventPdf(vertex.Point, ancestor.Point);
                 }
 
                 float misWeight = BidirConnectMis(path, vertex, pdfCameraReverse, pdfCameraToLight, pdfLightReverse,
-                                                  pdfLightToCamera);
+                                                  pdfLightToCamera, pdfNextEvent);
                 float distanceSqr = (cameraPoint.Position - vertex.Point.Position).LengthSquared();
 
                 // Avoid NaNs in rare cases

@@ -81,7 +81,7 @@ namespace SeeSharp.Integrators.Bidir {
                     var vertex = cache[lastId];
                     var primary = cache[vertex.AncestorId];
                     var origin = cache[primary.AncestorId];
-                    vertex.PdfReverseAncestor += callback(origin, primary, ray.Direction);
+                    vertex.PdfNextEventAncestor = callback(origin, primary, ray.Direction);
                 }
 
                 return weight;
@@ -94,15 +94,15 @@ namespace SeeSharp.Integrators.Bidir {
         /// <returns>
         /// The index of the last vertex along the path.
         /// </returns>
-        public virtual int TraceLightPath(RNG rng, NextEventPdfCallback onHit) {
+        public virtual int TraceLightPath(RNG rng, NextEventPdfCallback nextEvtCallback) {
             // Select an emitter or the background
             float lightSelPrimary = rng.NextFloat();
             if (lightSelPrimary > BackgroundProbability) { // Sample from an emitter in the scene
                 // Remap the primary sample
                 lightSelPrimary = (lightSelPrimary - BackgroundProbability) / (1 - BackgroundProbability);
-                return TraceEmitterPath(rng, lightSelPrimary, onHit);
+                return TraceEmitterPath(rng, lightSelPrimary, nextEvtCallback);
             } else { // Sample from the background
-                return TraceBackgroundPath(rng, onHit);
+                return TraceBackgroundPath(rng, nextEvtCallback);
             }
         }
 

@@ -13,6 +13,9 @@ namespace SeeSharp.Integrators.Common {
         // Surface area pdf to sample the ancestor of the previous vertex.
         public float PdfReverseAncestor;
 
+        // Surface area pdf of next event estimation at the ancestor (if applicable)
+        public float PdfNextEventAncestor;
+
         public ColorRGB Weight;
 
         public int AncestorId;

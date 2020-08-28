@@ -60,8 +60,8 @@ namespace SeeSharp.Integrators.Bidir {
             averageArea /= numHits;
 
             // Compute the radius based on the approximated average footprint area
-            // Our heuristic aims to have each photon cover roughly a 3x3 region on the image
-            Radius = MathF.Sqrt(averageArea) * 1.5f;
+            // Our heuristic aims to have each photon cover roughly a 1.5 x 1.5 region on the image
+            Radius = MathF.Sqrt(averageArea) * 1.5f / 2.0f;
         }
 
         public virtual void ShrinkRadius() {

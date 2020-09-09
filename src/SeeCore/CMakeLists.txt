@@ -26,7 +26,7 @@ target_sources(SeeCore
         "image/tinyexr.h"
 )
 
-target_link_libraries(SeeCore ${EMBREE_LIBRARIES} TBB::tbb)
+target_link_libraries(SeeCore PRIVATE embree TBB::tbb)
 
 set_target_properties(SeeCore PROPERTIES
                       RUNTIME_OUTPUT_DIRECTORY_DEBUG ${CMAKE_CURRENT_SOURCE_DIR}/../../dist

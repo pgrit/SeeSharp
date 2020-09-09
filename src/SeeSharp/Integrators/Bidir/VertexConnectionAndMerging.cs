@@ -11,6 +11,11 @@ namespace SeeSharp.Integrators.Bidir {
     public class VertexConnectionAndMerging : BidirBase {
         public bool RenderTechniquePyramid = false;
 
+        public bool EnableConnections = true;
+        public bool EnableLightTracing = true;
+        public bool EnableNextEvent = true;
+        public bool EnableBsdfLightHit = true;
+
         /// <summary>Wether or not to use merging at the first hit from the camera.</summary>
         public bool MergePrimary = false;
 
@@ -106,7 +111,7 @@ namespace SeeSharp.Integrators.Bidir {
         }
 
         public override void ProcessPathCache() {
-            SplatLightVertices();
+            if (EnableLightTracing) SplatLightVertices();
             photonMap.Build(lightPaths, Radius);
         }
 
@@ -156,14 +161,16 @@ namespace SeeSharp.Integrators.Bidir {
 
             // Was a light hit?
             Emitter light = scene.QueryEmitter(hit);
-            if (light != null) {
+            if (light != null && EnableBsdfLightHit) {
                 value += throughput * OnEmitterHit(light, hit, ray, path, toAncestorJacobian);
             }
 
             // Perform connections and merging if the maximum depth has not yet been reached
             if (depth < MaxDepth) {
-                value += throughput * BidirConnections(pixelIndex, hit, -ray.Direction, rng, path, toAncestorJacobian);
-                value += throughput * PerformNextEventEstimation(ray, hit, rng, path, toAncestorJacobian);
+                if (EnableConnections)
+                    value += throughput * BidirConnections(pixelIndex, hit, -ray.Direction, rng, path, toAncestorJacobian);
+                if (EnableNextEvent)
+                    value += throughput * PerformNextEventEstimation(ray, hit, rng, path, toAncestorJacobian);
                 value += throughput * PerformMerging(ray, hit, path, toAncestorJacobian);
             }
 
@@ -196,7 +203,7 @@ namespace SeeSharp.Integrators.Bidir {
             sumReciprocals += LightPathReciprocals(lastCameraVertexIdx, numPdfs, pathPdfs, cameraPath.Pixel) / mergeApproximation;
 
             // Add the reciprocal for the connection that replaces the last light path edge
-            if (lightVertex.Depth > 1)
+            if (lightVertex.Depth > 1 && EnableConnections)
                 sumReciprocals += 1 / mergeApproximation;
 
             return 1 / sumReciprocals;
@@ -219,7 +226,7 @@ namespace SeeSharp.Integrators.Bidir {
             float sumReciprocals = 1.0f;
 
             // Next event estimation
-            sumReciprocals += pdfNextEvent / pdfThis;
+            if (EnableNextEvent) sumReciprocals += pdfNextEvent / pdfThis;
 
             // All connections along the camera path
             sumReciprocals += CameraPathReciprocals(lastCameraVertexIdx - 1, numPdfs, pathPdfs, cameraPath.Pixel) / pdfThis;
@@ -290,7 +297,7 @@ namespace SeeSharp.Integrators.Bidir {
             float sumReciprocals = 1.0f;
 
             // Hitting the light source
-            sumReciprocals += pdfHit / pdfNextEvent;
+            if (EnableBsdfLightHit) sumReciprocals += pdfHit / pdfNextEvent;
 
             // All bidirectional connections
             sumReciprocals += CameraPathReciprocals(lastCameraVertexIdx, numPdfs, pathPdfs, cameraPath.Pixel) / pdfNextEvent;
@@ -309,11 +316,12 @@ namespace SeeSharp.Integrators.Bidir {
                 nextReciprocal *= pdfs.PdfsLightToCamera[i] / pdfs.PdfsCameraToLight[i];
 
                 // Connecting this vertex to the next one along the camera path
-                sumReciprocals += nextReciprocal;
+                if (EnableConnections) sumReciprocals += nextReciprocal;
             }
 
             // Light tracer
-            sumReciprocals += nextReciprocal * pdfs.PdfsLightToCamera[0] / pdfs.PdfsCameraToLight[0] * NumLightPaths;
+            if (EnableLightTracing)
+                sumReciprocals += nextReciprocal * pdfs.PdfsLightToCamera[0] / pdfs.PdfsCameraToLight[0] * NumLightPaths;
 
             // Merging directly visible (almost the same as the light tracer!)
             if (MergePrimary)
@@ -337,9 +345,10 @@ namespace SeeSharp.Integrators.Bidir {
 
                 // Account for connections from this vertex to its ancestor
                 if (i < numPdfs - 2) // Connections to the emitter (next event) are treated separately
-                    sumReciprocals += nextReciprocal;
+                    if (EnableConnections) sumReciprocals += nextReciprocal;
             }
-            sumReciprocals += nextReciprocal; // Next event and hitting the emitter directly
+            if (EnableBsdfLightHit || EnableNextEvent) sumReciprocals += nextReciprocal; // Next event and hitting the emitter directly
+            // TODO / FIXME Bsdf and Nee can only be disabled jointly here: needs proper handling when assembling pdfs
             return sumReciprocals;
         }
     }

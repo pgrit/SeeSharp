@@ -21,7 +21,7 @@ namespace SeeSharp.Experiments {
         /// Each method's images are placed in a separate folder, using the method's name
         /// as the folder's name.
         /// </summary>
-        public void Run(bool forceReference = false) {
+        public void Run(bool forceReference = false, bool concurrent = true) {
             var scene = factory.MakeScene();
 
             // Render the reference image (only if it does not exist or forced)
@@ -30,7 +30,8 @@ namespace SeeSharp.Experiments {
             RenderReference(scene, forceReference);
 
             var methods = factory.MakeMethods();
-            foreach (var method in methods) {
+
+            void body(ExperimentFactory.Method method) {
                 string path = Path.Join(workingDirectory, method.name);
 
                 // Clear old files (if there are any)
@@ -47,6 +48,9 @@ namespace SeeSharp.Experiments {
                 var timeSeconds = Render(path, "render.exr", method.integrator, scene);
                 Console.WriteLine($"{method.name} done after {timeSeconds} seconds");
             }
+
+            if (concurrent) System.Threading.Tasks.Parallel.ForEach(methods, body);
+            else foreach (var method in methods) body(method);
         }
 
         private void RenderReference(Scene scene, bool force) {

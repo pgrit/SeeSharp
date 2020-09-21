@@ -7,8 +7,8 @@ namespace SeeSharp.Core.Image {
             this.width = width;
             this.height = height;
             this.tileSize = tileSize;
-            this.tileMoments = new Image<Scalar>(width / tileSize, height / tileSize);
-            this.tileMeans = new Image<Scalar>(width / tileSize, height / tileSize);
+            this.tileMoments = new Image<Scalar>(Math.Max(1, width / tileSize), Math.Max(1, height / tileSize));
+            this.tileMeans = new Image<Scalar>(Math.Max(1, width / tileSize), Math.Max(1, height / tileSize));
         }
 
         public void AddSample(float x, float y, ColorRGB value) {

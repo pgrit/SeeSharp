@@ -147,10 +147,10 @@ namespace SeeSharp.Integrators.Bidir {
                 photonContrib /= MathF.PI * radiusSquared * radiusSquared;
 
                 RegisterSample(photonContrib * path.Throughput, misWeight, path.Pixel, path.Vertices.Count, photon.Depth, depth);
-                photonContrib *= misWeight;
 
-                estimate += photonContrib;
+                estimate += photonContrib * misWeight;
             }, Radius);
+
             return estimate;
         }
 

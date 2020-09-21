@@ -79,6 +79,18 @@ namespace SeeSharp.Core.Image {
             }
         }
 
+        public static void WriteToFile(Image<Scalar> image, string filename) {
+            // Create a temporary RGB image
+            var buffer = new Image<ColorRGB>(image.Width, image.Height);
+            for (int row = 0; row < image.Height; ++row) {
+                for (int col = 0; col < image.Width; ++col) {
+                    var v = image[col, row].Value;
+                    buffer.Splat(col, row, new ColorRGB(v, v, v));
+                }
+            }
+            WriteToFile(buffer, filename);
+        }
+
         public static Image<ColorRGB> LoadFromFile(string filename) {
             var ext = System.IO.Path.GetExtension(filename);
             if (ext.ToLower() == ".exr")

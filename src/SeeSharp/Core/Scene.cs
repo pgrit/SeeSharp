@@ -119,6 +119,10 @@ namespace SeeSharp.Core {
         /// <param name="path">Path to the .json scene file.</param>
         /// <returns>The scene created from the file.</returns>
         public static Scene LoadFromFile(string path) {
+            // String parsing adheres to the OS specified culture settings.
+            // However, we always want our .json files to use the decimal point . rather than a comma 
+            System.Globalization.CultureInfo.DefaultThreadCurrentCulture = System.Globalization.CultureInfo.InvariantCulture;
+
             string jsonString = File.ReadAllText(path);
 
             Vector3 ReadVector(JsonElement json) {

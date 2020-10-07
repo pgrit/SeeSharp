@@ -65,6 +65,11 @@ namespace SeeSharp.Core.Image {
 
         public ref T this[int x, int y] => ref data[IndexOf(x, y)];
 
+        /// <summary>
+        /// Same as the index operator, only the parameters are (0,1)^2 rather than (0, Width) x (0, Height)
+        /// </summary>
+        public ref T TextureLookup(float u, float v) => ref this[u * Width, v * Height];
+
         public static void WriteToFile(Image<ColorRGB> image, string filename) {
             var ext = System.IO.Path.GetExtension(filename);
             if (ext.ToLower() == ".exr") {

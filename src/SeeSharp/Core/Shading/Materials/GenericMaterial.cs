@@ -4,6 +4,7 @@ using SeeSharp.Core.Shading.MicrofacetDistributions;
 using SeeSharp.Core.Image;
 using System;
 using System.Diagnostics;
+using System.Numerics;
 
 namespace SeeSharp.Core.Shading.Materials {
     /// <summary>
@@ -38,7 +39,7 @@ namespace SeeSharp.Core.Shading.Materials {
             var tex = hit.TextureCoordinates;
 
             // Evaluate textures // TODO make those actual textures
-            var baseColor = parameters.baseColor[tex.X * parameters.baseColor.Width, tex.Y * parameters.baseColor.Height];
+            var baseColor = parameters.baseColor.TextureLookup(tex.X, tex.Y);
             float roughness = parameters.roughness;
             float anisotropic = parameters.anisotropic;
             float specularTintStrength = parameters.specularTintStrength;
@@ -73,7 +74,7 @@ namespace SeeSharp.Core.Shading.Materials {
 
             // Determine the number of components
             int numComponents = 1 + (diffuseWeight > 0 ? 2 : 0) + (specularTransmittance > 0 ? 1 : 0) + (parameters.thin ? 1 : 0);
-            var bsdf = new Bsdf { shadingNormal = hit.ShadingNormal, Components = new BsdfComponent[numComponents] };
+            var bsdf = new Bsdf { Components = new BsdfComponent[numComponents] };
             int idx = 0;
 
             // Add the retro-reflection and diffuse terms
@@ -84,7 +85,10 @@ namespace SeeSharp.Core.Shading.Materials {
                     bsdf.Components[idx++] = new DisneyDiffuse { Reflectance = baseColor * diffuseWeight };
                 }
 
-                bsdf.Components[idx++] = new DisneyRetroReflection { Reflectance = baseColor * diffuseWeight, Roughness = roughness };
+                bsdf.Components[idx++] = new DisneyRetroReflection {
+                    Reflectance = baseColor * diffuseWeight,
+                    Roughness = roughness
+                };
             }
 
             if (specularTransmittance > 0) {
@@ -118,7 +122,11 @@ namespace SeeSharp.Core.Shading.Materials {
                 bsdf.Components[idx++] = new DiffuseTransmission { Transmittance = baseColor * diffuseTransmittance };
             }
 
-            bsdf.Components[idx++] = new MicrofacetReflection { distribution = microfacetDistrib, fresnel = fresnel, tint = specularTint };
+            bsdf.Components[idx++] = new MicrofacetReflection {
+                distribution = microfacetDistrib,
+                fresnel = fresnel,
+                tint = specularTint
+            };
 
             Debug.Assert(idx == bsdf.Components.Length);
 

@@ -11,7 +11,7 @@ namespace SeeSharp.Validation {
 
         public override Scene MakeScene() {
             var scene = Scene.LoadFromFile("../data/scenes/ModernHall/ModernHall.json");
-            scene.FrameBuffer = new FrameBuffer(640, 480, "");
+            scene.FrameBuffer = new FrameBuffer(640*2, 480*2, "");
             scene.Prepare();
             return scene;
         }

@@ -29,9 +29,10 @@ namespace SeeSharp.Validation {
             return true;
         }
 
-        static List<FrameBuffer> RenderImages(Scene scene, List<Integrator> algorithms,
-                                              List<string> names, string testname) {
+        static (List<FrameBuffer>, List<long>) RenderImages(Scene scene, List<Integrator> algorithms,
+                                                            List<string> names, string testname) {
             var images = new List<FrameBuffer>();
+            var times = new List<long>();
             Console.WriteLine($"Running test '{testname}'");
 
             var stopwatch  = System.Diagnostics.Stopwatch.StartNew();
@@ -44,17 +45,22 @@ namespace SeeSharp.Validation {
                 stopwatch.Restart();
                 algorithms[i].Render(scene);
                 stopwatch.Stop();
+
                 Console.WriteLine($"Done with {names[i]} after {stopwatch.ElapsedMilliseconds}ms.");
+                times.Add(stopwatch.ElapsedMilliseconds);
 
                 images.Add(scene.FrameBuffer);
                 scene.FrameBuffer.WriteToFile();
             }
 
-            return images;
+            return (images, times);
         }
 
-        public static void Validate(ValidationSceneFactory sceneFactory) {
+        public static List<long> Validate(ValidationSceneFactory sceneFactory) {
+            var stopwatch  = System.Diagnostics.Stopwatch.StartNew();
             var scene = sceneFactory.MakeScene();
+            stopwatch.Stop();
+            var sceneLoadTime = stopwatch.ElapsedMilliseconds;
 
             var algorithms = new List<Integrator>() {
                 new PathTracer() {
@@ -93,11 +99,29 @@ namespace SeeSharp.Validation {
                 //"VertexCacheBidir"
             };
 
-            var images = RenderImages(scene, algorithms, names, sceneFactory.Name);
+            var (images, times) = RenderImages(scene, algorithms, names, sceneFactory.Name);
 
             if (!ValidateImages(images)) {
                 Console.WriteLine("Validation error: Average image values too far appart!");
             }
+
+            times.Add(sceneLoadTime);
+            return times;
+        }
+
+        public static List<long> Benchmark(ValidationSceneFactory sceneFactory, int numTrials) {
+            var totalTimes = Validate(sceneFactory);
+            for (int i = 1; i < numTrials; ++i) {
+                var times = Validate(sceneFactory);
+                for (int k = 0; k < totalTimes.Count; ++k)
+                    totalTimes[k] += times[k];
+            }
+
+            // Normalize
+            for (int k = 0; k < totalTimes.Count; ++k)
+                totalTimes[k] /= numTrials;
+
+            return totalTimes;
         }
     }
 }

@@ -32,11 +32,12 @@ namespace SeeSharp.Core.Image {
         }
 
         public void Scale(float s) {
-            for (int x = 0; x < Width; ++x) {
+            System.Threading.Tasks.Parallel.For(0, Width, x => {
+            // for (int x = 0; x < Width; ++x) {
                 for (int y = 0; y < Height; ++y) {
                     this[x, y].Scale(s);
                 }
-            }
+            });
         }
 
         int IndexOf(float x, float y) {

@@ -26,7 +26,7 @@ namespace SeeSharp.Core.Image {
         }
 
         public void Splat(float x, float y, T value) {
-            lock (this) {
+            lock (this[x, y]) {
                 this[x, y].Add(value);
             }
         }

@@ -5,7 +5,7 @@ namespace SeeSharp.Core.Shading {
         ColorRGB Evaluate(float cosine);
     }
 
-    public class FresnelConductor : Fresnel {
+    public struct FresnelConductor : Fresnel {
         public ColorRGB EtaI;
         public ColorRGB EtaT;
         public ColorRGB K;
@@ -38,7 +38,7 @@ namespace SeeSharp.Core.Shading {
         }
     }
 
-    public class FresnelDielectric : Fresnel {
+    public struct FresnelDielectric : Fresnel {
         public float EtaI;
         public float EtaT;
 
@@ -68,7 +68,7 @@ namespace SeeSharp.Core.Shading {
         }
     }
 
-    public class FresnelSchlick {
+    public struct FresnelSchlick {
         // https://seblagarde.wordpress.com/2013/04/29/memo-on-fresnel-equations/
         //
         // The Schlick Fresnel approximation is:
@@ -94,13 +94,13 @@ namespace SeeSharp.Core.Shading {
         // coming from air..
         public static float SchlickR0FromEta(float eta) {
             var ratio = (eta - 1) / (eta + 1);
-            return ratio * ratio; 
+            return ratio * ratio;
         }
     }
 
     // Specialized Fresnel function used for the specular component, based on
     // a mixture between dielectric and the Schlick Fresnel approximation.
-    public class DisneyFresnel : Fresnel {
+    public struct DisneyFresnel : Fresnel {
         public ColorRGB ReflectanceAtNormal;
         public float Metallic;
         public float IndexOfRefraction;

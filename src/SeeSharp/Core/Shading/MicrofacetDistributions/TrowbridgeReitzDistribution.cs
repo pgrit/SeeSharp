@@ -3,11 +3,16 @@ using System.Diagnostics;
 using System.Numerics;
 
 namespace SeeSharp.Core.Shading.MicrofacetDistributions {
-    public class TrowbridgeReitzDistribution : MicrofacetDistribution {
+    public struct TrowbridgeReitzDistribution {
         public float AlphaX;
         public float AlphaY;
 
-        public override float NormalDistribution(Vector3 normal) {
+        /// <summary>
+        /// Computes the distribution of microfacets with the given normal.
+        /// </summary>
+        /// <param name="normal">The normal vector of the microfacets, in shading space.</param>
+        /// <returns>The fraction of microfacets that are oriented with the given normal.</returns>
+        public float NormalDistribution(Vector3 normal) {
             float tan2Theta = ShadingSpace.TanThetaSqr(normal);
             if (float.IsInfinity(tan2Theta)) return 0;
 
@@ -21,25 +26,56 @@ namespace SeeSharp.Core.Shading.MicrofacetDistributions {
             return 1 / (MathF.PI * AlphaX * AlphaY * cos4Theta * (1 + e) * (1 + e));
         }
 
-        public override float Pdf(Vector3 outDir, Vector3 normal) {
-            return NormalDistribution(normal) * MaskingShadowing(outDir) * MathF.Abs(Vector3.Dot(outDir, normal)) / ShadingSpace.AbsCosTheta(outDir);
+        /// <summary>
+        /// Computes the masking-shadowing function:
+        /// The ratio of visible microfacet area to the total area of all correctly oriented microfacets.
+        /// </summary>
+        /// <param name="normal">
+        /// The normal vector of the microfacets, in shading space.
+        /// </param>
+        /// <returns>The masking shadowing function value ("G" in most papers).</returns>
+        public float MaskingShadowing(Vector3 normal) {
+            return 1 / (1 + MaskingRatio(normal));
         }
 
-        public override Vector3 Sample(Vector3 outDir, Vector2 primary) {
+        public float MaskingShadowing(Vector3 outDir, Vector3 inDir) {
+            return 1 / (1 + MaskingRatio(outDir) + MaskingRatio(inDir));
+        }
+
+        /// <summary>
+        /// The Pdf that is used for importance sampling microfacet normals from this distribution.
+        /// This usually importance samples the portion of normals that are in the hemisphere of the outgoing direction.
+        /// </summary>
+        /// <param name="outDir">The outgoing direction in shading space.</param>
+        /// <param name="inDir">The incoming direction in shading space.</param>
+        /// <returns>The pdf value.</returns>
+        public float Pdf(Vector3 outDir, Vector3 normal) =>
+            NormalDistribution(normal) * MaskingShadowing(outDir) * MathF.Abs(Vector3.Dot(outDir, normal))
+                / ShadingSpace.AbsCosTheta(outDir);
+
+        /// <summary>
+        /// Wraps the given primary sample to follow the pdf computed by <see cref="Pdf(Vector3, Vector3)"/>.
+        /// </summary>
+        /// <returns>The direction that corresponds to the given primary sample.</returns>
+        public Vector3 Sample(Vector3 outDir, Vector2 primary) {
             bool flip = ShadingSpace.CosTheta(outDir) < 0;
             var wh = TrowbridgeReitzSample(flip ? -outDir : outDir, AlphaX, AlphaY, primary.X, primary.Y);
             if (flip) wh = -wh;
             return wh;
         }
 
-        protected override float MaskingRatio(Vector3 normal) {
+        /// <summary>
+        /// Computes the ratio of self-masked area to visible area. Used by <see cref="MaskingShadowing(Vector3)"/>.
+        /// </summary>
+        /// <param name="normal">Normal of the microfacets, in shading space.</param>
+        /// <returns>Ratio of self-masked area to visible area.</returns>
+        public float MaskingRatio(Vector3 normal) {
             float absTanTheta = MathF.Abs(ShadingSpace.TanTheta(normal));
             if (float.IsInfinity(absTanTheta)) return 0;
             float alpha = MathF.Sqrt(ShadingSpace.CosPhiSqr(normal) * AlphaX * AlphaX + ShadingSpace.SinPhiSqr(normal) * AlphaY * AlphaY);
             float alpha2Tan2Theta = alpha * absTanTheta * (alpha * absTanTheta);
             return (-1 + MathF.Sqrt(1 + alpha2Tan2Theta)) / 2;
         }
-
 
         public static void TrowbridgeReitzSample11(float cosTheta, float U1, float U2,
                                                    out float slope_x, out float slope_y) {

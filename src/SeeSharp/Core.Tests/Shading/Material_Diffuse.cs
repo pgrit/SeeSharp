@@ -32,13 +32,11 @@ namespace SeeSharp.Core.Tests {
                 Position = new Vector3(0, 0, 0),
             };
 
-            var bsdf = mtl.GetBsdf(hit);
-
             var outDir = new Vector3(0, 0, 1);
             var inDir = new Vector3(0, 0, -1);
 
-            var (fwd, rev) = bsdf.Pdf(outDir, inDir, false);
-            var val = bsdf.EvaluateWithCosine(outDir, inDir, false);
+            var (fwd, rev) = mtl.Pdf(hit, outDir, inDir, false);
+            var val = mtl.EvaluateWithCosine(hit, outDir, inDir, false);
 
             Assert.Equal(0, rev);
             Assert.Equal(0, fwd);
@@ -71,19 +69,17 @@ namespace SeeSharp.Core.Tests {
                 Position = new Vector3(0, 0, 0),
             };
 
-            var bsdf = mtl.GetBsdf(hit);
-
             var outDir = new Vector3(0, 0, 1);
             var inDir = new Vector3(0, 1, 1);
 
-            var (fwd1, rev1) = bsdf.Pdf(outDir, inDir, false);
-            var (rev2, fwd2) = bsdf.Pdf(inDir, outDir, false);
+            var (fwd1, rev1) = mtl.Pdf(hit, outDir, inDir, false);
+            var (rev2, fwd2) = mtl.Pdf(hit, inDir, outDir, false);
 
             Assert.Equal(rev1, rev2, 3);
             Assert.Equal(fwd1, fwd2, 3);
 
-            var sample = bsdf.Sample(outDir, false, new Vector2(0.2f, 0.7f));
-            var (fwdS, revS) = bsdf.Pdf(outDir, sample.direction, false);
+            var sample = mtl.Sample(hit, outDir, false, new Vector2(0.2f, 0.7f));
+            var (fwdS, revS) = mtl.Pdf(hit, outDir, sample.direction, false);
 
             Assert.Equal(sample.pdf, fwdS, 3);
             Assert.Equal(sample.pdfReverse, revS, 3);
@@ -113,14 +109,12 @@ namespace SeeSharp.Core.Tests {
                 Position = new Vector3(0, 0, 0),
             };
 
-            var bsdf = mtl.GetBsdf(hit);
-
             var outDir = new Vector3(0, 0, 1);
             var inDir = new Vector3(0, 0, 1);
-            var retro = bsdf.EvaluateWithCosine(outDir, inDir, false);
+            var retro = mtl.EvaluateWithCosine(hit, outDir, inDir, false);
 
             var primary = new Vector2(0.25f, 0.8f);
-            var sample = bsdf.Sample(outDir, false, primary);
+            var sample = mtl.Sample(hit, outDir, false, primary);
 
             Assert.Equal(1.0f / MathF.PI, retro.R, 3);
             Assert.Equal(1.0f / MathF.PI, retro.G, 3);
@@ -155,14 +149,12 @@ namespace SeeSharp.Core.Tests {
                 Position = new Vector3(0, 0, 0),
             };
 
-            var bsdf = mtl.GetBsdf(hit);
-
             var outDir = new Vector3(0, 0, 1);
             var inDir = new Vector3(0, 0, 1);
-            var retro = bsdf.EvaluateWithCosine(outDir, inDir, false);
+            var retro = mtl.EvaluateWithCosine(hit, outDir, inDir, false);
 
             var primary = new Vector2(0.25f, 0.8f);
-            var sample = bsdf.Sample(outDir, false, primary);
+            var sample = mtl.Sample(hit, outDir, false, primary);
 
             Assert.Equal(1.0f / MathF.PI, retro.R, 3);
             Assert.Equal(0.0f / MathF.PI, retro.G, 3);
@@ -197,8 +189,6 @@ namespace SeeSharp.Core.Tests {
                 Position = new Vector3(0, 0, 0),
             };
 
-            var bsdf = mtl.GetBsdf(hit);
-
             var outDir = new Vector3(0, 0, 1);
 
             var prims = new Vector2[] {
@@ -214,7 +204,7 @@ namespace SeeSharp.Core.Tests {
             };
 
             foreach (var prim in prims) {
-                var sample = bsdf.Sample(outDir, false, prim);
+                var sample = mtl.Sample(hit, outDir, false, prim);
 
                 if (sample.pdf == 0) {
                     Assert.Equal(0.0f, sample.weight.R, 3);

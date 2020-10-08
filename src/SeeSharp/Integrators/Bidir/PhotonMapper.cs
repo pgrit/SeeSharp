@@ -56,7 +56,7 @@ namespace SeeSharp.Integrators.Bidir {
                 var photon = lightPaths.PathCache[vertexIdx];
                 var ancestor = lightPaths.PathCache[photon.AncestorId];
                 var dirToAncestor = ancestor.Point.Position - photon.Point.Position;
-                var bsdfValue = photon.Point.Bsdf.EvaluateBsdfOnly(-primaryRay.Direction, dirToAncestor, false);
+                var bsdfValue = photon.Point.Material.Evaluate(hit, -primaryRay.Direction, dirToAncestor, false);
                 var photonContrib = photon.Weight * bsdfValue / NumLightPaths;
 
                 // Epanechnikov kernel

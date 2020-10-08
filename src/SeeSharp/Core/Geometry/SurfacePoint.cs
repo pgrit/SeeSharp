@@ -1,4 +1,4 @@
-﻿using SeeSharp.Core.Shading.Bsdfs;
+﻿using SeeSharp.Core.Shading.Materials;
 using System.Numerics;
 
 namespace SeeSharp.Core.Geometry {
@@ -18,6 +18,6 @@ namespace SeeSharp.Core.Geometry {
 
         public Vector2 TextureCoordinates => Mesh.ComputeTextureCoordinates((int)PrimId, BarycentricCoords);
 
-        public Bsdf Bsdf => Mesh.Material.GetBsdf(this);
+        public Material Material => Mesh.Material;
     }
 }

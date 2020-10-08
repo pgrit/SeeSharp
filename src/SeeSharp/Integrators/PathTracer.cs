@@ -131,9 +131,8 @@ namespace SeeSharp.Integrators {
 
             var sample = scene.Background.SampleDirection(rng.NextFloat2D());
             if (scene.Raytracer.LeavesScene(hit, sample.Direction)) {
-                var bsdf = hit.Bsdf;
-                var bsdfTimesCosine = bsdf.EvaluateWithCosine(-ray.Direction, sample.Direction, false);
-                var (pdfBsdf, _)= bsdf.Pdf(-ray.Direction, sample.Direction, false);
+                var bsdfTimesCosine = hit.Material.EvaluateWithCosine(hit, -ray.Direction, sample.Direction, false);
+                var (pdfBsdf, _)= hit.Material.Pdf(hit, -ray.Direction, sample.Direction, false);
 
                 // Since the densities are in solid angle unit, no need for any conversions here
                 float misWeight = EnableBsdfDI ? 1 / (1.0f + pdfBsdf / (sample.Pdf * NumShadowRays)) : 1;
@@ -167,13 +166,11 @@ namespace SeeSharp.Integrators {
                 // Compute the jacobian for surface area -> solid angle
                 // (Inverse of the jacobian for solid angle pdf -> surface area pdf)
                 float jacobian = SampleWrap.SurfaceAreaToSolidAngle(hit, lightSample.point);
-
-                var bsdf = hit.Bsdf;
-                var bsdfCos = bsdf.EvaluateWithCosine(-ray.Direction, -lightToSurface, false);
+                var bsdfCos = hit.Material.EvaluateWithCosine(hit, -ray.Direction, -lightToSurface, false);
 
                 // Compute surface area PDFs
                 float pdfNextEvt = lightSample.pdf * lightSelectProb * NumShadowRays;
-                float pdfBsdfSolidAngle = bsdf.Pdf(-ray.Direction, -lightToSurface, false).Item1;
+                float pdfBsdfSolidAngle = hit.Material.Pdf(hit, -ray.Direction, -lightToSurface, false).Item1;
                 float pdfBsdf = pdfBsdfSolidAngle * jacobian;
 
                 // Compute the resulting power heuristic weights
@@ -192,13 +189,9 @@ namespace SeeSharp.Integrators {
         }
 
         private (Ray, float, ColorRGB) BsdfSample(Scene scene, Ray ray, SurfacePoint hit, RNG rng) {
-            var bsdf = hit.Bsdf;
-
             var primary = rng.NextFloat2D();
-            var bsdfSample = bsdf.Sample(-ray.Direction, false, primary);
-
+            var bsdfSample = hit.Material.Sample(hit, -ray.Direction, false, primary);
             var bsdfRay = scene.Raytracer.SpawnRay(hit, bsdfSample.direction);
-
             return (bsdfRay, bsdfSample.pdf, bsdfSample.weight);
         }
     }

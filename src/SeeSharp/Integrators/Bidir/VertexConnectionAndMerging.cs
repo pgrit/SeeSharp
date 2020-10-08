@@ -120,7 +120,6 @@ namespace SeeSharp.Integrators.Bidir {
                 return ColorRGB.Black;
 
             ColorRGB estimate = ColorRGB.Black;
-            var bsdf = hit.Bsdf;
             photonMap.Query(hit.Position, (vertexIdx, mergeDistanceSquared) => {
                 var photon = lightPaths.PathCache[vertexIdx];
 
@@ -131,11 +130,11 @@ namespace SeeSharp.Integrators.Bidir {
                 // Compute the contribution of the photon
                 var ancestor = lightPaths.PathCache[photon.AncestorId];
                 var dirToAncestor = ancestor.Point.Position - photon.Point.Position;
-                var bsdfValue = bsdf.EvaluateBsdfOnly(-ray.Direction, dirToAncestor, false);
+                var bsdfValue = hit.Material.Evaluate(hit, -ray.Direction, dirToAncestor, false);
                 var photonContrib = photon.Weight * bsdfValue / NumLightPaths;
 
                 // Compute the missing pdf terms and the MIS weight
-                var (pdfLightReverse, pdfCameraReverse) = bsdf.Pdf(-ray.Direction, dirToAncestor, false);
+                var (pdfLightReverse, pdfCameraReverse) = hit.Material.Pdf(hit, -ray.Direction, dirToAncestor, false);
                 pdfCameraReverse *= cameraJacobian;
                 pdfLightReverse *= SampleWrap.SurfaceAreaToSolidAngle(hit, ancestor.Point);
                 float pdfNextEvent = (photon.Depth == 1) ? NextEventPdf(hit, ancestor.Point) : 0;

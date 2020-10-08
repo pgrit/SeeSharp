@@ -3,28 +3,30 @@ using System;
 using System.Numerics;
 
 namespace SeeSharp.Core.Shading.Bsdfs {
-    public struct DiffuseBsdf : BsdfComponent {
-        public ColorRGB reflectance;
+    public struct DiffuseBsdf {
+        ColorRGB reflectance;
 
-        ColorRGB BsdfComponent.Evaluate(Vector3 outDir, Vector3 inDir, bool isOnLightSubpath) {
+        public DiffuseBsdf(ColorRGB reflectance) => this.reflectance = reflectance;
+
+        public ColorRGB Evaluate(Vector3 outDir, Vector3 inDir, bool isOnLightSubpath) {
             // No transmission
             if (!ShadingSpace.SameHemisphere(outDir, inDir))
                 return ColorRGB.Black;
             return reflectance / MathF.PI;
         }
 
-        Vector3? BsdfComponent.Sample(Vector3 outDir, bool isOnLightSubpath, Vector2 primarySample) {
+        public Vector3? Sample(Vector3 outDir, bool isOnLightSubpath, Vector2 primarySample) {
             // Transform primary sample to cosine hemisphere
             var local = SampleWrap.ToCosHemisphere(primarySample);
 
             // Make sure it ends up on the same hemisphere as the outgoing direction
-            if (ShadingSpace.CosTheta(outDir) < 0) 
+            if (ShadingSpace.CosTheta(outDir) < 0)
                 local.direction.Z *= -1;
 
             return local.direction;
         }
 
-        (float, float) BsdfComponent.Pdf(Vector3 outDir, Vector3 inDir, bool isOnLightSubpath) {
+        public (float, float) Pdf(Vector3 outDir, Vector3 inDir, bool isOnLightSubpath) {
             // No transmission
             if (!ShadingSpace.SameHemisphere(outDir, inDir))
                 return (0, 0);
@@ -35,28 +37,30 @@ namespace SeeSharp.Core.Shading.Bsdfs {
         }
     }
 
-    public struct DiffuseTransmission : BsdfComponent {
-        public ColorRGB Transmittance;
+    public struct DiffuseTransmission {
+        ColorRGB transmittance;
 
-        ColorRGB BsdfComponent.Evaluate(Vector3 outDir, Vector3 inDir, bool isOnLightSubpath) {
+        public DiffuseTransmission(ColorRGB transmittance) => this.transmittance = transmittance;
+
+        public ColorRGB Evaluate(Vector3 outDir, Vector3 inDir, bool isOnLightSubpath) {
             // No reflection
             if (ShadingSpace.SameHemisphere(outDir, inDir))
                 return ColorRGB.Black;
-            return Transmittance / MathF.PI;
+            return transmittance / MathF.PI;
         }
 
-        Vector3? BsdfComponent.Sample(Vector3 outDir, bool isOnLightSubpath, Vector2 primarySample) {
+        public Vector3? Sample(Vector3 outDir, bool isOnLightSubpath, Vector2 primarySample) {
             // Transform primary sample to cosine hemisphere
             var local = SampleWrap.ToCosHemisphere(primarySample);
 
             // Make sure the sample is in the other hemisphere as the outgoing direction
             if (ShadingSpace.CosTheta(outDir) > 0)
                 local.direction.Z *= -1;
-                
+
             return local.direction;
         }
 
-        (float, float) BsdfComponent.Pdf(Vector3 outDir, Vector3 inDir, bool isOnLightSubpath) {
+        public (float, float) Pdf(Vector3 outDir, Vector3 inDir, bool isOnLightSubpath) {
             // No reflection
             if (ShadingSpace.SameHemisphere(outDir, inDir))
                 return (0, 0);

@@ -3,18 +3,26 @@ using System;
 using System.Numerics;
 
 namespace SeeSharp.Core.Shading.Bsdfs {
-    public struct MicrofacetTransmission : BsdfComponent {
+    public struct MicrofacetTransmission {
         public ColorRGB Transmittance;
-        public MicrofacetDistribution Distribution;
+        public TrowbridgeReitzDistribution Distribution;
         public float outsideIOR, insideIOR;
 
-        ColorRGB BsdfComponent.Evaluate(Vector3 outDir, Vector3 inDir, bool isOnLightSubpath) {
-            if (ShadingSpace.SameHemisphere(outDir, inDir)) 
+        public MicrofacetTransmission(ColorRGB transmittance, TrowbridgeReitzDistribution distribution,
+                                      float outsideIOR, float insideIOR) {
+            this.Transmittance = transmittance;
+            this.Distribution = distribution;
+            this.outsideIOR = outsideIOR;
+            this.insideIOR = insideIOR;
+        }
+
+        public ColorRGB Evaluate(Vector3 outDir, Vector3 inDir, bool isOnLightSubpath) {
+            if (ShadingSpace.SameHemisphere(outDir, inDir))
                 return ColorRGB.Black;  // transmission only
 
             float cosThetaO = ShadingSpace.CosTheta(outDir);
             float cosThetaI = ShadingSpace.CosTheta(inDir);
-            if (cosThetaI == 0 || cosThetaO == 0) 
+            if (cosThetaI == 0 || cosThetaO == 0)
                 return ColorRGB.Black;
 
             // Compute $\wh$ from $\outDir$ and $\inDir$ for microfacet transmission
@@ -45,20 +53,20 @@ namespace SeeSharp.Core.Shading.Bsdfs {
             return Distribution.Pdf(outDir, wh) * dwh_dinDir;
         }
 
-        (float, float) BsdfComponent.Pdf(Vector3 outDir, Vector3 inDir, bool isOnLightSubpath) {
-            if (ShadingSpace.SameHemisphere(outDir, inDir)) 
+        public (float, float) Pdf(Vector3 outDir, Vector3 inDir, bool isOnLightSubpath) {
+            if (ShadingSpace.SameHemisphere(outDir, inDir))
                 return (0, 0);
-            
+
             return (ComputeOneDir(outDir, inDir), ComputeOneDir(inDir, outDir));
         }
 
-        Vector3? BsdfComponent.Sample(Vector3 outDir, bool isOnLightSubpath, Vector2 primarySample) {
-            if (outDir.Z == 0) 
+        public Vector3? Sample(Vector3 outDir, bool isOnLightSubpath, Vector2 primarySample) {
+            if (outDir.Z == 0)
                 return null;
 
             Vector3 wh = Distribution.Sample(outDir, primarySample);
 
-            if (Vector3.Dot(outDir, wh) < 0) 
+            if (Vector3.Dot(outDir, wh) < 0)
                 return null;
 
             float eta = ShadingSpace.CosTheta(outDir) > 0 ? (outsideIOR / insideIOR) : (insideIOR / outsideIOR);

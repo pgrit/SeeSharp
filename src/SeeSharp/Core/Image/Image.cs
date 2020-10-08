@@ -1,6 +1,7 @@
 using SeeSharp.Core.Shading;
 using System;
 using System.Drawing;
+using System.Numerics;
 using System.Runtime.InteropServices;
 
 namespace SeeSharp.Core.Image {
@@ -68,7 +69,7 @@ namespace SeeSharp.Core.Image {
         /// <summary>
         /// Same as the index operator, only the parameters are (0,1)^2 rather than (0, Width) x (0, Height)
         /// </summary>
-        public ref T TextureLookup(float u, float v) => ref this[u * Width, v * Height];
+        public ref T TextureLookup(Vector2 uv) => ref this[uv.X * Width, uv.Y * Height];
 
         public static void WriteToFile(Image<ColorRGB> image, string filename) {
             var ext = System.IO.Path.GetExtension(filename);

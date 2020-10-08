@@ -17,7 +17,7 @@ namespace SeeSharp.Validation {
                 // new Validate_BananaRange(),
             };
 
-            int benchmarkRuns = 3;
+            int benchmarkRuns = 1;
 
             foreach (var test in allTests) {
                 // Validator.Validate(test);

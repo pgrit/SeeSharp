@@ -3,10 +3,12 @@ using System;
 using System.Numerics;
 
 namespace SeeSharp.Core.Shading.Bsdfs {
-    public struct DisneyDiffuse : BsdfComponent {
-        public ColorRGB Reflectance;
+    public struct DisneyDiffuse {
+        public ColorRGB reflectance;
 
-        ColorRGB BsdfComponent.Evaluate(Vector3 outDir, Vector3 inDir, bool isOnLightSubpath) {
+        public DisneyDiffuse(ColorRGB reflectance) => this.reflectance = reflectance;
+
+        public ColorRGB Evaluate(Vector3 outDir, Vector3 inDir, bool isOnLightSubpath) {
             // No transmission
             if (!ShadingSpace.SameHemisphere(outDir, inDir))
                 return ColorRGB.Black;
@@ -16,10 +18,10 @@ namespace SeeSharp.Core.Shading.Bsdfs {
 
             // Diffuse fresnel - go from 1 at normal incidence to .5 at grazing.
             // Burley 2015, eq (4).
-            return Reflectance / MathF.PI * (1 - fresnelOut / 2) * (1 - fresnelIn / 2);
+            return reflectance / MathF.PI * (1 - fresnelOut / 2) * (1 - fresnelIn / 2);
         }
 
-        Vector3? BsdfComponent.Sample(Vector3 outDir, bool isOnLightSubpath, Vector2 primarySample) {
+        public Vector3? Sample(Vector3 outDir, bool isOnLightSubpath, Vector2 primarySample) {
             // Transform primary sample to cosine hemisphere
             var local = SampleWrap.ToCosHemisphere(primarySample);
 
@@ -30,7 +32,7 @@ namespace SeeSharp.Core.Shading.Bsdfs {
             return local.direction;
         }
 
-        (float, float) BsdfComponent.Pdf(Vector3 outDir, Vector3 inDir, bool isOnLightSubpath) {
+        public (float, float) Pdf(Vector3 outDir, Vector3 inDir, bool isOnLightSubpath) {
             // No transmission
             if (!ShadingSpace.SameHemisphere(outDir, inDir))
                 return (0, 0);
@@ -41,11 +43,16 @@ namespace SeeSharp.Core.Shading.Bsdfs {
         }
     }
 
-    public struct DisneyRetroReflection : BsdfComponent {
-        public ColorRGB Reflectance;
-        public float Roughness;
+    public struct DisneyRetroReflection {
+        ColorRGB reflectance;
+        float roughness;
 
-        ColorRGB BsdfComponent.Evaluate(Vector3 outDir, Vector3 inDir, bool isOnLightSubpath) {
+        public DisneyRetroReflection(ColorRGB reflectance, float roughness) {
+            this.reflectance = reflectance;
+            this.roughness = roughness;
+        }
+
+        public ColorRGB Evaluate(Vector3 outDir, Vector3 inDir, bool isOnLightSubpath) {
             if (!ShadingSpace.SameHemisphere(outDir, inDir))
                 return ColorRGB.Black;
 
@@ -57,16 +64,16 @@ namespace SeeSharp.Core.Shading.Bsdfs {
 
             float Fo = FresnelSchlick.SchlickWeight(ShadingSpace.AbsCosTheta(outDir));
             float Fi = FresnelSchlick.SchlickWeight(ShadingSpace.AbsCosTheta(inDir));
-            float Rr = 2 * Roughness * cosThetaD * cosThetaD;
+            float Rr = 2 * roughness * cosThetaD * cosThetaD;
 
             // Burley 2015, eq (4).
-            return Reflectance / MathF.PI * Rr * (Fo + Fi + Fo * Fi * (Rr - 1));
+            return reflectance / MathF.PI * Rr * (Fo + Fi + Fo * Fi * (Rr - 1));
         }
 
-        Vector3? BsdfComponent.Sample(Vector3 outDir, bool isOnLightSubpath, Vector2 primarySample) {
+        public Vector3? Sample(Vector3 outDir, bool isOnLightSubpath, Vector2 primarySample) {
             // Transform primary sample to cosine hemisphere
             var local = SampleWrap.ToCosHemisphere(primarySample);
-            
+
             // Make sure it ends up on the same hemisphere as the outgoing direction
             if (ShadingSpace.CosTheta(outDir) < 0)
                 local.direction.Z *= -1;
@@ -74,7 +81,7 @@ namespace SeeSharp.Core.Shading.Bsdfs {
             return local.direction;
         }
 
-        (float, float) BsdfComponent.Pdf(Vector3 outDir, Vector3 inDir, bool isOnLightSubpath) {
+        public (float, float) Pdf(Vector3 outDir, Vector3 inDir, bool isOnLightSubpath) {
             // No transmission
             if (!ShadingSpace.SameHemisphere(outDir, inDir))
                 return (0, 0);

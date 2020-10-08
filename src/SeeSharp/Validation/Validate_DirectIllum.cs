@@ -27,8 +27,9 @@ namespace SeeSharp.Validation {
             }, new int[] {
                 0, 1, 2, 0, 2, 3
             }));
-            scene.Meshes[^1].Material = new DiffuseMaterial(new DiffuseMaterial.Parameters {
-                baseColor = Image<ColorRGB>.Constant(ColorRGB.White)
+            scene.Meshes[^1].Material = new GenericMaterial(new GenericMaterial.Parameters {
+                baseColor = Image<ColorRGB>.Constant(ColorRGB.White),
+                roughness = 0.5f,
             });
 
             // Emitter

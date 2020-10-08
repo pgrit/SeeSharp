@@ -183,11 +183,10 @@ namespace SeeSharp.Integrators.Bidir {
                 if (scene.Raytracer.IsOccluded(vertex.Point, scene.Camera.Position))
                     return;
 
-                var bsdf = vertex.Point.Bsdf;
-                var bsdfValue = bsdf.EvaluateBsdfOnly(dirToAncestor, dirToCam, true);
+                var bsdfValue = vertex.Point.Material.Evaluate(vertex.Point, dirToAncestor, dirToCam, true);
 
                 // Compute the surface area pdf of sampling the previous vertex instead
-                float pdfReverse = bsdf.Pdf(dirToCam, dirToAncestor, false).Item1;
+                float pdfReverse = vertex.Point.Material.Pdf(vertex.Point, dirToCam, dirToAncestor, false).Item1;
                 if (ancestor.Point.Mesh != null) // Unless this is a background, i.e., a directional distribution
                     pdfReverse *= SampleWrap.SurfaceAreaToSolidAngle(vertex.Point, ancestor.Point);
 
@@ -227,9 +226,6 @@ namespace SeeSharp.Integrators.Bidir {
             // Select a path to connect to (based on pixel index)
             (int lightEndpoint, bool connectAncestors) = SelectBidirPath(pixelIndex, rng);
 
-            // Precompute the bsdf once, avoids multiple texture lookups and allocations
-            var cameraBsdf = cameraPoint.Bsdf;
-
             void Connect(PathVertex vertex, PathVertex ancestor, Vector3 dirToAncestor) {
                 // Only allow connections that do not exceed the maximum total path length
                 int depth = vertex.Depth + path.Vertices.Count + 1;
@@ -239,24 +235,21 @@ namespace SeeSharp.Integrators.Bidir {
                 if (scene.Raytracer.IsOccluded(vertex.Point, cameraPoint))
                     return;
 
-                // Precompute the bsdf once, avoids multiple texture lookups and allocations
-                var vertexBsdf = vertex.Point.Bsdf;
-
                 // Compute connection direction
                 var dirFromCamToLight = vertex.Point.Position - cameraPoint.Position;
 
-                var bsdfWeightLight = vertexBsdf.EvaluateWithCosine(dirToAncestor, -dirFromCamToLight, true);
-                var bsdfWeightCam = cameraBsdf.EvaluateWithCosine(outDir, dirFromCamToLight, false);
+                var bsdfWeightLight = vertex.Point.Material.EvaluateWithCosine(vertex.Point, dirToAncestor, -dirFromCamToLight, true);
+                var bsdfWeightCam = cameraPoint.Material.EvaluateWithCosine(cameraPoint, outDir, dirFromCamToLight, false);
 
                 if (bsdfWeightCam == ColorRGB.Black || bsdfWeightLight == ColorRGB.Black)
                     return;
 
                 // Compute the missing pdfs
-                var (pdfCameraToLight, pdfCameraReverse) = cameraBsdf.Pdf(outDir, dirFromCamToLight, false);
+                var (pdfCameraToLight, pdfCameraReverse) = cameraPoint.Material.Pdf(cameraPoint, outDir, dirFromCamToLight, false);
                 pdfCameraReverse *= reversePdfJacobian;
                 pdfCameraToLight *= SampleWrap.SurfaceAreaToSolidAngle(cameraPoint, vertex.Point);
 
-                var (pdfLightToCamera, pdfLightReverse) = vertexBsdf.Pdf(dirToAncestor, -dirFromCamToLight, true);
+                var (pdfLightToCamera, pdfLightReverse) = vertex.Point.Material.Pdf(vertex.Point, dirToAncestor, -dirFromCamToLight, true);
                 if (ancestor.Point.Mesh != null) // only convert to surface area if this was an actual surface area sampler
                     pdfLightReverse *= SampleWrap.SurfaceAreaToSolidAngle(vertex.Point, ancestor.Point);
                 pdfLightToCamera *= SampleWrap.SurfaceAreaToSolidAngle(vertex.Point, cameraPoint);
@@ -329,11 +322,10 @@ namespace SeeSharp.Integrators.Bidir {
                 sample.Pdf *= backgroundProbability;
                 sample.Weight /= backgroundProbability;
                 if (scene.Raytracer.LeavesScene(hit, sample.Direction)) {
-                    var bsdf = hit.Bsdf;
-                    var bsdfTimesCosine = bsdf.EvaluateWithCosine(-ray.Direction, sample.Direction, false);
+                    var bsdfTimesCosine = hit.Material.EvaluateWithCosine(hit, -ray.Direction, sample.Direction, false);
 
                     // Compute the reverse BSDF sampling pdf
-                    var (bsdfForwardPdf, bsdfReversePdf) = bsdf.Pdf(-ray.Direction, sample.Direction, false);
+                    var (bsdfForwardPdf, bsdfReversePdf) = hit.Material.Pdf(hit, -ray.Direction, sample.Direction, false);
                     bsdfReversePdf *= reversePdfJacobian;
 
                     // Compute emission pdf
@@ -360,8 +352,7 @@ namespace SeeSharp.Integrators.Bidir {
                     Vector3 lightToSurface = hit.Position - lightSample.point.Position;
                     var emission = light.EmittedRadiance(lightSample.point, lightToSurface);
 
-                    var bsdf = hit.Bsdf;
-                    var bsdfTimesCosine = bsdf.EvaluateWithCosine(-ray.Direction, -lightToSurface, false);
+                    var bsdfTimesCosine = hit.Material.EvaluateWithCosine(hit, -ray.Direction, -lightToSurface, false);
                     if (bsdfTimesCosine == ColorRGB.Black)
                         return ColorRGB.Black;
 
@@ -371,7 +362,7 @@ namespace SeeSharp.Integrators.Bidir {
                     if (jacobian == 0) return ColorRGB.Black;
 
                     // Compute the missing pdf terms
-                    var (bsdfForwardPdf, bsdfReversePdf) = bsdf.Pdf(-ray.Direction, -lightToSurface, false);
+                    var (bsdfForwardPdf, bsdfReversePdf) = hit.Material.Pdf(hit, -ray.Direction, -lightToSurface, false);
                     bsdfForwardPdf *= SampleWrap.SurfaceAreaToSolidAngle(hit, lightSample.point);
                     bsdfReversePdf *= reversePdfJacobian;
 

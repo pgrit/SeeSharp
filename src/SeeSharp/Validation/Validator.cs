@@ -73,11 +73,11 @@ namespace SeeSharp.Validation {
                     MaxDepth = sceneFactory.MaxDepth,
                     RenderTechniquePyramid = true
                 },
-                new VertexConnectionAndMerging() {
-                    NumIterations = sceneFactory.SamplesPerPixel / 2,
-                    MaxDepth = sceneFactory.MaxDepth,
-                    RenderTechniquePyramid = true
-                }
+                // new VertexConnectionAndMerging() {
+                //     NumIterations = sceneFactory.SamplesPerPixel / 2,
+                //     MaxDepth = sceneFactory.MaxDepth,
+                //     RenderTechniquePyramid = true
+                // }
                 //new PhotonMapper() {
                 //    NumIterations = sceneFactory.SamplesPerPixel,
                 //    MaxDepth = sceneFactory.MaxDepth
@@ -94,7 +94,7 @@ namespace SeeSharp.Validation {
             var names = new List<string> {
                 "PathTracer",
                 "ClassicBidir",
-                "Vcm",
+                // "Vcm",
                 //"PhotonMapper",
                 //"VertexCacheBidir"
             };

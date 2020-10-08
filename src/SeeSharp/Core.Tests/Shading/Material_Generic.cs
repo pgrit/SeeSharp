@@ -10,7 +10,10 @@ namespace SeeSharp.Core.Tests.Shading {
         [Fact]
         public void Pdfs_ShouldBeConsistent() {
             Material mtl = new GenericMaterial(new GenericMaterial.Parameters {
-                baseColor = Image<ColorRGB>.Constant(new ColorRGB(1, 1, 1))
+                baseColor = Image<ColorRGB>.Constant(new ColorRGB(1, 1, 1)),
+                roughness = 0.2f,
+                specularTransmittance = 0.8f,
+                diffuseTransmittance = 0.3f
             });
 
             var mesh = new Mesh(new Vector3[] {
@@ -31,19 +34,17 @@ namespace SeeSharp.Core.Tests.Shading {
                 Position = new Vector3(0, 0, 0),
             };
 
-            var bsdf = mtl.GetBsdf(hit);
-
             var outDir = new Vector3(0, 0, 1);
             var inDir = new Vector3(0, 1, 1);
 
-            var (fwd1, rev1) = bsdf.Pdf(outDir, inDir, false);
-            var (rev2, fwd2) = bsdf.Pdf(inDir, outDir, false);
+            var (fwd1, rev1) = mtl.Pdf(hit, outDir, inDir, false);
+            var (rev2, fwd2) = mtl.Pdf(hit, inDir, outDir, false);
 
             Assert.Equal(rev1, rev2, 3);
             Assert.Equal(fwd1, fwd2, 3);
 
-            var sample = bsdf.Sample(outDir, false, new Vector2(0.2f, 0.7f));
-            var (fwdS, revS) = bsdf.Pdf(outDir, sample.direction, false);
+            var sample = mtl.Sample(hit, outDir, false, new Vector2(0.2f, 0.7f));
+            var (fwdS, revS) = mtl.Pdf(hit, outDir, sample.direction, false);
 
             Assert.Equal(sample.pdf, fwdS, 3);
             Assert.Equal(sample.pdfReverse, revS, 3);

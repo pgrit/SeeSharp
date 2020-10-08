@@ -75,7 +75,7 @@ namespace SeeSharp.Integrators.Bidir {
 
                 // The next event pdf is computed once the path has three vertices
                 if (depth == 2 && callback != null) {
-                    var vertex = cache[pathIdx, lastId];
+                    ref var vertex = ref cache[pathIdx, lastId];
                     var primary = cache[pathIdx, vertex.AncestorId];
                     var origin = cache[pathIdx, primary.AncestorId];
                     vertex.PdfNextEventAncestor = callback(origin, primary, ray.Direction);

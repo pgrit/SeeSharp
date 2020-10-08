@@ -38,9 +38,9 @@ namespace SeeSharp.Integrators.Bidir {
             return (light, sample);
         }
 
-        public override (int, bool) SelectBidirPath(int pixelIndex, RNG rng) {
+        public override (int, int) SelectBidirPath(int pixelIndex, RNG rng) {
             // Select a single vertex from the entire cache at random
-            return (vertexSelector.Select(rng), false);
+            return vertexSelector.Select(rng);
         }
 
         /// <summary>

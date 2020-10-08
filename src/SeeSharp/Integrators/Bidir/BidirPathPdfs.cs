@@ -35,7 +35,7 @@ namespace SeeSharp.Integrators {
             for (int i = lastCameraVertexIdx + 1; i < numPdfs - 2; ++i) {
                 PdfsLightToCamera[i] = nextVert.PdfFromAncestor;
                 PdfsCameraToLight[i + 2] = nextVert.PdfReverseAncestor + nextVert.PdfNextEventAncestor;
-                nextVert = LightPathCache[nextVert.AncestorId];
+                nextVert = LightPathCache[nextVert.PathId, nextVert.AncestorId];
             }
             PdfsLightToCamera[^2] = nextVert.PdfFromAncestor;
             PdfsLightToCamera[^1] = 1;

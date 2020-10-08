@@ -120,15 +120,15 @@ namespace SeeSharp.Integrators.Bidir {
                 return ColorRGB.Black;
 
             ColorRGB estimate = ColorRGB.Black;
-            photonMap.Query(hit.Position, (vertexIdx, mergeDistanceSquared) => {
-                var photon = lightPaths.PathCache[vertexIdx];
+            photonMap.Query(hit.Position, (pathIdx, vertexIdx, mergeDistanceSquared) => {
+                var photon = lightPaths.PathCache[pathIdx, vertexIdx];
 
                 // Check that the path does not exceed the maximum length
                 var depth = path.Vertices.Count + photon.Depth;
                 if (depth > MaxDepth) return;
 
                 // Compute the contribution of the photon
-                var ancestor = lightPaths.PathCache[photon.AncestorId];
+                var ancestor = lightPaths.PathCache[pathIdx, photon.AncestorId];
                 var dirToAncestor = ancestor.Point.Position - photon.Point.Position;
                 var bsdfValue = hit.Material.Evaluate(hit, -ray.Direction, dirToAncestor, false);
                 var photonContrib = photon.Weight * bsdfValue / NumLightPaths;

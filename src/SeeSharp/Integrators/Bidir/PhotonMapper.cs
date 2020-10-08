@@ -51,10 +51,10 @@ namespace SeeSharp.Integrators.Bidir {
             // Gather nearby photons
             float radius = scene.SceneRadius / 100.0f;
             ColorRGB estimate = ColorRGB.Black;
-            photonMap.Query(hit.Position, (vertexIdx, mergeDistanceSquared) => {
+            photonMap.Query(hit.Position, (pathIdx, vertexIdx, mergeDistanceSquared) => {
                 // Compute the contribution of the photon
-                var photon = lightPaths.PathCache[vertexIdx];
-                var ancestor = lightPaths.PathCache[photon.AncestorId];
+                var photon = lightPaths.PathCache[pathIdx, vertexIdx];
+                var ancestor = lightPaths.PathCache[pathIdx, photon.AncestorId];
                 var dirToAncestor = ancestor.Point.Position - photon.Point.Position;
                 var bsdfValue = photon.Point.Material.Evaluate(hit, -primaryRay.Direction, dirToAncestor, false);
                 var photonContrib = photon.Weight * bsdfValue / NumLightPaths;

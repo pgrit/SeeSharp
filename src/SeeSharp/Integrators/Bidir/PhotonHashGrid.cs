@@ -8,7 +8,8 @@ using System.Numerics;
 namespace SeeSharp.Integrators.Bidir {
     public class PhotonHashGrid {
         struct PhotonReference {
-            public int Index;
+            public int PathIndex;
+            public int VertexIndex;
             public Vector3 Position;
         }
 
@@ -16,17 +17,16 @@ namespace SeeSharp.Integrators.Bidir {
             => vertex.Depth >= 1 && vertex.Weight != ColorRGB.Black;
 
         protected virtual void AssemblePhotons(LightPathCache paths) {
-            photons = new List<PhotonReference>(paths.MaxDepth * paths.Endpoints.Length);
-            foreach (int e in paths.Endpoints) {
-                int vertexId = e;
-                while (paths.PathCache[vertexId].AncestorId != -1) { // iterate over all vertices that have an ancestor
-                    var vertex = paths.PathCache[vertexId];
-
-                    if (Filter(vertex)) {
-                        photons.Add(new PhotonReference { Index = vertexId, Position = vertex.Point.Position });
+            photons = new List<PhotonReference>(paths.MaxDepth * paths.NumPaths);
+            for (int i = 0; i < paths.NumPaths; ++i) {
+                for (int k = 1; k < paths.PathCache.Length(i); ++k) {
+                    if (Filter(paths.PathCache[i, k])) {
+                        photons.Add(new PhotonReference {
+                            PathIndex = i,
+                            VertexIndex = k,
+                            Position = paths.PathCache[i, k].Point.Position
+                        });
                     }
-
-                    vertexId = vertex.AncestorId;
                 }
             }
         }
@@ -69,7 +69,7 @@ namespace SeeSharp.Integrators.Bidir {
             }
         }
 
-        public delegate void Callback(int index, float distanceSquared);
+        public delegate void Callback(int pathIdx, int vertIdx, float distanceSquared);
 
         public void Query(Vector3 pos, Callback callback, float radius) {
             if (!bounds.IsInside(pos)) return;
@@ -91,7 +91,7 @@ namespace SeeSharp.Integrators.Bidir {
                     var photon = photons[photonIndices[j]];
                     float distanceSqr = (pos - photon.Position).LengthSquared();
                     if (distanceSqr < radius * radius)
-                        callback(photon.Index, distanceSqr);
+                        callback(photon.PathIndex, photon.VertexIndex, distanceSqr);
                 }
             }
         }

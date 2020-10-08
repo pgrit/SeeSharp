@@ -41,14 +41,14 @@ namespace SeeSharp.Integrators.Tests {
             float pdfReverse = dummyPath.cameraVertices[^2].PdfToAncestor;
 
             return dummyVcm.NextEventMis(cameraPath,
-                pdfEmit: dummyPath.pathCache[1].PdfFromAncestor,
+                pdfEmit: dummyPath.pathCache[0, 1].PdfFromAncestor,
                 pdfNextEvent: 1.0f / dummyPath.lightArea,
                 pdfHit: dummyPath.cameraVertices[^1].PdfFromAncestor,
                 pdfReverse: pdfReverse);
         }
 
         float LightTracerWeight() {
-            return dummyVcm.LightTracerMis(dummyPath.pathCache[dummyPath.lightEndpointIdx],
+            return dummyVcm.LightTracerMis(dummyPath.pathCache[0, dummyPath.lightEndpointIdx],
                 pdfCamToPrimary: dummyPath.cameraVertices[1].PdfFromAncestor,
                 pdfReverse: dummyPath.cameraVertices[2].PdfFromAncestor,
                 pdfNextEvent: 0,
@@ -61,7 +61,7 @@ namespace SeeSharp.Integrators.Tests {
             };
 
             return dummyVcm.EmitterHitMis(cameraPath,
-                pdfEmit: dummyPath.pathCache[1].PdfFromAncestor,
+                pdfEmit: dummyPath.pathCache[0, 1].PdfFromAncestor,
                 pdfNextEvent: 1.0f / dummyPath.lightArea);
         }
 
@@ -70,7 +70,7 @@ namespace SeeSharp.Integrators.Tests {
                 Vertices = new List<PathPdfPair>(dummyPath.cameraVertices[1..2])
             };
 
-            var lightVertex = dummyPath.pathCache[dummyPath.pathCache[dummyPath.lightEndpointIdx].AncestorId];
+            var lightVertex = dummyPath.pathCache[0, dummyPath.pathCache[0, dummyPath.lightEndpointIdx].AncestorId];
             return dummyVcm.BidirConnectMis(cameraPath, lightVertex,
                 pdfCameraReverse: 1, // light tracer connections are deterministic
                 pdfCameraToLight: dummyPath.cameraVertices[2].PdfFromAncestor,
@@ -84,7 +84,7 @@ namespace SeeSharp.Integrators.Tests {
                 Vertices = new List<PathPdfPair>(dummyPath.cameraVertices[1..2])
             };
 
-            var photon = dummyPath.pathCache[dummyPath.lightEndpointIdx];
+            var photon = dummyPath.pathCache[0, dummyPath.lightEndpointIdx];
             return dummyVcm.MergeMis(cameraPath, photon,
                                      pdfCameraReverse: dummyPath.cameraVertices[^3].PdfToAncestor,
                                      pdfLightReverse: dummyPath.cameraVertices[^2].PdfFromAncestor + 1 / dummyPath.lightArea,
@@ -96,7 +96,7 @@ namespace SeeSharp.Integrators.Tests {
                 Vertices = new List<PathPdfPair>(dummyPath.cameraVertices[1..3])
             };
 
-            var photon = dummyPath.pathCache[dummyPath.pathCache[dummyPath.lightEndpointIdx].AncestorId];
+            var photon = dummyPath.pathCache[0, dummyPath.pathCache[0, dummyPath.lightEndpointIdx].AncestorId];
             return dummyVcm.MergeMis(cameraPath, photon,
                                      pdfCameraReverse: dummyPath.cameraVertices[^2].PdfToAncestor,
                                      pdfLightReverse: dummyPath.cameraVertices[^1].PdfFromAncestor,
@@ -175,14 +175,14 @@ namespace SeeSharp.Integrators.Tests {
             float pdfNextEvt = verts[1].PdfFromAncestor * verts[2].PdfFromAncestor * (1.0f / dummyPath.lightArea);
 
             var lightVerts = dummyPath.pathCache;
-            float pdfLightTracer = lightVerts[1].PdfFromAncestor * lightVerts[2].PdfFromAncestor * dummyPath.numLightPaths;
+            float pdfLightTracer = lightVerts[0, 1].PdfFromAncestor * lightVerts[0, 2].PdfFromAncestor * dummyPath.numLightPaths;
 
-            float pdfConnectFirst = verts[1].PdfFromAncestor * lightVerts[1].PdfFromAncestor;
+            float pdfConnectFirst = verts[1].PdfFromAncestor * lightVerts[0, 1].PdfFromAncestor;
 
-            float pdfMergeFirst = verts[1].PdfFromAncestor * lightVerts[1].PdfFromAncestor * lightVerts[2].PdfFromAncestor
+            float pdfMergeFirst = verts[1].PdfFromAncestor * lightVerts[0, 1].PdfFromAncestor * lightVerts[0, 2].PdfFromAncestor
                 * dummyPath.numLightPaths * System.MathF.PI * dummyVcm.Radius * dummyVcm.Radius;
 
-            float pdfMergeSecond = verts[1].PdfFromAncestor * verts[2].PdfFromAncestor * lightVerts[1].PdfFromAncestor
+            float pdfMergeSecond = verts[1].PdfFromAncestor * verts[2].PdfFromAncestor * lightVerts[0, 1].PdfFromAncestor
                 * dummyPath.numLightPaths * System.MathF.PI * dummyVcm.Radius * dummyVcm.Radius;
 
             float pdfSum = pdfHit + pdfNextEvt + pdfLightTracer + pdfMergeFirst + pdfMergeSecond + pdfConnectFirst;

@@ -13,16 +13,16 @@ namespace SeeSharp.Integrators.Bidir {
             Prepare();
         }
 
-        public int Select(RNG rng) => indices[rng.NextInt(0, indices.Count)];
+        public (int, int) Select(RNG rng) {
+            int pathIdx = rng.NextInt(0, cache.NumPaths);
+            int vertIdx = rng.NextInt(0, cache.Length(pathIdx));
+            return (pathIdx, vertIdx);
+        }//=> indices[rng.NextInt(0, indices.Count)];
 
         public int Count => indices.Count;
 
         void Prepare() {
-            indices = new List<int>(cache.Count);
-            for (int i = 0; i < cache.Count; ++i) {
-                if (cache[i].AncestorId != -1)
-                    indices.Add(i);
-            }
+
         }
 
         PathCache cache;

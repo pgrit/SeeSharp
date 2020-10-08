@@ -21,7 +21,7 @@ namespace SeeSharp.Integrators.Tests.Helpers {
             this.normals = normals;
 
             // Create the light path
-            pathCache = new PathCache(10);
+            pathCache = new PathCache(1, 10);
 
             var emitterVertex = new PathVertex {
                 Point = new SurfacePoint {
@@ -33,7 +33,7 @@ namespace SeeSharp.Integrators.Tests.Helpers {
                 AncestorId = -1,
                 Depth = 0
             };
-            int emVertexId = pathCache.AddVertex(emitterVertex);
+            int emVertexId = pathCache.AddVertex(emitterVertex, 0);
 
             // Add all intermediate surface vertices
             var prevLightVertex = emitterVertex;
@@ -71,7 +71,7 @@ namespace SeeSharp.Integrators.Tests.Helpers {
                     lastNee = 0.0f;
                 }
 
-                int lightVertexIndex = pathCache.AddVertex(surfaceVertex);
+                int lightVertexIndex = pathCache.AddVertex(surfaceVertex, 0);
 
                 prevLightVertex = surfaceVertex;
                 prevLightVertexIdx = lightVertexIndex;
@@ -98,7 +98,7 @@ namespace SeeSharp.Integrators.Tests.Helpers {
             float nextReverse = lastReverse;
             int lightVertIdx = lightEndpointIdx;
             for (int idx = 2; idx < positions.Length; ++idx) {
-                var lightVert = pathCache[lightVertIdx];
+                var lightVert = pathCache[0, lightVertIdx];
 
                 cameraVertices[idx] = new PathPdfPair {
                     PdfFromAncestor = nextReverse,
@@ -110,9 +110,9 @@ namespace SeeSharp.Integrators.Tests.Helpers {
             }
 
             // The last camera path vertex is special: it should not already contain the NEE pdf
-            var dir = pathCache[0].Point.Position - pathCache[1].Point.Position;
-            var cossurf = Vector3.Dot(Vector3.Normalize(dir), pathCache[1].Point.Normal);
-            var coslight = Vector3.Dot(Vector3.Normalize(-dir), pathCache[0].Point.Normal);
+            var dir = pathCache[0, 0].Point.Position - pathCache[0, 1].Point.Position;
+            var cossurf = Vector3.Dot(Vector3.Normalize(dir), pathCache[0, 1].Point.Normal);
+            var coslight = Vector3.Dot(Vector3.Normalize(-dir), pathCache[0, 0].Point.Normal);
             var distsqr = dir.LengthSquared();
             cameraVertices[^1].PdfFromAncestor = cossurf * coslight / distsqr / MathF.PI;
         }

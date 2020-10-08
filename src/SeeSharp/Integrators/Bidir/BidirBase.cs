@@ -149,13 +149,13 @@ namespace SeeSharp.Integrators.Bidir {
                                              float pdfNextEvent, Vector2 pixel);
 
         public void SplatLightVertices() {
-            Parallel.For(0, lightPaths.Endpoints.Length, idx => {
-                ConnectLightPathToCamera(lightPaths.Endpoints[idx]);
+            Parallel.For(0, lightPaths.NumPaths, idx => {
+                ConnectLightPathToCamera(idx);
             });
         }
 
-        public void ConnectLightPathToCamera(int endpoint) {
-            lightPaths.ForEachVertex(endpoint, (vertex, ancestor, dirToAncestor) => {
+        public void ConnectLightPathToCamera(int pathIdx) {
+            lightPaths.ForEachVertex(pathIdx, (vertex, ancestor, dirToAncestor) => {
                 // Compute image plane location
                 var raster = scene.Camera.WorldToFilm(vertex.Point.Position);
                 if (!raster.HasValue)
@@ -210,21 +210,16 @@ namespace SeeSharp.Integrators.Bidir {
                                               float pdfLightReverse, float pdfLightToCamera,
                                               float pdfNextEvent);
 
-        public virtual (int, bool) SelectBidirPath(int pixelIndex, RNG rng) {
-            return (lightPaths.Endpoints[pixelIndex], true);
+        public virtual (int, int) SelectBidirPath(int pixelIndex, RNG rng) {
+            return (pixelIndex, -1);
         }
 
         public ColorRGB BidirConnections(int pixelIndex, SurfacePoint cameraPoint, Vector3 outDir,
                                          RNG rng, CameraPath path, float reversePdfJacobian) {
             ColorRGB result = ColorRGB.Black;
 
-            if (lightPaths.PathCache.Count - NumLightPaths == 0) {
-                // No light paths to connect to! (not counting those on the emitter itself)
-                return ColorRGB.Black;
-            }
-
             // Select a path to connect to (based on pixel index)
-            (int lightEndpoint, bool connectAncestors) = SelectBidirPath(pixelIndex, rng);
+            (int lightPathIdx, int lightVertIdx) = SelectBidirPath(pixelIndex, rng);
 
             void Connect(PathVertex vertex, PathVertex ancestor, Vector3 dirToAncestor) {
                 // Only allow connections that do not exceed the maximum total path length
@@ -274,19 +269,16 @@ namespace SeeSharp.Integrators.Bidir {
                                path.Vertices.Count, vertex.Depth, depth);
             }
 
-            if (!connectAncestors) {
-                var vertex = lightPaths.PathCache[lightEndpoint];
-                if (vertex.AncestorId == -1)
-                    return ColorRGB.Black;
-                var ancestor = lightPaths.PathCache[vertex.AncestorId];
+            if (lightVertIdx > 0) { // specific vertex selected
+                var vertex = lightPaths.PathCache[lightPathIdx, lightVertIdx];
+                var ancestor = lightPaths.PathCache[lightPathIdx, lightVertIdx - 1];
                 var dirToAncestor = ancestor.Point.Position - vertex.Point.Position;
                 Connect(vertex, ancestor, dirToAncestor);
-                return result;
-            } else {
-                // Connect with all vertices along the path
-                lightPaths.ForEachVertex(lightEndpoint, Connect);
-                return result;
+            } else { // Connect with all vertices along the path
+                lightPaths.ForEachVertex(lightPathIdx, Connect);
             }
+
+            return result;
         }
 
         public abstract float NextEventMis(CameraPath cameraPath, float pdfEmit, float pdfNextEvent, float pdfHit, float pdfReverse);

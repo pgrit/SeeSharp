@@ -32,7 +32,7 @@ namespace SeeSharp.Core.Sampling {
 
         /// <summary>Random number from min (inclusive) to max (exclusive)</summary>
         public int NextInt(int min, int max) {
-            if (max == min)
+            if (max <= min)
                 return min;
 
             var delta = (ulong)max - (ulong)min;

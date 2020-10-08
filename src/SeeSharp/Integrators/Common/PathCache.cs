@@ -1,9 +1,9 @@
 using SeeSharp.Core.Geometry;
 using SeeSharp.Core.Shading;
-using System.Threading;
+using System;
 
 namespace SeeSharp.Integrators.Common {
-    public class PathVertex {
+    public struct PathVertex {
         public SurfacePoint Point;
 
         // Surface area pdf to sample this vertex from the previous one,
@@ -19,6 +19,7 @@ namespace SeeSharp.Integrators.Common {
         public ColorRGB Weight;
 
         public int AncestorId;
+        public int PathId;
 
         // The number of edges along the path. This should be clarified,
         // conventions differ between rendereres!
@@ -26,38 +27,46 @@ namespace SeeSharp.Integrators.Common {
     }
 
     public class PathCache { // TODO no need for all the fancy pre-alloc if we are using class anyway
-        public PathCache(int capacity) {
-            vertices = new PathVertex[capacity];
+        public PathCache(int numPaths, int pathCapacity) {
+            vertices = new PathVertex[numPaths, pathCapacity];
+            next = new int[numPaths];
+            this.numPaths = numPaths;
+            this.pathCapacity = pathCapacity;
         }
 
-        public ref PathVertex this[int vertexId] {
-            get => ref vertices[vertexId];
+        public ref PathVertex this[int pathIdx, int vertexId] {
+            get => ref vertices[pathIdx, vertexId];
         }
 
-        public int Count => next;
-
-        public int AddVertex(PathVertex vertex) {
-            int idx = Interlocked.Increment(ref next) - 1;
-
-            if (idx >= vertices.Length)
+        public int AddVertex(PathVertex vertex, int pathIdx) {
+            int idx = next[pathIdx]++;
+            if (idx >= pathCapacity)
                 return -1;
-
-            vertices[idx] = vertex;
+            vertices[pathIdx, idx] = vertex;
+            vertices[pathIdx, idx].PathId = pathIdx;
             return idx;
         }
 
         public void Clear() {
-            int overflow = next - vertices.Length;
-            if (overflow > 0) {
-                System.Console.WriteLine($"Overflow detected. Resizing to fit {overflow * 2} additional vertices.");
-                vertices = new PathVertex[vertices.Length + overflow * 2];
+            int overflow = 0;
+            for (int i = 0; i < numPaths; ++i) {
+                overflow = Math.Max(next[i] - pathCapacity, overflow);
+                next[i] = 0;
             }
 
-            next = 0;
+            if (overflow > 0) {
+                System.Console.WriteLine($"Overflow detected. Resizing to fit {overflow * 2} additional vertices.");
+                pathCapacity += overflow * 2;
+                vertices = new PathVertex[numPaths, pathCapacity];
+            }
         }
 
-        PathVertex[] vertices;
-        int next = 0;
+        public int Length(int index) => next[index];
+        public int NumPaths => numPaths;
+
+        PathVertex[,] vertices;
+        int[] next;
+        int numPaths, pathCapacity;
     }
 
 }

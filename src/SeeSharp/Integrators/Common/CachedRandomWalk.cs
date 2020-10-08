@@ -8,12 +8,14 @@ namespace SeeSharp.Integrators.Common {
     public class CachedRandomWalk : RandomWalk {
         public PathCache cache;
         public int lastId;
+        protected int pathIdx;
 
         float nextReversePdf = 0.0f;
 
-        public CachedRandomWalk(Scene scene, RNG rng, int maxDepth, PathCache cache)
+        public CachedRandomWalk(Scene scene, RNG rng, int maxDepth, PathCache cache, int pathIdx)
             : base(scene, rng, maxDepth) {
             this.cache = cache;
+            this.pathIdx = pathIdx;
         }
 
         public override ColorRGB StartFromEmitter(EmitterSample emitterSample, ColorRGB initialWeight) {
@@ -28,7 +30,7 @@ namespace SeeSharp.Integrators.Common {
                 Weight = ColorRGB.Black, // the first known weight is that at the first hit point
                 AncestorId = -1,
                 Depth = 0
-            });
+            }, pathIdx);
             return base.StartFromEmitter(emitterSample, initialWeight);
         }
 
@@ -44,7 +46,7 @@ namespace SeeSharp.Integrators.Common {
                 Weight = ColorRGB.Black, // the first known weight is that at the first hit point
                 AncestorId = -1,
                 Depth = 0
-            });
+            }, pathIdx);
             return base.StartFromBackground(ray, initialWeight, pdf);
         }
 
@@ -58,7 +60,7 @@ namespace SeeSharp.Integrators.Common {
                 Weight = throughput,
                 AncestorId = lastId,
                 Depth = (byte)depth
-            });
+            }, pathIdx);
             return ColorRGB.Black;
         }
 

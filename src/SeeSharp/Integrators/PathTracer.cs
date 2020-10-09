@@ -3,6 +3,7 @@ using SeeSharp.Core.Geometry;
 using SeeSharp.Core.Sampling;
 using SeeSharp.Core.Shading;
 using SeeSharp.Core.Shading.Emitters;
+using SeeSharp.Integrators.Bidir;
 using System;
 using System.Numerics;
 
@@ -14,10 +15,27 @@ namespace SeeSharp.Integrators {
         public uint MinDepth = 1;
         public int NumShadowRays = 1;
         public bool EnableBsdfDI = true;
+        public bool RenderTechniquePyramid = true;
 
-        public virtual void RegisterSample(Vector2 pixel, ColorRGB weight, float misWeight, uint depth, bool isNextEvent) { }
+        TechPyramid techPyramidRaw;
+        TechPyramid techPyramidWeighted;
+
+        public virtual void RegisterSample(Vector2 pixel, ColorRGB weight, float misWeight, uint depth, bool isNextEvent) {
+            if (!RenderTechniquePyramid)
+                return;
+            weight /= TotalSpp;
+            techPyramidRaw.Add((int)depth - (isNextEvent ? 1 : 0), 0, (int)depth, pixel, weight);
+            techPyramidWeighted.Add((int)depth - (isNextEvent ? 1 : 0), 0, (int)depth, pixel, weight * misWeight);
+        }
 
         public override void Render(Scene scene) {
+            if (RenderTechniquePyramid) {
+                techPyramidRaw = new TechPyramid(scene.FrameBuffer.Width, scene.FrameBuffer.Height,
+                    (int)MinDepth, (int)MaxDepth, false, false, false);
+                techPyramidWeighted = new TechPyramid(scene.FrameBuffer.Width, scene.FrameBuffer.Height,
+                    (int)MinDepth, (int)MaxDepth, false, false, false);
+            }
+
             for (uint sampleIndex = 0; sampleIndex < TotalSpp; ++sampleIndex) {
                 scene.FrameBuffer.StartIteration();
                 System.Threading.Tasks.Parallel.For(0, scene.FrameBuffer.Height,
@@ -28,6 +46,13 @@ namespace SeeSharp.Integrators {
                     }
                 );
                 scene.FrameBuffer.EndIteration();
+            }
+
+            if (RenderTechniquePyramid) {
+                string pathRaw = System.IO.Path.Join(scene.FrameBuffer.Basename, "techs-raw");
+                techPyramidRaw.WriteToFiles(pathRaw);
+                string pathWeighted = System.IO.Path.Join(scene.FrameBuffer.Basename, "techs-weighted");
+                techPyramidWeighted.WriteToFiles(pathWeighted);
             }
         }
 

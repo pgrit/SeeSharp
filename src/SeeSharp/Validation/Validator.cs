@@ -64,11 +64,11 @@ namespace SeeSharp.Validation {
             var sceneLoadTime = stopwatch.ElapsedMilliseconds;
 
             var algorithms = new List<Integrator>() {
-                // new PathTracer() {
-                //     TotalSpp = sceneFactory.SamplesPerPixel,
-                //     MaxDepth = (uint)sceneFactory.MaxDepth,
-                //     MinDepth = 1
-                // },
+                new PathTracer() {
+                    TotalSpp = sceneFactory.SamplesPerPixel,
+                    MaxDepth = (uint)sceneFactory.MaxDepth,
+                    MinDepth = 1
+                },
                 new WavePathTracer() {
                     TotalSpp = sceneFactory.SamplesPerPixel,
                     MaxDepth = (uint)sceneFactory.MaxDepth,
@@ -98,7 +98,7 @@ namespace SeeSharp.Validation {
                 //}
             };
             var names = new List<string> {
-                // "PathTracer",
+                "PathTracer",
                 "WavePathTracer",
                 // "ClassicBidir",
                 // "Vcm",

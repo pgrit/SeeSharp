@@ -22,10 +22,11 @@ namespace SeeSharp.Integrators.Bidir {
                 if (depth == 1) continue;
 
                 // Light tracer
-                techniqueNames.Add(key: (cameraPathEdges: 0,
-                                         lightPathEdges: depth - 1,
-                                         totalEdges: depth),
-                                   value: $"{depth}-light-tracer");
+                if (lightTracer)
+                    techniqueNames.Add(key: (cameraPathEdges: 0,
+                                            lightPathEdges: depth - 1,
+                                            totalEdges: depth),
+                                       value: $"{depth}-light-tracer");
 
                 // Next event estimation
                 techniqueNames.Add(key: (cameraPathEdges: depth - 1,

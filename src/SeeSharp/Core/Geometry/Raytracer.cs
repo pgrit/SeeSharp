@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Numerics;
 using System.Runtime.InteropServices;
 
@@ -46,7 +47,8 @@ namespace SeeSharp.Core.Geometry {
             return hit;
         }
 
-        public void TraceBatch(Ray[] rays, SurfacePoint[] hits) {
+        public void Trace(Ray[] rays, SurfacePoint[] hits) {
+            Debug.Assert(rays.Length == hits.Length);
             // TODO proper support at the lower level
             System.Threading.Tasks.Parallel.For(0, rays.Length, (idx) => {
                 hits[idx] = Trace(rays[idx]);
@@ -58,7 +60,7 @@ namespace SeeSharp.Core.Geometry {
             return from.Position + sign * from.ErrorOffset * from.Normal;
         }
 
-        public bool IsOccluded(SurfacePoint from, SurfacePoint to) {
+        public ShadowRay MakeShadowRay(SurfacePoint from, SurfacePoint to) {
             const float shadowEpsilon = 1e-5f;
 
             // Compute the ray with proper offsets
@@ -73,39 +75,58 @@ namespace SeeSharp.Core.Geometry {
                 MinDistance = shadowEpsilon,
             };
 
-            // TODO use a proper optimized method here that does not compute the actual closest hit.
-            var p = Trace(ray);
-
-            bool occluded = p.Mesh != null && p.Distance < 1 - shadowEpsilon;
-
-            return occluded;
+            return new ShadowRay(ray, 1 - shadowEpsilon);
         }
 
-        public bool IsOccluded(SurfacePoint from, Vector3 target) {
+        public ShadowRay MakeShadowRay(SurfacePoint from, Vector3 target) {
             // Compute the ray with proper offsets
             var dir = target - from.Position;
             var dist = dir.Length();
             dir /= dist;
+            return new ShadowRay(SpawnRay(from, dir), dist - from.ErrorOffset);
+        }
 
-            var ray = SpawnRay(from, dir);
+        public ShadowRay MakeBackgroundShadowRay(SurfacePoint from, Vector3 direction) {
+            var ray = SpawnRay(from, direction);
+            return new ShadowRay(ray, float.MaxValue);
+        }
 
+        public bool IsOccluded(ShadowRay ray) {
             // TODO use a proper optimized method here that does not compute the actual closest hit.
-            var p = Trace(ray);
+            var p = Trace(ray.Ray);
+            bool occluded = p.Mesh != null && p.Distance < ray.MaxDistance;
+            return occluded;
+        }
 
-            bool occluded = p.Mesh != null
-                && p.Distance < dist - from.ErrorOffset;
+        public bool IsOccluded(SurfacePoint from, SurfacePoint to) {
+            var ray = MakeShadowRay(from, to);
+            // TODO use a proper optimized method here that does not compute the actual closest hit.
+            var p = Trace(ray.Ray);
+            bool occluded = p.Mesh != null && p.Distance < ray.MaxDistance;
+            return occluded;
+        }
 
+        public void IsOccluded(ShadowRay[] rays, bool[] result) {
+            Debug.Assert(rays.Length == result.Length);
+            // TODO proper wave support
+            System.Threading.Tasks.Parallel.For(0, rays.Length, i => {
+                result[i] = IsOccluded(rays[i]);
+            });
+        }
+
+        public bool IsOccluded(SurfacePoint from, Vector3 target) {
+            var ray = MakeShadowRay(from, target);
+            // TODO use a proper optimized method here that does not compute the actual closest hit.
+            var p = Trace(ray.Ray);
+            bool occluded = p.Mesh != null && p.Distance < ray.MaxDistance;
             return occluded;
         }
 
         public bool LeavesScene(SurfacePoint from, Vector3 direction) {
-            var ray = SpawnRay(from, direction);
-
+            var ray = MakeBackgroundShadowRay(from, direction);
             // TODO use a proper optimized method here that does not compute the actual closest hit.
-            var p = Trace(ray);
-
+            var p = Trace(ray.Ray);
             bool occluded = p.Mesh != null;
-
             return !occluded;
         }
 

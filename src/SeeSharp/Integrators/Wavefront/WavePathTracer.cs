@@ -1,5 +1,6 @@
 using System;
 using System.Numerics;
+using System.Threading.Tasks;
 using SeeSharp.Core;
 using SeeSharp.Core.Geometry;
 using SeeSharp.Core.Sampling;
@@ -13,13 +14,13 @@ namespace SeeSharp.Integrators.Wavefront {
         public int TotalSpp = 20;
         public uint MaxDepth = 2;
         public uint MinDepth = 1;
-        public bool RenderTechniquePyramid = false;
+        public bool RenderTechniquePyramid = true;
 
         Scene scene;
         TechPyramid techPyramidRaw;
         TechPyramid techPyramidWeighted;
 
-        struct PathWeight {
+        struct PathPayload {
             public Vector2 Pixel;
             public ColorRGB Throughput;
             public RNG Rng;
@@ -40,7 +41,7 @@ namespace SeeSharp.Integrators.Wavefront {
 
             var numPixels = scene.FrameBuffer.Width * scene.FrameBuffer.Height;
             var wavefront = new Wavefront(scene, numPixels);
-            var pathWeights = new PathWeight[numPixels];
+            var payloads = new PathPayload[numPixels];
 
             if (RenderTechniquePyramid) {
                 techPyramidRaw = new TechPyramid(scene.FrameBuffer.Width, scene.FrameBuffer.Height,
@@ -51,10 +52,10 @@ namespace SeeSharp.Integrators.Wavefront {
 
             for (int sampleIndex = 0; sampleIndex < TotalSpp; ++sampleIndex) {
                 scene.FrameBuffer.StartIteration();
-                LaunchWave(wavefront, pathWeights, sampleIndex);
+                LaunchWave(wavefront, payloads, sampleIndex);
                 for (int d = 1; d <= MaxDepth; ++d) {
                     wavefront.Intersect();
-                    ShadeWave(wavefront, pathWeights, d);
+                    ShadeWave(wavefront, payloads, d);
                 }
                 scene.FrameBuffer.EndIteration();
             }
@@ -67,7 +68,7 @@ namespace SeeSharp.Integrators.Wavefront {
             }
         }
 
-        void LaunchWave(Wavefront wave, PathWeight[] weights, int sampleIndex) {
+        void LaunchWave(Wavefront wave, PathPayload[] weights, int sampleIndex) {
             wave.Init(idx => {
                 // Seed the random number generator
                 var seed = RNG.HashSeed(BaseSeed, (uint)idx, (uint)sampleIndex);
@@ -84,49 +85,65 @@ namespace SeeSharp.Integrators.Wavefront {
             });
         }
 
-        void ShadeWave(Wavefront wave, PathWeight[] weights, int depth) {
+        void ShadeWave(Wavefront wave, PathPayload[] payloads, int depth) {
             wave.Process((idx, ray, hit) => {
-                ref PathWeight path = ref weights[idx];
+                ref PathPayload path = ref payloads[idx];
 
                 // Did the ray leave the scene?
                 if (!hit) {
-                    OnBackgroundHit(scene, ray, path.Pixel, path.Throughput, depth, path.PreviousPdf);
-                    return null;
+                    OnBackgroundHit(ray, path.Pixel, path.Throughput, depth, path.PreviousPdf);
+                    return false;
                 }
 
                 // Check if a light source was hit.
                 Emitter light = scene.QueryEmitter(hit);
                 if (light != null && depth >= MinDepth) {
-                    var value = OnLightHit(scene, ray, path.Pixel, path.Throughput, depth, path.PreviousHit, path.PreviousPdf, hit, light);
+                    var value = OnLightHit(ray, path.Pixel, path.Throughput, depth, path.PreviousHit, path.PreviousPdf, hit, light);
                     scene.FrameBuffer.Splat(path.Pixel.X, path.Pixel.Y, value * path.Throughput);
                 }
 
-                // TODO generate a wave of shadow rays
-                //      batched eval of bsdfs
-                //      batched trace of shadow rays
+                return true;
+            });
 
-                if (depth + 1 >= MinDepth && depth < MaxDepth) {
-                    var value = PerformBackgroundNextEvent(scene, ray, hit, path.Rng, path.Pixel, path.Throughput, depth);
-                    value += PerformNextEventEstimation(scene, ray, hit, path.Rng, path.Pixel, path.Throughput, depth);
-                    scene.FrameBuffer.Splat(path.Pixel.X, path.Pixel.Y, value * path.Throughput);
-                }
+            if (depth + 1 >= MinDepth && depth < MaxDepth) {
+                if (scene.Background != null)
+                    NextEventWave(PerformBackgroundNextEvent, wave, payloads, depth);
+                if (scene.Emitters.Count > 0)
+                    NextEventWave(PerformNextEventEstimation, wave, payloads, depth);
+            }
 
-                // TODO batched sampling of the BSDF
+            ContinueWave(wave, payloads);
+        }
 
-                // Contine the random walk with a sample proportional to the BSDF
-                var (bsdfRay, bsdfPdf, bsdfSampleWeight) = BsdfSample(scene, ray, hit, path.Rng);
-                if (bsdfPdf == 0 || bsdfSampleWeight == ColorRGB.Black)
+        private void ContinueWave(Wavefront wave, PathPayload[] payloads) {
+            var bsdfQueries = new BsdfQuery[wave.Size];
+            wave.Process((idx, ray, hit) => {
+                bsdfQueries[idx].Hit = hit;
+                bsdfQueries[idx].OutDir = -ray.Direction;
+                bsdfQueries[idx].IsActive = true;
+                bsdfQueries[idx].IsOnLightSubpath = false;
+                bsdfQueries[idx].Rng = payloads[idx].Rng;
+                return true;
+            });
+
+            var weights = new ColorRGB[wave.Size];
+            var pdfs = new float[wave.Size];
+            var directions = new Vector3[wave.Size];
+            BsdfQuery.Sample(bsdfQueries, weights, pdfs, directions);
+
+            wave.ContinuePaths((idx, ray, hit) => {
+                if (pdfs[idx] == 0 || weights[idx] == ColorRGB.Black)
                     return null;
 
-                path.Throughput *= bsdfSampleWeight;
-                path.PreviousHit = hit;
-                path.PreviousPdf = bsdfPdf;
+                payloads[idx].Throughput *= weights[idx];
+                payloads[idx].PreviousHit = hit;
+                payloads[idx].PreviousPdf = pdfs[idx];
 
-                return bsdfRay;
+                return scene.Raytracer.SpawnRay(hit, directions[idx]);
             });
         }
 
-        private ColorRGB OnBackgroundHit(Scene scene, Ray ray, Vector2 pixel, ColorRGB throughput, int depth, float previousPdf) {
+        private ColorRGB OnBackgroundHit(Ray ray, Vector2 pixel, ColorRGB throughput, int depth, float previousPdf) {
             if (scene.Background == null)
                 return ColorRGB.Black;
 
@@ -142,7 +159,7 @@ namespace SeeSharp.Integrators.Wavefront {
             return misWeight * emission;
         }
 
-        private ColorRGB OnLightHit(Scene scene, Ray ray, Vector2 pixel, ColorRGB throughput, int depth,
+        private ColorRGB OnLightHit(Ray ray, Vector2 pixel, ColorRGB throughput, int depth,
                                     SurfacePoint? previousHit, float previousPdf, SurfacePoint hit, Emitter light) {
             float misWeight = 1.0f;
             if (depth > 1) { // directly visible emitters are not explicitely connected
@@ -151,9 +168,9 @@ namespace SeeSharp.Integrators.Wavefront {
                 float pdfNextEvt = light.PdfArea(hit) / scene.Emitters.Count;
                 float pdfBsdf = previousPdf * jacobian;
 
-                // Compute power heuristic MIS weights
+                // Compute balance heuristic MIS weights
                 float pdfRatio = pdfNextEvt / pdfBsdf;
-                misWeight = 1 / (pdfRatio * pdfRatio + 1);
+                misWeight = 1 / (pdfRatio + 1);
             }
 
             var emission = light.EmittedRadiance(hit, -ray.Direction);
@@ -161,33 +178,72 @@ namespace SeeSharp.Integrators.Wavefront {
             return misWeight * emission;
         }
 
-        private ColorRGB PerformBackgroundNextEvent(Scene scene, Ray ray, SurfacePoint hit, RNG rng,
-                                                    Vector2 pixel, ColorRGB throughput, int depth) {
-            if (scene.Background == null)
-                return ColorRGB.Black; // There is no background
-
-            var sample = scene.Background.SampleDirection(rng.NextFloat2D());
-            if (scene.Raytracer.LeavesScene(hit, sample.Direction)) {
-                var bsdfTimesCosine = hit.Material.EvaluateWithCosine(hit, -ray.Direction, sample.Direction, false);
-                var (pdfBsdf, _)= hit.Material.Pdf(hit, -ray.Direction, sample.Direction, false);
-
-                // Since the densities are in solid angle unit, no need for any conversions here
-                float misWeight = 1 / (1.0f + pdfBsdf / (sample.Pdf));
-
-                var contrib = sample.Weight * bsdfTimesCosine;
-                RegisterSample(pixel, contrib * throughput, misWeight, depth + 1, true);
-                return misWeight * contrib;
-            }
-
-            // The background is occluded
-            return ColorRGB.Black;
+        struct NextEventQuery {
+            public BsdfQuery Bsdf;
+            public ShadowRay Visibility;
+            public ColorRGB Weight;
+            public float PdfNextEventSolidAngle;
         }
 
-        private ColorRGB PerformNextEventEstimation(Scene scene, Ray ray, SurfacePoint hit, RNG rng, Vector2 pixel,
-                                                    ColorRGB throughput, int depth) {
-            if (scene.Emitters.Count == 0)
-                return ColorRGB.Black;
+        delegate NextEventQuery NextEventGenerator(Ray ray, SurfacePoint hit, RNG rng, Vector2 pixel,
+                                                   ColorRGB throughput, int depth);
+        void NextEventWave(NextEventGenerator generator, Wavefront wave, PathPayload[] payloads, int depth) {
+            var bsdfQueries = new BsdfQuery[wave.Size];
+            var shadowRays = new ShadowRay[wave.Size];
+            var weights = new ColorRGB[wave.Size];
+            var pdfs = new float[wave.Size];
+            wave.Process((idx, ray, hit) => {
+                ref PathPayload path = ref payloads[idx];
+                var q = generator(ray, hit, path.Rng, path.Pixel, path.Throughput, depth);
+                bsdfQueries[idx] = q.Bsdf;
+                shadowRays[idx] = q.Visibility;
+                weights[idx] = q.Weight;
+                pdfs[idx] = q.PdfNextEventSolidAngle;
+                return true;
+            });
 
+            var occluded = new bool[wave.Size];
+            scene.Raytracer.IsOccluded(shadowRays, occluded);
+
+            var bsdfValues = new ColorRGB[wave.Size];
+            var bsdfPdfs = new float[wave.Size];
+            BsdfQuery.Evaluate(bsdfQueries, bsdfValues);
+            BsdfQuery.ComputePdfs(bsdfQueries, bsdfPdfs);
+
+            // Compute the final sample weight and MIS heuristic value
+            Parallel.For(0, wave.Size, idx => {
+                if (!occluded[idx] && bsdfQueries[idx].IsActive) {
+                    var weight = weights[idx] * bsdfValues[idx] * payloads[idx].Throughput;
+                    float misWeight = 1 / (1 + bsdfPdfs[idx] / pdfs[idx]);
+                    RegisterSample(payloads[idx].Pixel, weight, misWeight, depth + 1, true);
+                    scene.FrameBuffer.Splat(payloads[idx].Pixel.X, payloads[idx].Pixel.Y, misWeight * weight);
+                }
+            });
+        }
+
+        private NextEventQuery PerformBackgroundNextEvent(Ray ray, SurfacePoint hit, RNG rng,
+                                                          Vector2 pixel, ColorRGB throughput, int depth) {
+            var sample = scene.Background.SampleDirection(rng.NextFloat2D());
+
+            var bsdfQuery = new BsdfQuery {
+                OutDir = -ray.Direction,
+                InDir = sample.Direction,
+                Hit = hit,
+                IsOnLightSubpath = false,
+                IsActive = true,
+                Rng = rng
+            };
+
+            return new NextEventQuery {
+                Bsdf = bsdfQuery,
+                Weight = sample.Weight,
+                PdfNextEventSolidAngle = sample.Pdf,
+                Visibility = scene.Raytracer.MakeBackgroundShadowRay(hit, sample.Direction)
+            };
+        }
+
+        private NextEventQuery PerformNextEventEstimation(Ray ray, SurfacePoint hit, RNG rng, Vector2 pixel,
+                                                          ColorRGB throughput, int depth) {
             // Select a light source
             int idx = rng.NextInt(0, scene.Emitters.Count);
             var light = scene.Emitters[idx];
@@ -195,41 +251,28 @@ namespace SeeSharp.Integrators.Wavefront {
 
             // Sample a point on the light source
             var lightSample = light.SampleArea(rng.NextFloat2D());
+            Vector3 lightToSurface = hit.Position - lightSample.point.Position;
+            var emission = light.EmittedRadiance(lightSample.point, lightToSurface);
 
-            if (!scene.Raytracer.IsOccluded(hit, lightSample.point)) {
-                Vector3 lightToSurface = hit.Position - lightSample.point.Position;
-                var emission = light.EmittedRadiance(lightSample.point, lightToSurface);
+            // Compute the jacobian for surface area -> solid angle
+            float jacobian = SampleWrap.SurfaceAreaToSolidAngle(hit, lightSample.point);
+            float pdfNextEvtSolidAngle = lightSample.pdf * lightSelectProb / jacobian;
 
-                // Compute the jacobian for surface area -> solid angle
-                // (Inverse of the jacobian for solid angle pdf -> surface area pdf)
-                float jacobian = SampleWrap.SurfaceAreaToSolidAngle(hit, lightSample.point);
-                var bsdfCos = hit.Material.EvaluateWithCosine(hit, -ray.Direction, -lightToSurface, false);
+            var bsdfQuery = new BsdfQuery {
+                OutDir = -ray.Direction,
+                InDir = -lightToSurface,
+                Hit = hit,
+                IsOnLightSubpath = false,
+                IsActive = true,
+                Rng = rng
+            };
 
-                // Compute surface area PDFs
-                float pdfNextEvt = lightSample.pdf * lightSelectProb;
-                float pdfBsdfSolidAngle = hit.Material.Pdf(hit, -ray.Direction, -lightToSurface, false).Item1;
-                float pdfBsdf = pdfBsdfSolidAngle * jacobian;
-
-                // Compute the resulting power heuristic weights
-                float pdfRatio = pdfBsdf / pdfNextEvt;
-                float misWeight = 1.0f / (pdfRatio * pdfRatio + 1);
-
-                // Compute the final sample weight, account for the change of variables from light source area
-                // to the hemisphere about the shading point.
-
-                var contrib = emission * bsdfCos * (jacobian / lightSample.pdf / lightSelectProb);
-                RegisterSample(pixel, contrib * throughput, misWeight, depth + 1, true);
-                return misWeight * contrib;
-            }
-
-            return ColorRGB.Black;
-        }
-
-        private (Ray, float, ColorRGB) BsdfSample(Scene scene, Ray ray, SurfacePoint hit, RNG rng) {
-            var primary = rng.NextFloat2D();
-            var bsdfSample = hit.Material.Sample(hit, -ray.Direction, false, primary);
-            var bsdfRay = scene.Raytracer.SpawnRay(hit, bsdfSample.direction);
-            return (bsdfRay, bsdfSample.pdf, bsdfSample.weight);
+            return new NextEventQuery {
+                Bsdf = bsdfQuery,
+                Weight = emission / pdfNextEvtSolidAngle,
+                PdfNextEventSolidAngle = pdfNextEvtSolidAngle,
+                Visibility = scene.Raytracer.MakeShadowRay(hit, lightSample.point)
+            };
         }
     }
 }

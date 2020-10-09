@@ -9,7 +9,7 @@ using System.Numerics;
 namespace SeeSharp.Integrators.Bidir {
     public class TechPyramid {
         public TechPyramid(int width, int height, int minDepth, int maxDepth, bool merges,
-                           bool connections = true) {
+                           bool connections = true, bool lightTracer = true) {
             // Generate the filenames
             techniqueNames = new TechniqueNames();
             for (int depth = minDepth; depth <= maxDepth; ++depth) {

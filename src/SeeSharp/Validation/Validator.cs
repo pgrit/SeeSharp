@@ -4,6 +4,7 @@ using SeeSharp.Core;
 using SeeSharp.Integrators;
 using SeeSharp.Integrators.Bidir;
 using SeeSharp.Core.Image;
+using SeeSharp.Integrators.Wavefront;
 
 namespace SeeSharp.Validation {
     class Validator {
@@ -68,11 +69,16 @@ namespace SeeSharp.Validation {
                 //     MaxDepth = (uint)sceneFactory.MaxDepth,
                 //     MinDepth = 1
                 // },
-                new ClassicBidir() {
-                    NumIterations = sceneFactory.SamplesPerPixel / 2,
-                    MaxDepth = sceneFactory.MaxDepth,
-                    RenderTechniquePyramid = true
+                new WavePathTracer() {
+                    TotalSpp = sceneFactory.SamplesPerPixel,
+                    MaxDepth = (uint)sceneFactory.MaxDepth,
+                    MinDepth = 1
                 },
+                // new ClassicBidir() {
+                //     NumIterations = sceneFactory.SamplesPerPixel / 2,
+                //     MaxDepth = sceneFactory.MaxDepth,
+                //     RenderTechniquePyramid = true
+                // },
                 // new VertexConnectionAndMerging() {
                 //     NumIterations = sceneFactory.SamplesPerPixel / 2,
                 //     MaxDepth = sceneFactory.MaxDepth,
@@ -93,7 +99,8 @@ namespace SeeSharp.Validation {
             };
             var names = new List<string> {
                 // "PathTracer",
-                "ClassicBidir",
+                "WavePathTracer",
+                // "ClassicBidir",
                 // "Vcm",
                 //"PhotonMapper",
                 //"VertexCacheBidir"

@@ -46,6 +46,13 @@ namespace SeeSharp.Core.Geometry {
             return hit;
         }
 
+        public void TraceBatch(Ray[] rays, SurfacePoint[] hits) {
+            // TODO proper support at the lower level
+            System.Threading.Tasks.Parallel.For(0, rays.Length, (idx) => {
+                hits[idx] = Trace(rays[idx]);
+            });
+        }
+
         Vector3 OffsetPoint(SurfacePoint from, Vector3 dir) {
             float sign = Vector3.Dot(dir, from.Normal) < 0.0f ? -1.0f : 1.0f;
             return from.Position + sign * from.ErrorOffset * from.Normal;

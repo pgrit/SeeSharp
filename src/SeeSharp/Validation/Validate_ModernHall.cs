@@ -3,7 +3,7 @@ using SeeSharp.Core.Image;
 
 namespace SeeSharp.Validation {
     class Validate_ModernHall : ValidationSceneFactory {
-        public override int SamplesPerPixel => 8;
+        public override int SamplesPerPixel => 64;//8;
 
         public override int MaxDepth => 5;
 

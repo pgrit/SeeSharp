@@ -200,6 +200,7 @@ namespace SeeSharp.Integrators.Bidir {
 
                 // Compute image contribution and splat
                 ColorRGB weight = vertex.Weight * bsdfValue * surfaceToPixelJacobian / NumLightPaths;
+
                 scene.FrameBuffer.Splat(pixel.X, pixel.Y, misWeight * weight);
                 RegisterSample(weight, misWeight, pixel, 0, vertex.Depth, vertex.Depth + 1);
             });

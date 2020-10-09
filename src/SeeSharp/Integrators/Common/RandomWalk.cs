@@ -113,6 +113,13 @@ namespace SeeSharp.Integrators.Common {
             // Convert the PDF of the previous hemispherical sample to surface area
             float pdfFromAncestor = pdfDirection * SampleWrap.SurfaceAreaToSolidAngle(previousPoint, hit);
 
+            // Geometry term might be zero due to, e.g., shading normal issues
+            // Avoid NaNs in that case by terminating early
+            if (pdfFromAncestor == 0) {
+                OnTerminate();
+                return ColorRGB.Black;
+            }
+
             ColorRGB estimate = OnHit(ray, hit, pdfFromAncestor, throughput, depth,
                                       SampleWrap.SurfaceAreaToSolidAngle(hit, previousPoint));
 

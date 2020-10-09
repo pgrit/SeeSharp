@@ -126,6 +126,7 @@ namespace SeeSharp.Integrators.Bidir {
             float sumReciprocals = LightPathReciprocals(lastCameraVertexIdx, numPdfs, pathPdfs);
             sumReciprocals /= NumLightPaths;
             sumReciprocals += 1;
+
             return 1 / sumReciprocals;
         }
 

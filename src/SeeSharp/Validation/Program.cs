@@ -26,7 +26,7 @@ namespace SeeSharp.Validation {
                 foreach (long t in timings) {
                     System.Console.Write($"{t}ms, ");
                 }
-                System.Console.Write("\b\b\n");
+                System.Console.Write("\b \b\b \b\n");
             }
         }
     }

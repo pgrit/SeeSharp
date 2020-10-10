@@ -270,7 +270,7 @@ namespace SeeSharp.Integrators.Bidir {
                                path.Vertices.Count, vertex.Depth, depth);
             }
 
-            if (lightVertIdx > 0) { // specific vertex selected
+            if (lightVertIdx > 0 && lightVertIdx < lightPaths.PathCache.Length(lightPathIdx)) { // specific vertex selected
                 var vertex = lightPaths.PathCache[lightPathIdx, lightVertIdx];
                 var ancestor = lightPaths.PathCache[lightPathIdx, lightVertIdx - 1];
                 var dirToAncestor = ancestor.Point.Position - vertex.Point.Position;

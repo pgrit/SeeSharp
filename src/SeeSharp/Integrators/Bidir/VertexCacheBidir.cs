@@ -38,9 +38,10 @@ namespace SeeSharp.Integrators.Bidir {
             return (light, sample);
         }
 
-        public override (int, int) SelectBidirPath(int pixelIndex, RNG rng) {
+        public override (int, int, float) SelectBidirPath(int pixelIndex, RNG rng) {
             // Select a single vertex from the entire cache at random
-            return vertexSelector.Select(rng);
+            var (path, vertex) = vertexSelector.Select(rng);
+            return (path, vertex, BidirSelectDensity());
         }
 
         /// <summary>
@@ -48,7 +49,7 @@ namespace SeeSharp.Integrators.Bidir {
         /// That is, the product of the selection probability and the number of samples.
         /// </summary>
         /// <returns>Effective density</returns>
-        public float BidirSelectDensity() {
+        public virtual float BidirSelectDensity() {
             // We select light path vertices uniformly
             float selectProb = 1.0f / vertexSelector.Count;
 
@@ -63,12 +64,6 @@ namespace SeeSharp.Integrators.Bidir {
                                             int cameraPathLength, int lightPathLength, int fullLength) {
             if (!RenderTechniquePyramid)
                 return;
-
-            // Divide by the splitting factors and selection probabilities
-            if (cameraPathLength > 0 && lightPathLength > 0) {
-                // bidirectional connection
-                weight /= BidirSelectDensity();
-            }
 
             // Technique pyramids are rendered across all iterations
             weight /= NumIterations;
@@ -115,7 +110,7 @@ namespace SeeSharp.Integrators.Bidir {
             if (depth < MaxDepth) {
                 for (int i = 0; i < NumConnections && EnableConnections; ++i) {
                     var weight = throughput * BidirConnections(pixelIndex, hit, -ray.Direction, rng, path, toAncestorJacobian);
-                    value += weight / BidirSelectDensity();
+                    value += weight;
                 }
 
                 for (int i = 0; i < NumShadowRays; ++i) {

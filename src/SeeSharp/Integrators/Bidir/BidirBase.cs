@@ -211,8 +211,8 @@ namespace SeeSharp.Integrators.Bidir {
                                               float pdfLightReverse, float pdfLightToCamera,
                                               float pdfNextEvent);
 
-        public virtual (int, int) SelectBidirPath(int pixelIndex, RNG rng) {
-            return (pixelIndex, -1);
+        public virtual (int, int, float) SelectBidirPath(int pixelIndex, RNG rng) {
+            return (pixelIndex, -1, 1.0f);
         }
 
         public ColorRGB BidirConnections(int pixelIndex, SurfacePoint cameraPoint, Vector3 outDir,
@@ -220,7 +220,7 @@ namespace SeeSharp.Integrators.Bidir {
             ColorRGB result = ColorRGB.Black;
 
             // Select a path to connect to (based on pixel index)
-            (int lightPathIdx, int lightVertIdx) = SelectBidirPath(pixelIndex, rng);
+            (int lightPathIdx, int lightVertIdx, float lightVertexProb) = SelectBidirPath(pixelIndex, rng);
 
             void Connect(PathVertex vertex, PathVertex ancestor, Vector3 dirToAncestor) {
                 // Only allow connections that do not exceed the maximum total path length
@@ -263,7 +263,7 @@ namespace SeeSharp.Integrators.Bidir {
                 if (distanceSqr == 0)
                     return;
 
-                ColorRGB weight = vertex.Weight * bsdfWeightLight * bsdfWeightCam / distanceSqr;
+                ColorRGB weight = vertex.Weight * bsdfWeightLight * bsdfWeightCam / distanceSqr / lightVertexProb;
                 result += misWeight * weight;
 
                 RegisterSample(weight * path.Throughput, misWeight, path.Pixel,

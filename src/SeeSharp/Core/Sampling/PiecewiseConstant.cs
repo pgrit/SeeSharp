@@ -24,7 +24,7 @@ namespace SeeSharp.Core.Sampling {
         public PiecewiseConstant(float[] weights) : this(new ReadOnlySpan<float>(weights)) { }
 
         /// <summary>
-        /// Transforms a primary sample to one distributed according to the 
+        /// Transforms a primary sample to one distributed according to the
         /// piecewise constant density encoded by this object.
         /// </summary>
         /// <param name="primarySample">A primary sample in [0,1]</param>

@@ -3,7 +3,11 @@ using System.Numerics;
 
 namespace SeeSharp.Core.Datastructs {
     public class NearestNeighborTree {
-        public void AddPoint(Vector3 position, int userId) => records.Add(new Record(position, userId));
+        public void AddPoint(Vector3 position, int userId) {
+            lock(records) {
+                records.Add(new Record(position, userId));
+            }
+        }
 
         public void Clear() {
             records.Clear();

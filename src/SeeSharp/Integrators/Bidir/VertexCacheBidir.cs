@@ -38,7 +38,7 @@ namespace SeeSharp.Integrators.Bidir {
             return (light, sample);
         }
 
-        public override (int, int, float) SelectBidirPath(int pixelIndex, RNG rng) {
+        public override (int, int, float) SelectBidirPath(SurfacePoint cameraPoint, Vector3 outDir, int pixelIndex, RNG rng) {
             // Select a single vertex from the entire cache at random
             var (path, vertex) = vertexSelector.Select(rng);
             return (path, vertex, BidirSelectDensity());

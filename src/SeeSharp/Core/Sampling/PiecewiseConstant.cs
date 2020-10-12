@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 
 namespace SeeSharp.Core.Sampling {
     public class PiecewiseConstant {
@@ -15,6 +16,7 @@ namespace SeeSharp.Core.Sampling {
             float total = cdf[^1];
             for (int i = 0; i < cdf.Count; ++i) {
                 cdf[i] /= total;
+                Debug.Assert(float.IsFinite(cdf[i]));
             }
 
             // Force the last value to one for numerical stability

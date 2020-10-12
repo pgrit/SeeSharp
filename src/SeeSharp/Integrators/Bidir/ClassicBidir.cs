@@ -10,6 +10,7 @@ namespace SeeSharp.Integrators.Bidir {
     public class ClassicBidir : BidirBase {
         public bool RenderTechniquePyramid = false;
         public bool EnableConnections = true;
+        public bool EnableLightTracer = true;
         public int NumShadowRays = 1;
 
         TechPyramid techPyramidRaw;
@@ -58,7 +59,7 @@ namespace SeeSharp.Integrators.Bidir {
         }
 
         public override void ProcessPathCache() {
-            SplatLightVertices();
+            if (EnableLightTracer) SplatLightVertices();
         }
 
         public override ColorRGB OnCameraHit(CameraPath path, RNG rng, int pixelIndex, Ray ray, SurfacePoint hit,
@@ -190,7 +191,8 @@ namespace SeeSharp.Integrators.Bidir {
                 if (EnableConnections) sumReciprocals += nextReciprocal;
             }
             // Light tracer
-            sumReciprocals += nextReciprocal * pdfs.PdfsLightToCamera[0] / pdfs.PdfsCameraToLight[0] * NumLightPaths;
+            if (EnableLightTracer)
+                sumReciprocals += nextReciprocal * pdfs.PdfsLightToCamera[0] / pdfs.PdfsCameraToLight[0] * NumLightPaths;
             return sumReciprocals;
         }
 

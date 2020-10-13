@@ -50,6 +50,8 @@ namespace SeeSharp.Core.Sampling {
             return cdf[idx];
         }
 
+        public float CommulativeProbability(int idx) => cdf[idx];
+
         List<float> cdf;
     }
 }

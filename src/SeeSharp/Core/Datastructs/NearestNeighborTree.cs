@@ -2,7 +2,7 @@
 using System.Numerics;
 
 namespace SeeSharp.Core.Datastructs {
-    public class NearestNeighborTree {
+    public class NearestNeighborTree : INearestNeighbor {
         public void AddPoint(Vector3 position, int userId) {
             lock(records) {
                 records.Add(new Record(position, userId));
@@ -10,23 +10,20 @@ namespace SeeSharp.Core.Datastructs {
         }
 
         public void Clear() {
+            indices.Clear();
             records.Clear();
             root = null;
         }
 
         public void Build() {
+            for (int i = 0; i < records.Count; ++i) indices.Add(i);
             root = Split(0, 0, records.Count);
         }
 
         public int[] QueryNearest(Vector3 position, int maxCount, float maxRadius) {
             var candidates = new Candidates(maxCount, maxRadius);
             FindNearest(position, candidates, root);
-
-            // Retrieve the user ids associated with the nearest records
-            var indices = candidates.Result;
-            for (int i = 0; i < indices.Length; ++i)
-                indices[i] = records[indices[i]].UserId;
-            return indices;
+            return candidates.Result;
         }
 
         void FindNearest(Vector3 position, Candidates candidates, Node curNode) {
@@ -34,7 +31,7 @@ namespace SeeSharp.Core.Datastructs {
                 return;
 
             float distSquared = (records[curNode.Index].Position - position).LengthSquared();
-            candidates.CheckAndAdd(distSquared, curNode.Index);
+            candidates.CheckAndAdd(distSquared, records[curNode.Index].UserId);
 
             // compute the shortest distance to the splitting plane
             distSquared = GetAxisValue(position, curNode.Axis) - curNode.Position;
@@ -71,18 +68,13 @@ namespace SeeSharp.Core.Datastructs {
                 if (squaredDistance > maxSquaredDistance)
                     return false;
 
-                int nextGreater = squaredDistances.FindIndex(a => a > squaredDistance);
+                int nextGreater = squaredDistances.BinarySearch(squaredDistance);
+                if (nextGreater < 0) nextGreater = ~nextGreater;
 
-                // If all elements are smaller, we may still allow the candidate if there are too few right now
-                if (nextGreater == -1) {
-                    if (squaredDistances.Count >= numPoints)
-                        return false;
-                    else
-                        nextGreater = squaredDistances.Count;
+                if (nextGreater < numPoints) {
+                    squaredDistances.Insert(nextGreater, squaredDistance);
+                    indices.Insert(nextGreater, index);
                 }
-
-                squaredDistances.Insert(nextGreater, squaredDistance);
-                indices.Insert(nextGreater, index);
 
                 // Trim any value that exceeds the maxium number of candidate points
                 if (squaredDistances.Count > numPoints) {
@@ -90,7 +82,7 @@ namespace SeeSharp.Core.Datastructs {
                     indices.RemoveAt(numPoints);
                 }
 
-                return true;
+                return false;
             }
 
             public bool WithinRange(float squaredDistance)
@@ -104,7 +96,8 @@ namespace SeeSharp.Core.Datastructs {
             if (count == 1)
                 return new Node {
                     Axis = axis,
-                    Position = GetAxisValue(records[first].Position, axis),
+                    Index = indices[first],
+                    Position = GetAxisValue(records[indices[first]].Position, axis),
                     Left = null,
                     Right = null
                 };
@@ -112,19 +105,19 @@ namespace SeeSharp.Core.Datastructs {
                 return null;
 
             // Sort along the split axis
-            records.Sort(first, count, Comparer<Record>.Create((a, b) =>
-                GetAxisValue(a.Position, axis).CompareTo(GetAxisValue(b.Position, axis))
+            indices.Sort(first, count, Comparer<int>.Create((a, b) =>
+                GetAxisValue(records[a].Position, axis).CompareTo(GetAxisValue(records[b].Position, axis))
             ));
 
             int medianIndex = first + count / 2;
-            var medianPos = GetAxisValue(records[medianIndex].Position, axis);
+            var medianPos = GetAxisValue(records[indices[medianIndex]].Position, axis);
 
             return new Node {
                 Axis = axis,
                 Position = medianPos,
-                Index = medianIndex,
+                Index = indices[medianIndex],
                 Left = Split(axis + 1, first, count / 2),
-                Right = Split(axis + 1, medianIndex + 1, count - medianIndex - 1)
+                Right = Split(axis + 1, medianIndex + 1, count - count / 2 - 1)
             };
         }
 
@@ -138,6 +131,7 @@ namespace SeeSharp.Core.Datastructs {
         }
 
         List<Record> records = new List<Record>();
+        List<int> indices = new List<int>();
 
         class Node {
             public int Axis;

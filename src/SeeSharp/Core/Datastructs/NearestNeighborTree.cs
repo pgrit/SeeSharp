@@ -1,5 +1,6 @@
 ﻿using System.Collections.Generic;
 using System.Numerics;
+using System.Threading.Tasks;
 
 namespace SeeSharp.Core.Datastructs {
     public class NearestNeighborTree : INearestNeighbor {
@@ -16,7 +17,8 @@ namespace SeeSharp.Core.Datastructs {
         }
 
         public void Build() {
-            for (int i = 0; i < records.Count; ++i) indices.Add(i);
+            for (int i = 0; i < records.Count; ++i)
+                indices.Add(i);
             root = Split(0, 0, records.Count);
         }
 
@@ -112,12 +114,18 @@ namespace SeeSharp.Core.Datastructs {
             int medianIndex = first + count / 2;
             var medianPos = GetAxisValue(records[indices[medianIndex]].Position, axis);
 
+            Node left = null, right = null;
+            var tLeft = Task.Run(() => left = Split(axis + 1, first, count / 2));
+            var tRight = Task.Run(() => right = Split(axis + 1, medianIndex + 1, count - count / 2 - 1));
+            tLeft.Wait();
+            tRight.Wait();
+
             return new Node {
                 Axis = axis,
                 Position = medianPos,
                 Index = indices[medianIndex],
-                Left = Split(axis + 1, first, count / 2),
-                Right = Split(axis + 1, medianIndex + 1, count - count / 2 - 1)
+                Left = left,
+                Right = right
             };
         }
 

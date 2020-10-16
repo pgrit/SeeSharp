@@ -72,5 +72,29 @@ namespace SeeSharp.Core.Tests.Sampling {
             Assert.Equal(0, idx);
             Assert.Equal(0.0001f * 6.0f, rel, 6);
         }
+
+        [Fact]
+        public void Singularity_ShouldBeSampledExclusively() {
+            var weights = new float[] {283, 0, 0, 0, 0};
+            var dist = new PiecewiseConstant(weights);
+
+            var (idx, rel) = dist.Sample(0.0f);
+            Assert.Equal(0, idx);
+
+            (idx, rel) = dist.Sample(1.0f);
+            Assert.Equal(0, idx);
+
+            (idx, rel) = dist.Sample(0.999f);
+            Assert.Equal(0, idx);
+
+            (idx, rel) = dist.Sample(0.0001f);
+            Assert.Equal(0, idx);
+
+            (idx, rel) = dist.Sample(0.1f);
+            Assert.Equal(0, idx);
+
+            (idx, rel) = dist.Sample(0.8f);
+            Assert.Equal(0, idx);
+        }
     }
 }

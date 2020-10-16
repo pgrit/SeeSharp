@@ -275,7 +275,7 @@ namespace SeeSharp.Integrators.Bidir {
                 var ancestor = lightPaths.PathCache[lightPathIdx, lightVertIdx - 1];
                 var dirToAncestor = ancestor.Point.Position - vertex.Point.Position;
                 Connect(vertex, ancestor, dirToAncestor);
-            } else { // Connect with all vertices along the path
+            } else if (lightPathIdx >= 0) { // Connect with all vertices along the path
                 lightPaths.ForEachVertex(lightPathIdx, Connect);
             }
 

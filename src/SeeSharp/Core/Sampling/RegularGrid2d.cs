@@ -4,7 +4,7 @@ using System.Numerics;
 
 namespace SeeSharp.Core.Sampling {
     /// <summary>
-    /// A regular grid on the unit square. 
+    /// A regular grid on the unit square.
     /// Useful for describing 2D pdfs in primary sample space.
     /// </summary>
     public class RegularGrid2d {
@@ -24,14 +24,17 @@ namespace SeeSharp.Core.Sampling {
             var (rowIdx, relRowPos) = rowDistribution.Sample(primary.Y);
             var (colIdx, relColPos) = colDistributions[rowIdx].Sample(primary.X);
 
-            return new Vector2((colIdx + relColPos) / numCols, 
+            return new Vector2((colIdx + relColPos) / numCols,
                                (rowIdx + relRowPos) / numRows);
         }
 
         public float Pdf(Vector2 pos) {
             int row = Math.Min((int)(pos.Y * numRows), numRows - 1);
             int col = Math.Min((int)(pos.X * numCols), numCols - 1);
-            float probability =  rowDistribution.Probability(row) * colDistributions[row].Probability(col);
+
+            float probability = rowDistribution.Probability(row);
+            if (probability == 0) return 0;
+            probability *= colDistributions[row].Probability(col);
             return probability * (numRows * numCols);
         }
 
@@ -56,6 +59,10 @@ namespace SeeSharp.Core.Sampling {
             // Build a 1D CDF to select a column within each row
             colDistributions = new List<PiecewiseConstant>(numRows);
             for (int i = 0; i < numRows; ++i) {
+                if (rowMarginals[i] == 0) {
+                    colDistributions.Add(null);
+                    continue;
+                }
                 var row = new Span<float>(density, i * numCols, numCols);
                 colDistributions.Add(new PiecewiseConstant(row));
             }

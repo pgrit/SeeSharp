@@ -35,6 +35,8 @@ namespace SeeSharp.Core.Sampling {
             // Find the index of the next greater (or exact) match in the CDF
             int idx = cdf.BinarySearch(primarySample);
             if (idx < 0) idx = ~idx;
+            else // Make sure we find the first element, some might have zero probability!
+                for (; idx > 0 && cdf[idx-1] == primarySample; --idx) { }
 
             // Compute the relative position within the constant region
             float lo = idx == 0 ? 0 : cdf[idx - 1];

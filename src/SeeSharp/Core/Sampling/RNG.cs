@@ -30,6 +30,9 @@ namespace SeeSharp.Core.Sampling {
         public Vector2 NextFloat2D()
         => new Vector2(NextFloat(), NextFloat());
 
+        public Vector3 NextFloat3D()
+        => new Vector3(NextFloat(), NextFloat(), NextFloat());
+
         /// <summary>Random number from min (inclusive) to max (exclusive)</summary>
         public int NextInt(int min, int max) {
             if (max <= min)

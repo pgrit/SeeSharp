@@ -6,7 +6,7 @@ namespace SeeSharp.Core.Datastructs {
     public class NearestNeighborTree : INearestNeighbor {
         public void AddPoint(Vector3 position, int userId) {
             lock(records) {
-                records.Add(new Record(position, userId));
+                records.Add(new NeighborPoint(position, userId));
             }
         }
 
@@ -23,12 +23,12 @@ namespace SeeSharp.Core.Datastructs {
         }
 
         public int[] QueryNearest(Vector3 position, int maxCount, float maxRadius) {
-            var candidates = new Candidates(maxCount, maxRadius);
+            var candidates = new NeighborCandidates(maxCount, maxRadius);
             FindNearest(position, candidates, root);
             return candidates.Result;
         }
 
-        void FindNearest(Vector3 position, Candidates candidates, Node curNode) {
+        void FindNearest(Vector3 position, NeighborCandidates candidates, Node curNode) {
             if (curNode == null)
                 return;
 
@@ -49,47 +49,6 @@ namespace SeeSharp.Core.Datastructs {
                 if (candidates.WithinRange(distSquared))
                     FindNearest(position, candidates, curNode.Left);
             }
-        }
-
-        class Candidates {
-            List<float> squaredDistances;
-            List<int> indices;
-            int numPoints;
-            float maxSquaredDistance;
-
-            public Candidates(int max, float radius) {
-                squaredDistances = new List<float>(max);
-                indices = new List<int>(max);
-                numPoints = max;
-                maxSquaredDistance = radius * radius;
-            }
-
-            public int[] Result => indices.ToArray();
-
-            public bool CheckAndAdd(float squaredDistance, int index) {
-                if (squaredDistance > maxSquaredDistance)
-                    return false;
-
-                int nextGreater = squaredDistances.BinarySearch(squaredDistance);
-                if (nextGreater < 0) nextGreater = ~nextGreater;
-
-                if (nextGreater < numPoints) {
-                    squaredDistances.Insert(nextGreater, squaredDistance);
-                    indices.Insert(nextGreater, index);
-                }
-
-                // Trim any value that exceeds the maxium number of candidate points
-                if (squaredDistances.Count > numPoints) {
-                    squaredDistances.RemoveAt(numPoints);
-                    indices.RemoveAt(numPoints);
-                }
-
-                return false;
-            }
-
-            public bool WithinRange(float squaredDistance)
-            => (squaredDistances.Count < numPoints || squaredDistances[^1] > squaredDistance)
-                && squaredDistance <= maxSquaredDistance;
         }
 
         float GetAxisValue(Vector3 vec, int axis) => (axis%3) == 0 ? vec.X : ((axis%3) == 1 ? vec.Y : vec.Z);
@@ -129,16 +88,7 @@ namespace SeeSharp.Core.Datastructs {
             };
         }
 
-        struct Record {
-            public Vector3 Position;
-            public int UserId;
-            public Record(Vector3 pos, int userId) {
-                Position = pos;
-                UserId = userId;
-            }
-        }
-
-        List<Record> records = new List<Record>();
+        List<NeighborPoint> records = new List<NeighborPoint>();
         List<int> indices = new List<int>();
 
         class Node {

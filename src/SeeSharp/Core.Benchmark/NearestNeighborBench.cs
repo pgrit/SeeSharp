@@ -5,8 +5,8 @@ using System.Diagnostics;
 using System.Numerics;
 
 namespace SeeSharp.Core.Benchmark {
-    class NearestNeighborBench<T> where T : INearestNeighbor, new() {
-        NearestNeighborBench() { }
+    class NearestNeighborBench<T> where T : INearestNeighbor {
+        NearestNeighborBench(T accel) { this.accel = accel; }
 
         void GenerateDataSet(int numElements, float scale) {
             points = new List<Vector3>(numElements);
@@ -23,7 +23,6 @@ namespace SeeSharp.Core.Benchmark {
         }
 
         void AddData() {
-            accel = new T();
             for (int i = 0; i < points.Count; ++i) {
                 accel.AddPoint(points[i], i);
             }
@@ -70,6 +69,7 @@ namespace SeeSharp.Core.Benchmark {
                 float distSquared = (points[i] - p).LengthSquared();
                 int idx = distances.BinarySearch(distSquared);
                 if (idx < 0) idx = ~idx;
+                else for (; idx > 0 && distances[idx-1] == distSquared; --idx) { }
                 distances.Insert(idx, distSquared);
                 result.Insert(idx, i);
             }
@@ -80,7 +80,7 @@ namespace SeeSharp.Core.Benchmark {
         List<Vector3> points;
         T accel;
 
-        public static void Benchmark_10_Nearest(int numRepeats, bool validate) {
+        public static void Benchmark_10_Nearest(int numRepeats, bool validate, T accel) {
             System.Globalization.CultureInfo.DefaultThreadCurrentCulture = System.Globalization.CultureInfo.InvariantCulture;
 
             int numPoints = 100000;
@@ -91,7 +91,7 @@ namespace SeeSharp.Core.Benchmark {
             long buildTime = 0;
             long queryTime = 0;
             for (int i = 0; i < numRepeats; ++i) {
-                var bench = new NearestNeighborBench<T>();
+                var bench = new NearestNeighborBench<T>(accel);
                 bench.GenerateDataSet(numPoints, scale);
                 bench.AddData();
 

@@ -24,6 +24,13 @@ namespace SeeSharp.Integrators {
             }
         }
 
+        public virtual ColorRGB ComputeColor(SurfacePoint hit, Vector3 from) {
+            float cosine = Math.Abs(Vector3.Dot(hit.Normal, from));
+            cosine /= hit.Normal.Length();
+            cosine /= from.Length();
+            return ColorRGB.White * cosine;
+        }
+
         private void RenderPixel(Scene scene, uint row, uint col, uint sampleIndex) {
             // Seed the random number generator
             uint pixelIndex = row * (uint)scene.FrameBuffer.Width + col;
@@ -33,18 +40,11 @@ namespace SeeSharp.Integrators {
             // Sample a ray from the camera
             var offset = rng.NextFloat2D();
             Ray primaryRay = scene.Camera.GenerateRay(new Vector2(col, row) + offset, rng).Ray;
-
             var hit = scene.Raytracer.Trace(primaryRay);
-            ColorRGB value = ColorRGB.Black;
-            if (hit) {
-                float cosine = Math.Abs(Vector3.Dot(hit.Normal, primaryRay.Direction));
-                cosine /= hit.Normal.Length();
-                cosine /= primaryRay.Direction.Length();
-                value = ColorRGB.White * cosine;
-            }
 
-            // TODO we do nearest neighbor splatting manually here, to avoid numerical
-            //      issues if the primary samples are almost 1 (400 + 0.99999999f = 401)
+            // Shade and splat
+            ColorRGB value = ColorRGB.Black;
+            if (hit) value = ComputeColor(hit, -primaryRay.Direction);
             scene.FrameBuffer.Splat(col, row, value);
         }
     }

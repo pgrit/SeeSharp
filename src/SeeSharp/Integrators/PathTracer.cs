@@ -28,6 +28,9 @@ namespace SeeSharp.Integrators {
             techPyramidWeighted.Add((int)depth - (isNextEvent ? 1 : 0), 0, (int)depth, pixel, weight * misWeight);
         }
 
+        protected virtual void PreIteration(uint iterIdx) {}
+        protected virtual void PostIteration(uint iterIdx) {}
+
         public override void Render(Scene scene) {
             if (RenderTechniquePyramid) {
                 techPyramidRaw = new TechPyramid(scene.FrameBuffer.Width, scene.FrameBuffer.Height,
@@ -38,6 +41,7 @@ namespace SeeSharp.Integrators {
 
             for (uint sampleIndex = 0; sampleIndex < TotalSpp; ++sampleIndex) {
                 scene.FrameBuffer.StartIteration();
+                PreIteration(sampleIndex);
                 System.Threading.Tasks.Parallel.For(0, scene.FrameBuffer.Height,
                     row => {
                         for (uint col = 0; col < scene.FrameBuffer.Width; ++col) {
@@ -45,6 +49,7 @@ namespace SeeSharp.Integrators {
                         }
                     }
                 );
+                PostIteration(sampleIndex);
                 scene.FrameBuffer.EndIteration();
             }
 
@@ -102,14 +107,19 @@ namespace SeeSharp.Integrators {
             if (depth > MaxDepth) return value;
 
             // Contine the random walk with a sample proportional to the BSDF
-            (var bsdfRay, float bsdfPdf, var bsdfSampleWeight) = BsdfSample(scene, ray, hit, rng);
+            (var bsdfRay, float bsdfPdf, var bsdfSampleWeight) = SampleDirection(scene, ray, hit, rng);
 
             if (bsdfPdf == 0 || bsdfSampleWeight == ColorRGB.Black)
                 return value;
 
             var indirectRadiance = EstimateIncidentRadiance(scene, bsdfRay, rng, pixel, throughput * bsdfSampleWeight,
                                                             depth + 1, hit, bsdfPdf);
+            RegisterIncidentRadianceEstimate(hit, -ray.Direction, indirectRadiance, bsdfSampleWeight, pixel, throughput);
             return value + indirectRadiance * bsdfSampleWeight;
+        }
+
+        protected virtual void RegisterIncidentRadianceEstimate(SurfacePoint hit, Vector3 outDir, ColorRGB indirectRadiance,
+                                                                ColorRGB bsdfSampleWeight, Vector2 pixel, ColorRGB throughput) {
         }
 
         private ColorRGB OnBackgroundHit(Scene scene, Ray ray, Vector2 pixel, ColorRGB throughput, uint depth, float previousPdf) {
@@ -213,7 +223,7 @@ namespace SeeSharp.Integrators {
             return ColorRGB.Black;
         }
 
-        private (Ray, float, ColorRGB) BsdfSample(Scene scene, Ray ray, SurfacePoint hit, RNG rng) {
+        protected virtual (Ray, float, ColorRGB) SampleDirection(Scene scene, Ray ray, SurfacePoint hit, RNG rng) {
             var primary = rng.NextFloat2D();
             var bsdfSample = hit.Material.Sample(hit, -ray.Direction, false, primary);
             var bsdfRay = scene.Raytracer.SpawnRay(hit, bsdfSample.direction);

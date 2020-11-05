@@ -7,7 +7,7 @@ namespace SeeSharp.Core.Shading.Background {
     /// </summary>
     public abstract class Background {
         /// <summary>
-        /// Computes the emitted radiance in a given direction. All backgrounds are invariant with respect to the position.
+        /// Computes the emitted radiance from a given direction. All backgrounds are invariant with respect to the position.
         /// </summary>
         public abstract ColorRGB EmittedRadiance(Vector3 direction);
 

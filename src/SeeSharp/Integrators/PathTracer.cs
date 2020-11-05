@@ -143,7 +143,7 @@ namespace SeeSharp.Integrators {
             float misWeight = 1.0f;
             if (depth > 1) { // directly visible emitters are not explicitely connected
                              // Compute the surface area PDFs.
-                var jacobian = SampleWrap.SurfaceAreaToSolidAngle(previousHit.Value, hit);
+                var jacobian = SampleWarp.SurfaceAreaToSolidAngle(previousHit.Value, hit);
                 float pdfNextEvt = light.PdfArea(hit) / scene.Emitters.Count * NumShadowRays;
                 float pdfBsdf = previousPdf * jacobian;
 
@@ -200,7 +200,7 @@ namespace SeeSharp.Integrators {
 
                 // Compute the jacobian for surface area -> solid angle
                 // (Inverse of the jacobian for solid angle pdf -> surface area pdf)
-                float jacobian = SampleWrap.SurfaceAreaToSolidAngle(hit, lightSample.point);
+                float jacobian = SampleWarp.SurfaceAreaToSolidAngle(hit, lightSample.point);
                 var bsdfCos = hit.Material.EvaluateWithCosine(hit, -ray.Direction, -lightToSurface, false);
 
                 // Compute surface area PDFs

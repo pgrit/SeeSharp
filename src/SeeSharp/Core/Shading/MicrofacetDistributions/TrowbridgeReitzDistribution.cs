@@ -54,7 +54,7 @@ namespace SeeSharp.Core.Shading.MicrofacetDistributions {
                 / ShadingSpace.AbsCosTheta(outDir);
 
         /// <summary>
-        /// Wraps the given primary sample to follow the pdf computed by <see cref="Pdf(Vector3, Vector3)"/>.
+        /// Warps the given primary sample to follow the pdf computed by <see cref="Pdf(Vector3, Vector3)"/>.
         /// </summary>
         /// <returns>The direction that corresponds to the given primary sample.</returns>
         public Vector3 Sample(Vector3 outDir, Vector2 primary) {

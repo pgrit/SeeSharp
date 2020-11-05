@@ -28,11 +28,11 @@ namespace SeeSharp.Core.Shading.Emitters {
             var posSample = SampleArea(primaryPos);
 
             // Transform primary to cosine hemisphere (z is up)
-            var local = SampleWrap.ToCosHemisphere(primaryDir);
+            var local = SampleWarp.ToCosHemisphere(primaryDir);
 
             // Transform to world space direction
             var normal = posSample.point.ShadingNormal;
-            var (tangent, binormal) = SampleWrap.ComputeBasisVectors(normal);
+            var (tangent, binormal) = SampleWarp.ComputeBasisVectors(normal);
             Vector3 dir = local.direction.Z * normal
                         + local.direction.X * tangent
                         + local.direction.Y * binormal;

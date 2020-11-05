@@ -16,7 +16,7 @@ namespace SeeSharp.Core.Sampling {
         }
 
         /// <summary>
-        /// Applies the primary space sample wrap that is described by this grid.
+        /// Applies the primary space sample warp that is described by this grid.
         /// </summary>
         /// <param name="primary">Primary space sample location</param>
         /// <returns>The sample position in the 2d unit square</returns>

@@ -25,7 +25,7 @@ namespace SeeSharp.Core.Shading.Emitters {
 
         public override float PdfRay(SurfacePoint point, Vector3 direction) {
             float cosine = Vector3.Dot(point.ShadingNormal, direction) / direction.Length();
-            return PdfArea(point) * SampleWrap.ToCosineLobeJacobian(exponent + 1, cosine);
+            return PdfArea(point) * SampleWarp.ToCosineLobeJacobian(exponent + 1, cosine);
         }
 
         public override EmitterSample SampleRay(Vector2 primaryPos, Vector2 primaryDir) {
@@ -33,11 +33,11 @@ namespace SeeSharp.Core.Shading.Emitters {
 
             // Transform primary to cosine hemisphere (z is up)
             // We add one to the exponent, to importance sample the cosine term from the jacobian also
-            var local = SampleWrap.ToCosineLobe(exponent + 1, primaryDir);
+            var local = SampleWarp.ToCosineLobe(exponent + 1, primaryDir);
 
             // Transform to world space direction
             var normal = posSample.point.ShadingNormal;
-            var (tangent, binormal) = SampleWrap.ComputeBasisVectors(normal);
+            var (tangent, binormal) = SampleWarp.ComputeBasisVectors(normal);
             Vector3 dir = local.direction.Z * normal
                         + local.direction.X * tangent
                         + local.direction.Y * binormal;

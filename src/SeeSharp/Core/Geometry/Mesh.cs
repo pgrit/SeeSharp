@@ -69,7 +69,7 @@ namespace SeeSharp.Core.Geometry {
 
         public SurfaceSample Sample(Vector2 primarySample) {
             var (faceIdx, newX) = triangleDistribution.Sample(primarySample.X);
-            var barycentric = SampleWrap.ToUniformTriangle(new Vector2(newX, primarySample.Y));
+            var barycentric = SampleWarp.ToUniformTriangle(new Vector2(newX, primarySample.Y));
 
             return new SurfaceSample {
                 point = new SurfacePoint {

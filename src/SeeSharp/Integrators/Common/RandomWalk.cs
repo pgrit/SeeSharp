@@ -111,7 +111,7 @@ namespace SeeSharp.Integrators.Common {
             }
 
             // Convert the PDF of the previous hemispherical sample to surface area
-            float pdfFromAncestor = pdfDirection * SampleWrap.SurfaceAreaToSolidAngle(previousPoint, hit);
+            float pdfFromAncestor = pdfDirection * SampleWarp.SurfaceAreaToSolidAngle(previousPoint, hit);
 
             // Geometry term might be zero due to, e.g., shading normal issues
             // Avoid NaNs in that case by terminating early
@@ -121,7 +121,7 @@ namespace SeeSharp.Integrators.Common {
             }
 
             ColorRGB estimate = OnHit(ray, hit, pdfFromAncestor, throughput, depth,
-                                      SampleWrap.SurfaceAreaToSolidAngle(hit, previousPoint));
+                                      SampleWarp.SurfaceAreaToSolidAngle(hit, previousPoint));
 
             // Terminate with Russian roulette
             float survivalProb = ComputeSurvivalProbability(hit, ray, throughput, depth);
@@ -135,7 +135,7 @@ namespace SeeSharp.Integrators.Common {
             for (int i = 0; i < numSplits; ++i) {
                 // Sample the next direction and convert the reverse pdf
                 var (pdfNext, pdfReverse, weight, direction) = SampleNextDirection(hit, ray, throughput, depth);
-                float pdfToAncestor = pdfReverse * SampleWrap.SurfaceAreaToSolidAngle(hit, previousPoint);
+                float pdfToAncestor = pdfReverse * SampleWarp.SurfaceAreaToSolidAngle(hit, previousPoint);
                 OnContinue(pdfToAncestor, depth);
 
                 if (pdfNext == 0 || weight == ColorRGB.Black) {

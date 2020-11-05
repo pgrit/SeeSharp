@@ -3,7 +3,7 @@ using System;
 using System.Numerics;
 
 namespace SeeSharp.Core.Sampling {
-    public static class SampleWrap {
+    public static class SampleWarp {
         public static (Vector3, Vector3) ComputeBasisVectors(Vector3 normal) {
             int   id0 = (Math.Abs(normal.X) > Math.Abs(normal.Y)) ?     0 : 1;
             int   id1 = (Math.Abs(normal.X) > Math.Abs(normal.Y)) ?     1 : 0;
@@ -61,7 +61,7 @@ namespace SeeSharp.Core.Sampling {
             public float pdf;
         }
 
-        // Wraps the primary sample space on the cosine weighted hemisphere.
+        // Warps the primary sample space on the cosine weighted hemisphere.
         // The hemisphere is centered about the positive "z" axis.
         public static DirectionSample ToCosHemisphere(Vector2 primary) {
             Vector3 local_dir = SphericalToCartesian(
@@ -84,9 +84,9 @@ namespace SeeSharp.Core.Sampling {
 
             Vector3 local_dir = SphericalToCartesian(sin_t, cos_t, phi);
 
-            return new DirectionSample { 
-                direction = local_dir, 
-                pdf = (power + 1.0f) * MathF.Pow(cos_t, power) * 1.0f / (2.0f * MathF.PI) 
+            return new DirectionSample {
+                direction = local_dir,
+                pdf = (power + 1.0f) * MathF.Pow(cos_t, power) * 1.0f / (2.0f * MathF.PI)
             };
         }
 
@@ -94,8 +94,20 @@ namespace SeeSharp.Core.Sampling {
             return cos > 0.0f ? ((power + 1.0f) * MathF.Pow(cos, power) * 1.0f / (2.0f * MathF.PI)) : 0.0f;
         }
 
+        public static DirectionSample ToUniformSphere(Vector2 primary) {
+            float z = 1 - 2 * primary.X;
+            float r = MathF.Sqrt(1 - z * z);
+            float phi = 2 * MathF.PI * primary.Y;
+            return new DirectionSample {
+                direction = new Vector3(r * MathF.Cos(phi), r * MathF.Sin(phi), z),
+                pdf = 1 / (4 * MathF.PI)
+            };
+        }
+
+        public static float ToUniformSphereJacobian() => 1 / (4 * MathF.PI);
+
         /// <summary>
-        /// Wraps a primary sample to a position on the unit disc.
+        /// Warps a primary sample to a position on the unit disc.
         /// </summary>
         public static Vector2 ToConcentricDisc(Vector2 primary) {
             float phi, r;
@@ -132,16 +144,16 @@ namespace SeeSharp.Core.Sampling {
 
 
         /// <summary>
-        /// Computes the inverse jacobian for the mapping from surface area around "to" to the sphere around "from". 
-        /// 
+        /// Computes the inverse jacobian for the mapping from surface area around "to" to the sphere around "from".
+        ///
         /// Required for integrals that perform this change of variables (e.g., next event estimation).
-        /// 
+        ///
         /// Multiplying solid angle pdfs by this value computes the corresponding surface area density.
         /// Dividing surface area pdfs by this value computes the corresponding solid angle density.
-        /// 
+        ///
         /// This function simply computes the cosine formed by the normal at "to" and the direction from "to" to "from".
         /// The absolute value of that cosine is then divided by the squared distance between the two points:
-        /// 
+        ///
         /// result = cos(normal_to, from - to) / ||from - to||^2
         /// </summary>
         /// <param name="from">The position at which the hemispherical distribution is defined.</param>

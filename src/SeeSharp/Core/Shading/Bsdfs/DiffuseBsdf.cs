@@ -17,7 +17,7 @@ namespace SeeSharp.Core.Shading.Bsdfs {
 
         public Vector3? Sample(Vector3 outDir, bool isOnLightSubpath, Vector2 primarySample) {
             // Transform primary sample to cosine hemisphere
-            var local = SampleWrap.ToCosHemisphere(primarySample);
+            var local = SampleWarp.ToCosHemisphere(primarySample);
 
             // Make sure it ends up on the same hemisphere as the outgoing direction
             if (ShadingSpace.CosTheta(outDir) < 0)
@@ -51,7 +51,7 @@ namespace SeeSharp.Core.Shading.Bsdfs {
 
         public Vector3? Sample(Vector3 outDir, bool isOnLightSubpath, Vector2 primarySample) {
             // Transform primary sample to cosine hemisphere
-            var local = SampleWrap.ToCosHemisphere(primarySample);
+            var local = SampleWarp.ToCosHemisphere(primarySample);
 
             // Make sure the sample is in the other hemisphere as the outgoing direction
             if (ShadingSpace.CosTheta(outDir) > 0)

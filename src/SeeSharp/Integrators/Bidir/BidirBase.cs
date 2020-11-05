@@ -188,7 +188,7 @@ namespace SeeSharp.Integrators.Bidir {
                 // Compute the surface area pdf of sampling the previous vertex instead
                 float pdfReverse = vertex.Point.Material.Pdf(vertex.Point, dirToCam, dirToAncestor, false).Item1;
                 if (ancestor.Point.Mesh != null) // Unless this is a background, i.e., a directional distribution
-                    pdfReverse *= SampleWrap.SurfaceAreaToSolidAngle(vertex.Point, ancestor.Point);
+                    pdfReverse *= SampleWarp.SurfaceAreaToSolidAngle(vertex.Point, ancestor.Point);
 
                 // Account for next event estimation
                 float pdfNextEvent = 0.0f;
@@ -243,12 +243,12 @@ namespace SeeSharp.Integrators.Bidir {
                 // Compute the missing pdfs
                 var (pdfCameraToLight, pdfCameraReverse) = cameraPoint.Material.Pdf(cameraPoint, outDir, dirFromCamToLight, false);
                 pdfCameraReverse *= reversePdfJacobian;
-                pdfCameraToLight *= SampleWrap.SurfaceAreaToSolidAngle(cameraPoint, vertex.Point);
+                pdfCameraToLight *= SampleWarp.SurfaceAreaToSolidAngle(cameraPoint, vertex.Point);
 
                 var (pdfLightToCamera, pdfLightReverse) = vertex.Point.Material.Pdf(vertex.Point, dirToAncestor, -dirFromCamToLight, true);
                 if (ancestor.Point.Mesh != null) // only convert to surface area if this was an actual surface area sampler
-                    pdfLightReverse *= SampleWrap.SurfaceAreaToSolidAngle(vertex.Point, ancestor.Point);
-                pdfLightToCamera *= SampleWrap.SurfaceAreaToSolidAngle(vertex.Point, cameraPoint);
+                    pdfLightReverse *= SampleWarp.SurfaceAreaToSolidAngle(vertex.Point, ancestor.Point);
+                pdfLightToCamera *= SampleWarp.SurfaceAreaToSolidAngle(vertex.Point, cameraPoint);
 
                 float pdfNextEvent = 0.0f;
                 if (vertex.Depth == 1) {
@@ -351,16 +351,16 @@ namespace SeeSharp.Integrators.Bidir {
 
                     // Compute the jacobian for surface area -> solid angle
                     // (Inverse of the jacobian for solid angle pdf -> surface area pdf)
-                    float jacobian = SampleWrap.SurfaceAreaToSolidAngle(hit, lightSample.point);
+                    float jacobian = SampleWarp.SurfaceAreaToSolidAngle(hit, lightSample.point);
                     if (jacobian == 0) return ColorRGB.Black;
 
                     // Compute the missing pdf terms
                     var (bsdfForwardPdf, bsdfReversePdf) = hit.Material.Pdf(hit, -ray.Direction, -lightToSurface, false);
-                    bsdfForwardPdf *= SampleWrap.SurfaceAreaToSolidAngle(hit, lightSample.point);
+                    bsdfForwardPdf *= SampleWarp.SurfaceAreaToSolidAngle(hit, lightSample.point);
                     bsdfReversePdf *= reversePdfJacobian;
 
                     float pdfEmit = light.PdfRay(lightSample.point, lightToSurface);
-                    pdfEmit *= SampleWrap.SurfaceAreaToSolidAngle(lightSample.point, hit);
+                    pdfEmit *= SampleWarp.SurfaceAreaToSolidAngle(lightSample.point, hit);
                     pdfEmit *= lightPaths.SelectLightPmf(light);
 
                     float misWeight = NextEventMis(path, pdfEmit, lightSample.pdf, bsdfForwardPdf, bsdfReversePdf);

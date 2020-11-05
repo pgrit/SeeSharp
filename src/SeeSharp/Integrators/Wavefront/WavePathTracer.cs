@@ -9,6 +9,60 @@ using SeeSharp.Core.Shading.Emitters;
 using SeeSharp.Integrators.Bidir;
 
 namespace SeeSharp.Integrators.Wavefront {
+    public class BatchShader {
+        BsdfQuery[] queries;
+        ColorRGB[] bsdfValues;
+        float[] pdfsForward;
+        float[] pdfsReverse;
+        Vector3[] sampledDirections;
+
+        public BatchShader(int size) {
+            queries = new BsdfQuery[size];
+            bsdfValues = new ColorRGB[size];
+            pdfsForward = new float[size];
+            pdfsReverse = new float[size];
+            sampledDirections = new Vector3[size];
+        }
+
+        public ColorRGB GetValue(int idx) => bsdfValues[idx];
+        public (float, float) GetPdfs(int idx) => (pdfsForward[idx], pdfsReverse[idx]);
+        public Vector3 GetSampledDirection(int idx) => sampledDirections[idx];
+
+        public void Evaluate() {
+            Parallel.For(0, queries.Length, i => {
+                if (!queries[i].IsActive) return;
+                bsdfValues[i] = queries[i].Hit.Material.EvaluateWithCosine(queries[i].Hit, queries[i].OutDir,
+                    queries[i].InDir, queries[i].IsOnLightSubpath);
+            });
+        }
+
+        public void ComputePdfs() {
+            Parallel.For(0, queries.Length, i => {
+                if (!queries[i].IsActive) return;
+
+                var (fwd, rev) = queries[i].Hit.Material.Pdf(queries[i].Hit, queries[i].OutDir,
+                    queries[i].InDir, queries[i].IsOnLightSubpath);
+
+                pdfsForward[i] = fwd;
+                pdfsReverse[i] = rev;
+            });
+        }
+
+        public void Sample() {
+            Parallel.For(0, queries.Length, i => {
+                if (!queries[i].IsActive) return;
+
+                var sample = queries[i].Hit.Material.Sample(queries[i].Hit, queries[i].OutDir,
+                    queries[i].IsOnLightSubpath, queries[i].Rng.NextFloat2D());
+
+                bsdfValues[i] = sample.weight;
+                pdfsForward[i] = sample.pdf;
+                sampledDirections[i] = sample.direction;
+                pdfsReverse[i] = sample.pdfReverse;
+            });
+        }
+    }
+
     public class WavePathTracer : Integrator {
         public UInt32 BaseSeed = 0xC030114;
         public int TotalSpp = 20;
@@ -42,6 +96,13 @@ namespace SeeSharp.Integrators.Wavefront {
             var numPixels = scene.FrameBuffer.Width * scene.FrameBuffer.Height;
             var wavefront = new Wavefront(scene, numPixels);
             var payloads = new PathPayload[numPixels];
+
+            weights = new ColorRGB[wavefront.Size];
+            pdfs = new float[wavefront.Size];
+            directions = new Vector3[wavefront.Size];
+            shadowRays = new ShadowRay[wavefront.Size];
+            occluded = new bool[wavefront.Size];
+
 
             if (RenderTechniquePyramid) {
                 techPyramidRaw = new TechPyramid(scene.FrameBuffer.Width, scene.FrameBuffer.Height,
@@ -92,6 +153,7 @@ namespace SeeSharp.Integrators.Wavefront {
                 // Did the ray leave the scene?
                 if (!hit) {
                     OnBackgroundHit(ray, path.Pixel, path.Throughput, depth, path.PreviousPdf);
+                    pathMask[idx] = false;
                     return false;
                 }
 
@@ -115,8 +177,17 @@ namespace SeeSharp.Integrators.Wavefront {
             ContinueWave(wave, payloads);
         }
 
+        BsdfQuery[] bsdfQueries;
+        ColorRGB[] weights;
+        float[] pdfs;
+        Vector3[] directions;
+        ShadowRay[] shadowRays;
+        bool[] occluded;
+        ColorRGB[] bsdfValues;
+        float[] bsdfPdfs;
+        bool[] pathMask;
+
         private void ContinueWave(Wavefront wave, PathPayload[] payloads) {
-            var bsdfQueries = new BsdfQuery[wave.Size];
             wave.Process((idx, ray, hit) => {
                 bsdfQueries[idx].Hit = hit;
                 bsdfQueries[idx].OutDir = -ray.Direction;
@@ -126,10 +197,7 @@ namespace SeeSharp.Integrators.Wavefront {
                 return true;
             });
 
-            var weights = new ColorRGB[wave.Size];
-            var pdfs = new float[wave.Size];
-            var directions = new Vector3[wave.Size];
-            BsdfQuery.Sample(bsdfQueries, weights, pdfs, directions);
+            // BsdfQuery.Sample(bsdfQueries, weights, pdfs, directions);
 
             wave.ContinuePaths((idx, ray, hit) => {
                 if (pdfs[idx] == 0 || weights[idx] == ColorRGB.Black)
@@ -164,7 +232,7 @@ namespace SeeSharp.Integrators.Wavefront {
             float misWeight = 1.0f;
             if (depth > 1) { // directly visible emitters are not explicitely connected
                              // Compute the surface area PDFs.
-                var jacobian = SampleWrap.SurfaceAreaToSolidAngle(previousHit.Value, hit);
+                var jacobian = SampleWarp.SurfaceAreaToSolidAngle(previousHit.Value, hit);
                 float pdfNextEvt = light.PdfArea(hit) / scene.Emitters.Count;
                 float pdfBsdf = previousPdf * jacobian;
 
@@ -188,10 +256,6 @@ namespace SeeSharp.Integrators.Wavefront {
         delegate NextEventQuery NextEventGenerator(Ray ray, SurfacePoint hit, RNG rng, Vector2 pixel,
                                                    ColorRGB throughput, int depth);
         void NextEventWave(NextEventGenerator generator, Wavefront wave, PathPayload[] payloads, int depth) {
-            var bsdfQueries = new BsdfQuery[wave.Size];
-            var shadowRays = new ShadowRay[wave.Size];
-            var weights = new ColorRGB[wave.Size];
-            var pdfs = new float[wave.Size];
             wave.Process((idx, ray, hit) => {
                 ref PathPayload path = ref payloads[idx];
                 var q = generator(ray, hit, path.Rng, path.Pixel, path.Throughput, depth);
@@ -202,13 +266,9 @@ namespace SeeSharp.Integrators.Wavefront {
                 return true;
             });
 
-            var occluded = new bool[wave.Size];
             scene.Raytracer.IsOccluded(shadowRays, occluded);
-
-            var bsdfValues = new ColorRGB[wave.Size];
-            var bsdfPdfs = new float[wave.Size];
-            BsdfQuery.Evaluate(bsdfQueries, bsdfValues);
-            BsdfQuery.ComputePdfs(bsdfQueries, bsdfPdfs);
+            // BsdfQuery.Evaluate(bsdfQueries, bsdfValues);
+            // BsdfQuery.ComputePdfs(bsdfQueries, bsdfPdfs);
 
             // Compute the final sample weight and MIS heuristic value
             Parallel.For(0, wave.Size, idx => {
@@ -255,7 +315,7 @@ namespace SeeSharp.Integrators.Wavefront {
             var emission = light.EmittedRadiance(lightSample.point, lightToSurface);
 
             // Compute the jacobian for surface area -> solid angle
-            float jacobian = SampleWrap.SurfaceAreaToSolidAngle(hit, lightSample.point);
+            float jacobian = SampleWarp.SurfaceAreaToSolidAngle(hit, lightSample.point);
             float pdfNextEvtSolidAngle = lightSample.pdf * lightSelectProb / jacobian;
 
             var bsdfQuery = new BsdfQuery {

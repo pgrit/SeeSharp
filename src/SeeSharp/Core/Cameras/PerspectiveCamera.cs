@@ -55,7 +55,7 @@ namespace SeeSharp.Core.Cameras {
             float pdfLens = 1;
             if (lensRadius > 0) {
                 var lensSample = rng.NextFloat2D();
-                var lensPos = lensRadius * Sampling.SampleWrap.ToConcentricDisc(lensSample);
+                var lensPos = lensRadius * Sampling.SampleWarp.ToConcentricDisc(lensSample);
 
                 // Intersect ray with focal plane
                 var focalPoint = ray.ComputePoint(focalDistance / ray.Direction.Z);
@@ -78,7 +78,7 @@ namespace SeeSharp.Core.Cameras {
         public override CameraResponseSample SampleResponse(SurfacePoint scenePoint, RNG rng) {
             // Sample a point on the lens
             var lensSample = rng.NextFloat2D();
-            var lensPosCam = lensRadius * Sampling.SampleWrap.ToConcentricDisc(lensSample);
+            var lensPosCam = lensRadius * Sampling.SampleWarp.ToConcentricDisc(lensSample);
             var lensPosWorld = Vector4.Transform(new Vector4(lensPosCam.X, lensPosCam.Y, 0, 1), cameraToWorld);
             var lensPos = new Vector3(lensPosWorld.X, lensPosWorld.Y, lensPosWorld.Z);
 

@@ -31,11 +31,11 @@ namespace SeeSharp.Core.Shading.Background {
         }
 
         public override BackgroundSample SampleDirection(Vector2 primary) {
-            // Wrap the primary sample to a position within one of the pixels.
+            // Warp the primary sample to a position within one of the pixels.
             var pixelPrimary = directionSampler.Sample(primary);
             var pdf = directionSampler.Pdf(pixelPrimary);
 
-            // Wrap the pixel coordinates to the sphere of directions.
+            // Warp the pixel coordinates to the sphere of directions.
             var sphericalDir = PixelToSpherical(pixelPrimary);
             var direction = SphericalToWorld(sphericalDir);
 
@@ -73,16 +73,16 @@ namespace SeeSharp.Core.Shading.Background {
             var dirSample = SampleDirection(primaryDir);
 
             // Sample a point on the unit disc
-            var unitDiscPoint = SampleWrap.ToConcentricDisc(primaryPos);
+            var unitDiscPoint = SampleWarp.ToConcentricDisc(primaryPos);
 
             // And transform it to the scene spanning disc orthogonal to the selected direction
-            var (tangent, binormal) = SampleWrap.ComputeBasisVectors(dirSample.Direction);
+            var (tangent, binormal) = SampleWarp.ComputeBasisVectors(dirSample.Direction);
             var pos = SceneCenter + SceneRadius * (dirSample.Direction // offset outside of the scene
                                                    + tangent * unitDiscPoint.X // remap unit disc x coordinate
                                                    + binormal * unitDiscPoint.Y); // remap unit disc y coordinate
 
             // Compute the pdf: uniform sampling of a disc with radius "SceneRadius"
-            float discJacobian = SampleWrap.ToConcentricDiscJacobian();
+            float discJacobian = SampleWarp.ToConcentricDiscJacobian();
             float posPdf = discJacobian / (SceneRadius * SceneRadius);
 
             // Compute the final result
@@ -95,7 +95,7 @@ namespace SeeSharp.Core.Shading.Background {
 
         public override float RayPdf(Vector3 point, Vector3 direction) {
             float dirPdf = DirectionPdf(-direction);
-            float discJacobian = SampleWrap.ToConcentricDiscJacobian();
+            float discJacobian = SampleWarp.ToConcentricDiscJacobian();
             float posPdf = discJacobian / (SceneRadius * SceneRadius);
             return posPdf * dirPdf;
         }
@@ -122,11 +122,11 @@ namespace SeeSharp.Core.Shading.Background {
 
         Vector2 WorldToSpherical(Vector3 direction) {
             var dir = ShadingSpace.WorldToShading(Vector3.UnitY, direction);
-            return SampleWrap.CartesianToSpherical(dir);
+            return SampleWarp.CartesianToSpherical(dir);
         }
 
         Vector3 SphericalToWorld(Vector2 spherical) {
-            var dir = SampleWrap.SphericalToCartesian(MathF.Sin(spherical.Y), MathF.Cos(spherical.Y), spherical.X);
+            var dir = SampleWarp.SphericalToCartesian(MathF.Sin(spherical.Y), MathF.Cos(spherical.Y), spherical.X);
             return ShadingSpace.ShadingToWorld(Vector3.UnitY, dir);
         }
 

@@ -107,5 +107,7 @@ namespace SeeSharp.Core.Shading {
 
         public float Luminance => 0.212671f * R + 0.715160f * G + 0.072169f * B;
         public float Average => (R + G + B) / 3.0f;
+
+        public override string ToString() => $"({R}, {G}, {B})";
     }
 }

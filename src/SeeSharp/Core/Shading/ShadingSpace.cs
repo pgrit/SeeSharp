@@ -12,7 +12,7 @@ namespace SeeSharp.Core.Shading {
             shadingNormal = Vector3.Normalize(shadingNormal);
             worldDirection = Vector3.Normalize(worldDirection);
 
-            var (tangent, binormal) = SampleWrap.ComputeBasisVectors(shadingNormal);
+            var (tangent, binormal) = SampleWarp.ComputeBasisVectors(shadingNormal);
 
             float z = Vector3.Dot(shadingNormal, worldDirection);
             float x = Vector3.Dot(tangent, worldDirection);
@@ -25,7 +25,7 @@ namespace SeeSharp.Core.Shading {
             shadingNormal = Vector3.Normalize(shadingNormal);
             shadingDirection = Vector3.Normalize(shadingDirection);
 
-            var (tangent, binormal) = SampleWrap.ComputeBasisVectors(shadingNormal);
+            var (tangent, binormal) = SampleWarp.ComputeBasisVectors(shadingNormal);
             Vector3 dir = shadingDirection.Z * shadingNormal
                         + shadingDirection.X * tangent
                         + shadingDirection.Y * binormal;
@@ -64,7 +64,7 @@ namespace SeeSharp.Core.Shading {
             => SinPhi(direction) * SinPhi(direction);
 
         /// <summary>
-        /// Projects two directions onto the horizontal shading plane and computes the 
+        /// Projects two directions onto the horizontal shading plane and computes the
         /// cosine between the two. (i.e., cos(|phiA - phiB|) )
         /// </summary>
         /// <param name="dirA">A shading space direction.</param>

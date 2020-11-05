@@ -11,7 +11,7 @@ namespace SeeSharp.Validation {
                 // new Validate_GlossyLight(),
                 // new Validate_Environment(),
 
-                // new Validate_CornellBox(),
+                new Validate_CornellBox(),
                 new Validate_ModernHall(),
                 // new Validate_HomeOffice(),
                 // new Validate_BananaRange(),

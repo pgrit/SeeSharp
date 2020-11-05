@@ -136,7 +136,7 @@ namespace SeeSharp.Integrators.Bidir {
                 // Compute the missing pdf terms and the MIS weight
                 var (pdfLightReverse, pdfCameraReverse) = hit.Material.Pdf(hit, -ray.Direction, dirToAncestor, false);
                 pdfCameraReverse *= cameraJacobian;
-                pdfLightReverse *= SampleWrap.SurfaceAreaToSolidAngle(hit, ancestor.Point);
+                pdfLightReverse *= SampleWarp.SurfaceAreaToSolidAngle(hit, ancestor.Point);
                 float pdfNextEvent = (photon.Depth == 1) ? NextEventPdf(hit, ancestor.Point) : 0;
                 float misWeight = MergeMis(path, photon, pdfCameraReverse, pdfLightReverse, pdfNextEvent);
 

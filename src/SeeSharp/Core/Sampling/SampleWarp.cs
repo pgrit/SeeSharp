@@ -95,11 +95,10 @@ namespace SeeSharp.Core.Sampling {
         }
 
         public static DirectionSample ToUniformSphere(Vector2 primary) {
-            float z = 1 - 2 * primary.X;
-            float r = MathF.Sqrt(1 - z * z);
-            float phi = 2 * MathF.PI * primary.Y;
+            var a = 2 * MathF.PI * primary.Y;
+            var b = 2 * MathF.Sqrt(primary.X - primary.X * primary.X);
             return new DirectionSample {
-                direction = new Vector3(r * MathF.Cos(phi), r * MathF.Sin(phi), z),
+                direction = SphericalToCartesian(b, 1 - 2 * primary.X, a),
                 pdf = 1 / (4 * MathF.PI)
             };
         }

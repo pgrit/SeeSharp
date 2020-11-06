@@ -33,14 +33,14 @@ namespace SeeSharp.Core.Shading.Emitters {
             // Transform to world space direction
             var normal = posSample.point.ShadingNormal;
             var (tangent, binormal) = SampleWarp.ComputeBasisVectors(normal);
-            Vector3 dir = local.direction.Z * normal
-                        + local.direction.X * tangent
-                        + local.direction.Y * binormal;
+            Vector3 dir = local.Direction.Z * normal
+                        + local.Direction.X * tangent
+                        + local.Direction.Y * binormal;
 
             return new EmitterSample {
                 point = posSample.point,
                 direction = dir,
-                pdf = local.pdf * posSample.pdf,
+                pdf = local.Pdf * posSample.pdf,
                 weight = radiance / posSample.pdf * MathF.PI // cosine cancels out with the directional pdf
             };
         }

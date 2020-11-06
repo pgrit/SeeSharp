@@ -57,8 +57,8 @@ namespace SeeSharp.Core.Sampling {
         }
 
         public struct DirectionSample {
-            public Vector3 direction;
-            public float pdf;
+            public Vector3 Direction;
+            public float Pdf;
         }
 
         // Warps the primary sample space on the cosine weighted hemisphere.
@@ -69,7 +69,7 @@ namespace SeeSharp.Core.Sampling {
                 MathF.Sqrt(primary.Y),
                 2.0f * MathF.PI * primary.X);
 
-            return new DirectionSample { direction = local_dir, pdf = local_dir.Z / MathF.PI };
+            return new DirectionSample { Direction = local_dir, Pdf = local_dir.Z / MathF.PI };
         }
 
         public static float ToCosHemisphereJacobian(float cosine) {
@@ -79,14 +79,14 @@ namespace SeeSharp.Core.Sampling {
 
         public static DirectionSample ToCosineLobe(float power, Vector2 primary) {
             float phi = MathF.PI * 2.0f * primary.X;
-            float cos_t = MathF.Pow(primary.Y, 1.0f / (power + 1.0f));
-            float sin_t = MathF.Sqrt(1.0f - (cos_t * cos_t)); // cos_t cannot be >= 1
+            float cosTheta = MathF.Pow(primary.Y, 1.0f / (power + 1.0f));
+            float sinTheta = MathF.Sqrt(1.0f - (cosTheta * cosTheta)); // cosTheta cannot be >= 1
 
-            Vector3 local_dir = SphericalToCartesian(sin_t, cos_t, phi);
+            Vector3 local_dir = SphericalToCartesian(sinTheta, cosTheta, phi);
 
             return new DirectionSample {
-                direction = local_dir,
-                pdf = (power + 1.0f) * MathF.Pow(cos_t, power) * 1.0f / (2.0f * MathF.PI)
+                Direction = local_dir,
+                Pdf = (power + 1.0f) * MathF.Pow(cosTheta, power) * 1.0f / (2.0f * MathF.PI)
             };
         }
 
@@ -98,8 +98,8 @@ namespace SeeSharp.Core.Sampling {
             var a = 2 * MathF.PI * primary.Y;
             var b = 2 * MathF.Sqrt(primary.X - primary.X * primary.X);
             return new DirectionSample {
-                direction = SphericalToCartesian(b, 1 - 2 * primary.X, a),
-                pdf = 1 / (4 * MathF.PI)
+                Direction = SphericalToCartesian(b, 1 - 2 * primary.X, a),
+                Pdf = 1 / (4 * MathF.PI)
             };
         }
 

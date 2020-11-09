@@ -42,6 +42,9 @@ namespace SeeSharp.Core.Sampling {
             );
         }
 
+        public static Vector3 SphericalToCartesian(Vector2 spherical)
+        => SphericalToCartesian(MathF.Sin(spherical.Y), MathF.Cos(spherical.Y), spherical.X);
+
         /// <summary>
         /// Maps the cartensian coordinates (z is up) to spherical coordinates.
         /// </summary>
@@ -101,6 +104,15 @@ namespace SeeSharp.Core.Sampling {
                 Direction = SphericalToCartesian(b, 1 - 2 * primary.X, a),
                 Pdf = 1 / (4 * MathF.PI)
             };
+        }
+
+        public static Vector2 FromUniformSphere(Vector3 dir) {
+            var spherical = CartesianToSpherical(Vector3.Normalize(dir));
+            var phi = spherical.X;
+            var theta = spherical.Y;
+            float x = (1 - MathF.Cos(theta)) / 2;
+            float y = phi / (2 * MathF.PI);
+            return new Vector2(x, y);
         }
 
         public static float ToUniformSphereJacobian() => 1 / (4 * MathF.PI);

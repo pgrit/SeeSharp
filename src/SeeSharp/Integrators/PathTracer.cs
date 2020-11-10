@@ -28,6 +28,9 @@ namespace SeeSharp.Integrators {
             techPyramidWeighted.Add((int)depth - (isNextEvent ? 1 : 0), 0, (int)depth, pixel, weight * misWeight);
         }
 
+        protected virtual void RegisterRadianceEstimate(SurfacePoint hit, Vector3 outDir, Vector3 inDir, ColorRGB radianceEstimate,
+                                                        Vector2 pixel, ColorRGB throughput, float pdfInDir) {}
+
         protected virtual void PreIteration(uint iterIdx) {}
         protected virtual void PostIteration(uint iterIdx) {}
 
@@ -112,13 +115,10 @@ namespace SeeSharp.Integrators {
             // Recursively estimate the incident radiance and log the result
             var indirectRadiance = EstimateIncidentRadiance(scene, bsdfRay, rng, pixel, throughput * bsdfSampleWeight,
                                                             depth + 1, hit, bsdfPdf);
-            RegisterRadianceEstimate(hit, -ray.Direction, bsdfRay.Direction, indirectRadiance / bsdfPdf, pixel,
-                                     throughput * bsdfSampleWeight * bsdfPdf);
+            RegisterRadianceEstimate(hit, -ray.Direction, bsdfRay.Direction, indirectRadiance, pixel,
+                                     throughput * bsdfSampleWeight * bsdfPdf, bsdfPdf);
             return value + indirectRadiance * bsdfSampleWeight;
         }
-
-        protected virtual void RegisterRadianceEstimate(SurfacePoint hit, Vector3 outDir, Vector3 inDir, ColorRGB radianceEstimate,
-                                                        Vector2 pixel, ColorRGB throughput) {}
 
         private ColorRGB OnBackgroundHit(Scene scene, Ray ray, Vector2 pixel, ColorRGB throughput, uint depth, float previousPdf) {
             if (scene.Background == null || !EnableBsdfDI)
@@ -172,8 +172,8 @@ namespace SeeSharp.Integrators {
 
                 var contrib = sample.Weight * bsdfTimesCosine / NumShadowRays;
                 RegisterSample(pixel, contrib * throughput, misWeight, depth + 1, true);
-                RegisterRadianceEstimate(hit, -ray.Direction, sample.Direction, misWeight * sample.Weight / NumShadowRays,
-                                         pixel, throughput * bsdfTimesCosine);
+                RegisterRadianceEstimate(hit, -ray.Direction, sample.Direction, misWeight * sample.Weight * sample.Pdf ,
+                                         pixel, throughput * bsdfTimesCosine, sample.Pdf * NumShadowRays);
                 return misWeight * contrib;
             }
 
@@ -214,10 +214,11 @@ namespace SeeSharp.Integrators {
 
                 // Compute the final sample weight, account for the change of variables from light source area
                 // to the hemisphere about the shading point.
-                var contrib = emission * (jacobian / lightSample.pdf / lightSelectProb) / NumShadowRays;
-                RegisterSample(pixel, contrib * bsdfCos * throughput, misWeight, depth + 1, true);
-                RegisterRadianceEstimate(hit, -ray.Direction, -lightToSurface, misWeight * contrib, pixel, throughput * bsdfCos);
-                return misWeight * contrib * bsdfCos;
+                var pdf = lightSample.pdf / jacobian * lightSelectProb * NumShadowRays;
+                RegisterSample(pixel, emission / pdf * bsdfCos * throughput, misWeight, depth + 1, true);
+                RegisterRadianceEstimate(hit, -ray.Direction, -lightToSurface, misWeight * emission, pixel,
+                                         throughput * bsdfCos, pdf);
+                return misWeight * emission / pdf * bsdfCos;
             }
 
             return ColorRGB.Black;

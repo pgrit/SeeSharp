@@ -58,7 +58,7 @@ namespace SeeSharp.Integrators.Bidir {
             if (numHits == 0) {
                 Console.WriteLine("Error determining pixel footprint: no intersections reported." +
                     "Falling back to scene radius fraction.");
-                Radius = scene.SceneRadius / 300.0f;
+                Radius = scene.Radius / 300.0f;
                 return;
             }
 

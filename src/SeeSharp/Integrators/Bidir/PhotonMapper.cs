@@ -38,7 +38,7 @@ namespace SeeSharp.Integrators.Bidir {
         }
 
         public virtual void ProcessPathCache() {
-            photonMap.Build(lightPaths, scene.SceneRadius / 100);
+            photonMap.Build(lightPaths, scene.Radius / 100);
         }
 
         public virtual ColorRGB EstimatePixelValue(SurfacePoint cameraPoint, Vector2 filmPosition, Ray primaryRay,
@@ -49,7 +49,7 @@ namespace SeeSharp.Integrators.Bidir {
                 return scene.Background != null ? scene.Background.EmittedRadiance(primaryRay.Direction) : ColorRGB.Black;
 
             // Gather nearby photons
-            float radius = scene.SceneRadius / 100.0f;
+            float radius = scene.Radius / 100.0f;
             ColorRGB estimate = ColorRGB.Black;
             photonMap.Query(hit.Position, (pathIdx, vertexIdx, mergeDistanceSquared) => {
                 // Compute the contribution of the photon

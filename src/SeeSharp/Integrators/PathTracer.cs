@@ -31,7 +31,7 @@ namespace SeeSharp.Integrators {
         protected virtual void RegisterRadianceEstimate(SurfacePoint hit, Vector3 outDir, Vector3 inDir, ColorRGB radianceEstimate,
                                                         Vector2 pixel, ColorRGB throughput, float pdfInDir) {}
 
-        protected virtual void PreIteration(uint iterIdx) {}
+        protected virtual void PreIteration(Scene scene, uint iterIdx) {}
         protected virtual void PostIteration(uint iterIdx) {}
 
         public override void Render(Scene scene) {
@@ -44,7 +44,7 @@ namespace SeeSharp.Integrators {
 
             for (uint sampleIndex = 0; sampleIndex < TotalSpp; ++sampleIndex) {
                 scene.FrameBuffer.StartIteration();
-                PreIteration(sampleIndex);
+                PreIteration(scene, sampleIndex);
                 System.Threading.Tasks.Parallel.For(0, scene.FrameBuffer.Height,
                     row => {
                         for (uint col = 0; col < scene.FrameBuffer.Width; ++col) {

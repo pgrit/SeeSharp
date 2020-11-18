@@ -1,7 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Numerics;
-using System.Text;
+﻿using System.Numerics;
 
 namespace SeeSharp.Core.Geometry {
     public struct BoundingBox {
@@ -27,8 +24,10 @@ namespace SeeSharp.Core.Geometry {
             Max = Vector3.Max(Max, box.Max);
         }
 
-        public bool IsInside(Vector3 point) 
+        public bool IsInside(Vector3 point)
             => point.X >= Min.X && point.Y >= Min.Y && point.Z >= Min.Z &&
                point.X <= Max.X && point.Y <= Max.Y && point.Z <= Max.Z;
+
+        public Vector3 Diagonal => Max - Min;
     }
 }

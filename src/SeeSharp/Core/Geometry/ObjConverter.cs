@@ -46,14 +46,14 @@ namespace SeeSharp.Core.Geometry {
                         baseColor = Image<ColorRGB>.Constant(objMaterial.specular),
                         specularTintStrength = 1.0f,
                         metallic = 1,
-                        roughness = 0,
+                        roughness = Image<Scalar>.Constant(0),
                     };
                     break;
                 case 7: // perfect glass
                     materialParameters = new GenericMaterial.Parameters {
                         baseColor = Image<ColorRGB>.Constant(objMaterial.specular),
                         metallic = 0,
-                        roughness = 0,
+                        roughness = Image<Scalar>.Constant(0),
                         indexOfRefraction = objMaterial.indexOfRefraction,
                         specularTransmittance = 1.0f,
                         specularTintStrength = 1.0f
@@ -70,7 +70,7 @@ namespace SeeSharp.Core.Geometry {
                     // and ignore everything else.
                     materialParameters = new GenericMaterial.Parameters {
                         baseColor = baseColor,
-                        roughness = objMaterial.specularIndex == 0 ? 1 : 1 / objMaterial.specularIndex,
+                        roughness = Image<Scalar>.Constant(objMaterial.specularIndex == 0 ? 1 : 1 / objMaterial.specularIndex),
                         metallic = 0.5f
                     };
                     break;

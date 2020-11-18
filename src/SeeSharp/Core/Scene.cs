@@ -120,7 +120,7 @@ namespace SeeSharp.Core {
         /// <returns>The scene created from the file.</returns>
         public static Scene LoadFromFile(string path) {
             // String parsing adheres to the OS specified culture settings.
-            // However, we always want our .json files to use the decimal point . rather than a comma 
+            // However, we always want our .json files to use the decimal point . rather than a comma
             System.Globalization.CultureInfo.DefaultThreadCurrentCulture = System.Globalization.CultureInfo.InvariantCulture;
 
             string jsonString = File.ReadAllText(path);
@@ -253,7 +253,7 @@ namespace SeeSharp.Core {
                         } else {
                             var parameters = new GenericMaterial.Parameters {
                                 baseColor = ReadColorOrTexture(m.GetProperty("baseColor")),
-                                roughness = ReadOptionalFloat("roughness", 0.5f),
+                                roughness = Image<Scalar>.Constant(ReadOptionalFloat("roughness", 0.5f)),
                                 anisotropic = ReadOptionalFloat("anisotropic", 0.0f),
                                 diffuseTransmittance = ReadOptionalFloat("diffuseTransmittance", 1.0f),
                                 indexOfRefraction = ReadOptionalFloat("IOR", 1.0f),

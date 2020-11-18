@@ -29,7 +29,7 @@ namespace SeeSharp.Validation {
             }));
             scene.Meshes[^1].Material = new GenericMaterial(new GenericMaterial.Parameters {
                 baseColor = Image<ColorRGB>.Constant(ColorRGB.White),
-                roughness = 0.5f,
+                roughness = Image<Scalar>.Constant(0.5f),
             });
 
             // Emitter

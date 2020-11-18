@@ -37,7 +37,7 @@ namespace SeeSharp.Validation {
             });
             mesh.Material = new GenericMaterial(new GenericMaterial.Parameters {
                 baseColor = Image<ColorRGB>.Constant(ColorRGB.White),
-                roughness = 0.01f,
+                roughness = Image<Scalar>.Constant(0.01f),
                 specularTransmittance = 1,
                 thin = true,
                 diffuseTransmittance = 1,
@@ -55,7 +55,7 @@ namespace SeeSharp.Validation {
             });
             mesh.Material = new GenericMaterial(new GenericMaterial.Parameters {
                 baseColor = Image<ColorRGB>.Constant(ColorRGB.White),
-                roughness = 1,
+                roughness = Image<Scalar>.Constant(1),
                 thin = true,
                 diffuseTransmittance = 1,
             });

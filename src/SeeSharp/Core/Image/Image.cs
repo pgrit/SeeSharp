@@ -113,6 +113,12 @@ namespace SeeSharp.Core.Image {
             return img;
         }
 
+        public static Image<Scalar> Constant(float value) {
+            var img = new Image<Scalar>(1, 1);
+            img[0, 0] = new Scalar(value);
+            return img;
+        }
+
         readonly T[] data;
 
         static void WriteImageToLDR(Image<ColorRGB> img, string filename) {

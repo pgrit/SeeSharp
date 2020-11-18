@@ -13,7 +13,7 @@ namespace SeeSharp.Core.Shading.Materials {
     public class GenericMaterial : Material {
         public class Parameters { // TODO support textured roughness etc
             public Image<ColorRGB> baseColor = Image<ColorRGB>.Constant(ColorRGB.White);
-            public float roughness = 0.5f;
+            public Image<Scalar> roughness = Image<Scalar>.Constant(0.5f);
             public float metallic = 0.0f;
             public float specularTintStrength = 1.0f;
             public float anisotropic = 0.0f;
@@ -25,10 +25,11 @@ namespace SeeSharp.Core.Shading.Materials {
 
         public GenericMaterial(Parameters parameters) => this.parameters = parameters;
 
-        public override float GetRoughness(SurfacePoint hit) => parameters.roughness;
+        public override float GetRoughness(SurfacePoint hit)
+        => parameters.roughness.TextureLookup(hit.TextureCoordinates).Value;
 
-        public override ColorRGB GetScatterStrength(SurfacePoint hit) =>
-            parameters.baseColor.TextureLookup(hit.TextureCoordinates);
+        public override ColorRGB GetScatterStrength(SurfacePoint hit)
+        => parameters.baseColor.TextureLookup(hit.TextureCoordinates);
 
         public override ColorRGB Evaluate(SurfacePoint hit, Vector3 outDir, Vector3 inDir, bool isOnLightSubpath) {
             // Transform directions to shading space and normalize
@@ -38,8 +39,9 @@ namespace SeeSharp.Core.Shading.Materials {
 
             // Compute parameters // TODO this should probably be one struct to reduce code duplication
             var (baseColor, colorTint, specularTint) = GetColorAndTints(hit);
-            var microfacetDistrib = CreateMicrofacetDistribution();
-            var transmissionDistribution = CreateTransmissionDistribution();
+            float roughness = GetRoughness(hit);
+            var microfacetDistrib = CreateMicrofacetDistribution(roughness);
+            var transmissionDistribution = CreateTransmissionDistribution(roughness);
             var fresnel = CreateFresnel(baseColor, specularTint);
             float diffuseWeight = (1 - parameters.metallic) * (1 - parameters.specularTransmittance);
             var diffuseReflectance = baseColor;
@@ -54,7 +56,7 @@ namespace SeeSharp.Core.Shading.Materials {
             var result = ColorRGB.Black;
             if (diffuseWeight > 0) {
                 result += new DisneyDiffuse(diffuseReflectance).Evaluate(outDir, inDir, isOnLightSubpath);
-                result += new DisneyRetroReflection(retroReflectance, parameters.roughness)
+                result += new DisneyRetroReflection(retroReflectance, roughness)
                     .Evaluate(outDir, inDir, isOnLightSubpath);
             }
             if (parameters.specularTransmittance > 0) {
@@ -78,8 +80,9 @@ namespace SeeSharp.Core.Shading.Materials {
 
             // Compute parameters
             var (baseColor, colorTint, specularTint) = GetColorAndTints(hit);
-            var microfacetDistrib = CreateMicrofacetDistribution();
-            var transmissionDistribution = CreateTransmissionDistribution();
+            float roughness = GetRoughness(hit);
+            var microfacetDistrib = CreateMicrofacetDistribution(roughness);
+            var transmissionDistribution = CreateTransmissionDistribution(roughness);
             var fresnel = CreateFresnel(baseColor, specularTint);
             float diffuseWeight = (1 - parameters.metallic) * (1 - parameters.specularTransmittance);
             var diffuseReflectance = baseColor;
@@ -122,7 +125,7 @@ namespace SeeSharp.Core.Shading.Materials {
             if (primarySample.X > offset && primarySample.X < offset + selProbRetro) {
                 var remapped = primarySample;
                 remapped.X = Math.Min((primarySample.X - offset) / selProbRetro, 1);
-                sample = new DisneyRetroReflection(retroReflectance, parameters.roughness)
+                sample = new DisneyRetroReflection(retroReflectance, roughness)
                     .Sample(outDir, isOnLightSubpath, remapped);
             }
             offset += selProbRetro;
@@ -182,8 +185,9 @@ namespace SeeSharp.Core.Shading.Materials {
 
             // Compute parameters
             var (baseColor, colorTint, specularTint) = GetColorAndTints(hit);
-            var microfacetDistrib = CreateMicrofacetDistribution();
-            var transmissionDistribution = CreateTransmissionDistribution();
+            float roughness = GetRoughness(hit);
+            var microfacetDistrib = CreateMicrofacetDistribution(roughness);
+            var transmissionDistribution = CreateTransmissionDistribution(roughness);
             var fresnel = CreateFresnel(baseColor, specularTint);
             float diffuseWeight = (1 - parameters.metallic) * (1 - parameters.specularTransmittance);
             var diffuseReflectance = baseColor;
@@ -221,7 +225,7 @@ namespace SeeSharp.Core.Shading.Materials {
                 pdfRev += rev * selProbDiff;
             }
             if (selProbRetro > 0) {
-                (fwd, rev) = new DisneyRetroReflection(retroReflectance, parameters.roughness)
+                (fwd, rev) = new DisneyRetroReflection(retroReflectance, roughness)
                     .Pdf(outDir, inDir, isOnLightSubpath);
                 pdfFwd += fwd * selProbRetro;
                 pdfRev += rev * selProbRetro;
@@ -257,23 +261,23 @@ namespace SeeSharp.Core.Shading.Materials {
             return (baseColor, colorTint, specularTint);
         }
 
-        TrowbridgeReitzDistribution CreateMicrofacetDistribution() {
+        TrowbridgeReitzDistribution CreateMicrofacetDistribution(float roughness) {
             float aspect = MathF.Sqrt(1 - parameters.anisotropic * .9f);
-            float ax = Math.Max(.001f, parameters.roughness * parameters.roughness / aspect);
-            float ay = Math.Max(.001f, parameters.roughness * parameters.roughness * aspect);
+            float ax = Math.Max(.001f, roughness * roughness / aspect);
+            float ay = Math.Max(.001f, roughness * roughness * aspect);
             return new TrowbridgeReitzDistribution { AlphaX = ax, AlphaY = ay };
         }
 
-        TrowbridgeReitzDistribution CreateTransmissionDistribution() {
+        TrowbridgeReitzDistribution CreateTransmissionDistribution(float roughness) {
             if (parameters.thin) {
                 // Scale roughness based on IOR (Burley 2015, Figure 15).
                 float aspect = MathF.Sqrt(1 - parameters.anisotropic * .9f);
-                float rscaled = (0.65f * parameters.indexOfRefraction - 0.35f) * parameters.roughness;
+                float rscaled = (0.65f * parameters.indexOfRefraction - 0.35f) * roughness;
                 float axT = Math.Max(.001f, rscaled * rscaled / aspect);
                 float ayT = Math.Max(.001f, rscaled * rscaled * aspect);
                 return new TrowbridgeReitzDistribution { AlphaX = axT, AlphaY = ayT };
             } else
-                return CreateMicrofacetDistribution();
+                return CreateMicrofacetDistribution(roughness);
         }
 
         Fresnel CreateFresnel(ColorRGB baseColor, ColorRGB specularTint) {

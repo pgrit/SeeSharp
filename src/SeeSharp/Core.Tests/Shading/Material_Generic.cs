@@ -11,7 +11,7 @@ namespace SeeSharp.Core.Tests.Shading {
         public void Pdfs_ShouldBeConsistent() {
             Material mtl = new GenericMaterial(new GenericMaterial.Parameters {
                 baseColor = Image<ColorRGB>.Constant(new ColorRGB(1, 1, 1)),
-                roughness = 0.2f,
+                roughness = Image<Scalar>.Constant(0.2f),
                 specularTransmittance = 0.8f,
                 diffuseTransmittance = 0.3f
             });

@@ -44,8 +44,10 @@ namespace SeeSharp.Integrators.Bidir {
 
             // Add an offset for numerical stability
             var extents = bounds.Max - bounds.Min;
-            bounds.Max += extents * 0.001f;
-            bounds.Min -= extents * 0.001f;
+            bounds = new BoundingBox(
+                max: bounds.Max + extents * 0.001f,
+                min: bounds.Min - extents * 0.001f
+            );
 
             // Count the number of photons per grid cell
             cellCounts = new int[NextPowerOfTwo(photons.Count)];

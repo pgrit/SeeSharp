@@ -47,7 +47,7 @@ namespace SeeSharp.Core {
             for (int idx = 0; idx < Meshes.Count; ++idx) {
                 foreach (var vert in Meshes[idx].Vertices) {
                     center += vert;
-                    Bounds.GrowToContain(vert);
+                    Bounds = Bounds.GrowToContain(vert);
                 }
                 totalVertices += (ulong)Meshes[idx].Vertices.Length;
             }

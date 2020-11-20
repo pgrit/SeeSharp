@@ -1,28 +1,33 @@
 ﻿using System.Numerics;
 
 namespace SeeSharp.Core.Geometry {
-    public struct BoundingBox {
-        public Vector3 Min, Max;
+    public readonly struct BoundingBox {
+        public readonly Vector3 Min, Max;
 
-        public static BoundingBox Empty => new BoundingBox {
-            Min = Vector3.One * float.MaxValue,
-            Max = -Vector3.One * float.MaxValue
-        };
-
-        public static BoundingBox Full => new BoundingBox {
-            Min = -Vector3.One * float.MaxValue,
-            Max = Vector3.One * float.MaxValue
-        };
-
-        public void GrowToContain(Vector3 point) {
-            Min = Vector3.Min(Min, point);
-            Max = Vector3.Max(Max, point);
+        public BoundingBox(Vector3 min, Vector3 max) {
+            Min = min;
+            Max = max;
         }
 
-        public void GrowToContain(BoundingBox box) {
-            Min = Vector3.Min(Min, box.Min);
-            Max = Vector3.Max(Max, box.Max);
-        }
+        public static BoundingBox Empty => new BoundingBox(
+            min: Vector3.One * float.MaxValue,
+            max: -Vector3.One * float.MaxValue
+        );
+
+        public static BoundingBox Full => new BoundingBox(
+            min: -Vector3.One * float.MaxValue,
+            max: Vector3.One * float.MaxValue
+        );
+
+        public BoundingBox GrowToContain(Vector3 point) => new BoundingBox(
+            min: Vector3.Min(Min, point),
+            max: Vector3.Max(Max, point)
+        );
+
+        public void GrowToContain(BoundingBox box) => new BoundingBox(
+            min: Vector3.Min(Min, box.Min),
+            max: Vector3.Max(Max, box.Max)
+        );
 
         public bool IsInside(Vector3 point)
             => point.X >= Min.X && point.Y >= Min.Y && point.Z >= Min.Z &&

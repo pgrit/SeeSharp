@@ -39,7 +39,7 @@ namespace SeeSharp.Integrators.Bidir {
             // Compute the bounding box of all photons
             bounds = BoundingBox.Empty;
             foreach (var p in photons) {
-                bounds.GrowToContain(p.Position);
+                bounds = bounds.GrowToContain(p.Position);
             }
 
             // Add an offset for numerical stability

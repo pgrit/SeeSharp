@@ -68,5 +68,4 @@ namespace SeeSharp.Integrators.Common {
         int[] next;
         int numPaths, pathCapacity;
     }
-
 }

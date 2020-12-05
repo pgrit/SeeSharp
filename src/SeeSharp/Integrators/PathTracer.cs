@@ -165,7 +165,7 @@ namespace SeeSharp.Integrators {
             var sample = scene.Background.SampleDirection(rng.NextFloat2D());
             if (scene.Raytracer.LeavesScene(hit, sample.Direction)) {
                 var bsdfTimesCosine = hit.Material.EvaluateWithCosine(hit, -ray.Direction, sample.Direction, false);
-                var (pdfBsdf, _)= hit.Material.Pdf(hit, -ray.Direction, sample.Direction, false);
+                var pdfBsdf = DirectionPdf(hit, -ray.Direction, sample.Direction);
 
                 // Since the densities are in solid angle unit, no need for any conversions here
                 float misWeight = EnableBsdfDI ? 1 / (1.0f + pdfBsdf / (sample.Pdf * NumShadowRays)) : 1;
@@ -181,8 +181,8 @@ namespace SeeSharp.Integrators {
             return ColorRGB.Black;
         }
 
-        private ColorRGB PerformNextEventEstimation(Scene scene, Ray ray, SurfacePoint hit, RNG rng, Vector2 pixel,
-                                                    ColorRGB throughput, uint depth) {
+        private ColorRGB PerformNextEventEstimation(Scene scene, Ray ray, SurfacePoint hit, RNG rng,
+                                                    Vector2 pixel, ColorRGB throughput, uint depth) {
             if (scene.Emitters.Count == 0)
                 return ColorRGB.Black;
 
@@ -205,7 +205,7 @@ namespace SeeSharp.Integrators {
 
                 // Compute surface area PDFs
                 float pdfNextEvt = lightSample.pdf * lightSelectProb * NumShadowRays;
-                float pdfBsdfSolidAngle = hit.Material.Pdf(hit, -ray.Direction, -lightToSurface, false).Item1;
+                float pdfBsdfSolidAngle = DirectionPdf(hit, -ray.Direction, -lightToSurface);
                 float pdfBsdf = pdfBsdfSolidAngle * jacobian;
 
                 // Compute the resulting power heuristic weights
@@ -223,6 +223,9 @@ namespace SeeSharp.Integrators {
 
             return ColorRGB.Black;
         }
+
+        protected virtual float DirectionPdf(SurfacePoint hit, Vector3 outDir, Vector3 sampledDir)
+        => hit.Material.Pdf(hit, outDir, sampledDir, false).Item1;
 
         protected virtual (Ray, float, ColorRGB) SampleDirection(Scene scene, Ray ray, SurfacePoint hit, RNG rng) {
             var primary = rng.NextFloat2D();

@@ -59,7 +59,10 @@ namespace SeeSharp.Core.Tests {
             var scene = MakeDummyScene();
 
             scene.Prepare();
-            var hit = scene.Raytracer.Trace(scene.Camera.GenerateRay(new Vector2(0.5f, 0.5f), new Core.Sampling.RNG()).Ray);
+            var hit = scene.Raytracer.Trace(scene.Camera.GenerateRay(
+                new Vector2(0.5f, 0.5f),
+                new Core.Sampling.RNG()
+            ).Ray);
 
             Assert.True(hit);
             Assert.Equal(10.0f, hit.Distance, 4);
@@ -111,7 +114,7 @@ namespace SeeSharp.Core.Tests {
         [Fact]
         public void CornellBox_ShouldBeLoaded() {
             // Find the correct files
-            var codeBaseUrl = new Uri(Assembly.GetExecutingAssembly().CodeBase);
+            var codeBaseUrl = new Uri(Assembly.GetExecutingAssembly().Location);
             var codeBasePath = Uri.UnescapeDataString(codeBaseUrl.AbsolutePath);
             var dirPath = Path.GetDirectoryName(codeBasePath);
             var path = Path.Combine(dirPath, "../../../../../../data/scenes/cbox.json");

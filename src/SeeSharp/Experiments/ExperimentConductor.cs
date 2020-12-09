@@ -70,7 +70,7 @@ namespace SeeSharp.Experiments {
         }
 
         protected virtual FrameBuffer MakeFrameBuffer(string filename)
-            => new FrameBuffer(width, height, filename, factory.FrameBufferFlags);
+        => new FrameBuffer(width, height, filename, factory.FrameBufferFlags);
 
         private double Render(string dir, string filename, Integrator integrator, Scene scene) {
             scene.FrameBuffer = MakeFrameBuffer(Path.Join(dir, filename));

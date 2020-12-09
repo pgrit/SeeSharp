@@ -6,7 +6,11 @@ namespace SeeSharp.Core.Image {
         public int Width => Image.Width;
         public int Height => Image.Height;
         public Image<ColorRGB> Image;
-        public int CurIteration = 0; // 1-based index of the current iteration (i.e., the total number of iterations so far)
+
+        /// <summary>
+        /// 1-based index of the current iteration (i.e., the total number of iterations so far)
+        /// </summary>
+        public int CurIteration = 0;
 
         public string Basename {
             get {
@@ -27,7 +31,8 @@ namespace SeeSharp.Core.Image {
         Flags flags;
         TevIpc tevIpc;
 
-        public FrameBuffer(int width, int height, string filename, Flags flags = Flags.None, int varianceTileSize = 4) {
+        public FrameBuffer(int width, int height, string filename, Flags flags = Flags.None,
+                           int varianceTileSize = 4) {
             Image = new Image<ColorRGB>(width, height);
             varianceEstimator = new VarianceEstimator(varianceTileSize, width, height);
             this.filename = filename;
@@ -41,24 +46,12 @@ namespace SeeSharp.Core.Image {
             }
         }
 
-        public void Splat(float x, float y, ColorRGB value) {
+        public virtual void Splat(float x, float y, ColorRGB value) {
             Image.Splat(x, y, value / CurIteration);
             varianceEstimator.AddSample(x, y, value);
         }
 
-        public float GetTileSecondMoment(float x, float y)
-            => varianceEstimator.GetSecondMoment(x, y, CurIteration);
-
-        public float GetTileMean(float x, float y)
-            => varianceEstimator.GetMean(x, y, CurIteration);
-
-        public float GetTileVariance(float x, float y) {
-            var moment = GetTileSecondMoment(x, y);
-            var mean = GetTileMean(x, y);
-            return moment - mean * mean;
-        }
-
-        public void StartIteration() {
+        public virtual void StartIteration() {
             CurIteration++;
 
             // Correct the division by the number of iterations from the previous iterations
@@ -68,11 +61,12 @@ namespace SeeSharp.Core.Image {
             stopwatch.Start();
         }
 
-        public void EndIteration() {
+        public virtual void EndIteration() {
             stopwatch.Stop();
 
             if (flags.HasFlag(Flags.WriteIntermediate)) {
-                string name = Basename + "-iter" + CurIteration.ToString("D3") + $"-{stopwatch.ElapsedMilliseconds}ms" + ".exr";
+                string name = Basename + "-iter" + CurIteration.ToString("D3")
+                    + $"-{stopwatch.ElapsedMilliseconds}ms" + ".exr";
                 Image<ColorRGB>.WriteToFile(Image, name);
             }
 
@@ -83,15 +77,16 @@ namespace SeeSharp.Core.Image {
                 tevIpc.UpdateImage(Image, filename);
         }
 
-        public void Reset() {
+        public virtual void Reset() {
             CurIteration = 0;
             Image.Scale(0);
+            varianceEstimator.Reset();
         }
 
         public void WriteToFile() => Image<ColorRGB>.WriteToFile(Image, filename);
 
-        string filename;
-        VarianceEstimator varianceEstimator;
-        System.Diagnostics.Stopwatch stopwatch = new System.Diagnostics.Stopwatch();
+        protected string filename;
+        protected VarianceEstimator varianceEstimator;
+        protected System.Diagnostics.Stopwatch stopwatch = new System.Diagnostics.Stopwatch();
     }
 }

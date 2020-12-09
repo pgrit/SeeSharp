@@ -1,5 +1,6 @@
 using SeeSharp.Core.Shading;
 using System;
+using System.Diagnostics;
 
 namespace SeeSharp.Core.Image {
     public class VarianceEstimator {
@@ -31,9 +32,11 @@ namespace SeeSharp.Core.Image {
 
         public float GetVariance(float x, float y, int numSamples) {
             var (col, row) = ComputeTile(x, y);
-            var moment = tileMoments[col, row].Value / (numSamples * tileSize * tileSize);
-            var mean = tileMeans[col, row].Value / (numSamples * tileSize * tileSize);
-            return moment - mean * mean;
+            int n = numSamples * tileSize * tileSize;
+            var moment = tileMoments[col, row].Value;
+            var mean = tileMeans[col, row].Value;
+            var variance = (moment - mean * mean / n) / (n - 1);
+            return variance;
         }
 
         public float GetSecondMoment(float x, float y, int numSamples) {
@@ -48,7 +51,24 @@ namespace SeeSharp.Core.Image {
             return mean;
         }
 
-        public Scalar MakeScalar(ColorRGB value) => new Scalar { Value = (value.R + value.G + value.B) / 3 };
+        public void Combine(float x, float y, VarianceEstimator other, float weightOther) {
+            Debug.Assert(other.width == width);
+            Debug.Assert(other.height == height);
+
+            var (col, row) = ComputeTile(x, y);
+            tileMoments[col, row] = new Scalar(weightOther * other.tileMoments[col, row].Value
+                + (1 - weightOther) * tileMoments[col, row].Value);
+            tileMeans[col, row] = new Scalar(weightOther * other.tileMeans[col, row].Value
+                + (1 - weightOther) * tileMeans[col, row].Value);
+        }
+
+        public void Reset() {
+            tileMeans.Scale(0);
+            tileMoments.Scale(0);
+        }
+
+        public Scalar MakeScalar(ColorRGB value)
+        => new Scalar { Value = (value.R + value.G + value.B) / 3 };
 
         int width, height;
         int tileSize;

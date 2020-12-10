@@ -17,12 +17,16 @@ namespace SeeSharp.Validation {
                 // new Validate_BananaRange(),
             };
 
-            int benchmarkRuns = 1;
-
+            int benchmarkRuns = 4;
+            List<List<long>> allTimings = new();
             foreach (var test in allTests) {
                 // Validator.Validate(test);
                 var timings = Validator.Benchmark(test, benchmarkRuns);
-                System.Console.Write("Average Timings: ");
+                allTimings.Add(timings);
+            }
+
+            System.Console.Write("Average Timings: \n");
+            foreach (var timings in allTimings) {
                 foreach (long t in timings) {
                     System.Console.Write($"{t}ms, ");
                 }

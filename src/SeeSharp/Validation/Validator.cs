@@ -40,8 +40,7 @@ namespace SeeSharp.Validation {
             for (int i = 0; i < algorithms.Count; ++i) {
                 // Create a new empty frame buffer with the desired output filename
                 scene.FrameBuffer = new FrameBuffer(scene.FrameBuffer.Width, scene.FrameBuffer.Height,
-                                                    System.IO.Path.Join($"{testname}", $"{names[i]}.exr"),
-                                                    FrameBuffer.Flags.SendToTev);
+                    System.IO.Path.Join($"{testname}", $"{names[i]}.exr"));
 
                 stopwatch.Restart();
                 algorithms[i].Render(scene);
@@ -64,21 +63,21 @@ namespace SeeSharp.Validation {
             var sceneLoadTime = stopwatch.ElapsedMilliseconds;
 
             var algorithms = new List<Integrator>() {
-                //new PathTracer() {
-                //    TotalSpp = sceneFactory.SamplesPerPixel,
-                //    MaxDepth = (uint)sceneFactory.MaxDepth,
-                //    MinDepth = 1
-                //},
+                new PathTracer() {
+                   TotalSpp = sceneFactory.SamplesPerPixel,
+                   MaxDepth = (uint)sceneFactory.MaxDepth,
+                   MinDepth = 1
+                },
                 // new WavePathTracer() {
                 //     TotalSpp = sceneFactory.SamplesPerPixel,
                 //     MaxDepth = (uint)sceneFactory.MaxDepth,
                 //     MinDepth = 1
                 // },
-                // new ClassicBidir() {
-                //     NumIterations = sceneFactory.SamplesPerPixel / 2,
-                //     MaxDepth = sceneFactory.MaxDepth,
-                //     RenderTechniquePyramid = true
-                // },
+                new ClassicBidir() {
+                    NumIterations = sceneFactory.SamplesPerPixel / 2,
+                    MaxDepth = sceneFactory.MaxDepth,
+                    RenderTechniquePyramid = true
+                },
                 new VertexConnectionAndMerging() {
                     NumIterations = sceneFactory.SamplesPerPixel / 2,
                     MaxDepth = sceneFactory.MaxDepth,
@@ -98,9 +97,9 @@ namespace SeeSharp.Validation {
                 //}
             };
             var names = new List<string> {
-                //"PathTracer",
+                "PathTracer",
                 // "WavePathTracer",
-                // "ClassicBidir",
+                "ClassicBidir",
                 "Vcm",
                 //"PhotonMapper",
                 //"VertexCacheBidir"

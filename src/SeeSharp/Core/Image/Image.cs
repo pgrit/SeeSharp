@@ -3,6 +3,7 @@ using System;
 using System.Drawing;
 using System.Numerics;
 using System.Runtime.InteropServices;
+using System.Threading;
 
 namespace SeeSharp.Core.Image {
     public class Image<T> where T : ISpectrum {
@@ -23,12 +24,22 @@ namespace SeeSharp.Core.Image {
             Height = height;
 
             data = new T[width * height];
+            locks = new SpinLock[width * height];
         }
 
         public void Splat(float x, float y, T value) {
-            lock (this[x, y]) {
-                this[x, y].Add(value);
+            int idx = IndexOf(x, y);
+            bool lockTaken = false;
+            try {
+                locks[idx].Enter(ref lockTaken);
+                data[idx].Add(value);
+            } finally {
+                if (lockTaken) locks[idx].Exit(false);
             }
+
+            // lock (this[x, y]) {
+            //     this[x, y].Add(value);
+            // }
         }
 
         public void Scale(float s) {
@@ -70,6 +81,9 @@ namespace SeeSharp.Core.Image {
         /// Same as the index operator, only the parameters are (0,1)^2 rather than (0, Width) x (0, Height)
         /// </summary>
         public ref T TextureLookup(Vector2 uv) => ref this[uv.X * Width, uv.Y * Height];
+
+        readonly T[] data;
+        SpinLock[] locks;
 
         public static void WriteToFile(Image<ColorRGB> image, string filename) {
             var ext = System.IO.Path.GetExtension(filename);
@@ -117,8 +131,6 @@ namespace SeeSharp.Core.Image {
             img[0, 0] = new Scalar(value);
             return img;
         }
-
-        readonly T[] data;
 
         static void WriteImageToLDR(Image<ColorRGB> img, string filename) {
             int width = img.Width;

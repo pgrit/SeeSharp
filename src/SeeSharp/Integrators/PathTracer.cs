@@ -5,6 +5,7 @@ using SeeSharp.Core.Shading;
 using SeeSharp.Core.Shading.Emitters;
 using SeeSharp.Integrators.Bidir;
 using System;
+using System.Diagnostics;
 using System.Numerics;
 
 namespace SeeSharp.Integrators {
@@ -206,7 +207,7 @@ namespace SeeSharp.Integrators {
                 var pdfBsdf = DirectionPdf(hit, -ray.Direction, sample.Direction);
 
                 // Prevent NaN / Inf
-                if (pdfBsdf == 0) {
+                if (pdfBsdf == 0 || sample.Pdf == 0) {
                     RegisterRadianceEstimate(hit, -ray.Direction, sample.Direction, ColorRGB.Black,
                         ColorRGB.Black, pixel, ColorRGB.Black, 0, 0);
                     return ColorRGB.Black;
@@ -214,12 +215,16 @@ namespace SeeSharp.Integrators {
 
                 // Since the densities are in solid angle unit, no need for any conversions here
                 float misWeight = EnableBsdfDI ? 1 / (1.0f + pdfBsdf / (sample.Pdf * NumShadowRays)) : 1;
-
                 var contrib = sample.Weight * bsdfTimesCosine / NumShadowRays;
+
+                Debug.Assert(float.IsFinite(contrib.Average));
+                Debug.Assert(float.IsFinite(misWeight));
+
                 RegisterSample(pixel, contrib * throughput, misWeight, depth + 1, true);
                 RegisterRadianceEstimate(hit, -ray.Direction, sample.Direction,
                     misWeight * sample.Weight * sample.Pdf, ColorRGB.Black, pixel,
                     throughput * bsdfTimesCosine, sample.Pdf * NumShadowRays, sample.Pdf);
+
                 return misWeight * contrib;
             }
 

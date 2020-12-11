@@ -63,7 +63,8 @@ namespace SeeSharp.Core.Shading.Materials {
             return result;
         }
 
-        public override BsdfSample Sample(SurfacePoint hit, Vector3 outDir, bool isOnLightSubpath, Vector2 primarySample) {
+        public override BsdfSample Sample(SurfacePoint hit, Vector3 outDir, bool isOnLightSubpath,
+                                          Vector2 primarySample) {
             // Transform directions to shading space and normalize
             var normal = hit.ShadingNormal;
             outDir = ShadingSpace.WorldToShading(normal, outDir);
@@ -72,7 +73,8 @@ namespace SeeSharp.Core.Shading.Materials {
             var local = ComputeLocalParams(hit);
             var select = ComputeSelectWeights(local, outDir, outDir);
 
-            // Select a component to sample from // TODO this can be done in a loop if the selection probs are in an array
+            // Select a component to sample from
+            // TODO this can be done in a loop if the selection probs are in an array
             Vector3? sample = null;
             float offset = 0;
             if (primarySample.X < offset + select.DiffTrans) {
@@ -138,7 +140,8 @@ namespace SeeSharp.Core.Shading.Materials {
             };
         }
 
-        public override (float, float) Pdf(SurfacePoint hit, Vector3 outDir, Vector3 inDir, bool isOnLightSubpath) {
+        public override (float, float) Pdf(SurfacePoint hit, Vector3 outDir, Vector3 inDir,
+                                           bool isOnLightSubpath) {
             // Transform directions to shading space and normalize
             var normal = hit.ShadingNormal;
             outDir = ShadingSpace.WorldToShading(normal, outDir);
@@ -278,9 +281,14 @@ namespace SeeSharp.Core.Shading.Materials {
                 weights.Diff = p.diffuseWeight * 0.5f;
             }
 
-            // Evaluate the fresnel term for transmittance importance sampling (ignores microfacet orientation)
-            float f = p.fresnel.Evaluate(ShadingSpace.CosTheta(outDir)).Luminance;
-            float fRev = p.fresnel.Evaluate(ShadingSpace.CosTheta(inDir)).Luminance;
+            // Evaluate the fresnel term for transmittance importance sampling
+            // We sample as if the roughness was zero, clipping to [0.1,0.9] to ensure
+            // unbiasedness and avoid outliers.
+            // While not perfect, this is a lot better than uniform sampling.
+            float f = p.fresnel.Evaluate(ShadingSpace.CosTheta(outDir)).Average;
+            float fRev = p.fresnel.Evaluate(ShadingSpace.CosTheta(inDir)).Average;
+            f = MathF.Min(MathF.Max(f, 0.1f), 0.9f);
+            fRev = MathF.Min(MathF.Max(f, 0.1f), 0.9f);
 
             weights.Reflect = (1 - p.diffuseWeight) * f;
             weights.Trans = (1 - p.diffuseWeight) * (1 - f);

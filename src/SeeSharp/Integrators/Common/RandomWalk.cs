@@ -49,7 +49,7 @@ namespace SeeSharp.Integrators.Common {
             if (maxDepth <= 1)
                 return estimate;
 
-            // Every so often, the BSDF samples an invalid direction (e.g., due to shading normals or imperfect sampling)
+            // Terminate absorbed paths and invalid samples
             if (pdfNext == 0 || weight == ColorRGB.Black)
                 return estimate;
 
@@ -58,7 +58,8 @@ namespace SeeSharp.Integrators.Common {
             return estimate + ContinueWalk(ray, hit, pdfNext, initialWeight * weight, 2);
         }
 
-        public ColorRGB StartOnSurface(Ray ray, SurfacePoint hit, ColorRGB throughput, int initialDepth, bool isOnLightSubpath) {
+        public ColorRGB StartOnSurface(Ray ray, SurfacePoint hit, ColorRGB throughput, int initialDepth,
+                                       bool isOnLightSubpath) {
             this.isOnLightSubpath = isOnLightSubpath;
             var (pdfNext, pdfReverse, weight, direction) = SampleNextDirection(hit, ray, throughput, initialDepth);
 
@@ -82,7 +83,9 @@ namespace SeeSharp.Integrators.Common {
 
         protected virtual void OnTerminate() {}
 
-        protected virtual (float, float, ColorRGB, Vector3) SampleNextDirection(SurfacePoint hit, Ray ray, ColorRGB throughput, int depth) {
+        protected virtual (float, float, ColorRGB, Vector3) SampleNextDirection(SurfacePoint hit, Ray ray,
+                                                                                ColorRGB throughput,
+                                                                                int depth) {
             // Sample the next direction from the BSDF
             var bsdfSample = hit.Material.Sample(hit, -ray.Direction, isOnLightSubpath, rng.NextFloat2D());
             return (
@@ -93,10 +96,14 @@ namespace SeeSharp.Integrators.Common {
             );
         }
 
-        protected virtual int ComputeSplitFactor(SurfacePoint hit, Ray ray, ColorRGB throughput, int depth) => 1;
-        protected virtual float ComputeSurvivalProbability(SurfacePoint hit, Ray ray, ColorRGB throughput, int depth) => 1.0f;
+        protected virtual int ComputeSplitFactor(SurfacePoint hit, Ray ray, ColorRGB throughput, int depth)
+        => 1;
+        protected virtual float ComputeSurvivalProbability(SurfacePoint hit, Ray ray, ColorRGB throughput,
+                                                           int depth)
+        => 1.0f;
 
-        ColorRGB ContinueWalk(Ray ray, SurfacePoint previousPoint, float pdfDirection, ColorRGB throughput, int depth) {
+        ColorRGB ContinueWalk(Ray ray, SurfacePoint previousPoint, float pdfDirection, ColorRGB throughput,
+                              int depth) {
             // Terminate if the maximum depth has been reached
             if (depth >= maxDepth) {
                 OnTerminate();

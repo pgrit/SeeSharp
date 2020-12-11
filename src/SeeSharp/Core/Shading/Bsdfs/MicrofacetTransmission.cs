@@ -17,15 +17,13 @@ namespace SeeSharp.Core.Shading.Bsdfs {
         }
 
         public ColorRGB Evaluate(Vector3 outDir, Vector3 inDir, bool isOnLightSubpath) {
-            if (ShadingSpace.SameHemisphere(outDir, inDir))
-                return ColorRGB.Black;  // transmission only
+            if (ShadingSpace.SameHemisphere(outDir, inDir)) return ColorRGB.Black;  // transmission only
 
             float cosThetaO = ShadingSpace.CosTheta(outDir);
             float cosThetaI = ShadingSpace.CosTheta(inDir);
-            if (cosThetaI == 0 || cosThetaO == 0)
-                return ColorRGB.Black;
+            if (cosThetaI == 0 || cosThetaO == 0) return ColorRGB.Black;
 
-            // Compute $\wh$ from $\outDir$ and $\inDir$ for microfacet transmission
+            // Compute the half vector
             float eta = ShadingSpace.CosTheta(outDir) > 0 ? (insideIOR / outsideIOR) : (outsideIOR / insideIOR);
             Vector3 wh = Vector3.Normalize(outDir + inDir * eta);
             if (ShadingSpace.CosTheta(wh) < 0) wh = -wh;
@@ -47,7 +45,7 @@ namespace SeeSharp.Core.Shading.Bsdfs {
         }
 
         float ComputeOneDir(Vector3 outDir, Vector3 inDir) {
-            // Compute $\wh$ from $\outDir$ and $\inDir$ for microfacet transmission
+            // Compute the half vector
             float eta = ShadingSpace.CosTheta(outDir) > 0 ? (insideIOR / outsideIOR) : (outsideIOR / insideIOR);
             Vector3 wh = Vector3.Normalize(outDir + inDir * eta);
 
@@ -66,13 +64,10 @@ namespace SeeSharp.Core.Shading.Bsdfs {
         }
 
         public Vector3? Sample(Vector3 outDir, bool isOnLightSubpath, Vector2 primarySample) {
-            if (outDir.Z == 0)
-                return null;
+            if (outDir.Z == 0) return null;
 
             Vector3 wh = Distribution.Sample(outDir, primarySample);
-
-            if (Vector3.Dot(outDir, wh) < 0)
-                return null;
+            if (Vector3.Dot(outDir, wh) < 0) return null;
 
             float eta = ShadingSpace.CosTheta(outDir) > 0 ? (outsideIOR / insideIOR) : (insideIOR / outsideIOR);
             var inDir = ShadingSpace.Refract(outDir, wh, eta);

@@ -152,7 +152,7 @@ def export_cameras(result):
             "rotation": [
                 degrees(camera.rotation_euler.x) - 90,
                 degrees(camera.rotation_euler.z),
-                degrees(-camera.rotation_euler.y) + 180
+                degrees(camera.rotation_euler.y) + 180
             ],
             "scale": [ -1.0, 1.0, 1.0 ]
         }

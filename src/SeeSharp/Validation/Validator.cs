@@ -81,7 +81,7 @@ namespace SeeSharp.Validation {
                 new VertexConnectionAndMerging() {
                     NumIterations = sceneFactory.SamplesPerPixel / 2,
                     MaxDepth = sceneFactory.MaxDepth,
-                    RenderTechniquePyramid = true
+                    RenderTechniquePyramid = true,
                 }
                 //new PhotonMapper() {
                 //    NumIterations = sceneFactory.SamplesPerPixel,

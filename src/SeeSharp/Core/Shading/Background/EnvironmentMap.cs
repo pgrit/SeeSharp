@@ -131,10 +131,10 @@ namespace SeeSharp.Core.Shading.Background {
         }
 
         Vector2 SphericalToPixel(Vector2 sphericalDir)
-            => new Vector2(sphericalDir.X / (2 * MathF.PI), sphericalDir.Y / MathF.PI);
+        => new Vector2(sphericalDir.X / (2 * MathF.PI), sphericalDir.Y / MathF.PI);
 
         Vector2 PixelToSpherical(Vector2 pixel)
-            => new Vector2(pixel.X * 2 * MathF.PI, pixel.Y * MathF.PI);
+        => new Vector2(pixel.X * 2 * MathF.PI, pixel.Y * MathF.PI);
 
         readonly Image<ColorRGB> image;
         readonly RegularGrid2d directionSampler;

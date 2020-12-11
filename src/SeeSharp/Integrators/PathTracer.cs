@@ -110,12 +110,14 @@ namespace SeeSharp.Integrators {
             ColorRGB directHitContrib = ColorRGB.Black;
             float nextEventPdf = 0;
 
-            if (!hit) {
+            if (!hit && depth >= MinDepth) {
                 (directHitContrib, nextEventPdf) = OnBackgroundHit(scene, ray, pixel, throughput, depth, previousPdf);
                 return new RadianceEstimate {
                     Emitted = directHitContrib,
                     NextEventPdf = nextEventPdf
                 };
+            } else if (!hit) {
+                return RadianceEstimate.Absorbed;
             }
 
             // Check if a light source was hit.
@@ -264,6 +266,7 @@ namespace SeeSharp.Integrators {
                 if (pdfBsdf == 0 || jacobian == 0) {
                     RegisterRadianceEstimate(hit, -ray.Direction, -lightToSurface, ColorRGB.Black,
                         ColorRGB.Black, pixel, ColorRGB.Black, 0, 0);
+                    Debug.Assert(bsdfCos == ColorRGB.Black);
                     return ColorRGB.Black;
                 }
 

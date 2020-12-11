@@ -3,9 +3,9 @@ using SeeSharp.Core.Image;
 
 namespace SeeSharp.Validation {
     class Validate_RoughGlassesSoloHdri : ValidationSceneFactory {
-        public override int SamplesPerPixel => 32;
+        public override int SamplesPerPixel => 16;
 
-        public override int MaxDepth => 10;
+        public override int MaxDepth => 5;
 
         public override string Name => "RoughGlassesSoloHdri";
 

@@ -15,8 +15,8 @@ namespace SeeSharp.Integrators.Bidir {
         public int NumLightPaths = 0;
         public int MaxDepth = 10;
 
-        public uint BaseSeedLight = 0xC030114u;
-        public uint BaseSeedCamera = 0x13C0FEFEu;
+        public uint BaseSeedCamera = 0xC030114u;
+        public uint BaseSeedLight = 0x13C0FEFEu;
 
         public Scene scene;
         public LightPathCache lightPaths;
@@ -61,10 +61,10 @@ namespace SeeSharp.Integrators.Bidir {
         }
 
         public virtual (Emitter, float, float) SelectLight(SurfacePoint from, float primary)
-            => SelectLight(primary);
+        => SelectLight(primary);
 
         public virtual float SelectLightPmf(SurfacePoint from, Emitter em)
-            => SelectLightPmf(em);
+        => SelectLightPmf(em);
 
         /// <summary>
         /// Called once for each pixel per iteration. Expected to perform some sort of path tracing,
@@ -184,6 +184,8 @@ namespace SeeSharp.Integrators.Bidir {
                     return;
 
                 var bsdfValue = vertex.Point.Material.Evaluate(vertex.Point, dirToAncestor, dirToCam, true);
+                if (bsdfValue == ColorRGB.Black)
+                    return;
 
                 // Compute the surface area pdf of sampling the previous vertex instead
                 float pdfReverse = vertex.Point.Material.Pdf(vertex.Point, dirToCam, dirToAncestor, false).Item1;
@@ -211,16 +213,17 @@ namespace SeeSharp.Integrators.Bidir {
                                               float pdfLightReverse, float pdfLightToCamera,
                                               float pdfNextEvent);
 
-        public virtual (int, int, float) SelectBidirPath(SurfacePoint cameraPoint, Vector3 outDir, int pixelIndex, RNG rng) {
-            return (pixelIndex, -1, 1.0f);
-        }
+        public virtual (int, int, float) SelectBidirPath(SurfacePoint cameraPoint, Vector3 outDir,
+                                                         int pixelIndex, RNG rng)
+        => (pixelIndex, -1, 1.0f);
 
         public ColorRGB BidirConnections(int pixelIndex, SurfacePoint cameraPoint, Vector3 outDir,
                                          RNG rng, CameraPath path, float reversePdfJacobian) {
             ColorRGB result = ColorRGB.Black;
 
             // Select a path to connect to (based on pixel index)
-            (int lightPathIdx, int lightVertIdx, float lightVertexProb) = SelectBidirPath(cameraPoint, outDir, pixelIndex, rng);
+            (int lightPathIdx, int lightVertIdx, float lightVertexProb) =
+                SelectBidirPath(cameraPoint, outDir, pixelIndex, rng);
 
             void Connect(PathVertex vertex, PathVertex ancestor, Vector3 dirToAncestor) {
                 // Only allow connections that do not exceed the maximum total path length
@@ -234,8 +237,10 @@ namespace SeeSharp.Integrators.Bidir {
                 // Compute connection direction
                 var dirFromCamToLight = vertex.Point.Position - cameraPoint.Position;
 
-                var bsdfWeightLight = vertex.Point.Material.EvaluateWithCosine(vertex.Point, dirToAncestor, -dirFromCamToLight, true);
-                var bsdfWeightCam = cameraPoint.Material.EvaluateWithCosine(cameraPoint, outDir, dirFromCamToLight, false);
+                var bsdfWeightLight = vertex.Point.Material.EvaluateWithCosine(vertex.Point, dirToAncestor,
+                    -dirFromCamToLight, true);
+                var bsdfWeightCam = cameraPoint.Material.EvaluateWithCosine(cameraPoint, outDir,
+                    dirFromCamToLight, false);
 
                 if (bsdfWeightCam == ColorRGB.Black || bsdfWeightLight == ColorRGB.Black)
                     return;
@@ -286,12 +291,13 @@ namespace SeeSharp.Integrators.Bidir {
                                            float pdfHit, float pdfReverse);
 
         public virtual float NextEventPdf(SurfacePoint from, SurfacePoint to) {
+            float backgroundProbability = ComputeNextEventBackgroundProbability(/*hit*/);
             if (to.Mesh == null) { // Background
                 var direction = to.Position - from.Position;
-                return scene.Background.DirectionPdf(direction);
+                return scene.Background.DirectionPdf(direction) * backgroundProbability;
             } else { // Emissive object
                 var emitter = scene.QueryEmitter(to);
-                return emitter.PdfArea(to) * SelectLightPmf(from, emitter);
+                return emitter.PdfArea(to) * SelectLightPmf(from, emitter) * (1 - backgroundProbability);
             }
         }
 
@@ -303,7 +309,7 @@ namespace SeeSharp.Integrators.Bidir {
         }
 
         public virtual float ComputeNextEventBackgroundProbability(/*SurfacePoint from*/)
-            => scene.Background == null ? 0 : 1 / (1.0f + scene.Emitters.Count);
+        => scene.Background == null ? 0 : 1 / (1.0f + scene.Emitters.Count);
 
         public ColorRGB PerformNextEventEstimation(Ray ray, SurfacePoint hit, RNG rng, CameraPath path,
                                                    float reversePdfJacobian) {
@@ -450,15 +456,15 @@ namespace SeeSharp.Integrators.Bidir {
                 return integrator.OnBackgroundHit(ray, path);
             }
 
-            protected override ColorRGB OnHit(Ray ray, SurfacePoint hit, float pdfFromAncestor, ColorRGB throughput,
-                                              int depth, float toAncestorJacobian) {
+            protected override ColorRGB OnHit(Ray ray, SurfacePoint hit, float pdfFromAncestor,
+                                              ColorRGB throughput, int depth, float toAncestorJacobian) {
                 path.Vertices.Add(new PathPdfPair {
                     PdfFromAncestor = pdfFromAncestor,
                     PdfToAncestor = 0
                 });
                 path.Throughput = throughput;
-                return integrator.OnCameraHit(path, rng, pixelIndex, ray, hit, pdfFromAncestor,
-                                              throughput, depth, toAncestorJacobian);
+                return integrator.OnCameraHit(path, rng, pixelIndex, ray, hit, pdfFromAncestor, throughput,
+                    depth, toAncestorJacobian);
             }
 
             protected override void OnContinue(float pdfToAncestor, int depth) {

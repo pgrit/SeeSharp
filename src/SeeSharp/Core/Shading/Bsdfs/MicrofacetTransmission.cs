@@ -30,21 +30,28 @@ namespace SeeSharp.Core.Shading.Bsdfs {
             Vector3 wh = Vector3.Normalize(outDir + inDir * eta);
             if (ShadingSpace.CosTheta(wh) < 0) wh = -wh;
 
+            if (Vector3.Dot(outDir, wh) * Vector3.Dot(inDir, wh) > 0) return ColorRGB.Black;
+
             var F = new ColorRGB(FresnelDielectric.Evaluate(Vector3.Dot(outDir, wh), outsideIOR, insideIOR));
 
             float sqrtDenom = Vector3.Dot(outDir, wh) + eta * Vector3.Dot(inDir, wh);
             float factor = isOnLightSubpath ? (1 / eta) : 1;
 
-            return (ColorRGB.White - F) * Transmittance *
-                   Math.Abs(Distribution.NormalDistribution(wh) * Distribution.MaskingShadowing(outDir, inDir) * eta * eta *
-                            Math.Abs(Vector3.Dot(inDir, wh)) * Math.Abs(Vector3.Dot(outDir, wh)) * factor * factor /
-                            (cosThetaI * cosThetaO * sqrtDenom * sqrtDenom));
+            var numerator = Distribution.NormalDistribution(wh) * Distribution.MaskingShadowing(outDir, inDir);
+            numerator *= eta * eta * Math.Abs(Vector3.Dot(inDir, wh)) * Math.Abs(Vector3.Dot(outDir, wh));
+            numerator *= factor * factor;
+
+            var denom = (cosThetaI * cosThetaO * sqrtDenom * sqrtDenom);
+
+            return (ColorRGB.White - F) * Transmittance * Math.Abs(numerator / denom);
         }
 
         float ComputeOneDir(Vector3 outDir, Vector3 inDir) {
             // Compute $\wh$ from $\outDir$ and $\inDir$ for microfacet transmission
             float eta = ShadingSpace.CosTheta(outDir) > 0 ? (insideIOR / outsideIOR) : (outsideIOR / insideIOR);
             Vector3 wh = Vector3.Normalize(outDir + inDir * eta);
+
+            if (Vector3.Dot(outDir, wh) * Vector3.Dot(inDir, wh) > 0) return 0;
 
             // Compute change of variables _dwh\_dinDir_ for microfacet transmission
             float sqrtDenom = Vector3.Dot(outDir, wh) + eta * Vector3.Dot(inDir, wh);
@@ -54,9 +61,7 @@ namespace SeeSharp.Core.Shading.Bsdfs {
         }
 
         public (float, float) Pdf(Vector3 outDir, Vector3 inDir, bool isOnLightSubpath) {
-            if (ShadingSpace.SameHemisphere(outDir, inDir))
-                return (0, 0);
-
+            if (ShadingSpace.SameHemisphere(outDir, inDir)) return (0, 0);
             return (ComputeOneDir(outDir, inDir), ComputeOneDir(inDir, outDir));
         }
 

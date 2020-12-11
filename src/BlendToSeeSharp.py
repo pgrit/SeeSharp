@@ -8,7 +8,8 @@ from bpy.types import Operator
 def export_obj_meshes(filepath):
     bpy.ops.export_scene.obj(filepath=filepath,
         axis_forward='-Z', axis_up='Y',
-        group_by_material=True, group_by_object=True)
+        group_by_material=True, group_by_object=True,
+        use_mesh_modifiers=True)
     mtlpath = filepath.replace(".obj", ".mtl")
     os.remove(mtlpath)
 

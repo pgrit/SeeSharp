@@ -282,7 +282,8 @@ namespace SeeSharp.Integrators.Bidir {
             return result;
         }
 
-        public abstract float NextEventMis(CameraPath cameraPath, float pdfEmit, float pdfNextEvent, float pdfHit, float pdfReverse);
+        public abstract float NextEventMis(CameraPath cameraPath, float pdfEmit, float pdfNextEvent,
+                                           float pdfHit, float pdfReverse);
 
         public virtual float NextEventPdf(SurfacePoint from, SurfacePoint to) {
             if (to.Mesh == null) { // Background
@@ -314,11 +315,17 @@ namespace SeeSharp.Integrators.Bidir {
                 var sample = scene.Background.SampleDirection(rng.NextFloat2D());
                 sample.Pdf *= backgroundProbability;
                 sample.Weight /= backgroundProbability;
+
+                if (sample.Pdf == 0) // Prevent NaN
+                    return ColorRGB.Black;
+
                 if (scene.Raytracer.LeavesScene(hit, sample.Direction)) {
-                    var bsdfTimesCosine = hit.Material.EvaluateWithCosine(hit, -ray.Direction, sample.Direction, false);
+                    var bsdfTimesCosine = hit.Material.EvaluateWithCosine(hit, -ray.Direction,
+                        sample.Direction, false);
 
                     // Compute the reverse BSDF sampling pdf
-                    var (bsdfForwardPdf, bsdfReversePdf) = hit.Material.Pdf(hit, -ray.Direction, sample.Direction, false);
+                    var (bsdfForwardPdf, bsdfReversePdf) = hit.Material.Pdf(hit, -ray.Direction,
+                        sample.Direction, false);
                     bsdfReversePdf *= reversePdfJacobian;
 
                     // Compute emission pdf
@@ -341,6 +348,10 @@ namespace SeeSharp.Integrators.Bidir {
                 // Sample a point on the light source
                 var (light, lightSample) = SampleNextEvent(hit, rng);
                 lightSample.pdf *= (1 - backgroundProbability);
+
+                if (lightSample.pdf == 0) // Prevent NaN
+                    return ColorRGB.Black;
+
                 if (!scene.Raytracer.IsOccluded(hit, lightSample.point)) {
                     Vector3 lightToSurface = hit.Position - lightSample.point.Position;
                     var emission = light.EmittedRadiance(lightSample.point, lightToSurface);

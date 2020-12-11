@@ -11,13 +11,14 @@ namespace SeeSharp.Validation {
                 // new Validate_GlossyLight(),
                 // new Validate_Environment(),
 
-                new Validate_CornellBox(),
-                new Validate_ModernHall(),
+                new Validate_RoughGlassesSoloHdri(),
+                // new Validate_CornellBox(),
+                // new Validate_ModernHall(),
                 // new Validate_HomeOffice(),
                 // new Validate_BananaRange(),
             };
 
-            int benchmarkRuns = 4;
+            int benchmarkRuns = 1;
             List<List<long>> allTimings = new();
             foreach (var test in allTests) {
                 // Validator.Validate(test);

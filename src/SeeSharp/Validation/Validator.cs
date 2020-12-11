@@ -40,7 +40,7 @@ namespace SeeSharp.Validation {
             for (int i = 0; i < algorithms.Count; ++i) {
                 // Create a new empty frame buffer with the desired output filename
                 scene.FrameBuffer = new FrameBuffer(scene.FrameBuffer.Width, scene.FrameBuffer.Height,
-                    System.IO.Path.Join($"{testname}", $"{names[i]}.exr"));
+                    System.IO.Path.Join($"{testname}", $"{names[i]}.exr"), FrameBuffer.Flags.SendToTev);
 
                 stopwatch.Restart();
                 algorithms[i].Render(scene);

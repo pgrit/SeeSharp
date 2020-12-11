@@ -121,8 +121,8 @@ namespace SeeSharp.Integrators {
             // Check if a light source was hit.
             Emitter light = scene.QueryEmitter(hit);
             if (light != null && depth >= MinDepth) {
-                (directHitContrib, nextEventPdf) = OnLightHit(scene, ray, pixel, throughput, depth, previousHit,
-                    previousPdf, hit, light);
+                (directHitContrib, nextEventPdf) = OnLightHit(scene, ray, pixel, throughput, depth,
+                    previousHit, previousPdf, hit, light);
             }
 
             ColorRGB nextEventContrib = ColorRGB.Black;
@@ -262,8 +262,8 @@ namespace SeeSharp.Integrators {
 
                 // Avoid Inf / NaN
                 if (pdfBsdf == 0 || jacobian == 0) {
-                    RegisterRadianceEstimate(hit, -ray.Direction, -lightToSurface, ColorRGB.Black, ColorRGB.Black,
-                        pixel, ColorRGB.Black, 0, 0);
+                    RegisterRadianceEstimate(hit, -ray.Direction, -lightToSurface, ColorRGB.Black,
+                        ColorRGB.Black, pixel, ColorRGB.Black, 0, 0);
                     return ColorRGB.Black;
                 }
 

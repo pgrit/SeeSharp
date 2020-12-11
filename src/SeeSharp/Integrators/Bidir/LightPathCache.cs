@@ -5,6 +5,7 @@ using SeeSharp.Core.Shading;
 using SeeSharp.Core.Shading.Emitters;
 using SeeSharp.Integrators.Common;
 using System;
+using System.Diagnostics;
 using System.Numerics;
 using System.Threading.Tasks;
 
@@ -146,6 +147,11 @@ namespace SeeSharp.Integrators.Bidir {
             // Account for the light selection probability
             pdf *= BackgroundProbability;
             weight /= BackgroundProbability;
+
+            if (pdf == 0) // Avoid NaNs
+                return -1;
+
+            Debug.Assert(float.IsFinite(weight.Average));
 
             // Perform a random walk through the scene, storing all vertices along the path
             var walker = new NotifyingCachedWalk(Scene, rng, MaxDepth, PathCache, idx);

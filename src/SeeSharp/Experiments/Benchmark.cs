@@ -3,6 +3,8 @@ using System.IO;
 
 namespace SeeSharp.Experiments {
     public class Benchmark {
+        public string DirectoryName = "Results";
+
         public Benchmark(Dictionary<string, ExperimentFactory> experiments,
                          int imageWidth, int imageHeight) {
             this.Experiments = experiments;
@@ -15,8 +17,8 @@ namespace SeeSharp.Experiments {
                 if (sceneFilter != null && !sceneFilter.Contains(experiment.Key))
                     continue;
 
-                var conductor = new ExperimentConductor(experiment.Value, Path.Join("results", experiment.Key),
-                                                        imageWidth, imageHeight);
+                var conductor = new ExperimentConductor(experiment.Value,
+                    Path.Join(DirectoryName, experiment.Key), imageWidth, imageHeight);
                 conductor.Run(forceReference);
             }
         }

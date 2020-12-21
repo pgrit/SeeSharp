@@ -1,6 +1,7 @@
 ﻿using SeeSharp.Core.Geometry;
 using SeeSharp.Integrators.Common;
 using System;
+using System.Collections.Generic;
 using System.Numerics;
 using static SeeSharp.Integrators.Bidir.BidirBase;
 
@@ -13,6 +14,15 @@ namespace SeeSharp.Integrators.Tests.Helpers {
         public PathCache pathCache;
         public int lightEndpointIdx;
         public PathPdfPair[] cameraVertices;
+        public List<float> Distances {
+            get {
+                List<float> result = new();
+                for (int i = 1; i < positions.Length; ++i) {
+                    result.Add((positions[i] - positions[i-1]).Length());
+                }
+                return result;
+            }
+        }
 
         public MisDummyPath(float lightArea, int numLightPaths, Vector3[] positions, Vector3[] normals) {
             this.lightArea = lightArea;

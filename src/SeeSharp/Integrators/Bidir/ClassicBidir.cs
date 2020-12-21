@@ -62,9 +62,9 @@ namespace SeeSharp.Integrators.Bidir {
             if (EnableLightTracer) SplatLightVertices();
         }
 
-        public override ColorRGB OnCameraHit(CameraPath path, RNG rng, int pixelIndex, Ray ray, SurfacePoint hit,
-                                             float pdfFromAncestor, ColorRGB throughput, int depth,
-                                             float toAncestorJacobian) {
+        public override ColorRGB OnCameraHit(CameraPath path, RNG rng, int pixelIndex, Ray ray,
+                                             SurfacePoint hit, float pdfFromAncestor, ColorRGB throughput,
+                                             int depth, float toAncestorJacobian) {
             ColorRGB value = ColorRGB.Black;
 
             // Was a light hit?
@@ -76,7 +76,8 @@ namespace SeeSharp.Integrators.Bidir {
             // Perform connections if the maximum depth has not yet been reached
             if (depth < MaxDepth) {
                 if (EnableConnections)
-                    value += throughput * BidirConnections(pixelIndex, hit, -ray.Direction, rng, path, toAncestorJacobian);
+                    value += throughput *
+                        BidirConnections(pixelIndex, hit, -ray.Direction, rng, path, toAncestorJacobian);
 
                 for (int i = 0; i < NumShadowRays; ++i) {
                     value += throughput * PerformNextEventEstimation(ray, hit, rng, path, toAncestorJacobian);
@@ -112,7 +113,7 @@ namespace SeeSharp.Integrators.Bidir {
         }
 
         public override float LightTracerMis(PathVertex lightVertex, float pdfCamToPrimary, float pdfReverse,
-                                             float pdfNextEvent, Vector2 pixel) {
+                                             float pdfNextEvent, Vector2 pixel, float distToCam) {
             int numPdfs = lightVertex.Depth + 1;
             int lastCameraVertexIdx = -1;
 
@@ -131,8 +132,9 @@ namespace SeeSharp.Integrators.Bidir {
             return 1 / sumReciprocals;
         }
 
-        public override float BidirConnectMis(CameraPath cameraPath, PathVertex lightVertex, float pdfCameraReverse,
-                                              float pdfCameraToLight, float pdfLightReverse, float pdfLightToCamera,
+        public override float BidirConnectMis(CameraPath cameraPath, PathVertex lightVertex,
+                                              float pdfCameraReverse, float pdfCameraToLight,
+                                              float pdfLightReverse, float pdfLightToCamera,
                                               float pdfNextEvent) {
             int numPdfs = cameraPath.Vertices.Count + lightVertex.Depth + 1;
             int lastCameraVertexIdx = cameraPath.Vertices.Count - 1;
@@ -192,7 +194,8 @@ namespace SeeSharp.Integrators.Bidir {
             }
             // Light tracer
             if (EnableLightTracer)
-                sumReciprocals += nextReciprocal * pdfs.PdfsLightToCamera[0] / pdfs.PdfsCameraToLight[0] * NumLightPaths;
+                sumReciprocals +=
+                    nextReciprocal * pdfs.PdfsLightToCamera[0] / pdfs.PdfsCameraToLight[0] * NumLightPaths;
             return sumReciprocals;
         }
 
@@ -201,7 +204,7 @@ namespace SeeSharp.Integrators.Bidir {
             float nextReciprocal = 1.0f;
             for (int i = lastCameraVertexIdx + 1; i < numPdfs; ++i) {
                 nextReciprocal *= pdfs.PdfsCameraToLight[i] / pdfs.PdfsLightToCamera[i];
-                if (EnableConnections && i < numPdfs - 2) // Connections to the emitter (next event) are treated separately
+                if (EnableConnections && i < numPdfs - 2) // Next event is treated separately
                     sumReciprocals += nextReciprocal;
             }
             sumReciprocals += nextReciprocal; // Next event and hitting the emitter directly

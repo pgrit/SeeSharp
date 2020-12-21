@@ -33,7 +33,8 @@ namespace SeeSharp.Integrators.Tests {
 
         float NextEventWeight() {
             var cameraPath = new CameraPath {
-                Vertices = new List<PathPdfPair>(dummyPath.cameraVertices[1..2])
+                Vertices = new List<PathPdfPair>(dummyPath.cameraVertices[1..2]),
+                Distances = dummyPath.Distances
             };
 
             float pdfReverse = dummyPath.cameraVertices[^2].PdfToAncestor;
@@ -54,12 +55,14 @@ namespace SeeSharp.Integrators.Tests {
                 pdfCamToPrimary: dummyPath.cameraVertices[1].PdfFromAncestor,
                 pdfReverse: dummyPath.cameraVertices[2].PdfFromAncestor,
                 pdfNextEvent: 1 / dummyPath.lightArea,
-                pixel: Vector2.Zero);
+                pixel: Vector2.Zero,
+                distToCam: dummyPath.Distances[^1]);
         }
 
         float HitWeight() {
             var cameraPath = new CameraPath {
-                Vertices = new List<PathPdfPair>(dummyPath.cameraVertices[1..3])
+                Vertices = new List<PathPdfPair>(dummyPath.cameraVertices[1..3]),
+                Distances = dummyPath.Distances
             };
 
             return dummyVcm.EmitterHitMis(cameraPath,
@@ -69,7 +72,8 @@ namespace SeeSharp.Integrators.Tests {
 
         float MergeWeight() {
             var cameraPath = new CameraPath {
-                Vertices = new List<PathPdfPair>(dummyPath.cameraVertices[1..2])
+                Vertices = new List<PathPdfPair>(dummyPath.cameraVertices[1..2]),
+                Distances = dummyPath.Distances
             };
 
             var photon = dummyPath.pathCache[0, dummyPath.lightEndpointIdx];

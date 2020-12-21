@@ -134,7 +134,8 @@ namespace SeeSharp.Integrators.Bidir {
                 var photonContrib = photon.Weight * bsdfValue / NumLightPaths;
 
                 // Compute the missing pdf terms and the MIS weight
-                var (pdfLightReverse, pdfCameraReverse) = hit.Material.Pdf(hit, -ray.Direction, dirToAncestor, false);
+                var (pdfLightReverse, pdfCameraReverse) =
+                    hit.Material.Pdf(hit, -ray.Direction, dirToAncestor, false);
                 pdfCameraReverse *= cameraJacobian;
                 pdfLightReverse *= SampleWarp.SurfaceAreaToSolidAngle(hit, ancestor.Point);
                 float pdfNextEvent = (photon.Depth == 1) ? NextEventPdf(hit, ancestor.Point) : 0;
@@ -145,7 +146,8 @@ namespace SeeSharp.Integrators.Bidir {
                 photonContrib *= 2 * (radiusSquared - mergeDistanceSquared);
                 photonContrib /= MathF.PI * radiusSquared * radiusSquared;
 
-                RegisterSample(photonContrib * path.Throughput, misWeight, path.Pixel, path.Vertices.Count, photon.Depth, depth);
+                RegisterSample(photonContrib * path.Throughput, misWeight, path.Pixel, path.Vertices.Count,
+                    photon.Depth, depth);
 
                 estimate += photonContrib * misWeight;
             }, Radius);
@@ -153,8 +155,8 @@ namespace SeeSharp.Integrators.Bidir {
             return estimate;
         }
 
-        public override ColorRGB OnCameraHit(CameraPath path, RNG rng, int pixelIndex, Ray ray, SurfacePoint hit,
-                                             float pdfFromAncestor, ColorRGB throughput,
+        public override ColorRGB OnCameraHit(CameraPath path, RNG rng, int pixelIndex, Ray ray,
+                                             SurfacePoint hit, float pdfFromAncestor, ColorRGB throughput,
                                              int depth, float toAncestorJacobian) {
             ColorRGB value = ColorRGB.Black;
 
@@ -167,7 +169,8 @@ namespace SeeSharp.Integrators.Bidir {
             // Perform connections and merging if the maximum depth has not yet been reached
             if (depth < MaxDepth) {
                 if (EnableConnections)
-                    value += throughput * BidirConnections(pixelIndex, hit, -ray.Direction, rng, path, toAncestorJacobian);
+                    value += throughput *
+                        BidirConnections(pixelIndex, hit, -ray.Direction, rng, path, toAncestorJacobian);
                 if (EnableNextEvent)
                     value += throughput * PerformNextEventEstimation(ray, hit, rng, path, toAncestorJacobian);
                 value += throughput * PerformMerging(ray, hit, path, toAncestorJacobian);
@@ -198,8 +201,12 @@ namespace SeeSharp.Integrators.Bidir {
 
             // Compute reciprocals for hypothetical connections along the camera sub-path
             float sumReciprocals = 0.0f;
-            sumReciprocals += CameraPathReciprocals(lastCameraVertexIdx, numPdfs, pathPdfs, cameraPath.Pixel) / mergeApproximation;
-            sumReciprocals += LightPathReciprocals(lastCameraVertexIdx, numPdfs, pathPdfs, cameraPath.Pixel) / mergeApproximation;
+            sumReciprocals +=
+                CameraPathReciprocals(lastCameraVertexIdx, numPdfs, pathPdfs, cameraPath.Pixel)
+                / mergeApproximation;
+            sumReciprocals +=
+                LightPathReciprocals(lastCameraVertexIdx, numPdfs, pathPdfs, cameraPath.Pixel)
+                / mergeApproximation;
 
             // Add the reciprocal for the connection that replaces the last light path edge
             if (lightVertex.Depth > 1 && EnableConnections)
@@ -228,13 +235,14 @@ namespace SeeSharp.Integrators.Bidir {
             if (EnableNextEvent) sumReciprocals += pdfNextEvent / pdfThis;
 
             // All connections along the camera path
-            sumReciprocals += CameraPathReciprocals(lastCameraVertexIdx - 1, numPdfs, pathPdfs, cameraPath.Pixel) / pdfThis;
+            sumReciprocals +=
+                CameraPathReciprocals(lastCameraVertexIdx - 1, numPdfs, pathPdfs, cameraPath.Pixel) / pdfThis;
 
             return 1 / sumReciprocals;
         }
 
         public override float LightTracerMis(PathVertex lightVertex, float pdfCamToPrimary, float pdfReverse,
-                                             float pdfNextEvent, Vector2 pixel) {
+                                             float pdfNextEvent, Vector2 pixel, float distToCam) {
             int numPdfs = lightVertex.Depth + 1;
             int lastCameraVertexIdx = -1;
 
@@ -253,8 +261,9 @@ namespace SeeSharp.Integrators.Bidir {
             return 1 / sumReciprocals;
         }
 
-        public override float BidirConnectMis(CameraPath cameraPath, PathVertex lightVertex, float pdfCameraReverse,
-                                              float pdfCameraToLight, float pdfLightReverse, float pdfLightToCamera,
+        public override float BidirConnectMis(CameraPath cameraPath, PathVertex lightVertex,
+                                              float pdfCameraReverse, float pdfCameraToLight,
+                                              float pdfLightReverse, float pdfLightToCamera,
                                               float pdfNextEvent) {
             int numPdfs = cameraPath.Vertices.Count + lightVertex.Depth + 1;
             int lastCameraVertexIdx = cameraPath.Vertices.Count - 1;
@@ -279,7 +288,8 @@ namespace SeeSharp.Integrators.Bidir {
             return 1 / sumReciprocals;
         }
 
-        public override float NextEventMis(CameraPath cameraPath, float pdfEmit, float pdfNextEvent, float pdfHit, float pdfReverse) {
+        public override float NextEventMis(CameraPath cameraPath, float pdfEmit, float pdfNextEvent,
+                                           float pdfHit, float pdfReverse) {
             int numPdfs = cameraPath.Vertices.Count + 1;
             int lastCameraVertexIdx = numPdfs - 2;
 
@@ -299,12 +309,14 @@ namespace SeeSharp.Integrators.Bidir {
             if (EnableBsdfLightHit) sumReciprocals += pdfHit / pdfNextEvent;
 
             // All bidirectional connections
-            sumReciprocals += CameraPathReciprocals(lastCameraVertexIdx, numPdfs, pathPdfs, cameraPath.Pixel) / pdfNextEvent;
+            sumReciprocals += CameraPathReciprocals(lastCameraVertexIdx, numPdfs, pathPdfs, cameraPath.Pixel)
+                / pdfNextEvent;
 
             return 1 / sumReciprocals;
         }
 
-        protected virtual float CameraPathReciprocals(int lastCameraVertexIdx, int numPdfs, BidirPathPdfs pdfs, Vector2 pixel) {
+        protected virtual float CameraPathReciprocals(int lastCameraVertexIdx, int numPdfs,
+                                                      BidirPathPdfs pdfs, Vector2 pixel) {
             float sumReciprocals = 0.0f;
             float nextReciprocal = 1.0f;
             for (int i = lastCameraVertexIdx; i > 0; --i) {
@@ -320,7 +332,8 @@ namespace SeeSharp.Integrators.Bidir {
 
             // Light tracer
             if (EnableLightTracing)
-                sumReciprocals += nextReciprocal * pdfs.PdfsLightToCamera[0] / pdfs.PdfsCameraToLight[0] * NumLightPaths;
+                sumReciprocals +=
+                    nextReciprocal * pdfs.PdfsLightToCamera[0] / pdfs.PdfsCameraToLight[0] * NumLightPaths;
 
             // Merging directly visible (almost the same as the light tracer!)
             if (MergePrimary)
@@ -330,7 +343,8 @@ namespace SeeSharp.Integrators.Bidir {
             return sumReciprocals;
         }
 
-        protected virtual float LightPathReciprocals(int lastCameraVertexIdx, int numPdfs, BidirPathPdfs pdfs, Vector2 pixel) {
+        protected virtual float LightPathReciprocals(int lastCameraVertexIdx, int numPdfs, BidirPathPdfs pdfs,
+                                                     Vector2 pixel) {
             float sumReciprocals = 0.0f;
             float nextReciprocal = 1.0f;
             for (int i = lastCameraVertexIdx + 1; i < numPdfs; ++i) {

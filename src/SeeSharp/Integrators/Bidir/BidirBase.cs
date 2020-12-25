@@ -101,10 +101,15 @@ namespace SeeSharp.Integrators.Bidir {
                 scene.FrameBuffer.StartIteration();
                 PreIteration(iter);
 
-                lightPaths.TraceAllPaths(iter,
-                    (origin, primary, nextDirection) => NextEventPdf(primary.Point, origin.Point));
-                ProcessPathCache();
-                TraceAllCameraPaths(iter);
+                try {
+                    lightPaths.TraceAllPaths(iter,
+                        (origin, primary, nextDirection) => NextEventPdf(primary.Point, origin.Point));
+                    ProcessPathCache();
+                    TraceAllCameraPaths(iter);
+                } catch {
+                    Console.WriteLine($"Exception in iteration {iter} out of {NumIterations}!");
+                    throw;
+                }
 
                 scene.FrameBuffer.EndIteration();
                 PostIteration(iter);

@@ -1,6 +1,7 @@
 using SeeSharp.Core;
 using SeeSharp.Core.Geometry;
 using SeeSharp.Core.Shading;
+using System;
 using System.Collections.Generic;
 using System.Numerics;
 
@@ -32,7 +33,11 @@ namespace SeeSharp.Integrators.Util {
 
             ColorRGB color = new ColorRGB(1, 0, 0);
             TypeToColor.TryGetValue(type, out color);
-            return color;
+
+            float cosine = Math.Abs(Vector3.Dot(hit.Normal, from));
+            cosine /= hit.Normal.Length();
+            cosine /= from.Length();
+            return color * cosine;
         }
 
         void MakeArrow(Vector3 start, Vector3 end, int type) {
@@ -42,6 +47,8 @@ namespace SeeSharp.Integrators.Util {
             var headStart = end + headHeight * (start - end);
             var line = MeshFactory.MakeCylinder(start, headStart, radius, NumSegments);
             var head = MeshFactory.MakeCone(headStart, end, radius * 2, NumSegments);
+            line.Material = new SeeSharp.Core.Shading.Materials.DiffuseMaterial(new());
+            head.Material = new SeeSharp.Core.Shading.Materials.DiffuseMaterial(new());
 
             curScene.Meshes.Add(line);
             curScene.Meshes.Add(head);
@@ -62,7 +69,7 @@ namespace SeeSharp.Integrators.Util {
             }
         }
 
-        Dictionary<Mesh, int> markerTypes;
+        Dictionary<Mesh, int> markerTypes = new();
         Scene curScene;
     }
 }

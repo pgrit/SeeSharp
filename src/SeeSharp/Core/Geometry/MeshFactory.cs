@@ -5,14 +5,14 @@ using System.Numerics;
 namespace SeeSharp.Core.Geometry {
     public static class MeshFactory {
         public static Mesh MakeCylinder(Vector3 from, Vector3 to, float radius, int numSegments) {
-            var (tan, binorm) = Sampling.SampleWarp.ComputeBasisVectors(to - from);
+            var (tan, binorm) = Sampling.SampleWarp.ComputeBasisVectors(Vector3.Normalize(to - from));
 
             List<Vector3> vertices = new();
             List<int> indices = new();
             for (int i = 0; i < numSegments; ++i) {
                 float angle = i * 2 * MathF.PI / numSegments;
-                float y = MathF.Sin(angle);
-                float x = MathF.Cos(angle);
+                float y = MathF.Sin(angle) * radius;
+                float x = MathF.Cos(angle) * radius;
 
                 vertices.Add(from + tan * x + binorm * y);
                 vertices.Add(to + tan * x + binorm * y);
@@ -40,15 +40,15 @@ namespace SeeSharp.Core.Geometry {
         }
 
         public static Mesh MakeCone(Vector3 baseCenter, Vector3 tip, float radius, int numSegments) {
-            var (tan, binorm) = Sampling.SampleWarp.ComputeBasisVectors(tip - baseCenter);
+            var (tan, binorm) = Sampling.SampleWarp.ComputeBasisVectors(Vector3.Normalize(tip - baseCenter));
 
             List<Vector3> vertices = new();
             List<int> indices = new();
             vertices.Add(tip);
             for (int i = 0; i < numSegments; ++i) {
                 float angle = i * 2 * MathF.PI / numSegments;
-                float y = MathF.Sin(angle);
-                float x = MathF.Cos(angle);
+                float y = MathF.Sin(angle) * radius;
+                float x = MathF.Cos(angle) * radius;
 
                 vertices.Add(baseCenter + tan * x + binorm * y);
 

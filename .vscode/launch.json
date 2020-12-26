@@ -5,12 +5,25 @@
    "version": "0.2.0",
    "configurations": [
         {
-            "name": ".NET Core Launch (console)",
+            "name": "Validation",
             "type": "coreclr",
             "request": "launch",
             "preLaunchTask": "build",
             // If you have changed target frameworks, make sure to update the program path.
             "program": "${workspaceFolder}/src/SeeSharp/Validation/bin/Debug/net5.0/Validation.dll",
+            "args": [],
+            "cwd": "${workspaceFolder}/dist",
+            // For more information about the 'console' field, see https://aka.ms/VSCode-CS-LaunchJson-Console
+            "console": "internalConsole",
+            "stopAtEntry": false
+        },
+        {
+            "name": "Tests",
+            "type": "coreclr",
+            "request": "launch",
+            "preLaunchTask": "build",
+            // If you have changed target frameworks, make sure to update the program path.
+            "program": "${workspaceFolder}/src/SeeSharp/Tests/bin/Debug/net5.0/Tests.dll",
             "args": [],
             "cwd": "${workspaceFolder}/dist",
             // For more information about the 'console' field, see https://aka.ms/VSCode-CS-LaunchJson-Console

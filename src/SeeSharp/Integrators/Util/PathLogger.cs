@@ -2,6 +2,7 @@ using SeeSharp.Core.Shading;
 using System;
 using System.Collections.Generic;
 using System.Numerics;
+using System.Threading.Tasks;
 
 namespace SeeSharp.Integrators.Util {
     public class LoggedPath : ICloneable {
@@ -17,6 +18,9 @@ namespace SeeSharp.Integrators.Util {
     }
 
     public class PathLogger {
+        public delegate bool FilterFn(LoggedPath path);
+        public FilterFn Filter { get; init; }
+
         public PathLogger(int imageWidth, int imageHeight) {
             pixelPaths = new List<LoggedPath>[imageWidth * imageHeight];
             for (int i = 0; i < pixelPaths.Length; ++i)
@@ -50,24 +54,34 @@ namespace SeeSharp.Integrators.Util {
             return new PathIndex { Pixel = original.Pixel, Local = id };
         }
 
-        public void Continue(PathIndex id, Vector3 nextVertex, int type, ColorRGB partialContrib) {
+        public void OnEndIteration() {
+            Parallel.ForEach(pixelPaths, paths => {
+                paths.RemoveAll(p => !Filter(p));
+            });
+        }
+
+        public void Continue(PathIndex id, Vector3 nextVertex, int type) {
             pixelPaths[id.Pixel][id.Local].Vertices.Add(nextVertex);
             pixelPaths[id.Pixel][id.Local].UserTypes.Add(type);
-            pixelPaths[id.Pixel][id.Local].Contribution += partialContrib;
+        }
+
+        public void SetContrib(PathIndex id, ColorRGB contrib) {
+            pixelPaths[id.Pixel][id.Local].Contribution = contrib;
         }
 
         int PixelToIndex(Vector2 pixel) {
-            int col = Math.Clamp((int)(pixel.X / width), 0, width - 1);
-            int row = Math.Clamp((int)(pixel.Y / height), 0, width - 1);
+            int col = Math.Clamp((int)pixel.X, 0, width - 1);
+            int row = Math.Clamp((int)pixel.Y, 0, height - 1);
             return row * width + col;
         }
 
-        public List<LoggedPath> GetAllInPixel(int row, int col, ColorRGB minContrib) {
+        public List<LoggedPath> GetAllInPixel(int col, int row, ColorRGB minContrib) {
             List<LoggedPath> result = new();
             var candidates = pixelPaths[row * width + col];
             foreach (var c in candidates) {
-                if (minContrib != null && c.Contribution.R < minContrib.R
-                    && c.Contribution.G < minContrib.G && c.Contribution.B < minContrib.B)
+                if (c.Contribution.R < minContrib.R
+                 && c.Contribution.G < minContrib.G
+                 && c.Contribution.B < minContrib.B)
                     continue;
                 result.Add(c);
             }

@@ -7,11 +7,14 @@
             "type": "process",
             "args": [
                 "build",
-                "${workspaceFolder}/src/SeeSharp/Validation/Validation.csproj",
                 "/property:GenerateFullPaths=true",
                 "/consoleloggerparameters:NoSummary"
             ],
-            "problemMatcher": "$msCompile"
+            "problemMatcher": "$msCompile",
+            "group": {
+                "kind": "build",
+                "isDefault": true
+            }
         },
         {
             "label": "publish",

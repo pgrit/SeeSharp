@@ -18,6 +18,8 @@ namespace SeeSharp.Integrators.Bidir {
         public uint BaseSeedCamera = 0xC030114u;
         public uint BaseSeedLight = 0x13C0FEFEu;
 
+        public Util.PathLogger PathLogger;
+
         public Scene scene;
         public LightPathCache lightPaths;
 
@@ -208,6 +210,14 @@ namespace SeeSharp.Integrators.Bidir {
 
                 scene.FrameBuffer.Splat(pixel.X, pixel.Y, misWeight * weight);
                 RegisterSample(weight, misWeight, pixel, 0, vertex.Depth, vertex.Depth + 1);
+
+                if (PathLogger != null && misWeight != 0 && weight != ColorRGB.Black) {
+                    var logId = PathLogger.StartNew(pixel);
+                    for (int i = 0; i < vertex.Depth + 1; ++i) {
+                        PathLogger.Continue(logId, lightPaths.PathCache[pathIdx, i].Point.Position, 1);
+                    }
+                    PathLogger.SetContrib(logId, misWeight * weight);
+                }
             });
         }
 

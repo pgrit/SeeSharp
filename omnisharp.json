@@ -50,5 +50,9 @@
         "NewLineForMembersInObjectInit": true,
         "NewLineForMembersInAnonymousTypes": true,
         "NewLineForClausesInQuery": true
+    },
+    "script": {
+        "enableScriptNuGetReferences": true,
+        "defaultTargetFramework": "net5.0"
     }
 }

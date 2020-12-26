@@ -16,7 +16,7 @@ namespace SeeSharp.Core.Tests.Datastructs {
             var result = tree.QueryNearest(Vector3.Zero, 1, float.MaxValue);
 
             //Then
-            Assert.Equal(1, result.Length);
+            Assert.Single(result);
             Assert.Equal(13, result[0]);
         }
 
@@ -32,7 +32,7 @@ namespace SeeSharp.Core.Tests.Datastructs {
             var result = tree.QueryNearest(Vector3.Zero, 1, 0.1f);
 
             //Then
-            Assert.Equal(0, result.Length);
+            Assert.Empty(result);
         }
 
         [Fact]
@@ -49,7 +49,7 @@ namespace SeeSharp.Core.Tests.Datastructs {
             var result = tree.QueryNearest(Vector3.Zero, 1, float.MaxValue);
 
             //Then
-            Assert.Equal(1, result.Length);
+            Assert.Single(result);
             Assert.Equal(13, result[0]);
         }
 
@@ -86,7 +86,7 @@ namespace SeeSharp.Core.Tests.Datastructs {
             var result = tree.QueryNearest(Vector3.Zero, 2, 20.0f);
 
             //Then
-            Assert.Equal(1, result.Length);
+            Assert.Single(result);
             Assert.Equal(13, result[0]);
         }
 
@@ -105,7 +105,7 @@ namespace SeeSharp.Core.Tests.Datastructs {
             var result = tree.QueryNearest(Vector3.Zero, 2, float.MaxValue);
 
             //Then
-            Assert.Equal(0, result.Length);
+            Assert.Empty(result);
         }
     }
 }

@@ -40,31 +40,31 @@ namespace SeeSharp.Core.Shading {
         public float R, G, B;
 
         public static ColorRGB operator *(ColorRGB a, ColorRGB b)
-            => new ColorRGB { R = a.R * b.R, G = a.G * b.G, B = a.B * b.B };
+        => new ColorRGB { R = a.R * b.R, G = a.G * b.G, B = a.B * b.B };
 
         public static ColorRGB operator *(ColorRGB a, float b)
-            => new ColorRGB { R = a.R * b, G = a.G * b, B = a.B * b };
+        => new ColorRGB { R = a.R * b, G = a.G * b, B = a.B * b };
 
         public static ColorRGB operator *(float a, ColorRGB b)
-            => b * a;
+        => b * a;
 
         public static ColorRGB operator /(ColorRGB a, float b)
-            => new ColorRGB { R = a.R / b, G = a.G / b, B = a.B / b };
+        => new ColorRGB { R = a.R / b, G = a.G / b, B = a.B / b };
 
         public static ColorRGB operator /(ColorRGB a, ColorRGB b)
-            => new ColorRGB { R = a.R / b.R, G = a.G / b.G, B = a.B / b.B };
+        => new ColorRGB { R = a.R / b.R, G = a.G / b.G, B = a.B / b.B };
 
         public static ColorRGB operator +(ColorRGB a, ColorRGB b)
-            => new ColorRGB { R = a.R + b.R, G = a.G + b.G, B = a.B + b.B };
+        => new ColorRGB { R = a.R + b.R, G = a.G + b.G, B = a.B + b.B };
 
         public static ColorRGB operator -(ColorRGB a, ColorRGB b)
-            => a + -1 * b;
+        => a + -1 * b;
 
         public static ColorRGB operator +(ColorRGB a, float b)
-            => new ColorRGB { R = a.R + b, G = a.G + b, B = a.B + b };
+        => new ColorRGB { R = a.R + b, G = a.G + b, B = a.B + b };
 
         public static ColorRGB operator -(ColorRGB a, float b)
-            => a + -b;
+        => a + -b;
 
         public static ColorRGB Black =
             new ColorRGB { R = 0.0f, G = 0.0f, B = 0.0f };
@@ -85,16 +85,16 @@ namespace SeeSharp.Core.Shading {
         }
 
         public static bool operator ==(ColorRGB a, ColorRGB b)
-            => a.R == b.R && a.G == b.G && a.B == b.B;
+        => a.R == b.R && a.G == b.G && a.B == b.B;
 
         public static bool operator !=(ColorRGB a, ColorRGB b)
-            => !(a == b);
+        => !(a == b);
 
         public static ColorRGB Sqrt(ColorRGB v)
-            => new ColorRGB(MathF.Sqrt(v.R), MathF.Sqrt(v.G), MathF.Sqrt(v.B));
+        => new ColorRGB(MathF.Sqrt(v.R), MathF.Sqrt(v.G), MathF.Sqrt(v.B));
 
         public static ColorRGB Lerp(float w, ColorRGB from, ColorRGB to)
-            => (1 - w) * from + w * to;
+        => (1 - w) * from + w * to;
 
         public void Add(ISpectrum other) {
             ColorRGB o = (ColorRGB) other;

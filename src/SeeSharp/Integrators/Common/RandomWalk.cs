@@ -42,8 +42,7 @@ namespace SeeSharp.Integrators.Common {
             float pdfToAncestor = pdfReverse;
 
             ColorRGB estimate = OnHit(ray, hit, pdfFromAncestor, initialWeight, 1, 1.0f);
-
-            // TODO / FIXME add splitting support and call the correct OnContinue() event handler for bidir support!
+            OnContinue(pdfToAncestor, 1);
 
             // Terminate if the maximum depth has been reached
             if (maxDepth <= 1)

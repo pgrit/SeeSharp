@@ -13,7 +13,8 @@ namespace SeeSharp.Core.Geometry {
         }
 
         public void AddMesh(Mesh mesh) {
-            uint meshId = (uint)SeeCoreApi.AddTriangleMesh(sceneId, mesh.Vertices, mesh.NumVertices, mesh.Indices, mesh.NumFaces * 3);
+            uint meshId = (uint)SeeCoreApi.AddTriangleMesh(sceneId, mesh.Vertices, mesh.NumVertices,
+                mesh.Indices, mesh.NumFaces * 3);
             meshMap[meshId] = mesh;
         }
 
@@ -45,14 +46,6 @@ namespace SeeSharp.Core.Geometry {
             ) * 32.0f * 1.19209e-07f;
 
             return hit;
-        }
-
-        public void Trace(Ray[] rays, SurfacePoint[] hits) {
-            Debug.Assert(rays.Length == hits.Length);
-            // TODO proper support at the lower level
-            System.Threading.Tasks.Parallel.For(0, rays.Length, (idx) => {
-                hits[idx] = Trace(rays[idx]);
-            });
         }
 
         Vector3 OffsetPoint(SurfacePoint from, Vector3 dir) {
@@ -100,26 +93,12 @@ namespace SeeSharp.Core.Geometry {
 
         public bool IsOccluded(SurfacePoint from, SurfacePoint to) {
             var ray = MakeShadowRay(from, to);
-            // TODO use a proper optimized method here that does not compute the actual closest hit.
-            var p = Trace(ray.Ray);
-            bool occluded = p.Mesh != null && p.Distance < ray.MaxDistance;
-            return occluded;
-        }
-
-        public void IsOccluded(ShadowRay[] rays, bool[] result) {
-            Debug.Assert(rays.Length == result.Length);
-            // TODO proper wave support
-            System.Threading.Tasks.Parallel.For(0, rays.Length, i => {
-                result[i] = IsOccluded(rays[i]);
-            });
+            return IsOccluded(ray);
         }
 
         public bool IsOccluded(SurfacePoint from, Vector3 target) {
             var ray = MakeShadowRay(from, target);
-            // TODO use a proper optimized method here that does not compute the actual closest hit.
-            var p = Trace(ray.Ray);
-            bool occluded = p.Mesh != null && p.Distance < ray.MaxDistance;
-            return occluded;
+            return IsOccluded(ray);
         }
 
         public bool LeavesScene(SurfacePoint from, Vector3 direction) {
@@ -149,8 +128,9 @@ namespace SeeSharp.Core.Geometry {
             public static extern void FinalizeScene(int scene);
 
             [DllImport("SeeCore", CallingConvention = CallingConvention.Cdecl)]
-            public static extern int AddTriangleMesh(int scene, Vector3[] vertices, int numVerts, int[] indices,
-                                                     int numIdx, float[] texCoords = null, float[] shadingNormals = null);
+            public static extern int AddTriangleMesh(int scene, Vector3[] vertices, int numVerts,
+                                                     int[] indices, int numIdx, float[] texCoords = null,
+                                                     float[] shadingNormals = null);
 
 #pragma warning disable CS0649 // The field is never assigned to (only returned from native function call)
             public readonly struct MinimalHitInfo {

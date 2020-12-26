@@ -29,23 +29,26 @@ namespace SeeSharp.Validation {
             return true;
         }
 
-        static (List<FrameBuffer>, List<long>) RenderImages(Scene scene, List<Integrator> algorithms,
-                                                            List<string> names, string testname) {
+        static (List<FrameBuffer>, List<long>) RenderImages(Scene scene, IEnumerable<Integrator> algorithms,
+                                                            IEnumerable<string> names, string testname) {
             var images = new List<FrameBuffer>();
             var times = new List<long>();
             Console.WriteLine($"Running test '{testname}'");
 
             var stopwatch  = System.Diagnostics.Stopwatch.StartNew();
-            for (int i = 0; i < algorithms.Count; ++i) {
+            var name = names.GetEnumerator();
+            foreach (var alg in algorithms) {
+                name.MoveNext();
+
                 // Create a new empty frame buffer with the desired output filename
                 scene.FrameBuffer = new FrameBuffer(scene.FrameBuffer.Width, scene.FrameBuffer.Height,
-                    System.IO.Path.Join($"{testname}", $"{names[i]}.exr"), FrameBuffer.Flags.SendToTev);
+                    System.IO.Path.Join($"{testname}", $"{name.Current}.exr"), FrameBuffer.Flags.SendToTev);
 
                 stopwatch.Restart();
-                algorithms[i].Render(scene);
+                alg.Render(scene);
                 stopwatch.Stop();
 
-                Console.WriteLine($"Done with {names[i]} after {stopwatch.ElapsedMilliseconds}ms.");
+                Console.WriteLine($"Done with {name.Current} after {stopwatch.ElapsedMilliseconds}ms.");
                 times.Add(stopwatch.ElapsedMilliseconds);
 
                 images.Add(scene.FrameBuffer);
@@ -61,44 +64,25 @@ namespace SeeSharp.Validation {
             stopwatch.Stop();
             var sceneLoadTime = stopwatch.ElapsedMilliseconds;
 
-            var algorithms = new List<Integrator>() {
-                new PathTracer() {
+            var algorithms = new Dictionary<string, Integrator>() {
+                { "PathTracer", new PathTracer() {
                    TotalSpp = sceneFactory.SamplesPerPixel,
                    MaxDepth = (uint)sceneFactory.MaxDepth,
                    MinDepth = 1
-                },
-                new ClassicBidir() {
+                }},
+                { "ClassicBidir", new ClassicBidir() {
                     NumIterations = sceneFactory.SamplesPerPixel / 2,
                     MaxDepth = sceneFactory.MaxDepth,
                     RenderTechniquePyramid = true
-                },
-                new VertexConnectionAndMerging() {
+                }},
+                { "Vcm", new VertexConnectionAndMerging() {
                     NumIterations = sceneFactory.SamplesPerPixel / 2,
                     MaxDepth = sceneFactory.MaxDepth,
                     RenderTechniquePyramid = true,
-                }
-                //new PhotonMapper() {
-                //    NumIterations = sceneFactory.SamplesPerPixel,
-                //    MaxDepth = sceneFactory.MaxDepth
-                //}
-                //new VertexCacheBidir() {
-                //    NumIterations = sceneFactory.SamplesPerPixel / 2,
-                //    MaxDepth = sceneFactory.MaxDepth,
-                //    NumLightPaths = 1000,
-                //    NumConnections = 4,
-                //    NumShadowRays = 4,
-                //    RenderTechniquePyramid = true
-                //}
-            };
-            var names = new List<string> {
-                "PathTracer",
-                "ClassicBidir",
-                "Vcm",
-                //"PhotonMapper",
-                //"VertexCacheBidir"
+                }}
             };
 
-            var (images, times) = RenderImages(scene, algorithms, names, sceneFactory.Name);
+            var (images, times) = RenderImages(scene, algorithms.Values, algorithms.Keys, sceneFactory.Name);
 
             if (!ValidateImages(images)) {
                 Console.WriteLine("Validation error: Average image values too far appart!");

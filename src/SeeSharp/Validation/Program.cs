@@ -10,12 +10,7 @@ namespace SeeSharp.Validation {
                 new Validate_MultiLight(),
                 new Validate_GlossyLight(),
                 new Validate_Environment(),
-
-                // new Validate_RoughGlassesIndirect(),
-                // new Validate_CornellBox(),
-                // new Validate_ModernHall(),
-                // new Validate_HomeOffice(),
-                // new Validate_BananaRange(),
+                new Validate_CornellBox(),
             };
 
             int benchmarkRuns = 1;

@@ -266,7 +266,6 @@ namespace SeeSharp.Integrators {
                 if (pdfBsdf == 0 || jacobian == 0) {
                     RegisterRadianceEstimate(hit, -ray.Direction, -lightToSurface, ColorRGB.Black,
                         ColorRGB.Black, pixel, ColorRGB.Black, 0, 0);
-                    Debug.Assert(bsdfCos == ColorRGB.Black);
                     return ColorRGB.Black;
                 }
 

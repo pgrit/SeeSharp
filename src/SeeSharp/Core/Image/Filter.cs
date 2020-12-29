@@ -12,13 +12,13 @@ namespace SeeSharp.Core.Image {
             this.radius = radius;
         }
 
-        ColorRGB Kernel(Image<ColorRGB> original, int centerRow, int centerCol) {
+        protected virtual ColorRGB Kernel(Image<ColorRGB> original, int centerRow, int centerCol) {
             int top = Math.Max(0, centerRow - radius);
-            int bottom = Math.Min(original.Height, centerRow + radius);
+            int bottom = Math.Min(original.Height - 1, centerRow + radius);
             int left = Math.Max(0, centerCol - radius);
-            int right = Math.Min(original.Width, centerCol + radius);
+            int right = Math.Min(original.Width - 1, centerCol + radius);
 
-            int area = (bottom - top) * (right - left);
+            int area = (bottom - top + 1) * (right - left + 1);
             float normalization = 1.0f / area;
 
             ColorRGB result = ColorRGB.Black;
@@ -30,11 +30,11 @@ namespace SeeSharp.Core.Image {
             return result;
         }
 
-        Scalar Kernel(Image<Scalar> original, int centerRow, int centerCol) {
+        protected virtual Scalar Kernel(Image<Scalar> original, int centerRow, int centerCol) {
             int top = Math.Max(0, centerRow - radius);
-            int bottom = Math.Min(original.Height, centerRow + radius);
+            int bottom = Math.Min(original.Height - 1, centerRow + radius);
             int left = Math.Max(0, centerCol - radius);
-            int right = Math.Min(original.Width, centerCol + radius);
+            int right = Math.Min(original.Width - 1, centerCol + radius);
 
             int area = (bottom - top + 1) * (right - left + 1);
             float normalization = 1.0f / area;
@@ -65,5 +65,28 @@ namespace SeeSharp.Core.Image {
         }
 
         int radius;
+    }
+
+    public class NeighborAverage : BoxFilter {
+        public NeighborAverage() : base(1) {}
+
+        protected override ColorRGB Kernel(Image<ColorRGB> original, int centerRow, int centerCol) {
+            int top = Math.Max(0, centerRow - 1);
+            int bottom = Math.Min(original.Height - 1, centerRow + 1);
+            int left = Math.Max(0, centerCol - 1);
+            int right = Math.Min(original.Width - 1, centerCol + 1);
+
+            int area = (bottom - top + 1) * (right - left + 1) - 1;
+            float normalization = 1.0f / area;
+
+            ColorRGB result = ColorRGB.Black;
+            for (int row = top; row <= bottom; ++row) {
+                for (int col = left; col <= right; ++col) {
+                    if (row == centerRow && col == centerCol) continue;
+                    result += original[col, row] * normalization;
+                }
+            }
+            return result;
+        }
     }
 }

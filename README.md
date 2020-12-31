@@ -94,12 +94,6 @@ and a small subset of Cycles materials, to SeeSharp's file format. The script is
 `src/BlendToSeeSharp.py`
 To use the script, simply run it within Blender.
 
-### Exporting an example scene
-
-### Rendering with the interactive viewer
-
-### Performance comparison to Mitsuba
-
 ## Conducting an experiment
 
 SeeSharp is designed to be used as a library, to write rendering experiments with. To get started, you should first create a new console application that will contain you experiment set-up, as well as any additional algorithms or other changes you will introduce.
@@ -126,10 +120,12 @@ Note that the `dist` directory, which contains the .so / .dll files of the C++ l
 
 The framework loosely follows the following coding conventions:
 
-- Class names, method names, properties, and public fields are UpperCaseNames
-- Private fields, parameters, and local variables are lowerCaseNames
+- Class names, method names, properties, and public fields are PascalCase
+- Private fields, parameters, and local variables are camelCase
 - Opening brackets are on the same line
-- Lines should be less than 100 characters long, for better readability and comparisons
+- Lines should be less than 110 characters long, for better readability and comparisons
+
+The .editorconfig and omnisharp.json files configure some of these conventions for Visual Studio and VS Code, respectively.
 
 Example:
 

@@ -162,7 +162,7 @@ namespace SeeSharp.Integrators.Bidir {
             });
         }
 
-        public void ConnectLightPathToCamera(int pathIdx) {
+        public virtual void ConnectLightPathToCamera(int pathIdx) {
             lightPaths.ForEachVertex(pathIdx, (vertex, ancestor, dirToAncestor) => {
                 // Compute image plane location
                 var raster = scene.Camera.WorldToFilm(vertex.Point.Position);
@@ -235,8 +235,8 @@ namespace SeeSharp.Integrators.Bidir {
                                                          int pixelIndex, RNG rng)
         => (pixelIndex, -1, 1.0f);
 
-        public ColorRGB BidirConnections(int pixelIndex, SurfacePoint cameraPoint, Vector3 outDir,
-                                         RNG rng, CameraPath path, float reversePdfJacobian) {
+        public virtual ColorRGB BidirConnections(int pixelIndex, SurfacePoint cameraPoint, Vector3 outDir,
+                                                 RNG rng, CameraPath path, float reversePdfJacobian) {
             ColorRGB result = ColorRGB.Black;
 
             // Select a path to connect to (based on pixel index)
@@ -334,8 +334,8 @@ namespace SeeSharp.Integrators.Bidir {
         public virtual float ComputeNextEventBackgroundProbability(/*SurfacePoint from*/)
         => scene.Background == null ? 0 : 1 / (1.0f + scene.Emitters.Count);
 
-        public ColorRGB PerformNextEventEstimation(Ray ray, SurfacePoint hit, RNG rng, CameraPath path,
-                                                   float reversePdfJacobian) {
+        public virtual ColorRGB PerformNextEventEstimation(Ray ray, SurfacePoint hit, RNG rng, CameraPath path,
+                                                           float reversePdfJacobian) {
             float backgroundProbability = ComputeNextEventBackgroundProbability(/*hit*/);
             if (rng.NextFloat() < backgroundProbability) { // Connect to the background
                 if (scene.Background == null)
@@ -420,8 +420,8 @@ namespace SeeSharp.Integrators.Bidir {
 
         public abstract float EmitterHitMis(CameraPath cameraPath, float pdfEmit, float pdfNextEvent);
 
-        public ColorRGB OnEmitterHit(Emitter emitter, SurfacePoint hit, Ray ray,
-                                     CameraPath path, float reversePdfJacobian) {
+        public virtual ColorRGB OnEmitterHit(Emitter emitter, SurfacePoint hit, Ray ray,
+                                             CameraPath path, float reversePdfJacobian) {
             var emission = emitter.EmittedRadiance(hit, -ray.Direction);
 
             // Compute pdf values
@@ -436,7 +436,7 @@ namespace SeeSharp.Integrators.Bidir {
             return misWeight * emission;
         }
 
-        public ColorRGB OnBackgroundHit(Ray ray, CameraPath path) {
+        public virtual ColorRGB OnBackgroundHit(Ray ray, CameraPath path) {
             if (scene.Background == null)
                 return ColorRGB.Black;
 

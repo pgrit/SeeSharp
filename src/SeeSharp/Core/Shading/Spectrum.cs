@@ -3,13 +3,16 @@
 namespace SeeSharp.Core.Shading {
     public interface ISpectrum {
         void Add(ISpectrum other);
+        void Add(float other);
         void Scale(float factor);
+        void Multiply(ISpectrum other);
+        void Divide(ISpectrum other);
     }
 
     public struct Scalar : ISpectrum {
         public float Value;
 
-        public Scalar(float v) { Value = v; }
+        public Scalar(float v = 0) { Value = v; }
 
         public static Scalar operator *(Scalar a, Scalar b)
             => new Scalar { Value = a.Value * b.Value };
@@ -27,8 +30,20 @@ namespace SeeSharp.Core.Shading {
             this += (Scalar) other;
         }
 
+        public void Add(float other) {
+            this.Value += other;
+        }
+
         public void Scale(float factor) {
             Value *= factor;
+        }
+
+        public void Multiply(ISpectrum other) {
+            this *= (Scalar) other;
+        }
+
+        public void Divide(ISpectrum other) {
+            this /= ((Scalar) other).Value;
         }
     }
 
@@ -101,8 +116,20 @@ namespace SeeSharp.Core.Shading {
             this += o;
         }
 
+        public void Add(float other) {
+            this += other;
+        }
+
         public void Scale(float factor) {
             this *= factor;
+        }
+
+        public void Multiply(ISpectrum other) {
+            this *= (ColorRGB) other;
+        }
+
+        public void Divide(ISpectrum other) {
+            this /= (ColorRGB) other;
         }
 
         public float Luminance => 0.212671f * R + 0.715160f * G + 0.072169f * B;

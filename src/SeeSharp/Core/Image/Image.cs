@@ -6,7 +6,7 @@ using System.Runtime.InteropServices;
 using System.Threading;
 
 namespace SeeSharp.Core.Image {
-    public class Image<T> where T : ISpectrum {
+    public class Image<T> where T : ISpectrum, new() {
         public int Width {
             get; private set;
         }
@@ -48,6 +48,107 @@ namespace SeeSharp.Core.Image {
                     this[x, y].Scale(s);
                 }
             });
+        }
+
+        public T Sum() {
+            T result = new();
+            for (int x = 0; x < Width; ++x) {
+                for (int y = 0; y < Height; ++y) {
+                    result.Add(this[x, y]);
+                }
+            }
+            return result;
+        }
+
+        public static Image<T> operator* (Image<T> a, float b) {
+            Image<T> result = new(a.Width, a.Height);
+
+            System.Threading.Tasks.Parallel.For(0, a.Width, x => {
+                for (int y = 0; y < a.Height; ++y) {
+                    result[x, y] = a[x, y];
+                    result[x, y].Scale(b);
+                }
+            });
+
+            return result;
+        }
+
+        public static Image<T> operator* (float b, Image<T> a) => a * b;
+
+        public static Image<T> operator* (Image<T> a, Image<T> b) {
+            if (a.Width != b.Width || a.Height != b.Height)
+                throw new ArgumentException("Image dimensions do not match.");
+
+            Image<T> result = new(a.Width, a.Height);
+
+            System.Threading.Tasks.Parallel.For(0, a.Width, x => {
+                for (int y = 0; y < a.Height; ++y) {
+                    result[x, y] = a[x, y];
+                    result[x, y].Multiply(b[x, y]);
+                }
+            });
+
+            return result;
+        }
+
+        public static Image<T> operator/ (Image<T> a, Image<T> b) {
+            if (a.Width != b.Width || a.Height != b.Height)
+                throw new ArgumentException("Image dimensions do not match.");
+
+            Image<T> result = new(a.Width, a.Height);
+
+            System.Threading.Tasks.Parallel.For(0, a.Width, x => {
+                for (int y = 0; y < a.Height; ++y) {
+                    result[x, y] = a[x, y];
+                    result[x, y].Divide(b[x, y]);
+                }
+            });
+
+            return result;
+        }
+
+        public static Image<T> operator+ (Image<T> a, Image<T> b) {
+            if (a.Width != b.Width || a.Height != b.Height)
+                throw new ArgumentException("Image dimensions do not match.");
+
+            Image<T> result = new(a.Width, a.Height);
+
+            System.Threading.Tasks.Parallel.For(0, a.Width, x => {
+                for (int y = 0; y < a.Height; ++y) {
+                    result[x, y] = a[x, y];
+                    result[x, y].Add(b[x, y]);
+                }
+            });
+
+            return result;
+        }
+
+        public static Image<T> operator+ (Image<T> a, float b) {
+            Image<T> result = new(a.Width, a.Height);
+            System.Threading.Tasks.Parallel.For(0, a.Width, x => {
+                for (int y = 0; y < a.Height; ++y) {
+                    result[x, y] = a[x, y];
+                    result[x, y].Add(b);
+                }
+            });
+            return result;
+        }
+
+        public static Image<T> operator- (Image<T> a, Image<T> b) {
+            if (a.Width != b.Width || a.Height != b.Height)
+                throw new ArgumentException("Image dimensions do not match.");
+
+            Image<T> result = new(a.Width, a.Height);
+
+            System.Threading.Tasks.Parallel.For(0, a.Width, x => {
+                for (int y = 0; y < a.Height; ++y) {
+                    result[x, y] = b[x, y];
+                    result[x, y].Scale(-1);
+                    result[x, y].Add(a[x, y]);
+                }
+            });
+
+            return result;
         }
 
         int IndexOf(float x, float y) {

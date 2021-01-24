@@ -19,6 +19,8 @@ namespace SeeSharp.Integrators.Bidir {
         /// <summary>Wether or not to use merging at the first hit from the camera.</summary>
         public bool MergePrimary = false;
 
+        public bool EnableMerging = true;
+
         TechPyramid techPyramidRaw;
         TechPyramid techPyramidWeighted;
 
@@ -93,8 +95,10 @@ namespace SeeSharp.Integrators.Bidir {
                                                       minDepth: 1, maxDepth: MaxDepth, merges: true);
             }
 
-            // Classic Bidir requires exactly one light path for every camera path.
-            NumLightPaths = scene.FrameBuffer.Width * scene.FrameBuffer.Height;
+            if (EnableConnections || NumLightPaths == 0) {
+                // Classic Bidir requires exactly one light path for every camera path.
+                NumLightPaths = scene.FrameBuffer.Width * scene.FrameBuffer.Height;
+            }
 
             InitializeRadius(scene);
 
@@ -112,12 +116,12 @@ namespace SeeSharp.Integrators.Bidir {
 
         public override void ProcessPathCache() {
             if (EnableLightTracing) SplatLightVertices();
-            photonMap.Build(lightPaths, Radius);
+            if (EnableMerging) photonMap.Build(lightPaths, Radius);
         }
 
         public virtual ColorRGB PerformMerging(Ray ray, SurfacePoint hit, CameraPath path, float cameraJacobian) {
-            if (path.Vertices.Count == 1 && !MergePrimary)
-                return ColorRGB.Black;
+            if (path.Vertices.Count == 1 && !MergePrimary) return ColorRGB.Black;
+            if (!EnableMerging) return ColorRGB.Black;
 
             ColorRGB estimate = ColorRGB.Black;
             photonMap.Query(hit.Position, (pathIdx, vertexIdx, mergeDistanceSquared) => {
@@ -321,8 +325,10 @@ namespace SeeSharp.Integrators.Bidir {
             float nextReciprocal = 1.0f;
             for (int i = lastCameraVertexIdx; i > 0; --i) {
                 // Merging at this vertex
-                float acceptProb = pdfs.PdfsLightToCamera[i] * MathF.PI * Radius * Radius;
-                sumReciprocals += nextReciprocal * NumLightPaths * acceptProb;
+                if (EnableMerging) {
+                    float acceptProb = pdfs.PdfsLightToCamera[i] * MathF.PI * Radius * Radius;
+                    sumReciprocals += nextReciprocal * NumLightPaths * acceptProb;
+                }
 
                 nextReciprocal *= pdfs.PdfsLightToCamera[i] / pdfs.PdfsCameraToLight[i];
 
@@ -350,8 +356,10 @@ namespace SeeSharp.Integrators.Bidir {
             for (int i = lastCameraVertexIdx + 1; i < numPdfs; ++i) {
                 if (i < numPdfs - 1 && (MergePrimary || i > 0)) { // no merging on the emitter itself
                     // Account for merging at this vertex
-                    float acceptProb = pdfs.PdfsCameraToLight[i] * MathF.PI * Radius * Radius;
-                    sumReciprocals += nextReciprocal * NumLightPaths * acceptProb;
+                    if (EnableMerging) {
+                        float acceptProb = pdfs.PdfsCameraToLight[i] * MathF.PI * Radius * Radius;
+                        sumReciprocals += nextReciprocal * NumLightPaths * acceptProb;
+                    }
                 }
 
                 nextReciprocal *= pdfs.PdfsCameraToLight[i] / pdfs.PdfsLightToCamera[i];

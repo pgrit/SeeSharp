@@ -145,6 +145,10 @@ namespace SeeSharp.Integrators.Bidir {
                 float pdfNextEvent = (photon.Depth == 1) ? NextEventPdf(hit, ancestor.Point) : 0;
                 float misWeight = MergeMis(path, photon, pdfCameraReverse, pdfLightReverse, pdfNextEvent);
 
+                // Prevent NaNs in corner cases
+                if (photonContrib == ColorRGB.Black || pdfCameraReverse == 0 || pdfLightReverse == 0)
+                    return;
+
                 // Epanechnikov kernel
                 float radiusSquared = Radius * Radius;
                 photonContrib *= 2 * (radiusSquared - mergeDistanceSquared);

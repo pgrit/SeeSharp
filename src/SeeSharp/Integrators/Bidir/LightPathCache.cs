@@ -42,7 +42,21 @@ namespace SeeSharp.Integrators.Bidir {
         }
 
         public virtual float BackgroundProbability
-            => Scene.Background != null ? 1 / (1.0f + Scene.Emitters.Count) : 0;
+        => Scene.Background != null ? 1 / (1.0f + Scene.Emitters.Count) : 0;
+
+        public virtual float ComputeEmitterPdf(Emitter emitter, SurfacePoint point, Vector3 dir, 
+                                               float reversePdfJacobian) {
+            float pdfEmit = emitter.PdfRay(point, dir);
+            pdfEmit *= reversePdfJacobian;
+            pdfEmit *= SelectLightPmf(emitter);
+            return pdfEmit;
+        }
+
+        public virtual float ComputeBackgroundPdf(Vector3 from, Vector3 dir) {
+            float pdfEmit = Scene.Background.RayPdf(from, dir);
+            pdfEmit *= SelectLightPmf(null);
+            return pdfEmit;
+        }
 
         /// <summary>
         /// Resets the path cache and populates it with a new set of light paths.

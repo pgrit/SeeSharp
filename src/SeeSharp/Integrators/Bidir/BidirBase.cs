@@ -88,6 +88,9 @@ namespace SeeSharp.Integrators.Bidir {
         public virtual void PostIteration(uint iteration) { }
         public virtual void PreIteration(uint iteration) { }
 
+        protected virtual LightPathCache MakeLightPathCache() 
+        => new LightPathCache { MaxDepth = MaxDepth, NumPaths = NumLightPaths, Scene = scene };
+
         public override void Render(Scene scene) {
             this.scene = scene;
 
@@ -95,7 +98,7 @@ namespace SeeSharp.Integrators.Bidir {
                 NumLightPaths = scene.FrameBuffer.Width * scene.FrameBuffer.Height;
             }
 
-            lightPaths = new LightPathCache { MaxDepth = MaxDepth, NumPaths = NumLightPaths, Scene = scene };
+            lightPaths = MakeLightPathCache();
 
             for (uint iter = 0; iter < NumIterations; ++iter) {
                 scene.FrameBuffer.StartIteration();
@@ -358,8 +361,7 @@ namespace SeeSharp.Integrators.Bidir {
                     bsdfReversePdf *= reversePdfJacobian;
 
                     // Compute emission pdf
-                    float pdfEmit = scene.Background.RayPdf(hit.Position, -sample.Direction);
-                    pdfEmit *= lightPaths.SelectLightPmf(null);
+                    float pdfEmit = lightPaths.ComputeBackgroundPdf(hit.Position, -sample.Direction);
 
                     // Compute the mis weight
                     float misWeight = NextEventMis(path, pdfEmit, sample.Pdf, bsdfForwardPdf, bsdfReversePdf);
@@ -401,9 +403,8 @@ namespace SeeSharp.Integrators.Bidir {
                     bsdfForwardPdf *= SampleWarp.SurfaceAreaToSolidAngle(hit, lightSample.Point);
                     bsdfReversePdf *= reversePdfJacobian;
 
-                    float pdfEmit = light.PdfRay(lightSample.Point, lightToSurface);
-                    pdfEmit *= SampleWarp.SurfaceAreaToSolidAngle(lightSample.Point, hit);
-                    pdfEmit *= lightPaths.SelectLightPmf(light);
+                    float pdfEmit = lightPaths.ComputeEmitterPdf(light, lightSample.Point, lightToSurface, 
+                        SampleWarp.SurfaceAreaToSolidAngle(lightSample.Point, hit));
 
                     float misWeight =
                         NextEventMis(path, pdfEmit, lightSample.Pdf, bsdfForwardPdf, bsdfReversePdf);
@@ -425,9 +426,7 @@ namespace SeeSharp.Integrators.Bidir {
             var emission = emitter.EmittedRadiance(hit, -ray.Direction);
 
             // Compute pdf values
-            float pdfEmit = emitter.PdfRay(hit, -ray.Direction);
-            pdfEmit *= reversePdfJacobian;
-            pdfEmit *= lightPaths.SelectLightPmf(emitter);
+            float pdfEmit = lightPaths.ComputeEmitterPdf(emitter, hit, -ray.Direction, reversePdfJacobian);
             float pdfNextEvent = NextEventPdf(new SurfacePoint(), hit); // TODO get the actual previous point!
 
             float misWeight = EmitterHitMis(path, pdfEmit, pdfNextEvent);
@@ -441,8 +440,7 @@ namespace SeeSharp.Integrators.Bidir {
                 return ColorRGB.Black;
 
             // Compute the pdf of sampling the previous point by emission from the background
-            float pdfEmit = scene.Background.RayPdf(ray.Origin, -ray.Direction);
-            pdfEmit *= lightPaths.SelectLightPmf(null);
+            float pdfEmit = lightPaths.ComputeBackgroundPdf(ray.Origin, -ray.Direction);
 
             // Compute the pdf of sampling the same connection via next event estimation
             float pdfNextEvent = scene.Background.DirectionPdf(ray.Direction);

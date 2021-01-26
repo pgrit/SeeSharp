@@ -88,7 +88,7 @@ namespace SeeSharp.Integrators.Bidir {
         public virtual void PostIteration(uint iteration) { }
         public virtual void PreIteration(uint iteration) { }
 
-        protected virtual LightPathCache MakeLightPathCache() 
+        protected virtual LightPathCache MakeLightPathCache()
         => new LightPathCache { MaxDepth = MaxDepth, NumPaths = NumLightPaths, Scene = scene };
 
         public override void Render(Scene scene) {
@@ -155,6 +155,20 @@ namespace SeeSharp.Integrators.Bidir {
         /// <param name="fullLength">Number of edges forming the full path. Used to disambiguate techniques.</param>
         public virtual void RegisterSample(ColorRGB weight, float misWeight, Vector2 pixel,
                                            int cameraPathLength, int lightPathLength, int fullLength) {}
+        public virtual void LightTracerUpdate(ColorRGB weight, float misWeight, Vector2 pixel,
+                                              PathVertex lightVertex, float pdfCamToPrimary, float pdfReverse,
+                                              float pdfNextEvent, float distToCam) {}
+        public virtual void NextEventUpdate(ColorRGB weight, float misWeight, CameraPath cameraPath,
+                                            float pdfEmit, float pdfNextEvent, float pdfHit, float pdfReverse,
+                                            Emitter emitter, Vector3 lightToSurface) {}
+        public virtual void EmitterHitUpdate(ColorRGB weight, float misWeight, CameraPath cameraPath,
+                                             float pdfEmit, float pdfNextEvent, Emitter emitter,
+                                             Vector3 lightToSurface) {}
+        public virtual void BidirConnectUpdate(ColorRGB weight, float misWeight, CameraPath cameraPath,
+                                               PathVertex lightVertex, float pdfCameraReverse,
+                                               float pdfCameraToLight, float pdfLightReverse,
+                                               float pdfLightToCamera, float pdfNextEvent) {}
+
 
         public abstract float LightTracerMis(PathVertex lightVertex, float pdfCamToPrimary, float pdfReverse,
                                              float pdfNextEvent, Vector2 pixel, float distToCam);
@@ -218,6 +232,8 @@ namespace SeeSharp.Integrators.Bidir {
 
                 scene.FrameBuffer.Splat(pixel.X, pixel.Y, misWeight * weight);
                 RegisterSample(weight, misWeight, pixel, 0, vertex.Depth, vertex.Depth + 1);
+                LightTracerUpdate(weight, misWeight, pixel, vertex, surfaceToPixelJacobian, pdfReverse,
+                    pdfNextEvent, distToCam);
 
                 if (PathLogger != null && misWeight != 0 && weight != ColorRGB.Black) {
                     var logId = PathLogger.StartNew(pixel);
@@ -297,6 +313,8 @@ namespace SeeSharp.Integrators.Bidir {
 
                 RegisterSample(weight * path.Throughput, misWeight, path.Pixel,
                                path.Vertices.Count, vertex.Depth, depth);
+                BidirConnectUpdate(weight * path.Throughput, misWeight, path, vertex, pdfCameraReverse,
+                    pdfCameraToLight, pdfLightReverse, pdfLightToCamera, pdfNextEvent);
             }
 
             if (lightVertIdx > 0 && lightVertIdx < lightPaths.PathCache.Length(lightPathIdx)) {
@@ -370,6 +388,8 @@ namespace SeeSharp.Integrators.Bidir {
                     var weight = sample.Weight * bsdfTimesCosine;
                     RegisterSample(weight * path.Throughput, misWeight, path.Pixel,
                                    path.Vertices.Count, 0, path.Vertices.Count + 1);
+                    NextEventUpdate(weight * path.Throughput, misWeight, path, pdfEmit, sample.Pdf,
+                        bsdfForwardPdf, bsdfReversePdf, null, -sample.Direction);
                     return misWeight * weight;
                 }
             } else { // Connect to an emissive surface
@@ -403,7 +423,7 @@ namespace SeeSharp.Integrators.Bidir {
                     bsdfForwardPdf *= SampleWarp.SurfaceAreaToSolidAngle(hit, lightSample.Point);
                     bsdfReversePdf *= reversePdfJacobian;
 
-                    float pdfEmit = lightPaths.ComputeEmitterPdf(light, lightSample.Point, lightToSurface, 
+                    float pdfEmit = lightPaths.ComputeEmitterPdf(light, lightSample.Point, lightToSurface,
                         SampleWarp.SurfaceAreaToSolidAngle(lightSample.Point, hit));
 
                     float misWeight =
@@ -412,6 +432,8 @@ namespace SeeSharp.Integrators.Bidir {
                     var weight = emission * bsdfTimesCosine * (jacobian / lightSample.Pdf);
                     RegisterSample(weight * path.Throughput, misWeight, path.Pixel,
                                    path.Vertices.Count, 0, path.Vertices.Count + 1);
+                    NextEventUpdate(weight * path.Throughput, misWeight, path, pdfEmit, lightSample.Pdf,
+                        bsdfForwardPdf, bsdfReversePdf, light, lightToSurface);
                     return misWeight * weight;
                 }
             }
@@ -432,6 +454,8 @@ namespace SeeSharp.Integrators.Bidir {
             float misWeight = EmitterHitMis(path, pdfEmit, pdfNextEvent);
             RegisterSample(emission * path.Throughput, misWeight, path.Pixel,
                            path.Vertices.Count, 0, path.Vertices.Count);
+            EmitterHitUpdate(emission * path.Throughput, misWeight, path, pdfEmit, pdfNextEvent, emitter,
+                -ray.Direction);
             return misWeight * emission;
         }
 
@@ -451,6 +475,8 @@ namespace SeeSharp.Integrators.Bidir {
             var emission = scene.Background.EmittedRadiance(ray.Direction);
             RegisterSample(emission * path.Throughput, misWeight, path.Pixel,
                            path.Vertices.Count, 0, path.Vertices.Count);
+            EmitterHitUpdate(emission * path.Throughput, misWeight, path, pdfEmit, pdfNextEvent, null,
+                -ray.Direction);
             return misWeight * emission * path.Throughput;
         }
 

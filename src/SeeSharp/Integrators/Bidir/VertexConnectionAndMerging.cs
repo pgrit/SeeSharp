@@ -119,6 +119,10 @@ namespace SeeSharp.Integrators.Bidir {
             if (EnableMerging) photonMap.Build(lightPaths, Radius);
         }
 
+        public virtual void MergeUpdate(ColorRGB weight, float misWeight, CameraPath cameraPath,
+                                        PathVertex lightVertex, float pdfCameraReverse,
+                                        float pdfLightReverse, float pdfNextEvent) {}
+
         public virtual ColorRGB PerformMerging(Ray ray, SurfacePoint hit, CameraPath path, float cameraJacobian) {
             if (path.Vertices.Count == 1 && !MergePrimary) return ColorRGB.Black;
             if (!EnableMerging) return ColorRGB.Black;
@@ -156,6 +160,8 @@ namespace SeeSharp.Integrators.Bidir {
 
                 RegisterSample(photonContrib * path.Throughput, misWeight, path.Pixel, path.Vertices.Count,
                     photon.Depth, depth);
+                MergeUpdate(photonContrib * path.Throughput, misWeight, path, photon, pdfCameraReverse,
+                    pdfLightReverse, pdfNextEvent);
 
                 estimate += photonContrib * misWeight;
             }, Radius);

@@ -34,7 +34,7 @@ namespace SeeSharp.Integrators.Bidir {
 
         public override (Emitter, SurfaceSample) SampleNextEvent(SurfacePoint from, RNG rng) {
             var (light, sample) = base.SampleNextEvent(from, rng);
-            sample.pdf *= NumShadowRays;
+            sample.Pdf *= NumShadowRays;
             return (light, sample);
         }
 

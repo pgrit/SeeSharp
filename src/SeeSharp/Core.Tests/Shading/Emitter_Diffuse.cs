@@ -24,7 +24,7 @@ namespace SeeSharp.Core.Tests.Shading {
 
             var sample = emitter.SampleRay(new Vector2(0.3f, 0.8f), new Vector2(0.56f, 0.03f));
 
-            Assert.True(sample.point.ErrorOffset > 0);
+            Assert.True(sample.Point.ErrorOffset > 0);
         }
 
         [Fact]
@@ -50,7 +50,7 @@ namespace SeeSharp.Core.Tests.Shading {
 
             var sample = emitter.SampleRay(new Vector2(0.3f, 0.8f), new Vector2(0.56f, 0.03f));
 
-            Assert.True(sample.direction.Y > 0);
+            Assert.True(sample.Direction.Y > 0);
         }
 
         [Fact]
@@ -76,7 +76,7 @@ namespace SeeSharp.Core.Tests.Shading {
 
             var sample = emitter.SampleRay(new Vector2(0.3f, 0.8f), new Vector2(0.56f, 0.03f));
 
-            Assert.True(sample.direction.Y < 0);
+            Assert.True(sample.Direction.Y < 0);
         }
 
         [Fact]
@@ -166,8 +166,8 @@ namespace SeeSharp.Core.Tests.Shading {
 
             var sample = emitter.SampleRay(new Vector2(0.3f, 0.8f), new Vector2(0.56f, 0.03f));
 
-            float c = Vector3.Dot(sample.direction, new Vector3(0, 1, 0));
-            Assert.Equal(0.25f * c / MathF.PI, sample.pdf);
+            float c = Vector3.Dot(sample.Direction, new Vector3(0, 1, 0));
+            Assert.Equal(0.25f * c / MathF.PI, sample.Pdf);
         }
 
         [Fact]
@@ -193,16 +193,47 @@ namespace SeeSharp.Core.Tests.Shading {
 
             var sample = emitter.SampleRay(new Vector2(0.3f, 0.8f), new Vector2(0.56f, 0.03f));
 
-            float c = Vector3.Dot(sample.direction, new Vector3(0, 1, 0));
+            float c = Vector3.Dot(sample.Direction, new Vector3(0, 1, 0));
             float expectedPdf = 0.25f * c / MathF.PI;
-            Assert.Equal(expectedPdf, sample.pdf);
+            Assert.Equal(expectedPdf, sample.Pdf);
 
             var expectedWeight =
-                emitter.EmittedRadiance(sample.point, sample.direction) * c
+                emitter.EmittedRadiance(sample.Point, sample.Direction) * c
                 / expectedPdf;
-            Assert.Equal(expectedWeight.R, sample.weight.R);
-            Assert.Equal(expectedWeight.G, sample.weight.G);
-            Assert.Equal(expectedWeight.B, sample.weight.B);
+            Assert.Equal(expectedWeight.R, sample.Weight.R);
+            Assert.Equal(expectedWeight.G, sample.Weight.G);
+            Assert.Equal(expectedWeight.B, sample.Weight.B);
+        }
+
+        [Fact]
+        public void EmittedRays_SampleInverse() {
+            var mesh = new Mesh(
+                new Vector3[] {
+                    new Vector3(-1, 10, -1),
+                    new Vector3( 1, 10, -1),
+                    new Vector3( 1, 10,  1),
+                    new Vector3(-1, 10,  1)
+                }, new int[] {
+                    0, 1, 2,
+                    0, 2, 3
+                },
+                shadingNormals: new Vector3[] {
+                    new Vector3(0, 1, 0),
+                    new Vector3(0, 1, 0),
+                    new Vector3(0, 1, 0),
+                    new Vector3(0, 1, 0)
+                }
+            );
+            var emitter = new DiffuseEmitter(mesh, ColorRGB.White);
+
+            var sample = emitter.SampleRay(new Vector2(0.3f, 0.8f), new Vector2(0.56f, 0.03f));
+
+            var (posP, dirP) = emitter.SampleRayInverse(sample.Point, sample.Direction);
+
+            Assert.Equal(0.3f, posP.X, 3);
+            Assert.Equal(0.8f, posP.Y, 3);
+            Assert.Equal(0.56f, dirP.X, 3);
+            Assert.Equal(0.03f, dirP.Y, 3);
         }
     }
 }

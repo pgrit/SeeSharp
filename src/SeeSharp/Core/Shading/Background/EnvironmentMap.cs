@@ -62,6 +62,12 @@ namespace SeeSharp.Core.Shading.Background {
             };
         }
 
+        public override Vector2 SampleDirectionInverse(Vector3 direction) {
+            var sphericalDir = WorldToSpherical(direction);
+            var pixelPrimary = SphericalToPixel(sphericalDir);
+            return directionSampler.SampleInverse(pixelPrimary);
+        }
+
         public override float DirectionPdf(Vector3 direction) {
             var sphericalDir = WorldToSpherical(direction);
             var pixelCoords = SphericalToPixel(sphericalDir);
@@ -91,6 +97,19 @@ namespace SeeSharp.Core.Shading.Background {
             var pdf = posPdf * dirSample.Pdf;
 
             return (ray, weight, pdf);
+        }
+
+        public override (Vector2, Vector2) SampleRayInverse(Vector3 dir, Vector3 pos) {
+            var primaryDir = SampleDirectionInverse(-dir);
+
+            // Project the point onto the plane with normal "dir"
+            var (tangent, binormal) = SampleWarp.ComputeBasisVectors(-dir);
+            var offset = pos - SceneCenter;
+            float x = Vector3.Dot(offset, tangent) / SceneRadius;
+            float y = Vector3.Dot(offset, binormal) / SceneRadius;
+            var primaryPos = SampleWarp.FromConcentricDisc(new(x, y));
+
+            return (primaryPos, primaryDir);
         }
 
         public override float RayPdf(Vector3 point, Vector3 direction) {

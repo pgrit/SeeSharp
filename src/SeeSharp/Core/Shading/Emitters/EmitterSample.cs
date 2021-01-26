@@ -3,11 +3,11 @@ using System.Numerics;
 
 namespace SeeSharp.Core.Shading.Emitters {
     public struct EmitterSample {
-        public SurfacePoint point;
-        public Vector3 direction;
-        public float pdf;
+        public SurfacePoint Point;
+        public Vector3 Direction;
+        public float Pdf;
 
         // Sample weight for an MC estimate of the total emitted power
-        public ColorRGB weight;
+        public ColorRGB Weight;
     }
 }

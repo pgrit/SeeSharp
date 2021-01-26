@@ -24,7 +24,7 @@ namespace SeeSharp.Integrators.Common {
             lastId = cache.AddVertex(new PathVertex {
                 // TODO are any of these actually useful? Only the point right now, but only because we do not pre-compute
                 //      the next event weight (which would be more efficient to begin with)
-                Point = emitterSample.point,
+                Point = emitterSample.Point,
                 PdfFromAncestor = 0.0f, // unused
                 PdfReverseAncestor = 0.0f, // unused
                 Weight = ColorRGB.Black, // the first known weight is that at the first hit point

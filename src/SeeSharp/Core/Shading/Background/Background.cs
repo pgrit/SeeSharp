@@ -12,8 +12,10 @@ namespace SeeSharp.Core.Shading.Background {
         public abstract ColorRGB EmittedRadiance(Vector3 direction);
 
         public abstract BackgroundSample SampleDirection(Vector2 primary);
+        public abstract Vector2 SampleDirectionInverse(Vector3 Direction);
         public abstract float DirectionPdf(Vector3 Direction);
         public abstract (Ray, ColorRGB, float) SampleRay(Vector2 primaryPos, Vector2 primaryDir);
+        public abstract (Vector2, Vector2) SampleRayInverse(Vector3 dir, Vector3 pos);
 
         /// <summary>
         /// Computes the pdf value for sampling a ray from the background towards the scene.

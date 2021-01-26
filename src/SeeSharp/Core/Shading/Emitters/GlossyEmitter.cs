@@ -23,6 +23,8 @@ namespace SeeSharp.Core.Shading.Emitters {
         public override float PdfArea(SurfacePoint point) => Mesh.Pdf(point);
         public override SurfaceSample SampleArea(Vector2 primary) => Mesh.Sample(primary);
 
+        public override Vector2 SampleAreaInverse(SurfacePoint point) => Mesh.SampleInverse(point);
+
         public override float PdfRay(SurfacePoint point, Vector3 direction) {
             float cosine = Vector3.Dot(point.ShadingNormal, direction) / direction.Length();
             return PdfArea(point) * SampleWarp.ToCosineLobeJacobian(exponent + 1, cosine);
@@ -36,7 +38,7 @@ namespace SeeSharp.Core.Shading.Emitters {
             var local = SampleWarp.ToCosineLobe(exponent + 1, primaryDir);
 
             // Transform to world space direction
-            var normal = posSample.point.ShadingNormal;
+            var normal = posSample.Point.ShadingNormal;
             var (tangent, binormal) = SampleWarp.ComputeBasisVectors(normal);
             Vector3 dir = local.Direction.Z * normal
                         + local.Direction.X * tangent
@@ -46,11 +48,25 @@ namespace SeeSharp.Core.Shading.Emitters {
             var weight = radiance * MathF.Pow(cosine, exponent + 1) * normalizationFactor;
 
             return new EmitterSample {
-                point = posSample.point,
-                direction = dir,
-                pdf = local.Pdf * posSample.pdf,
-                weight = weight / posSample.pdf  / local.Pdf
+                Point = posSample.Point,
+                Direction = dir,
+                Pdf = local.Pdf * posSample.Pdf,
+                Weight = weight / posSample.Pdf  / local.Pdf
             };
+        }
+
+        public override (Vector2, Vector2) SampleRayInverse(SurfacePoint point, Vector3 direction) {
+            var posPrimary = SampleAreaInverse(point);
+
+            // Transform from world space to sampling space
+            var normal = point.ShadingNormal;
+            var (tangent, binormal) = SampleWarp.ComputeBasisVectors(normal);
+            float z = Vector3.Dot(normal, direction);
+            float x = Vector3.Dot(tangent, direction);
+            float y = Vector3.Dot(binormal, direction);
+
+            var dirPrimary = SampleWarp.FromCosineLobe(exponent + 1, new(x, y, z));
+            return (posPrimary, dirPrimary);
         }
 
         ColorRGB radiance;

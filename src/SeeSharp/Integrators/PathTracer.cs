@@ -247,18 +247,18 @@ namespace SeeSharp.Integrators {
 
             // Sample a point on the light source
             var lightSample = light.SampleArea(rng.NextFloat2D());
-            Vector3 lightToSurface = hit.Position - lightSample.point.Position;
+            Vector3 lightToSurface = hit.Position - lightSample.Point.Position;
 
-            if (!scene.Raytracer.IsOccluded(hit, lightSample.point)) {
-                var emission = light.EmittedRadiance(lightSample.point, lightToSurface);
+            if (!scene.Raytracer.IsOccluded(hit, lightSample.Point)) {
+                var emission = light.EmittedRadiance(lightSample.Point, lightToSurface);
 
                 // Compute the jacobian for surface area -> solid angle
                 // (Inverse of the jacobian for solid angle pdf -> surface area pdf)
-                float jacobian = SampleWarp.SurfaceAreaToSolidAngle(hit, lightSample.point);
+                float jacobian = SampleWarp.SurfaceAreaToSolidAngle(hit, lightSample.Point);
                 var bsdfCos = hit.Material.EvaluateWithCosine(hit, -ray.Direction, -lightToSurface, false);
 
                 // Compute surface area PDFs
-                float pdfNextEvt = lightSample.pdf * lightSelectProb * NumShadowRays;
+                float pdfNextEvt = lightSample.Pdf * lightSelectProb * NumShadowRays;
                 float pdfBsdfSolidAngle = DirectionPdf(hit, -ray.Direction, -lightToSurface);
                 float pdfBsdf = pdfBsdfSolidAngle * jacobian;
 
@@ -275,7 +275,7 @@ namespace SeeSharp.Integrators {
 
                 // Compute the final sample weight, account for the change of variables from light source area
                 // to the hemisphere about the shading point.
-                var pdf = lightSample.pdf / jacobian * lightSelectProb * NumShadowRays;
+                var pdf = lightSample.Pdf / jacobian * lightSelectProb * NumShadowRays;
                 RegisterSample(pixel, emission / pdf * bsdfCos * throughput, misWeight, depth + 1, true);
                 RegisterRadianceEstimate(hit, -ray.Direction, -lightToSurface, misWeight * emission,
                     ColorRGB.Black, pixel, throughput * bsdfCos, pdf, pdfNextEvt / jacobian);

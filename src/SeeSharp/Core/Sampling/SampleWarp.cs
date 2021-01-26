@@ -34,6 +34,14 @@ namespace SeeSharp.Core.Sampling {
             return new Vector2(u, v);
         }
 
+        public static Vector2 FromUniformTriangle(Vector2 barycentric) {
+            if (barycentric.X == 1) return Vector2.Zero; // Prevent NaN
+            return new(
+                (1 - barycentric.X) * (1 - barycentric.X),
+                barycentric.Y / (1 - barycentric.X)
+            );
+        }
+
         public static Vector3 SphericalToCartesian(float sintheta, float costheta, float phi) {
             return new Vector3(
                 sintheta * MathF.Cos(phi),
@@ -49,7 +57,7 @@ namespace SeeSharp.Core.Sampling {
         /// Maps the cartensian coordinates (z is up) to spherical coordinates.
         /// </summary>
         /// <param name="dir">Direction in cartesian coordinates</param>
-        /// <returns>A vector where X is the longitude and Y the latitude</returns>
+        /// <returns>A vector where X is the longitude (phi) and Y the latitude (theta)</returns>
         public static Vector2 CartesianToSpherical(Vector3 dir) {
             var sp = new Vector2(
                 MathF.Atan2(dir.Y, dir.X),
@@ -67,12 +75,20 @@ namespace SeeSharp.Core.Sampling {
         // Warps the primary sample space on the cosine weighted hemisphere.
         // The hemisphere is centered about the positive "z" axis.
         public static DirectionSample ToCosHemisphere(Vector2 primary) {
-            Vector3 local_dir = SphericalToCartesian(
+            Vector3 localDir = SphericalToCartesian(
                 MathF.Sqrt(1 - primary.Y),
                 MathF.Sqrt(primary.Y),
                 2.0f * MathF.PI * primary.X);
 
-            return new DirectionSample { Direction = local_dir, Pdf = local_dir.Z / MathF.PI };
+            return new DirectionSample { Direction = localDir, Pdf = localDir.Z / MathF.PI };
+        }
+
+        public static Vector2 FromCosHemisphere(Vector3 localDir) {
+            var spherical = CartesianToSpherical(localDir);
+            float x = spherical.X / (2.0f * MathF.PI);
+            float cosTheta = MathF.Cos(spherical.Y);
+            float y = cosTheta * cosTheta;
+            return new(x, y);
         }
 
         public static float ToCosHemisphereJacobian(float cosine) {
@@ -85,12 +101,20 @@ namespace SeeSharp.Core.Sampling {
             float cosTheta = MathF.Pow(primary.Y, 1.0f / (power + 1.0f));
             float sinTheta = MathF.Sqrt(1.0f - (cosTheta * cosTheta)); // cosTheta cannot be >= 1
 
-            Vector3 local_dir = SphericalToCartesian(sinTheta, cosTheta, phi);
+            Vector3 localDir = SphericalToCartesian(sinTheta, cosTheta, phi);
 
             return new DirectionSample {
-                Direction = local_dir,
+                Direction = localDir,
                 Pdf = (power + 1.0f) * MathF.Pow(cosTheta, power) * 1.0f / (2.0f * MathF.PI)
             };
+        }
+
+        public static Vector2 FromCosineLobe(float power, Vector3 localDir) {
+            var spherical = CartesianToSpherical(localDir);
+            float x = spherical.X / (2.0f * MathF.PI);
+            float cosTheta = MathF.Cos(spherical.Y);
+            float y = MathF.Pow(cosTheta, power + 1.0f);
+            return new(x, y);
         }
 
         public static float ToCosineLobeJacobian(float power, float cos) {
@@ -147,6 +171,27 @@ namespace SeeSharp.Core.Sampling {
             }
 
             return new Vector2(r * MathF.Cos(phi), r * MathF.Sin(phi));
+        }
+
+        public static Vector2 FromConcentricDisc(Vector2 pos) {
+            float r = pos.Length();
+            float phi = MathF.Atan2(pos.Y, pos.X);
+            phi += phi < -MathF.PI / 4.0f ? 2.0f * MathF.PI : 0.0f; 
+            float a, b;
+            if (phi < MathF.PI / 4.0f) {
+                a = r;
+                b = phi * a / (MathF.PI / 4.0f);
+            } else if (phi < 3.0f * MathF.PI / 4.0f) { 
+                b = r;
+                a = -(phi - MathF.PI / 2.0f) * b / (MathF.PI / 4.0f);
+            } else if (phi < 5.0f * MathF.PI / 4.0f) { 
+                a = -r;
+                b = (phi - MathF.PI) * a / (MathF.PI / 4.0f);
+            } else {
+                b = -r;
+                a = -(phi - 3.0f * MathF.PI / 2.0f) * b / (MathF.PI / 4.0f);
+            }
+            return new((a + 1.0f) / 2.0f, (b + 1.0f) / 2.0f);
         }
 
         public static float ToConcentricDiscJacobian() {

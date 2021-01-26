@@ -327,7 +327,7 @@ namespace SeeSharp.Integrators.Bidir {
         public virtual (Emitter, SurfaceSample) SampleNextEvent(SurfacePoint from, RNG rng) {
             var (light, lightProb, _) = SelectLight(from, rng.NextFloat());
             var lightSample = light.SampleArea(rng.NextFloat2D());
-            lightSample.pdf *= lightProb;
+            lightSample.Pdf *= lightProb;
             return (light, lightSample);
         }
 
@@ -376,14 +376,14 @@ namespace SeeSharp.Integrators.Bidir {
 
                 // Sample a point on the light source
                 var (light, lightSample) = SampleNextEvent(hit, rng);
-                lightSample.pdf *= (1 - backgroundProbability);
+                lightSample.Pdf *= (1 - backgroundProbability);
 
-                if (lightSample.pdf == 0) // Prevent NaN
+                if (lightSample.Pdf == 0) // Prevent NaN
                     return ColorRGB.Black;
 
-                if (!scene.Raytracer.IsOccluded(hit, lightSample.point)) {
-                    Vector3 lightToSurface = hit.Position - lightSample.point.Position;
-                    var emission = light.EmittedRadiance(lightSample.point, lightToSurface);
+                if (!scene.Raytracer.IsOccluded(hit, lightSample.Point)) {
+                    Vector3 lightToSurface = hit.Position - lightSample.Point.Position;
+                    var emission = light.EmittedRadiance(lightSample.Point, lightToSurface);
 
                     var bsdfTimesCosine =
                         hit.Material.EvaluateWithCosine(hit, -ray.Direction, -lightToSurface, false);
@@ -392,23 +392,23 @@ namespace SeeSharp.Integrators.Bidir {
 
                     // Compute the jacobian for surface area -> solid angle
                     // (Inverse of the jacobian for solid angle pdf -> surface area pdf)
-                    float jacobian = SampleWarp.SurfaceAreaToSolidAngle(hit, lightSample.point);
+                    float jacobian = SampleWarp.SurfaceAreaToSolidAngle(hit, lightSample.Point);
                     if (jacobian == 0) return ColorRGB.Black;
 
                     // Compute the missing pdf terms
                     var (bsdfForwardPdf, bsdfReversePdf) =
                         hit.Material.Pdf(hit, -ray.Direction, -lightToSurface, false);
-                    bsdfForwardPdf *= SampleWarp.SurfaceAreaToSolidAngle(hit, lightSample.point);
+                    bsdfForwardPdf *= SampleWarp.SurfaceAreaToSolidAngle(hit, lightSample.Point);
                     bsdfReversePdf *= reversePdfJacobian;
 
-                    float pdfEmit = light.PdfRay(lightSample.point, lightToSurface);
-                    pdfEmit *= SampleWarp.SurfaceAreaToSolidAngle(lightSample.point, hit);
+                    float pdfEmit = light.PdfRay(lightSample.Point, lightToSurface);
+                    pdfEmit *= SampleWarp.SurfaceAreaToSolidAngle(lightSample.Point, hit);
                     pdfEmit *= lightPaths.SelectLightPmf(light);
 
                     float misWeight =
-                        NextEventMis(path, pdfEmit, lightSample.pdf, bsdfForwardPdf, bsdfReversePdf);
+                        NextEventMis(path, pdfEmit, lightSample.Pdf, bsdfForwardPdf, bsdfReversePdf);
 
-                    var weight = emission * bsdfTimesCosine * (jacobian / lightSample.pdf);
+                    var weight = emission * bsdfTimesCosine * (jacobian / lightSample.Pdf);
                     RegisterSample(weight * path.Throughput, misWeight, path.Pixel,
                                    path.Vertices.Count, 0, path.Vertices.Count + 1);
                     return misWeight * weight;

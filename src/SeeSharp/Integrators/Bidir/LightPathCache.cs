@@ -129,12 +129,12 @@ namespace SeeSharp.Integrators.Bidir {
             var emitterSample = emitter.SampleRay(primaryPos, primaryDir); ;
 
             // Account for the light selection probability in the MIS weights
-            emitterSample.pdf *= selectProb;
+            emitterSample.Pdf *= selectProb;
 
             // Perform a random walk through the scene, storing all vertices along the path
             var walker = new NotifyingCachedWalk(Scene, rng, MaxDepth, PathCache, idx);
             walker.callback = nextEventPdfCallback;
-            walker.StartFromEmitter(emitterSample, emitterSample.weight / selectProb);
+            walker.StartFromEmitter(emitterSample, emitterSample.Weight / selectProb);
             return walker.lastId;
         }
 

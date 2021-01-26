@@ -28,6 +28,18 @@ namespace SeeSharp.Core.Sampling {
                                (rowIdx + relRowPos) / numRows);
         }
 
+        public Vector2 SampleInverse(Vector2 sample) {
+            float col = sample.X * numCols;
+            int colIdx = (int)col;
+
+            float row = sample.Y * numRows;
+            int rowIdx = (int)row;
+
+            float x = colDistributions[rowIdx].SampleInverse(colIdx, col - colIdx);
+            float y = rowDistribution.SampleInverse(rowIdx, row - rowIdx);
+            return new(x, y);
+        }
+
         public float Pdf(Vector2 pos) {
             int row = Math.Min(Math.Max((int)(pos.Y * numRows), 0), numRows - 1);
             int col = Math.Min(Math.Max((int)(pos.X * numCols), 0), numCols - 1);

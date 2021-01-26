@@ -46,6 +46,12 @@ namespace SeeSharp.Core.Sampling {
             return (idx, relative);
         }
 
+        public float SampleInverse(int idx, float relative) {
+            float lo = idx == 0 ? 0 : cdf[idx - 1];
+            float delta = cdf[idx] - lo;
+            return delta * relative + lo;
+        }
+
         public float Probability(int idx) {
             if (idx > 0)
                 return cdf[idx] - cdf[idx - 1];

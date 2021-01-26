@@ -72,7 +72,7 @@ namespace SeeSharp.Core.Geometry {
             var barycentric = SampleWarp.ToUniformTriangle(new Vector2(newX, primarySample.Y));
 
             return new SurfaceSample {
-                point = new SurfacePoint {
+                Point = new SurfacePoint {
                     BarycentricCoords = barycentric,
                     PrimId = (uint)faceIdx,
                     Normal = FaceNormals[faceIdx],
@@ -80,8 +80,14 @@ namespace SeeSharp.Core.Geometry {
                     ErrorOffset = ComputeErrorOffset(faceIdx, barycentric),
                     Mesh = this
                 },
-                pdf = 1.0f / SurfaceArea
+                Pdf = 1.0f / SurfaceArea
             };
+        }
+
+        public Vector2 SampleInverse(SurfacePoint point) {
+            var local = SampleWarp.FromUniformTriangle(point.BarycentricCoords);
+            float x = triangleDistribution.SampleInverse((int)point.PrimId, local.X);
+            return new(x, local.Y);
         }
 
         public float Pdf(SurfacePoint point) {

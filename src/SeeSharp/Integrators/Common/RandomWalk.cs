@@ -22,8 +22,8 @@ namespace SeeSharp.Integrators.Common {
 
         public virtual ColorRGB StartFromEmitter(EmitterSample emitterSample, ColorRGB initialWeight) {
             isOnLightSubpath = true;
-            Ray ray = scene.Raytracer.SpawnRay(emitterSample.point, emitterSample.direction);
-            return ContinueWalk(ray, emitterSample.point, emitterSample.pdf, initialWeight, 1);
+            Ray ray = scene.Raytracer.SpawnRay(emitterSample.Point, emitterSample.Direction);
+            return ContinueWalk(ray, emitterSample.Point, emitterSample.Pdf, initialWeight, 1);
         }
 
         public virtual ColorRGB StartFromBackground(Ray ray, ColorRGB initialWeight, float pdf) {

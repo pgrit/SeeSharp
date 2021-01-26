@@ -18,15 +18,15 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution 
 		.editorconfig = .editorconfig
 	EndProjectSection
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Experiments", "src\SeeSharp\Experiments\Experiments.csproj", "{6D8FE7F6-B10C-4A07-89DA-AC22F87675E9}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Experiments", "src\SeeSharp\Experiments\Experiments.csproj", "{6D8FE7F6-B10C-4A07-89DA-AC22F87675E9}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Core.Benchmark", "src\SeeSharp\Core.Benchmark\Core.Benchmark.csproj", "{A74A7EFC-9707-4C22-9DE9-1095F209E40F}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Core.Benchmark", "src\SeeSharp\Core.Benchmark\Core.Benchmark.csproj", "{A74A7EFC-9707-4C22-9DE9-1095F209E40F}"
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "src", "src", "{8E9C0C9E-FE3B-4EDD-8F84-CB453B216065}"
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "SeeSharp", "SeeSharp", "{DB5960BA-7BA1-4FF2-B7AC-9D7F595D5740}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Tests", "src\SeeSharp\Tests\Tests.csproj", "{0C76D98D-8846-410F-8502-B13315A09D1A}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Tests", "src\SeeSharp\Tests\Tests.csproj", "{0C76D98D-8846-410F-8502-B13315A09D1A}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -138,11 +138,10 @@ Global
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
 	EndGlobalSection
-	GlobalSection(ExtensibilityGlobals) = postSolution
-		SolutionGuid = {D6D428F9-6648-4A17-A08C-4044FE1FEBB7}
-	EndGlobalSection
 	GlobalSection(NestedProjects) = preSolution
 		{DB5960BA-7BA1-4FF2-B7AC-9D7F595D5740} = {8E9C0C9E-FE3B-4EDD-8F84-CB453B216065}
-		{0C76D98D-8846-410F-8502-B13315A09D1A} = {DB5960BA-7BA1-4FF2-B7AC-9D7F595D5740}
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {D6D428F9-6648-4A17-A08C-4044FE1FEBB7}
 	EndGlobalSection
 EndGlobal

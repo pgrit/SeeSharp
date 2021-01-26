@@ -127,5 +127,29 @@ namespace SeeSharp.Core.Tests.Shading {
             Assert.Equal(expectedWeight.G, weight.G);
             Assert.Equal(expectedWeight.B, weight.B);
         }
+
+        [Fact]
+        public void RaySampling_SampleInverse() {
+            var map = MakeSimpleMap();
+            var (ray, _, _) = map.SampleRay(Vector2.One * 0.741f, Vector2.One * 0.2f);
+            var (posP, dirP) = map.SampleRayInverse(ray.Direction, ray.Origin);
+
+            Assert.Equal(0.741f, posP.X, 3);
+            Assert.Equal(0.741f, posP.Y, 3);
+            Assert.Equal(0.2f, dirP.X, 3);
+            Assert.Equal(0.2f, dirP.Y, 3);
+        }
+
+        [Fact]
+        public void RaySampling_SampleInverseOffset() {
+            var map = MakeSimpleMap();
+            var (ray, _, _) = map.SampleRay(Vector2.One * 0.741f, Vector2.One * 0.2f);
+            var (posP, dirP) = map.SampleRayInverse(ray.Direction, ray.Origin + 42.124f * ray.Direction);
+
+            Assert.Equal(0.741f, posP.X, 3);
+            Assert.Equal(0.741f, posP.Y, 3);
+            Assert.Equal(0.2f, dirP.X, 3);
+            Assert.Equal(0.2f, dirP.Y, 3);
+        }
     }
 }

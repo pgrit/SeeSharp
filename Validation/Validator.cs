@@ -35,7 +35,6 @@ namespace SeeSharp.Validation {
             var times = new List<long>();
             Console.WriteLine($"Running test '{testname}'");
 
-            var stopwatch  = System.Diagnostics.Stopwatch.StartNew();
             var name = names.GetEnumerator();
             foreach (var alg in algorithms) {
                 name.MoveNext();
@@ -45,12 +44,10 @@ namespace SeeSharp.Validation {
                     System.IO.Path.Join("Results", $"{testname}", $"{name.Current}.exr"),
                     FrameBuffer.Flags.SendToTev);
 
-                stopwatch.Restart();
                 alg.Render(scene);
-                stopwatch.Stop();
 
-                Console.WriteLine($"Done with {name.Current} after {stopwatch.ElapsedMilliseconds}ms.");
-                times.Add(stopwatch.ElapsedMilliseconds);
+                Console.WriteLine($"Done with {name.Current} after {scene.FrameBuffer.RenderTimeMs}ms.");
+                times.Add(scene.FrameBuffer.RenderTimeMs);
 
                 images.Add(scene.FrameBuffer);
                 scene.FrameBuffer.WriteToFile();

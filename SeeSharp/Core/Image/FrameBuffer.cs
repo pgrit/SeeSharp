@@ -61,6 +61,8 @@ namespace SeeSharp.Core.Image {
             stopwatch.Start();
         }
 
+        public long RenderTimeMs => stopwatch.ElapsedMilliseconds;
+
         public virtual void EndIteration() {
             stopwatch.Stop();
 

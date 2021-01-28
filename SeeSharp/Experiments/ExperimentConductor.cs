@@ -74,13 +74,9 @@ namespace SeeSharp.Experiments {
 
         private double Render(string dir, string filename, Integrator integrator, Scene scene) {
             scene.FrameBuffer = MakeFrameBuffer(Path.Join(dir, filename));
-
-            var stopwatch = System.Diagnostics.Stopwatch.StartNew();
             integrator.Render(scene);
-            stopwatch.Stop();
-
             scene.FrameBuffer.WriteToFile();
-            return stopwatch.ElapsedMilliseconds / 1000.0;
+            return scene.FrameBuffer.RenderTimeMs / 1000.0;
         }
 
         protected int width, height;

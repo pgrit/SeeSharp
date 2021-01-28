@@ -208,6 +208,10 @@ if __name__ == "__main__":
     make_figure(os.path.join(result_dir, "CornellBox"), method_names)
 ```
 
+And here's the generated overview figure:
+
+![](ExampleFigure.png)
+
 ## Coding conventions
 
 The framework loosely follows the following coding conventions:

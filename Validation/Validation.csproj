@@ -1,8 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <ItemGroup>
-    <ProjectReference Include="..\Core\Core.csproj" />
-    <ProjectReference Include="..\Integrators\Integrators.csproj" />
+    <ProjectReference Include="..\SeeSharp\SeeSharp.csproj" />
   </ItemGroup>
 
   <ItemGroup>

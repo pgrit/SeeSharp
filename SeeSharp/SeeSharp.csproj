@@ -1,9 +1,4 @@
-<Project Sdk="Microsoft.NET.Sdk">
-
-  <ItemGroup>
-    <ProjectReference Include="..\Experiments\Experiments.csproj" />
-  </ItemGroup>
-
+﻿<Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
     <TargetFramework>net5.0</TargetFramework>
 
@@ -20,10 +15,17 @@
     <IsPackable>true</IsPackable>
     <PackageTags>rendering global illumination ray tracing bidirectional renderer</PackageTags>
   </PropertyGroup>
-
+  
   <ItemGroup>
     <None Include="../LICENSE" Pack="true" PackagePath=""/>
     <None Include="../README.md" Pack="true" PackagePath=""/>
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="SimpleImageIO" Version="0.1.1" />
+    <PackageReference Include="TinyEmbree" Version="0.1.1" />
+    <!--<ProjectReference Include="../../TinyEmbree/TinyEmbree/TinyEmbree.csproj" />
+    <ProjectReference Include="../../SimpleImageIO/SimpleImageIO/SimpleImageIO.csproj" />-->
   </ItemGroup>
   
 </Project>

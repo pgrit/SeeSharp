@@ -42,7 +42,8 @@ namespace SeeSharp.Validation {
 
                 // Create a new empty frame buffer with the desired output filename
                 scene.FrameBuffer = new FrameBuffer(scene.FrameBuffer.Width, scene.FrameBuffer.Height,
-                    System.IO.Path.Join($"{testname}", $"{name.Current}.exr"), FrameBuffer.Flags.SendToTev);
+                    System.IO.Path.Join("Results", $"{testname}", $"{name.Current}.exr"),
+                    FrameBuffer.Flags.SendToTev);
 
                 stopwatch.Restart();
                 alg.Render(scene);

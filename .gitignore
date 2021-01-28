@@ -20,7 +20,7 @@ dist/*
 # Python temporary and build files
 __pycache__
 
-# .NET core generated files files
+# .NET core generated files
 src/examples/*/bin
 src/examples/*/obj
 
@@ -31,13 +31,8 @@ output.json
 docs/*
 !docs/doxyfile
 
-# temporary jupyter experiment stuff
-/src/examples/CrazyRays/.ipynb_checkpoints
-/src/examples/CrazyRays/Untitled1.ipynb
-/src/examples/CrazyRays/Untitled.ipynb
-/src/examples/CrazyRays/shell.log
-
+# Generated images of the validation test
+/Results
 
 # The larger test scenes are kept separate to not bloat the repository
 /data/scenes/*/**
-/CornellBox

@@ -1,120 +1,212 @@
 <img src="logo.png" width=120 height=120 alt="SeeSharp Logo" />
+<a href="https://www.nuget.org/packages/SeeSharp/"><img src="https://buildstats.info/nuget/SeeSharp" /></a>
 
 # SeeSharp
 
-Meet SeeSharp - the worlds first renderer designed to be (not too) slow!
-In contrast to other rendering frameworks out there, the one and only goal of SeeSharp is
-ultimate flexibility when it comes to prototyping rendering algorithms.
-SeeSharp is designed to quickly implement arbitrarily complex rendering algorithms and compare them
-on the type of scenes that are common in current research projects.
-To achieve that flexibility, performance is (almost) completely ignored.
-Nevertheless, SeeSharp currently performs on par with PBRTv3, so not too shabby!
+SeeSharp is a flexibility-first framework for rapid prototyping of rendering algorithms.
+Currently, it only works with triangle meshes and only handles surface interactions.
+The framework implements some basic integrators, namely unidirectional and bidirectional path tracing,
+photon mapping, and vertex connection and merging.
+These offer a range of virtual functions to easily and cleanly inject additional logic, like
+better importance sampling, path guiding, and so on.
 
-Traditional rendering frameworks are almost exclusively written in C++. They offer great
-performance, but require quite some implementation effort. Hence, quickly testing various
-ideas, both large and small, can be quite a chore. The SeeSharp rendering framwork tackles
-that problem.
+Images being rendered can be streamed interactively to the [tev](https://github.com/tom94/tev) image viewer, via sockets.
 
-In principle, SeeSharp is yet another rendering framework. It combines the Embree traversal
-kernels with a PBRT-style material system and a variety of rendering algorithms (integrators).
-The key difference is the choice of programming language: C#. Thanks to C# and .NET core,
-rendering experiments can benefit from short compile times, powerful debugging, no nasty
-segfaults, a proper build system, and even a REPL.
+Additionally, the framework offers utility classes to render comparisons of different integrators and/or settings.
+That is, we use C# to implement the integrators and logic, and as the scripting language to run experiments.
 
-At the cost of a surprisingly small reduction in performance, experiments can be done much
-quicker, and without wasting time on debugging undefined behaviour only because you yet again forgot a -1 somewhere.
-
-The following sections explain how to get the framework up and running. Additionally, a simple
-example experiment is discussed, to demonstrate the benefits of SeeSharp.
+An example of how to successfully use this framework to conduct experiments for a research paper can be found
+in the implementation of our [EG 2021 paper on correlation-aware MIS](https://github.com/pgrit/MisForCorrelatedBidir).
 
 ## Getting started
 
-## Building the C++ libraries
-
-You will need CMake and a C++14 compliant compiler to build the project.
-
 ### Dependencies
 
-The recommended method to install dependencies is using vcpkg on all platforms.
+We use [TinyEmbree](https://github.com/pgrit/TinyEmbree), a simple C# wrapper around [Embree](embree.org),
+for ray tracing, and [SimpleImageIO](https://github.com/pgrit/SimpleImageIO), a C# wrapper around TinyEXR and
+stb_image. On 64 Bit Windows or Linux, you should be able to use the pre-built binaries included in the
+nuget packages (linked by default):
 
-- Embree 3
-- TBB (also a dependency of Embree)
+<a href="https://www.nuget.org/packages/TinyEmbree/"><img src="https://buildstats.info/nuget/TinyEmbree" /> TinyEmbree</a>
 
-For example, for a 64-Bit build on Windows, install all dependencies via:
+<a href="https://www.nuget.org/packages/SimpleImageIO/"><img src="https://buildstats.info/nuget/SimpleImageIO" /> SimpleImageIO</a>
 
-```
-vcpkg install embree3 tbb --triplet=x64-windows
-```
-
-### Using CMake to build
-
-To build the project after installing the dependencies, first create a new folder, for example:
+On other platforms you will need to build these from source. Instructions how to do that can be found in the respective README.md files.
+After building your platform specific version of these, the easiest way is to pack them as a local nuget package.
+For example:
 
 ```
-cd SeeSharp
-mkdir build
-cd build
+mkdir ~/LocalNuget
+dotnet nuget add source ~/LocalNuget
+
+cd [TinyEmbree ROOT]
+dotnet pack -c Release
+cp TinyEmbree/bin/Release/TinyEmbree.0.1.1.nupkg ~/LocalNuget
 ```
 
-Now use CMake to generate the proper makefiles for your platform, don't forget to specify the vcpkg toolchain file:
-
-```
-cmake .. -DCMAKE_BUILD_TYPE=Release -DCMAKE_TOOLCHAIN_FILE=...
-cmake --build . --config Release
-```
-
-Or, alternatively, simply open the folder in Visual Studio 2019 and it should be automatically configured correctly.
-
-In order to use the shared libraries that are now in the `dist` folder, consider adding the folder to the PATH.
-
-## Building the SeeSharp framework
-
-### Building
-
-Building is trivial. From anywhere, simply run:
-
-```
-dotnet build [PATH_TO_ROOT_DIR]/src/SeeSharp
-```
+An alternative is to replace the `<PackageReference .../>` in `SeeSharp.csproj` by a `<ProjectReference .../>` to your local
+TinyExr.csproj, which also allows you to more easily modify both.
 
 ### Testing
 
-To run the unit test, you first need to add the folder `dist` to the path (as it contains the shared libraries).
-Then, run the following commands:
+The unit tests can be run via a simple
 
 ```
-cd dist
-dotnet test ../src/SeeSharp/
+dotnet test
 ```
 
-## Rendering a scene from Blender
+The validation test, which ensure that all integrators agree on the same results for a number of trivial test scenes,
+can be run in Release mode via:
+
+```
+dotnet run -p Validation -c Release
+```
+
+Note that the validation tests assume that they are run from within the root directory of this project, as they
+rely on some scene files stored in the `Data` directory.
+
+### Exporting a scene from Blender
 
 SeeSharp comes with a simple export script for Blender, that can export triangle meshes, cameras,
 and a small subset of Cycles materials, to SeeSharp's file format. The script is called
 `src/BlendToSeeSharp.py`
-To use the script, simply run it within Blender.
+To use the script, simply load and run it within Blender.
 
-## Conducting an experiment
+Currently, we export the geometry of each frame to an .obj file. If the scene has an HDR background (not a constant color
+or sky model) it is exported as well. For the materials, we map the following:
 
-SeeSharp is designed to be used as a library, to write rendering experiments with. To get started, you should first create a new console application that will contain you experiment set-up, as well as any additional algorithms or other changes you will introduce.
-To get started, run the following commands:
+- DiffuseBSDF: either with a constant color or a texture, roughness is ignored
+- PrincipledBSDF: roughly mapped to our GenericMaterial, which currently ignores SSS and clearcoat. Also,
+only the BaseColor can be textured at the moment
+- Emission: mapped to a black body diffuse surface with diffuse emission properties
+- The viewport preview color and roughness, if all else fails
+
+That is, for most existing scenes, you will need to manually simplify the usually complex shader graphs to
+one of the above, else only the viewport settings will be used.
+
+Note that, for now, the conventions are not matched perfectly.
+The camera FOV is not exactly the same and HDR backgrounds will be horizontally flipped.
+This is a known bug that will be fixed eventually.
+
+
+### Conducting an experiment
+
+### With a project
+
+SeeSharp is designed to be used as a library, to write rendering experiments with.
+To get started, you should first create a new console application that will contain you experiment set-up,
+as well as any additional algorithms or other changes you will introduce.
 
 ```
 dotnet new console -o MyFirstExperiment
-dotnet add ./MyFirstExperiment reference [...]/SeeSharp/src/SeeSharp/Experiments
+cd MyFirstExperiment
+dotnet add package SeeSharp
 ```
 
-Currently, you only need to add the `Experiments` project as a reference, it automatically references all other components as well.
+Now, you can implement new or derived integrators and write your own experiment setup,
+for instance by deriving a class from `ExperimentFactory`.
 
-Now, you can write your own experiment setup, for instance by deriving a class from `ExperimentFactory`.
-To compile and run, simply type:
+### In a script
+
+Another option is to use [.NET interactive](https://github.com/dotnet/interactive) in a Jupyter notebook.
+Or, you could write a [C# script](https://github.com/filipw/dotnet-script) or F# script.
+
+The following example of a .csx script conducts an experiment that compares a path tracer to the vertex connection and merging algorithm, at equal sample count:
+```C#
+#r "nuget: SeeSharp, 0.2.0"
+
+using SeeSharp;
+using SeeSharp.Core;
+using SeeSharp.Core.Image;
+using SeeSharp.Experiments;
+using SeeSharp.Integrators;
+using SeeSharp.Integrators.Bidir;
+
+// Configure the experiment we want to run: test scene, maximum depth,
+// best reference integrator, which methods to compare.
+class MySimpleExperiment : ExperimentFactory {
+    // Specify the scene and how to render references
+    public override Scene MakeScene() => Scene.LoadFromFile("cbox.json");
+    public override Integrator MakeReferenceIntegrator()
+    => new PathTracer { MaxDepth = 5, TotalSpp = 128 };
+
+    // Specify the methods (named integrators) to compare
+    public override List<Method> MakeMethods() => new() {
+        new("PathTracer", new PathTracer() { MaxDepth = 5, TotalSpp = 4 }),
+        new("Vcm", new VertexConnectionAndMerging() { MaxDepth = 5, NumIterations = 2 })
+    };
+}
+
+// The Benchmark class can be used to run multiple experiments,
+// for example to render different test scenes or different configurations.
+Benchmark bench = new(new Dictionary<string, ExperimentFactory>() {
+    { "CornellBox", new MySimpleExperiment() },
+}, 640, 480) { DirectoryName = "Results" };
+bench.Run();
+
+// Optional, but usually a good idea: assemble the rendering results in an overview
+// figure using a Python script.
+Process.Start("python", "./MakeFigure.py Results PathTracer Vcm").WaitForExit();
+```
+
+The first line automatically downloads and installs the SeeSharp package using nuget. Hence, you can simply run the experiment via:
+
 
 ```
-dotnet run ./MyFirstExperiment
+dotnet script MyExperiment.csx
 ```
 
-Note that the `dist` directory, which contains the .so / .dll files of the C++ libraries, needs to be in the path (or in the current working directory).
+Alternatively, you could paste the same code in the cells of a .ipynb and run it with Jupyter. Then, you can even display the generated figure right underneath.
 
+In this example, we automatically invoke Python, which is assumed to be in the PATH,
+to assemble the rendered images in a comparison figure. We use [figuregen](https://github.com/Mira-13/figure-gen) for that, so make sure to run:
+
+```
+python -m pip install figuregen
+```
+
+The content of `MakeFigure.py` is below:
+
+```Python
+import figuregen
+from figuregen import util
+import pyexr
+import sys, os
+
+def tonemap(img):
+    return figuregen.PNG(util.image.lin_to_srgb(img))
+
+def make_figure(dirname, method_names):
+    # Read the files
+    ref = pyexr.read(os.path.join(dirname, "reference.exr"))
+    methods = [
+        pyexr.read(os.path.join(dirname, name, "render.exr"))
+        for name in method_names
+    ]
+    errors = [ f"{util.image.relative_mse(m, ref):.2f}" for m in methods ]
+
+    # Put side by side and write error values underneath
+    grid = figuregen.Grid(1, len(method_names) + 1)
+    grid.get_element(0, 0).set_image(tonemap(ref)).set_caption("Error (relMSE):")
+    for i in range(len(methods)):
+        e = grid.get_element(0, i + 1)
+        e.set_image(tonemap(methods[i]))
+        e.set_caption(errors[i])
+    grid.get_layout().set_caption(3, fontsize=8, offset_mm=1)
+
+    # Assemble in an 18cm wide .pdf figure using the LaTeX backend
+    figuregen.horizontal_figure([grid], 18, "Overview.pdf")
+
+if __name__ == "__main__":
+    # Get the directory names from the command line arguments
+    result_dir = sys.argv[1]
+    method_names = []
+    for i in range(2, len(sys.argv)):
+        method_names.append(sys.argv[i])
+
+    # Generate the figure
+    make_figure(os.path.join(result_dir, "CornellBox"), method_names)
+```
 
 ## Coding conventions
 

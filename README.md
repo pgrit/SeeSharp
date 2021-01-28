@@ -22,9 +22,9 @@ in the implementation of our [EG 2021 paper on correlation-aware MIS](https://gi
 
 ### Dependencies
 
-We use [TinyEmbree](https://github.com/pgrit/TinyEmbree), a simple C# wrapper around [Embree](embree.org),
-for ray tracing, and [SimpleImageIO](https://github.com/pgrit/SimpleImageIO), a C# wrapper around TinyEXR and
-stb_image. On 64 Bit Windows or Linux, you should be able to use the pre-built binaries included in the
+We use [TinyEmbree](https://github.com/pgrit/TinyEmbree), a simple C# wrapper around [Embree](https://www.embree.org/),
+for ray tracing, and [SimpleImageIO](https://github.com/pgrit/SimpleImageIO), a C# wrapper around [TinyEXR](https://github.com/syoyo/tinyexr) and
+[stb_image](https://github.com/nothings/stb). On 64 Bit Windows or Linux, you should be able to use the pre-built binaries included in the
 nuget packages. These are linked by default, so you do not need to do anything and can skip ahead to the next section.
 
 <a href="https://www.nuget.org/packages/TinyEmbree/"><img src="https://buildstats.info/nuget/TinyEmbree" /> TinyEmbree</a>

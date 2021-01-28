@@ -141,12 +141,13 @@ class MySimpleExperiment : ExperimentFactory {
 // for example to render different test scenes or different configurations.
 Benchmark bench = new(new Dictionary<string, ExperimentFactory>() {
     { "CornellBox", new MySimpleExperiment() },
-}, 640, 480) { DirectoryName = "Results" };
+}, 512, 512) { DirectoryName = "Results" };
 bench.Run();
 
 // Optional, but usually a good idea: assemble the rendering results in an overview
 // figure using a Python script.
 Process.Start("python", "./MakeFigure.py Results PathTracer Vcm").WaitForExit();
+Process.Start("magick", "-density 300 ./Overview.pdf ExampleFigure.png").WaitForExit();
 ```
 
 The first line automatically downloads and installs the SeeSharp package using nuget. Hence, you can simply run the experiment via:
@@ -183,28 +184,22 @@ def make_figure(dirname, method_names):
         pyexr.read(os.path.join(dirname, name, "render.exr"))
         for name in method_names
     ]
-    errors = [ f"{util.image.relative_mse(m, ref):.2f}" for m in methods ]
+    errors = [ f"{util.image.relative_mse(m, ref):.4f}" for m in methods ]
 
     # Put side by side and write error values underneath
     grid = figuregen.Grid(1, len(method_names) + 1)
     grid.get_element(0, 0).set_image(tonemap(ref)).set_caption("Error (relMSE):")
     for i in range(len(methods)):
-        e = grid.get_element(0, i + 1)
-        e.set_image(tonemap(methods[i]))
-        e.set_caption(errors[i])
+        grid.get_element(0, i + 1).set_image(tonemap(methods[i])).set_caption(errors[i])
     grid.get_layout().set_caption(3, fontsize=8, offset_mm=1)
 
-    # Assemble in an 18cm wide .pdf figure using the LaTeX backend
     figuregen.horizontal_figure([grid], 18, "Overview.pdf")
 
 if __name__ == "__main__":
-    # Get the directory names from the command line arguments
     result_dir = sys.argv[1]
     method_names = []
     for i in range(2, len(sys.argv)):
         method_names.append(sys.argv[i])
-
-    # Generate the figure
     make_figure(os.path.join(result_dir, "CornellBox"), method_names)
 ```
 

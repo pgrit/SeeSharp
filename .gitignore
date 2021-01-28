@@ -40,3 +40,4 @@ docs/*
 
 # The larger test scenes are kept separate to not bloat the repository
 /data/scenes/*/**
+/CornellBox

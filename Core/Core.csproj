@@ -1,0 +1,16 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net5.0</TargetFramework>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <RootNamespace>SeeSharp.Core</RootNamespace>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="SimpleImageIO" Version="0.1.1" />
+    <PackageReference Include="TinyEmbree" Version="0.1.1" />
+    <!--<ProjectReference Include="../../TinyEmbree/TinyEmbree/TinyEmbree.csproj" />
+    <ProjectReference Include="../../SimpleImageIO/SimpleImageIO/SimpleImageIO.csproj" />-->
+  </ItemGroup>
+
+</Project>

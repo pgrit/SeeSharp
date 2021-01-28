@@ -1,0 +1,29 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <ItemGroup>
+    <ProjectReference Include="..\Experiments\Experiments.csproj" />
+  </ItemGroup>
+
+  <PropertyGroup>
+    <TargetFramework>net5.0</TargetFramework>
+
+    <Title>SeeSharp</Title>
+    <Description>A flexibility-first framework for rapid prototyping of rendering algorithms.</Description>
+    <PackageId>SeeSharp</PackageId>
+    <Version>0.2.0</Version>
+    <Copyright>(c) Pascal Grittmann</Copyright>
+    <RepositoryUrl>https://github.com/pgrit/SeeSharp</RepositoryUrl>
+
+    <PackageLicenseFile>LICENSE</PackageLicenseFile>
+    <Authors>Pascal Grittmann</Authors>
+    <IncludeBuildOutput>true</IncludeBuildOutput>
+    <IsPackable>true</IsPackable>
+    <PackageTags>rendering global illumination ray tracing bidirectional renderer</PackageTags>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <None Include="../LICENSE" Pack="true" PackagePath=""/>
+    <None Include="../README.md" Pack="true" PackagePath=""/>
+  </ItemGroup>
+  
+</Project>

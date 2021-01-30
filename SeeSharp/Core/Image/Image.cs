@@ -195,6 +195,18 @@ namespace SeeSharp.Core.Image {
             buffer.WriteToFile(filename);
         }
 
+        public static string AsBase64Png(Image<ColorRGB> image) {
+            // Create a temporary RGB image
+            RgbImage buffer = new(image.Width, image.Height);
+            for (int row = 0; row < image.Height; ++row) {
+                for (int col = 0; col < image.Width; ++col) {
+                    var v = image[col, row];
+                    buffer.SetPixel(col, row, new(v.R, v.G, v.B));
+                }
+            }
+            return buffer.AsBase64Png();
+        }
+
         public static void WriteToFile(Image<Scalar> image, string filename) {
             // Create a temporary RGB image
             RgbImage buffer = new(image.Width, image.Height);

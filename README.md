@@ -45,7 +45,7 @@ cp TinyEmbree/bin/Release/TinyEmbree.0.1.1.nupkg ~/LocalNuget
 ```
 
 An alternative is to replace the `<PackageReference .../>` in `SeeSharp.csproj` by a `<ProjectReference .../>` to your local
-TinyExr.csproj, which also allows you to more easily modify both.
+TinyEmbree.csproj, which also allows you to more easily modify both.
 
 ### Testing
 

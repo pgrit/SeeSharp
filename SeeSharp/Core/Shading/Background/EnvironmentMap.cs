@@ -31,6 +31,12 @@ namespace SeeSharp.Core.Shading.Background {
             return image[col, row];
         }
 
+        public override ColorRGB ComputeTotalPower() {
+            // TOOD / FIXME this is not quite correct: the latlong map does not preserve area and we 
+            //              are ignoring the jacobian term (sin(y)).
+            return image.Sum() * 4 * MathF.PI / (image.Width * image.Height);
+        }
+
         public override BackgroundSample SampleDirection(Vector2 primary) {
             // Warp the primary sample to a position within one of the pixels.
             var pixelPrimary = directionSampler.Sample(primary);

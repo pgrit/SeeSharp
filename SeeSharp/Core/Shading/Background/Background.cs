@@ -12,6 +12,8 @@ namespace SeeSharp.Core.Shading.Background {
         /// </summary>
         public abstract ColorRGB EmittedRadiance(Vector3 direction);
 
+        public abstract ColorRGB ComputeTotalPower();
+
         public abstract BackgroundSample SampleDirection(Vector2 primary);
         public abstract Vector2 SampleDirectionInverse(Vector3 Direction);
         public abstract float DirectionPdf(Vector3 Direction);

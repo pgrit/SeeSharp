@@ -69,6 +69,9 @@ namespace SeeSharp.Core.Shading.Emitters {
             return (posPrimary, dirPrimary);
         }
 
+        public override ColorRGB ComputeTotalPower()
+        => radiance * 2.0f * MathF.PI * Mesh.SurfaceArea;
+
         ColorRGB radiance;
         float exponent;
         float normalizationFactor;

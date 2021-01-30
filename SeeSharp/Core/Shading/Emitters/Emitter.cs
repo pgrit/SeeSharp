@@ -12,5 +12,7 @@ namespace SeeSharp.Core.Shading.Emitters {
         public abstract (Vector2, Vector2) SampleRayInverse(SurfacePoint point, Vector3 direction);
         public abstract float PdfRay(SurfacePoint point, Vector3 direction);
         public abstract ColorRGB EmittedRadiance(SurfacePoint point, Vector3 direction);
+
+        public abstract ColorRGB ComputeTotalPower();
     }
 }

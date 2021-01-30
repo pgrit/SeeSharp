@@ -7,7 +7,7 @@ namespace SeeSharp.Core.Sampling {
     /// http://cas.ee.ic.ac.uk/people/dt10/research/rngs-gpu-mwc64x.html
     /// </summary>
     public class RNG {
-        public RNG(ulong seed = 0) {
+        public RNG(ulong seed = 0xAB1200CF8190) {
             state = seed;
         }
 

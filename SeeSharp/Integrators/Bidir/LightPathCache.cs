@@ -27,36 +27,55 @@ namespace SeeSharp.Integrators.Bidir {
         // Outputs
         public PathCache PathCache;
 
-        public virtual (Emitter, float, float) SelectLight(float primary) {
-            float scaled = Scene.Emitters.Count * primary;
-            int idx = Math.Clamp((int)scaled, 0, Scene.Emitters.Count - 1);
-            var emitter = Scene.Emitters[idx];
-            return (emitter, 1.0f / Scene.Emitters.Count, scaled - idx);
+        public virtual (Emitter, float) SelectLight(float primary) {
+            if (primary < BackgroundProbability) {
+                return (null, BackgroundProbability); 
+            } else {
+                // Remap the primary sample and select an emitter in the scene
+                primary = (primary - BackgroundProbability) / (1 - BackgroundProbability);
+                float scaled = Scene.Emitters.Count * primary;
+                int idx = Math.Clamp((int)scaled, 0, Scene.Emitters.Count - 1);
+                var emitter = Scene.Emitters[idx];
+                return (emitter, (1 - BackgroundProbability) / Scene.Emitters.Count);
+            }
         }
 
         public virtual float SelectLightPmf(Emitter em) {
             if (em == null) { // background
                 return BackgroundProbability;
             } else {
-                return 1.0f / Scene.Emitters.Count * (1 - BackgroundProbability);
+                return (1 - BackgroundProbability) / Scene.Emitters.Count;
             }
         }
 
         public virtual float BackgroundProbability
         => Scene.Background != null ? 1 / (1.0f + Scene.Emitters.Count) : 0;
 
-        public virtual float ComputeEmitterPdf(Emitter emitter, SurfacePoint point, Vector3 dir, 
+        public virtual EmitterSample SampleEmitter(RNG rng, Emitter emitter) {
+            var primaryPos = rng.NextFloat2D();
+            var primaryDir = rng.NextFloat2D();
+            return emitter.SampleRay(primaryPos, primaryDir);
+        }
+
+        public virtual float ComputeEmitterPdf(Emitter emitter, SurfacePoint point, Vector3 lightToSurface, 
                                                float reversePdfJacobian) {
-            float pdfEmit = emitter.PdfRay(point, dir);
+            float pdfEmit = emitter.PdfRay(point, lightToSurface);
             pdfEmit *= reversePdfJacobian;
             pdfEmit *= SelectLightPmf(emitter);
             return pdfEmit;
         }
 
-        public virtual float ComputeBackgroundPdf(Vector3 from, Vector3 dir) {
-            float pdfEmit = Scene.Background.RayPdf(from, dir);
+        public virtual float ComputeBackgroundPdf(Vector3 from, Vector3 lightToSurface) {
+            float pdfEmit = Scene.Background.RayPdf(from, lightToSurface);
             pdfEmit *= SelectLightPmf(null);
             return pdfEmit;
+        }
+
+        public virtual (Ray, ColorRGB, float) SampleBackground(RNG rng) {
+            // Sample a ray from the background towards the scene
+            var primaryPos = rng.NextFloat2D();
+            var primaryDir = rng.NextFloat2D();
+            return Scene.Background.SampleRay(primaryPos, primaryDir);
         }
 
         /// <summary>
@@ -109,14 +128,11 @@ namespace SeeSharp.Integrators.Bidir {
         /// </returns>
         public virtual int TraceLightPath(RNG rng, NextEventPdfCallback nextEvtCallback, int idx) {
             // Select an emitter or the background
-            float lightSelPrimary = rng.NextFloat();
-            if (lightSelPrimary > BackgroundProbability) { // Sample from an emitter in the scene
-                // Remap the primary sample
-                lightSelPrimary = (lightSelPrimary - BackgroundProbability) / (1 - BackgroundProbability);
-                return TraceEmitterPath(rng, lightSelPrimary, nextEvtCallback, idx);
-            } else { // Sample from the background
-                return TraceBackgroundPath(rng, nextEvtCallback, idx);
-            }
+            var (emitter, prob) = SelectLight(rng.NextFloat());
+            if (emitter != null)
+                return TraceEmitterPath(rng, emitter, prob, nextEvtCallback, idx);
+            else
+                return TraceBackgroundPath(rng, prob, nextEvtCallback, idx);
         }
 
         public delegate void ProcessVertex(PathVertex vertex, PathVertex ancestor, Vector3 dirToAncestor);
@@ -134,14 +150,9 @@ namespace SeeSharp.Integrators.Bidir {
             }
         }
 
-        int TraceEmitterPath(RNG rng, float lightSelPrimary, NextEventPdfCallback nextEventPdfCallback, int idx) {
-            var (emitter, selectProb, _) = SelectLight(lightSelPrimary);
-            selectProb *= 1 - BackgroundProbability;
-
-            // Sample a ray from the emitter
-            var primaryPos = rng.NextFloat2D();
-            var primaryDir = rng.NextFloat2D();
-            var emitterSample = emitter.SampleRay(primaryPos, primaryDir); ;
+        int TraceEmitterPath(RNG rng, Emitter emitter, float selectProb, 
+                             NextEventPdfCallback nextEventPdfCallback, int idx) {
+            var emitterSample = SampleEmitter(rng, emitter);
 
             // Account for the light selection probability in the MIS weights
             emitterSample.Pdf *= selectProb;
@@ -153,15 +164,12 @@ namespace SeeSharp.Integrators.Bidir {
             return walker.lastId;
         }
 
-        int TraceBackgroundPath(RNG rng, NextEventPdfCallback nextEventPdfCallback, int idx) {
-            // Sample a ray from the background towards the scene
-            var primaryPos = rng.NextFloat2D();
-            var primaryDir = rng.NextFloat2D();
-            var (ray, weight, pdf) = Scene.Background.SampleRay(primaryPos, primaryDir);
+        int TraceBackgroundPath(RNG rng, float selectProb, NextEventPdfCallback nextEventPdfCallback, int idx) {
+            var (ray, weight, pdf) = SampleBackground(rng);
 
             // Account for the light selection probability
-            pdf *= BackgroundProbability;
-            weight /= BackgroundProbability;
+            pdf *= selectProb;
+            weight /= selectProb;
 
             if (pdf == 0) // Avoid NaNs
                 return -1;

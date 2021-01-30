@@ -1,6 +1,5 @@
 ﻿using SeeSharp.Core.Geometry;
 using SeeSharp.Core.Sampling;
-using SeeSharp.Core.Shading;
 using System.Numerics;
 
 namespace SeeSharp.Core.Cameras {

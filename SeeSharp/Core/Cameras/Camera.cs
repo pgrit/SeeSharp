@@ -10,10 +10,17 @@ namespace SeeSharp.Core.Cameras {
 
         /// <exception cref="System.ArgumentException">If the world to camera transform is not invertible.</exception>
         public Camera(Matrix4x4 worldToCamera) {
-            this.worldToCamera = worldToCamera;
-            var succ = Matrix4x4.Invert(worldToCamera, out cameraToWorld);
-            if (!succ)
-                throw new System.ArgumentException("World to camera transform must be invertible.", "worldToCamera");
+            WorldToCamera = worldToCamera;
+        }
+
+        public Matrix4x4 WorldToCamera {
+            get => worldToCamera;
+            set {
+                worldToCamera = value;
+                var succ = Matrix4x4.Invert(worldToCamera, out cameraToWorld);
+                if (!succ)
+                    throw new System.ArgumentException("World to camera transform must be invertible.", "worldToCamera");
+            }
         }
 
         public abstract void UpdateFrameBuffer(Image.FrameBuffer value);

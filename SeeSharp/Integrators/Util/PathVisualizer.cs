@@ -24,6 +24,12 @@ namespace SeeSharp.Integrators.Util {
             }
 
             base.Render(scene);
+
+            // Remove the marker meshes from the scene and trigger acceleration structure regeneration
+            foreach (var mesh in markerTypes.Keys) {
+                scene.Meshes.Remove(mesh);
+            }
+            scene.Prepare();
         }
 
         public override ColorRGB ComputeColor(SurfacePoint hit, Vector3 from) {

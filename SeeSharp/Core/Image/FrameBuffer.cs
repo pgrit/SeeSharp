@@ -83,6 +83,7 @@ namespace SeeSharp.Core.Image {
             CurIteration = 0;
             Image.Scale(0);
             varianceEstimator.Reset();
+            stopwatch.Reset();
         }
 
         public void WriteToFile() => Image<ColorRGB>.WriteToFile(Image, filename);

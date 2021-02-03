@@ -41,7 +41,7 @@ dotnet nuget add source ~/LocalNuget
 
 cd [TinyEmbree ROOT]
 dotnet pack -c Release
-cp TinyEmbree/bin/Release/TinyEmbree.0.1.1.nupkg ~/LocalNuget
+cp TinyEmbree/bin/Release/TinyEmbree.0.1.2.nupkg ~/LocalNuget
 ```
 
 An alternative is to replace the `<PackageReference .../>` in `SeeSharp.csproj` by a `<ProjectReference .../>` to your local

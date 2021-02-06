@@ -32,6 +32,7 @@ docs/*
 !docs/doxyfile
 
 # Generated images of the validation test
+/Validation/Results
 /Results
 
 # The larger test scenes are kept separate to not bloat the repository

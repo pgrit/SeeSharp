@@ -1,12 +1,25 @@
 ﻿using System;
+using System.Threading;
 
 namespace SeeSharp.Core.Shading {
+    static class AtomicFloat {
+        public static void Add(ref float target, float value) {
+            float initialValue, computedValue;
+            do {
+                initialValue = target;
+                computedValue = initialValue + value;
+            } while (initialValue != Interlocked.CompareExchange(ref target,
+                computedValue, initialValue));
+        }
+    }
+
     public interface ISpectrum {
         void Add(ISpectrum other);
         void Add(float other);
         void Scale(float factor);
         void Multiply(ISpectrum other);
         void Divide(ISpectrum other);
+        void AtomicAdd(ISpectrum other);
     }
 
     public struct Scalar : ISpectrum {
@@ -28,6 +41,10 @@ namespace SeeSharp.Core.Shading {
 
         public void Add(ISpectrum other) {
             this += (Scalar) other;
+        }
+
+        public void AtomicAdd(ISpectrum other) {
+            AtomicFloat.Add(ref Value, ((Scalar)other).Value);
         }
 
         public void Add(float other) {
@@ -118,6 +135,12 @@ namespace SeeSharp.Core.Shading {
 
         public void Add(float other) {
             this += other;
+        }
+
+        public void AtomicAdd(ISpectrum other) {
+            AtomicFloat.Add(ref R, ((ColorRGB)other).R);
+            AtomicFloat.Add(ref G, ((ColorRGB)other).G);
+            AtomicFloat.Add(ref B, ((ColorRGB)other).B);
         }
 
         public void Scale(float factor) {

@@ -25,18 +25,11 @@ namespace SeeSharp.Core.Image {
             Height = height;
 
             data = new T[width * height];
-            locks = new SpinLock[width * height];
         }
 
         public void Splat(float x, float y, T value) {
             int idx = IndexOf(x, y);
-            bool lockTaken = false;
-            try {
-                locks[idx].Enter(ref lockTaken);
-                data[idx].Add(value);
-            } finally {
-                if (lockTaken) locks[idx].Exit(false);
-            }
+            data[idx].AtomicAdd(value);
         }
 
         public void Scale(float s) {
@@ -181,7 +174,6 @@ namespace SeeSharp.Core.Image {
         public ref T TextureLookup(Vector2 uv) => ref this[uv.X * Width, uv.Y * Height];
 
         readonly T[] data;
-        SpinLock[] locks;
 
         public static void WriteToFile(Image<ColorRGB> image, string filename) {
             // Create a temporary RGB image

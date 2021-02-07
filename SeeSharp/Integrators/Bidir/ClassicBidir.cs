@@ -4,6 +4,7 @@ using SeeSharp.Core.Sampling;
 using SeeSharp.Core.Shading;
 using SeeSharp.Core.Shading.Emitters;
 using SeeSharp.Integrators.Common;
+using System.Diagnostics;
 using System.Numerics;
 using TinyEmbree;
 
@@ -70,16 +71,16 @@ namespace SeeSharp.Integrators.Bidir {
 
             // Was a light hit?
             Emitter light = scene.QueryEmitter(hit);
-            if (light != null) {
+            if (light != null && depth >= MinDepth) {
                 value += throughput * OnEmitterHit(light, hit, ray, path, toAncestorJacobian);
             }
 
             // Perform connections if the maximum depth has not yet been reached
-            if (depth < MaxDepth) {
-                if (EnableConnections)
-                    value += throughput *
-                        BidirConnections(pixelIndex, hit, -ray.Direction, rng, path, toAncestorJacobian);
+            if (depth < MaxDepth && EnableConnections)
+                value += throughput *
+                    BidirConnections(pixelIndex, hit, -ray.Direction, rng, path, toAncestorJacobian);
 
+            if (depth < MaxDepth && depth + 1 >= MinDepth) {
                 for (int i = 0; i < NumShadowRays; ++i) {
                     value += throughput * PerformNextEventEstimation(ray, hit, rng, path, toAncestorJacobian);
                 }

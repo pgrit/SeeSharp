@@ -103,7 +103,7 @@ namespace SeeSharp.Integrators.Bidir {
 
             // Was a light hit?
             Emitter light = scene.QueryEmitter(hit);
-            if (light != null && EnableHitting) {
+            if (light != null && EnableHitting && depth >= MinDepth) {
                 value += throughput * OnEmitterHit(light, hit, ray, path, toAncestorJacobian);
             }
 
@@ -114,7 +114,9 @@ namespace SeeSharp.Integrators.Bidir {
                         BidirConnections(pixelIndex, hit, -ray.Direction, rng, path, toAncestorJacobian);
                     value += weight;
                 }
+            }
 
+            if (depth < MaxDepth && depth + 1 >= MinDepth) {
                 for (int i = 0; i < NumShadowRays; ++i) {
                     value += throughput * PerformNextEventEstimation(ray, hit, rng, path, toAncestorJacobian);
                 }

@@ -134,7 +134,7 @@ namespace SeeSharp.Integrators.Bidir {
 
                 // Check that the path does not exceed the maximum length
                 var depth = path.Vertices.Count + photon.Depth;
-                if (depth > MaxDepth) return;
+                if (depth > MaxDepth || depth < MinDepth) return;
 
                 // Compute the contribution of the photon
                 var ancestor = lightPaths.PathCache[pathIdx, photon.AncestorId];
@@ -177,7 +177,7 @@ namespace SeeSharp.Integrators.Bidir {
 
             // Was a light hit?
             Emitter light = scene.QueryEmitter(hit);
-            if (light != null && EnableBsdfLightHit) {
+            if (light != null && EnableBsdfLightHit && depth >= MinDepth) {
                 value += throughput * OnEmitterHit(light, hit, ray, path, toAncestorJacobian);
             }
 
@@ -186,10 +186,11 @@ namespace SeeSharp.Integrators.Bidir {
                 if (EnableConnections)
                     value += throughput *
                         BidirConnections(pixelIndex, hit, -ray.Direction, rng, path, toAncestorJacobian);
-                if (EnableNextEvent)
-                    value += throughput * PerformNextEventEstimation(ray, hit, rng, path, toAncestorJacobian);
                 value += throughput * PerformMerging(ray, hit, path, toAncestorJacobian);
             }
+
+            if (EnableNextEvent && depth < MaxDepth && depth + 1 >= MinDepth)
+                value += throughput * PerformNextEventEstimation(ray, hit, rng, path, toAncestorJacobian);
 
             return value;
         }

@@ -15,6 +15,7 @@ namespace SeeSharp.Integrators.Bidir {
         public int NumIterations = 2;
         public int NumLightPaths = 0;
         public int MaxDepth = 10;
+        public int MinDepth = 1;
 
         public uint BaseSeedCamera = 0xC030114u;
         public uint BaseSeedLight = 0x13C0FEFEu;
@@ -182,6 +183,8 @@ namespace SeeSharp.Integrators.Bidir {
 
         public virtual void ConnectLightPathToCamera(int pathIdx) {
             lightPaths.ForEachVertex(pathIdx, (vertex, ancestor, dirToAncestor) => {
+                if (vertex.Depth + 1 < MinDepth) return;
+
                 // Compute image plane location
                 var raster = scene.Camera.WorldToFilm(vertex.Point.Position);
                 if (!raster.HasValue)
@@ -266,7 +269,7 @@ namespace SeeSharp.Integrators.Bidir {
             void Connect(PathVertex vertex, PathVertex ancestor, Vector3 dirToAncestor) {
                 // Only allow connections that do not exceed the maximum total path length
                 int depth = vertex.Depth + path.Vertices.Count + 1;
-                if (depth > MaxDepth) return;
+                if (depth > MaxDepth || depth < MinDepth) return;
 
                 // Trace shadow ray
                 if (scene.Raytracer.IsOccluded(vertex.Point, cameraPoint))
@@ -390,7 +393,7 @@ namespace SeeSharp.Integrators.Bidir {
                     RegisterSample(weight * path.Throughput, misWeight, path.Pixel,
                                    path.Vertices.Count, 0, path.Vertices.Count + 1);
                     NextEventUpdate(weight * path.Throughput, misWeight, path, pdfEmit, sample.Pdf,
-                        bsdfForwardPdf, bsdfReversePdf, null, -sample.Direction, 
+                        bsdfForwardPdf, bsdfReversePdf, null, -sample.Direction,
                         new() { Position = hit.Position });
                     return misWeight * weight;
                 }

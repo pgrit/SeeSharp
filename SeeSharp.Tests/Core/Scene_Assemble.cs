@@ -117,7 +117,7 @@ namespace SeeSharp.Core.Tests {
             var codeBaseUrl = new Uri(Assembly.GetExecutingAssembly().Location);
             var codeBasePath = Uri.UnescapeDataString(codeBaseUrl.AbsolutePath);
             var dirPath = Path.GetDirectoryName(codeBasePath);
-            var path = Path.Combine(dirPath, "../../../../Data/scenes/cbox.json");
+            var path = Path.Combine(dirPath, "../../../../Data/Scenes/cbox.json");
             bool e = File.Exists(path);
             Assert.True(e);
 

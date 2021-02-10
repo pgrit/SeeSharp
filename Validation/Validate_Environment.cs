@@ -16,7 +16,7 @@ namespace SeeSharp.Validation {
         public override string Name => "Environment";
 
         public override Scene MakeScene() {
-            var scene = Scene.LoadFromFile("Data/scenes/simplebackground.json");
+            var scene = Scene.LoadFromFile("Data/Scenes/simplebackground.json");
             //var scene = new Scene();
 
             //// Ground plane

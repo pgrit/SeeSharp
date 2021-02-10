@@ -6,7 +6,7 @@ using System.Collections.Generic;
 namespace SeeSharp.Tests {
     static class BidirPathLogger_HomeOffice {
         public static void Run() {
-            var scene = SeeSharp.Core.Scene.LoadFromFile("../data/scenes/HomeOffice/office.json");
+            var scene = SeeSharp.Core.Scene.LoadFromFile("../Data/Scenes/HomeOffice/office.json");
             scene.FrameBuffer = new SeeSharp.Core.Image.FrameBuffer(640, 480, "test.exr",
                 SeeSharp.Core.Image.FrameBuffer.Flags.SendToTev);
             scene.Prepare();
@@ -38,7 +38,7 @@ namespace SeeSharp.Tests {
 
     static class BidirPathLogger_IndirectRoom {
         public static void Run() {
-            var scene = SeeSharp.Core.Scene.LoadFromFile("../data/scenes/IndirectRoom/IndirectRoom.json");
+            var scene = SeeSharp.Core.Scene.LoadFromFile("../Data/Scenes/IndirectRoom/IndirectRoom.json");
             scene.FrameBuffer = new SeeSharp.Core.Image.FrameBuffer(640, 480, "test.exr",
                 SeeSharp.Core.Image.FrameBuffer.Flags.SendToTev);
             scene.Prepare();

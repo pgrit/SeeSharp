@@ -10,7 +10,7 @@ namespace SeeSharp.Validation {
         public override string Name => "CornellBox";
 
         public override Scene MakeScene() {
-            var scene = Scene.LoadFromFile("Data/scenes/cbox.json");
+            var scene = Scene.LoadFromFile("Data/Scenes/cbox.json");
             scene.FrameBuffer = new FrameBuffer(512, 512, "");
             scene.Prepare();
             return scene;

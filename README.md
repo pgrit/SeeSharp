@@ -1,4 +1,6 @@
 <img src="logo.png" width=120 height=120 alt="SeeSharp Logo" />
+
+![Build](https://github.com/pgrit/SeeSharp/workflows/Build/badge.svg)
 <a href="https://www.nuget.org/packages/SeeSharp/"><img src="https://buildstats.info/nuget/SeeSharp" /></a>
 
 # SeeSharp

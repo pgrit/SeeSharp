@@ -154,8 +154,8 @@ namespace SeeSharp.Core.Cameras {
         Matrix4x4 viewToCamera;
         float aspectRatio;
         float fovRadians;
-        float focalDistance;
-        float lensRadius;
+        float focalDistance = 0;
+        float lensRadius = 0;
 
         // Distance from the camera position to the virtual image plane s.t. each pixel has area one
         float imagePlaneDistance;

@@ -217,7 +217,7 @@ namespace SeeSharp.Core.Image {
             for (int row = 0; row < buffer.Height; ++row) {
                 for (int col = 0; col < buffer.Width; ++col) {
                     var val = buffer.GetPixel(col, row);
-                    result[col, row] = new(val.X, val.Y, val.Z);
+                    result[col, row] = new(val.R, val.G, val.B);
                 }
             }
             return result;

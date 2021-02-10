@@ -10,9 +10,9 @@
             "request": "launch",
             "preLaunchTask": "build",
             // If you have changed target frameworks, make sure to update the program path.
-            "program": "${workspaceFolder}/src/SeeSharp/Validation/bin/Debug/net5.0/Validation.dll",
+            "program": "${workspaceFolder}/Validation/bin/Debug/net5.0/Validation.dll",
             "args": [],
-            "cwd": "${workspaceFolder}/dist",
+            "cwd": "${workspaceFolder}",
             // For more information about the 'console' field, see https://aka.ms/VSCode-CS-LaunchJson-Console
             "console": "internalConsole",
             "stopAtEntry": false
@@ -23,9 +23,9 @@
             "request": "launch",
             "preLaunchTask": "build",
             // If you have changed target frameworks, make sure to update the program path.
-            "program": "${workspaceFolder}/src/SeeSharp/Tests/bin/Debug/net5.0/Tests.dll",
+            "program": "${workspaceFolder}/Tests/bin/Debug/net5.0/Tests.dll",
             "args": [],
-            "cwd": "${workspaceFolder}/dist",
+            "cwd": "${workspaceFolder}",
             // For more information about the 'console' field, see https://aka.ms/VSCode-CS-LaunchJson-Console
             "console": "internalConsole",
             "stopAtEntry": false

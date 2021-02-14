@@ -1,6 +1,6 @@
-﻿using SeeSharp.Core;
+﻿using SeeSharp;
 using SeeSharp.Integrators;
-using SeeSharp.Core.Image;
+using SeeSharp.Image;
 using System;
 using System.IO;
 

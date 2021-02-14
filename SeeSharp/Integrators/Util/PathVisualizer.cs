@@ -1,6 +1,6 @@
-using SeeSharp.Core;
-using SeeSharp.Core.Geometry;
-using SeeSharp.Core.Shading;
+using SeeSharp;
+using SeeSharp.Geometry;
+using SeeSharp.Shading;
 using System;
 using System.Collections.Generic;
 using System.Numerics;
@@ -53,8 +53,8 @@ namespace SeeSharp.Integrators.Util {
             var headStart = end + headHeight * (start - end);
             var line = MeshFactory.MakeCylinder(start, headStart, radius, NumSegments);
             var head = MeshFactory.MakeCone(headStart, end, radius * 2, NumSegments);
-            line.Material = new SeeSharp.Core.Shading.Materials.DiffuseMaterial(new());
-            head.Material = new SeeSharp.Core.Shading.Materials.DiffuseMaterial(new());
+            line.Material = new SeeSharp.Shading.Materials.DiffuseMaterial(new());
+            head.Material = new SeeSharp.Shading.Materials.DiffuseMaterial(new());
 
             curScene.Meshes.Add(line);
             curScene.Meshes.Add(head);

@@ -1,16 +1,17 @@
-﻿using SeeSharp.Core.Cameras;
-using SeeSharp.Core.Geometry;
-using SeeSharp.Core.Shading;
-using SeeSharp.Core.Shading.Emitters;
-using SeeSharp.Core.Shading.Materials;
-using SeeSharp.Core.Image;
+﻿using SeeSharp.Cameras;
+using SeeSharp.Geometry;
+using SeeSharp.Shading;
+using SeeSharp.Shading.Emitters;
+using SeeSharp.Shading.Materials;
+using SeeSharp.Image;
+using SeeSharp.Sampling;
 using System;
 using System.IO;
 using System.Numerics;
 using System.Reflection;
 using Xunit;
 
-namespace SeeSharp.Core.Tests {
+namespace SeeSharp.Tests {
     public class Scene_Assemble {
         Scene MakeDummyScene() {
             var scene = new Scene();
@@ -61,7 +62,7 @@ namespace SeeSharp.Core.Tests {
             scene.Prepare();
             var hit = scene.Raytracer.Trace(scene.Camera.GenerateRay(
                 new Vector2(0.5f, 0.5f),
-                new Core.Sampling.RNG()
+                new RNG()
             ).Ray);
 
             Assert.True(hit);

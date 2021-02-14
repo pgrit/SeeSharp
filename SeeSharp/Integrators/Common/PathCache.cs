@@ -1,5 +1,5 @@
-using SeeSharp.Core.Geometry;
-using SeeSharp.Core.Shading;
+using SeeSharp.Geometry;
+using SeeSharp.Shading;
 using System;
 
 namespace SeeSharp.Integrators.Common {

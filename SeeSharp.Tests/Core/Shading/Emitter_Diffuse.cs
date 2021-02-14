@@ -1,11 +1,11 @@
-﻿using SeeSharp.Core.Geometry;
-using SeeSharp.Core.Shading;
-using SeeSharp.Core.Shading.Emitters;
+﻿using SeeSharp.Geometry;
+using SeeSharp.Shading;
+using SeeSharp.Shading.Emitters;
 using System;
 using System.Numerics;
 using Xunit;
 
-namespace SeeSharp.Core.Tests.Shading {
+namespace SeeSharp.Tests.Shading {
     public class Emitter_Diffuse {
         [Fact]
         public void EmittedRays_ShouldHaveOffset() {

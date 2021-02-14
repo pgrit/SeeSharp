@@ -118,8 +118,8 @@ The following example of a .csx script conducts an experiment that compares a pa
 #r "nuget: SeeSharp, 0.2.0"
 
 using SeeSharp;
-using SeeSharp.Core;
-using SeeSharp.Core.Image;
+using SeeSharp;
+using SeeSharp.Image;
 using SeeSharp.Experiments;
 using SeeSharp.Integrators;
 using SeeSharp.Integrators.Bidir;

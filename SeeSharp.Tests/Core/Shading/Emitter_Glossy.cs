@@ -1,10 +1,10 @@
-﻿using SeeSharp.Core.Geometry;
-using SeeSharp.Core.Shading;
-using SeeSharp.Core.Shading.Emitters;
+﻿using SeeSharp.Geometry;
+using SeeSharp.Shading;
+using SeeSharp.Shading.Emitters;
 using System.Numerics;
 using Xunit;
 
-namespace Core.Tests.Shading {
+namespace Tests.Shading {
     public class Emitter_Glossy {
         [Fact]
         public void EmittedRays_SampleInverse() {

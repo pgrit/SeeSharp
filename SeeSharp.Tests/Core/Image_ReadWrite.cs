@@ -1,8 +1,8 @@
-﻿using SeeSharp.Core.Shading;
-using SeeSharp.Core.Image;
+﻿using SeeSharp.Shading;
+using SeeSharp.Image;
 using Xunit;
 
-namespace SeeSharp.Core.Tests {
+namespace SeeSharp.Tests {
     public class Image_ReadWrite {
         [Fact]
         public void Default_ShouldBeBlack() {

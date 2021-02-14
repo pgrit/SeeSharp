@@ -1,11 +1,11 @@
-﻿using SeeSharp.Core.Geometry;
-using SeeSharp.Core.Shading;
-using SeeSharp.Core.Shading.Materials;
-using SeeSharp.Core.Image;
+﻿using SeeSharp.Geometry;
+using SeeSharp.Shading;
+using SeeSharp.Shading.Materials;
+using SeeSharp.Image;
 using System.Numerics;
 using Xunit;
 
-namespace SeeSharp.Core.Tests.Shading {
+namespace SeeSharp.Tests.Shading {
     public class Material_Generic {
         [Fact]
         public void Pdfs_ShouldBeConsistent() {

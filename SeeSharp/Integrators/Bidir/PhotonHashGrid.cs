@@ -1,5 +1,5 @@
-﻿using SeeSharp.Core.Geometry;
-using SeeSharp.Core.Shading;
+﻿using SeeSharp.Geometry;
+using SeeSharp.Shading;
 using SeeSharp.Integrators.Common;
 using System.Collections.Generic;
 using System.Diagnostics;

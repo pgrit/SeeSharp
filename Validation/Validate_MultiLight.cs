@@ -1,11 +1,11 @@
 using System.Numerics;
-using SeeSharp.Core;
-using SeeSharp.Core.Cameras;
-using SeeSharp.Core.Geometry;
-using SeeSharp.Core.Shading;
-using SeeSharp.Core.Shading.Emitters;
-using SeeSharp.Core.Shading.Materials;
-using SeeSharp.Core.Image;
+using SeeSharp;
+using SeeSharp.Cameras;
+using SeeSharp.Geometry;
+using SeeSharp.Shading;
+using SeeSharp.Shading.Emitters;
+using SeeSharp.Shading.Materials;
+using SeeSharp.Image;
 
 namespace SeeSharp.Validation {
     class Validate_MultiLight : ValidationSceneFactory {

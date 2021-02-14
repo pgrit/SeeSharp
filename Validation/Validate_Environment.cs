@@ -1,10 +1,10 @@
-﻿using SeeSharp.Core;
-using SeeSharp.Core.Image;
-using SeeSharp.Core.Cameras;
-using SeeSharp.Core.Geometry;
-using SeeSharp.Core.Shading;
-using SeeSharp.Core.Shading.Background;
-using SeeSharp.Core.Shading.Materials;
+﻿using SeeSharp;
+using SeeSharp.Image;
+using SeeSharp.Cameras;
+using SeeSharp.Geometry;
+using SeeSharp.Shading;
+using SeeSharp.Shading.Background;
+using SeeSharp.Shading.Materials;
 using System.Numerics;
 
 namespace SeeSharp.Validation {

@@ -1,8 +1,8 @@
-﻿using SeeSharp.Core.Sampling;
+﻿using SeeSharp.Sampling;
 using System;
 using Xunit;
 
-namespace SeeSharp.Core.Tests.Sampling {
+namespace SeeSharp.Tests.Sampling {
     public class PiecewiseConstant_DistributionTest {
         [Fact]
         public void Pdfs_ShouldBeProportional() {

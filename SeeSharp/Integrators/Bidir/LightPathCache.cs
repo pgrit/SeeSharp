@@ -1,8 +1,8 @@
-﻿using SeeSharp.Core;
-using SeeSharp.Core.Geometry;
-using SeeSharp.Core.Sampling;
-using SeeSharp.Core.Shading;
-using SeeSharp.Core.Shading.Emitters;
+﻿using SeeSharp;
+using SeeSharp.Geometry;
+using SeeSharp.Sampling;
+using SeeSharp.Shading;
+using SeeSharp.Shading.Emitters;
 using SeeSharp.Integrators.Common;
 using System;
 using System.Diagnostics;
@@ -29,7 +29,7 @@ namespace SeeSharp.Integrators.Bidir {
 
         public virtual (Emitter, float) SelectLight(float primary) {
             if (primary < BackgroundProbability) {
-                return (null, BackgroundProbability); 
+                return (null, BackgroundProbability);
             } else {
                 // Remap the primary sample and select an emitter in the scene
                 primary = (primary - BackgroundProbability) / (1 - BackgroundProbability);
@@ -57,7 +57,7 @@ namespace SeeSharp.Integrators.Bidir {
             return emitter.SampleRay(primaryPos, primaryDir);
         }
 
-        public virtual float ComputeEmitterPdf(Emitter emitter, SurfacePoint point, Vector3 lightToSurface, 
+        public virtual float ComputeEmitterPdf(Emitter emitter, SurfacePoint point, Vector3 lightToSurface,
                                                float reversePdfJacobian) {
             float pdfEmit = emitter.PdfRay(point, lightToSurface);
             pdfEmit *= reversePdfJacobian;
@@ -150,7 +150,7 @@ namespace SeeSharp.Integrators.Bidir {
             }
         }
 
-        int TraceEmitterPath(RNG rng, Emitter emitter, float selectProb, 
+        int TraceEmitterPath(RNG rng, Emitter emitter, float selectProb,
                              NextEventPdfCallback nextEventPdfCallback, int idx) {
             var emitterSample = SampleEmitter(rng, emitter);
 

@@ -1,9 +1,9 @@
 using System;
 using System.Collections.Generic;
-using SeeSharp.Core;
+using SeeSharp;
 using SeeSharp.Integrators;
 using SeeSharp.Integrators.Bidir;
-using SeeSharp.Core.Image;
+using SeeSharp.Image;
 
 namespace SeeSharp.Validation {
     class Validator {

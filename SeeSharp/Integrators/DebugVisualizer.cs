@@ -1,7 +1,7 @@
-﻿using SeeSharp.Core;
-using SeeSharp.Core.Geometry;
-using SeeSharp.Core.Sampling;
-using SeeSharp.Core.Shading;
+﻿using SeeSharp;
+using SeeSharp.Geometry;
+using SeeSharp.Sampling;
+using SeeSharp.Shading;
 using System;
 using System.Numerics;
 using TinyEmbree;

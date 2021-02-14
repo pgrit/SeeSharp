@@ -1,9 +1,9 @@
-﻿using SeeSharp.Core.Geometry;
+﻿using SeeSharp.Geometry;
 using System;
 using System.Numerics;
 using Xunit;
 
-namespace SeeSharp.Core.Tests.Geometry {
+namespace SeeSharp.Tests.Geometry {
     public class Mesh_Attributes {
         [Fact]
         public void ShadingNormals_ShouldBeSet() {

@@ -1,4 +1,4 @@
-using SeeSharp.Core.Shading;
+using SeeSharp.Shading;
 using System;
 using System.Collections.Generic;
 using System.Numerics;

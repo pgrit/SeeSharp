@@ -1,9 +1,7 @@
 using SeeSharp.Core.Shading;
 using SimpleImageIO;
 using System;
-using System.Drawing;
 using System.Numerics;
-using System.Threading;
 using System.Threading.Tasks;
 
 namespace SeeSharp.Core.Image {

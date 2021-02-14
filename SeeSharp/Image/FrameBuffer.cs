@@ -1,6 +1,7 @@
 using SimpleImageIO;
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 
 namespace SeeSharp.Image {
@@ -42,11 +43,13 @@ namespace SeeSharp.Image {
 
         public string Basename {
             get {
-                string dir = System.IO.Path.GetDirectoryName(filename);
-                string fileBase = System.IO.Path.GetFileNameWithoutExtension(filename);
-                return System.IO.Path.Combine(dir, fileBase);
+                string dir = Path.GetDirectoryName(filename);
+                string fileBase = Path.GetFileNameWithoutExtension(filename);
+                return Path.Combine(dir, fileBase);
             }
         }
+
+        public string Extension => Path.GetExtension(filename);
 
         [Flags]
         public enum Flags {
@@ -104,7 +107,7 @@ namespace SeeSharp.Image {
 
             if (flags.HasFlag(Flags.WriteIntermediate)) {
                 string name = Basename + "-iter" + CurIteration.ToString("D3")
-                    + $"-{stopwatch.ElapsedMilliseconds}ms" + ".exr";
+                    + $"-{stopwatch.ElapsedMilliseconds}ms" + Extension;
                 WriteToFile(name);
             }
 
@@ -122,11 +125,26 @@ namespace SeeSharp.Image {
 
         public void WriteToFile(string fname = null) {
             if (fname == null) fname = filename;
-            ImageBase.WriteLayeredExr(fname,
-                layers.Select(kv => (kv.Key, kv.Value.Image))
-                      .Append(("default", Image))
-                      .ToArray()
-            );
+
+            if (Path.GetExtension(fname).ToLower() == ".exr") {
+                ImageBase.WriteLayeredExr(fname,
+                    layers.Select(kv => (kv.Key, kv.Value.Image))
+                        .Append(("default", Image))
+                        .ToArray()
+                );
+            } else {
+                // write all layers into individual files
+                Image.WriteToFile(fname);
+
+                string dir = Path.GetDirectoryName(fname);
+                string fileBase = Path.GetFileNameWithoutExtension(fname);
+                string basename = Path.Combine(dir, fileBase);
+
+                string ext = Path.GetExtension(fname);
+                foreach (var (name, layer) in layers) {
+                    layer.Image.WriteToFile(basename + "-" + name + ext);
+                }
+            }
         }
 
         Flags flags;

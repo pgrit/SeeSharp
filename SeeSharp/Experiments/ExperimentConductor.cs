@@ -1,5 +1,4 @@
-﻿using SeeSharp;
-using SeeSharp.Integrators;
+﻿using SeeSharp.Integrators;
 using SeeSharp.Image;
 using System;
 using System.IO;
@@ -21,13 +20,14 @@ namespace SeeSharp.Experiments {
         /// Each method's images are placed in a separate folder, using the method's name
         /// as the folder's name.
         /// </summary>
-        public void Run(bool forceReference = false) {
+        public void Run(bool forceReference = false, string format = ".exr") {
             var scene = factory.MakeScene();
 
             // Render the reference image (only if it does not exist or forced)
-            scene.FrameBuffer = new FrameBuffer(width, height, Path.Join(workingDirectory, "reference.exr"));
+            string refFilename = Path.Join(workingDirectory, "Reference" + format);
+            scene.FrameBuffer = new FrameBuffer(width, height, refFilename);
             scene.Prepare();
-            RenderReference(scene, forceReference);
+            RenderReference(scene, forceReference, refFilename);
 
             var methods = factory.MakeMethods();
             foreach (var method in methods) {
@@ -37,20 +37,19 @@ namespace SeeSharp.Experiments {
                 if (Directory.Exists(path)) {
                     var dirinfo = new System.IO.DirectoryInfo(path);
                     foreach (var file in dirinfo.GetFiles()) {
-                        if (file.Extension == ".exr")
+                        if (file.Extension == format)
                             file.Delete();
                     }
                 }
 
                 // Render
                 Console.WriteLine($"Starting {method.name}...");
-                var timeSeconds = Render(path, "render.exr", method.integrator, scene);
+                var timeSeconds = Render(path, "Render" + format, method.integrator, scene);
                 Console.WriteLine($"{method.name} done after {timeSeconds} seconds");
             }
         }
 
-        private void RenderReference(Scene scene, bool force) {
-            string filepath = Path.Join(workingDirectory, "reference.exr");
+        private void RenderReference(Scene scene, bool force, string filepath) {
             bool exists = File.Exists(filepath);
             if (!exists || force) {
                 var integrator = factory.MakeReferenceIntegrator();

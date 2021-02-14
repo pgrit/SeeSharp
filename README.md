@@ -181,9 +181,9 @@ def tonemap(img):
 
 def make_figure(dirname, method_names):
     # Read the files
-    ref = pyexr.read(os.path.join(dirname, "reference.exr"))
+    ref = pyexr.read(os.path.join(dirname, "Reference.exr"))
     methods = [
-        pyexr.read(os.path.join(dirname, name, "render.exr"))
+        pyexr.read(os.path.join(dirname, name, "Render.exr"))
         for name in method_names
     ]
     errors = [ f"{util.image.relative_mse(m, ref):.4f}" for m in methods ]

@@ -17,7 +17,7 @@ namespace SeeSharp.Integrators {
         public uint MinDepth = 1;
         public int NumShadowRays = 1;
         public bool EnableBsdfDI = true;
-        public bool RenderTechniquePyramid = true;
+        public bool RenderTechniquePyramid = false;
 
         TechPyramid techPyramidRaw;
         TechPyramid techPyramidWeighted;

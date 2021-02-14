@@ -9,6 +9,7 @@ using System.Numerics;
 using TinyEmbree;
 
 namespace SeeSharp.Integrators {
+
     public class PathTracer : Integrator {
         public UInt32 BaseSeed = 0xC030114;
         public int TotalSpp = 20;
@@ -20,6 +21,8 @@ namespace SeeSharp.Integrators {
 
         TechPyramid techPyramidRaw;
         TechPyramid techPyramidWeighted;
+
+        Util.FeatureLogger features;
 
         public virtual void RegisterSample(Vector2 pixel, RgbColor weight, float misWeight, uint depth,
                                            bool isNextEvent) {
@@ -46,6 +49,9 @@ namespace SeeSharp.Integrators {
                 techPyramidWeighted = new TechPyramid(scene.FrameBuffer.Width, scene.FrameBuffer.Height,
                     (int)MinDepth, (int)MaxDepth, false, false, false);
             }
+
+            // Add custom frame buffer layers
+            features = new(scene.FrameBuffer);
 
             for (uint sampleIndex = 0; sampleIndex < TotalSpp; ++sampleIndex) {
                 scene.FrameBuffer.StartIteration();
@@ -118,6 +124,11 @@ namespace SeeSharp.Integrators {
                 };
             } else if (!hit) {
                 return RadianceEstimate.Absorbed;
+            }
+
+            if (depth == 1) {
+                var albedo = ((SurfacePoint)hit).Material.GetScatterStrength(hit);
+                features.LogPrimaryHit(pixel, albedo, hit.Normal, hit.Distance);
             }
 
             // Check if a light source was hit.

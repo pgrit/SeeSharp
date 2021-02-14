@@ -9,15 +9,28 @@ namespace SeeSharp.Image {
             public ImageBase Image { get; protected set; }
             public abstract void Init(int width, int height);
             public virtual void Reset() => Image.Scale(0);
-            public virtual void SplatSample(float x, float y, RgbColor value) {}
             public virtual void OnStartIteration(int curIteration) {
                 if (curIteration > 1)
                     Image.Scale((curIteration - 1.0f) / curIteration);
+                this.curIteration = curIteration;
             }
+            protected int curIteration;
         }
 
-        public int Width => Image.Width;
-        public int Height => Image.Height;
+        public class RgbLayer : Layer {
+            public override void Init(int width, int height) => Image = new RgbImage(width, height);
+            public virtual void Splat(float x, float y, RgbColor value)
+            => (Image as RgbImage).AtomicAdd((int)x, (int)y, value / curIteration);
+        }
+
+        public class MonoLayer : Layer {
+            public override void Init(int width, int height) => Image = new MonochromeImage(width, height);
+            public virtual void Splat(float x, float y, float value)
+            => (Image as MonochromeImage).AtomicAdd((int)x, (int)y, value / curIteration);
+        }
+
+        public int Width => width;
+        public int Height => height;
         public RgbImage Image;
 
         public void AddLayer(string name, Layer layer) => layers.Add(name, layer);
@@ -43,35 +56,35 @@ namespace SeeSharp.Image {
             SendToTev = 4 // Like WriteContinously, but sends the data via a socket instead
         }
 
-        Flags flags;
-        TevIpc tevIpc;
-
         public FrameBuffer(int width, int height, string filename, Flags flags = Flags.None) {
-            Image = new RgbImage(width, height);
-            foreach (var (_, layer) in layers)
-                layer.Init(width, height);
             this.filename = filename;
             this.flags = flags;
-
-            if (flags.HasFlag(Flags.SendToTev)) {
-                tevIpc = new TevIpc();
-                // If a file with the same name is open, close it to avoid conflicts
-                tevIpc.CloseImage(filename);
-                tevIpc.CreateImageSync(filename, width, height,
-                    layers.Select(kv => (kv.Key, kv.Value.Image))
-                          .Append(("default", Image))
-                          .ToArray()
-                );
-            }
+            this.width = width;
+            this.height = height;
         }
 
         public virtual void Splat(float x, float y, RgbColor value) {
             Image.AtomicAdd((int)x, (int)y, value / CurIteration);
-            foreach (var (_, layer) in layers)
-                layer.SplatSample(x, y, value);
         }
 
         public virtual void StartIteration() {
+            if (CurIteration == 0) {
+                Image = new RgbImage(width, height);
+                foreach (var (_, layer) in layers)
+                    layer.Init(width, height);
+
+                if (flags.HasFlag(Flags.SendToTev)) {
+                    tevIpc = new TevIpc();
+                    // If a file with the same name is open, close it to avoid conflicts
+                    tevIpc.CloseImage(filename);
+                    tevIpc.CreateImageSync(filename, width, height,
+                        layers.Select(kv => (kv.Key, kv.Value.Image))
+                            .Append(("default", Image))
+                            .ToArray()
+                    );
+                }
+            }
+
             CurIteration++;
 
             // Correct the division by the number of iterations from the previous iterations
@@ -104,7 +117,6 @@ namespace SeeSharp.Image {
 
         public virtual void Reset() {
             CurIteration = 0;
-            Image.Scale(0);
             stopwatch.Reset();
         }
 
@@ -116,6 +128,10 @@ namespace SeeSharp.Image {
                       .ToArray()
             );
         }
+
+        Flags flags;
+        TevIpc tevIpc;
+        int width, height;
 
         protected string filename;
         protected Dictionary<string, Layer> layers = new();

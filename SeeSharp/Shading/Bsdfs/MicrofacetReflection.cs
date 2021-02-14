@@ -39,9 +39,6 @@ namespace SeeSharp.Shading.Bsdfs {
 
             var nd = distribution.NormalDistribution(halfVector);
             var ms = distribution.MaskingShadowing(outDir, inDir);
-
-            var test = tint * nd * ms * f;
-
             return tint * nd * ms * f / (4 * cosThetaI * cosThetaO);
         }
 

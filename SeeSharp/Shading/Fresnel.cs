@@ -1,38 +1,39 @@
-﻿using System;
+﻿using SimpleImageIO;
+using System;
 
 namespace SeeSharp.Shading {
     public interface Fresnel {
-        ColorRGB Evaluate(float cosine);
+        RgbColor Evaluate(float cosine);
     }
 
     public struct FresnelConductor : Fresnel {
-        public ColorRGB EtaI;
-        public ColorRGB EtaT;
-        public ColorRGB K;
+        public RgbColor EtaI;
+        public RgbColor EtaT;
+        public RgbColor K;
 
-        ColorRGB Fresnel.Evaluate(float cosine) => Evaluate(MathF.Abs(cosine), EtaI, EtaT, K);
+        RgbColor Fresnel.Evaluate(float cosine) => Evaluate(MathF.Abs(cosine), EtaI, EtaT, K);
 
         // https://seblagarde.wordpress.com/2013/04/29/memo-on-fresnel-equations/
-        public static ColorRGB Evaluate(float cosThetaI, ColorRGB etai, ColorRGB etat, ColorRGB k) {
+        public static RgbColor Evaluate(float cosThetaI, RgbColor etai, RgbColor etat, RgbColor k) {
             cosThetaI = Math.Clamp(cosThetaI, -1, 1);
-            ColorRGB eta = etat / etai;
-            ColorRGB etak = k / etai;
+            RgbColor eta = etat / etai;
+            RgbColor etak = k / etai;
 
             float cosThetaI2 = cosThetaI * cosThetaI;
             float sinThetaI2 = 1 - cosThetaI2;
-            ColorRGB eta2 = eta * eta;
-            ColorRGB etak2 = etak * etak;
+            RgbColor eta2 = eta * eta;
+            RgbColor etak2 = etak * etak;
 
-            ColorRGB t0 = eta2 - etak2 - sinThetaI2;
-            ColorRGB a2plusb2 = ColorRGB.Sqrt(t0 * t0 + 4 * eta2 * etak2);
-            ColorRGB t1 = a2plusb2 + cosThetaI2;
-            ColorRGB a = ColorRGB.Sqrt(0.5f * (a2plusb2 + t0));
-            ColorRGB t2 = 2 * cosThetaI * a;
-            ColorRGB Rs = (t1 - t2) / (t1 + t2);
+            RgbColor t0 = eta2 - etak2 - sinThetaI2;
+            RgbColor a2plusb2 = RgbColor.Sqrt(t0 * t0 + 4 * eta2 * etak2);
+            RgbColor t1 = a2plusb2 + cosThetaI2;
+            RgbColor a = RgbColor.Sqrt(0.5f * (a2plusb2 + t0));
+            RgbColor t2 = 2 * cosThetaI * a;
+            RgbColor Rs = (t1 - t2) / (t1 + t2);
 
-            ColorRGB t3 = cosThetaI2 * a2plusb2 + sinThetaI2 * sinThetaI2;
-            ColorRGB t4 = t2 * sinThetaI2;
-            ColorRGB Rp = Rs * (t3 - t4) / (t3 + t4);
+            RgbColor t3 = cosThetaI2 * a2plusb2 + sinThetaI2 * sinThetaI2;
+            RgbColor t4 = t2 * sinThetaI2;
+            RgbColor Rp = Rs * (t3 - t4) / (t3 + t4);
 
             return 0.5f * (Rp + Rs);
         }
@@ -42,7 +43,7 @@ namespace SeeSharp.Shading {
         public float EtaI;
         public float EtaT;
 
-        ColorRGB Fresnel.Evaluate(float cosine) => new ColorRGB(Evaluate(cosine, EtaI, EtaT));
+        RgbColor Fresnel.Evaluate(float cosine) => new RgbColor(Evaluate(cosine, EtaI, EtaT));
 
         public static float Evaluate(float cosThetaI, float etaI, float etaT) {
             cosThetaI = Math.Clamp(cosThetaI, -1, 1);
@@ -86,8 +87,8 @@ namespace SeeSharp.Shading {
             return (1 - w) * R0 + w;
         }
 
-        public static ColorRGB Evaluate(ColorRGB R0, float cosTheta) {
-            return ColorRGB.Lerp(SchlickWeight(cosTheta), R0, ColorRGB.White);
+        public static RgbColor Evaluate(RgbColor R0, float cosTheta) {
+            return RgbColor.Lerp(SchlickWeight(cosTheta), R0, RgbColor.White);
         }
 
         // For a dielectric, R(0) = (eta - 1)^2 / (eta + 1)^2, assuming we're
@@ -101,14 +102,14 @@ namespace SeeSharp.Shading {
     // Specialized Fresnel function used for the specular component, based on
     // a mixture between dielectric and the Schlick Fresnel approximation.
     public struct DisneyFresnel : Fresnel {
-        public ColorRGB ReflectanceAtNormal;
+        public RgbColor ReflectanceAtNormal;
         public float Metallic;
         public float IndexOfRefraction;
 
-        ColorRGB Fresnel.Evaluate(float cosI) {
-            var diel = new ColorRGB(FresnelDielectric.Evaluate(cosI, 1, IndexOfRefraction));
+        RgbColor Fresnel.Evaluate(float cosI) {
+            var diel = new RgbColor(FresnelDielectric.Evaluate(cosI, 1, IndexOfRefraction));
             var schlick = FresnelSchlick.Evaluate(ReflectanceAtNormal, cosI);
-            return ColorRGB.Lerp(Metallic, diel, schlick);
+            return RgbColor.Lerp(Metallic, diel, schlick);
         }
     }
 }

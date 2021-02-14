@@ -1,6 +1,6 @@
 ﻿using SeeSharp.Geometry;
-using SeeSharp.Shading;
 using SeeSharp.Shading.Emitters;
+using SimpleImageIO;
 using System.Numerics;
 using Xunit;
 
@@ -25,7 +25,7 @@ namespace Tests.Shading {
                     new Vector3(0, 1, 0)
                 }
             );
-            var emitter = new GlossyEmitter(mesh, ColorRGB.White, 50);
+            var emitter = new GlossyEmitter(mesh, RgbColor.White, 50);
 
             var sample = emitter.SampleRay(new Vector2(0.3f, 0.8f), new Vector2(0.56f, 0.03f));
 

@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Generic;
-using SeeSharp;
 using SeeSharp.Integrators;
 using SeeSharp.Integrators.Bidir;
 using SeeSharp.Image;
@@ -14,7 +13,7 @@ namespace SeeSharp.Validation {
                 float average = 0;
                 for (int r = 0; r < img.Height; ++r) {
                     for (int c = 0; c < img.Width; ++c) {
-                        var rgb = img.Image[c, r];
+                        var rgb = img.Image.GetPixel(c, r);
                         average += (rgb.R + rgb.B + rgb.G) / (3 * img.Width * img.Height);
                     }
                 }

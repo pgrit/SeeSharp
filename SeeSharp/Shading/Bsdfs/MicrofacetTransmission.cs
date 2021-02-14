@@ -1,14 +1,15 @@
 ﻿using SeeSharp.Shading.MicrofacetDistributions;
+using SimpleImageIO;
 using System;
 using System.Numerics;
 
 namespace SeeSharp.Shading.Bsdfs {
     public struct MicrofacetTransmission {
-        public ColorRGB Transmittance;
+        public RgbColor Transmittance;
         public TrowbridgeReitzDistribution Distribution;
         public float outsideIOR, insideIOR;
 
-        public MicrofacetTransmission(ColorRGB transmittance, TrowbridgeReitzDistribution distribution,
+        public MicrofacetTransmission(RgbColor transmittance, TrowbridgeReitzDistribution distribution,
                                       float outsideIOR, float insideIOR) {
             this.Transmittance = transmittance;
             this.Distribution = distribution;
@@ -16,21 +17,21 @@ namespace SeeSharp.Shading.Bsdfs {
             this.insideIOR = insideIOR;
         }
 
-        public ColorRGB Evaluate(Vector3 outDir, Vector3 inDir, bool isOnLightSubpath) {
-            if (ShadingSpace.SameHemisphere(outDir, inDir)) return ColorRGB.Black;  // transmission only
+        public RgbColor Evaluate(Vector3 outDir, Vector3 inDir, bool isOnLightSubpath) {
+            if (ShadingSpace.SameHemisphere(outDir, inDir)) return RgbColor.Black;  // transmission only
 
             float cosThetaO = ShadingSpace.CosTheta(outDir);
             float cosThetaI = ShadingSpace.CosTheta(inDir);
-            if (cosThetaI == 0 || cosThetaO == 0) return ColorRGB.Black;
+            if (cosThetaI == 0 || cosThetaO == 0) return RgbColor.Black;
 
             // Compute the half vector
             float eta = ShadingSpace.CosTheta(outDir) > 0 ? (insideIOR / outsideIOR) : (outsideIOR / insideIOR);
             Vector3 wh = Vector3.Normalize(outDir + inDir * eta);
             if (ShadingSpace.CosTheta(wh) < 0) wh = -wh;
 
-            if (Vector3.Dot(outDir, wh) * Vector3.Dot(inDir, wh) > 0) return ColorRGB.Black;
+            if (Vector3.Dot(outDir, wh) * Vector3.Dot(inDir, wh) > 0) return RgbColor.Black;
 
-            var F = new ColorRGB(FresnelDielectric.Evaluate(Vector3.Dot(outDir, wh), outsideIOR, insideIOR));
+            var F = new RgbColor(FresnelDielectric.Evaluate(Vector3.Dot(outDir, wh), outsideIOR, insideIOR));
 
             float sqrtDenom = Vector3.Dot(outDir, wh) + eta * Vector3.Dot(inDir, wh);
             float factor = isOnLightSubpath ? (1 / eta) : 1;
@@ -41,7 +42,7 @@ namespace SeeSharp.Shading.Bsdfs {
 
             var denom = (cosThetaI * cosThetaO * sqrtDenom * sqrtDenom);
 
-            return (ColorRGB.White - F) * Transmittance * Math.Abs(numerator / denom);
+            return (RgbColor.White - F) * Transmittance * Math.Abs(numerator / denom);
         }
 
         float ComputeOneDir(Vector3 outDir, Vector3 inDir) {

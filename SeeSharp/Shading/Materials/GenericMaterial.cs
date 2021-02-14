@@ -5,6 +5,7 @@ using SeeSharp.Image;
 using System;
 using System.Diagnostics;
 using System.Numerics;
+using SimpleImageIO;
 
 namespace SeeSharp.Shading.Materials {
     /// <summary>
@@ -12,8 +13,8 @@ namespace SeeSharp.Shading.Materials {
     /// </summary>
     public class GenericMaterial : Material {
         public class Parameters {
-            public Image<ColorRGB> baseColor = Image<ColorRGB>.Constant(ColorRGB.White);
-            public Image<Scalar> roughness = Image<Scalar>.Constant(0.5f);
+            public TextureRgb baseColor = new TextureRgb(RgbColor.White);
+            public TextureMono roughness = new TextureMono(0.5f);
             public float metallic = 0.0f;
             public float specularTintStrength = 1.0f;
             public float anisotropic = 0.0f;
@@ -26,12 +27,12 @@ namespace SeeSharp.Shading.Materials {
         public GenericMaterial(Parameters parameters) => this.parameters = parameters;
 
         public override float GetRoughness(SurfacePoint hit)
-        => parameters.roughness.TextureLookup(hit.TextureCoordinates).Value;
+        => parameters.roughness.Lookup(hit.TextureCoordinates);
 
-        public override ColorRGB GetScatterStrength(SurfacePoint hit)
-        => parameters.baseColor.TextureLookup(hit.TextureCoordinates);
+        public override RgbColor GetScatterStrength(SurfacePoint hit)
+        => parameters.baseColor.Lookup(hit.TextureCoordinates);
 
-        public override ColorRGB Evaluate(SurfacePoint hit, Vector3 outDir, Vector3 inDir, bool isOnLightSubpath) {
+        public override RgbColor Evaluate(SurfacePoint hit, Vector3 outDir, Vector3 inDir, bool isOnLightSubpath) {
             // Transform directions to shading space and normalize
             var normal = hit.ShadingNormal;
             outDir = ShadingSpace.WorldToShading(normal, outDir);
@@ -40,7 +41,7 @@ namespace SeeSharp.Shading.Materials {
             var local = ComputeLocalParams(hit);
 
             // Evaluate all components
-            var result = ColorRGB.Black;
+            var result = RgbColor.Black;
             if (local.diffuseWeight > 0) {
                 result += new DisneyDiffuse(local.diffuseReflectance).Evaluate(outDir, inDir, isOnLightSubpath);
                 result += new DisneyRetroReflection(local.retroReflectance, local.roughness)
@@ -189,15 +190,15 @@ namespace SeeSharp.Shading.Materials {
         }
 
         struct LocalParams {
-            public ColorRGB baseColor, colorTint, specularTint;
+            public RgbColor baseColor, colorTint, specularTint;
             public float roughness;
             public TrowbridgeReitzDistribution microfacetDistrib;
             public TrowbridgeReitzDistribution transmissionDistribution;
             public Fresnel fresnel;
             public float diffuseWeight;
-            public ColorRGB diffuseReflectance;
-            public ColorRGB retroReflectance;
-            public ColorRGB specularTransmittance;
+            public RgbColor diffuseReflectance;
+            public RgbColor retroReflectance;
+            public RgbColor specularTransmittance;
         }
 
         LocalParams ComputeLocalParams(SurfacePoint hit) {
@@ -215,17 +216,17 @@ namespace SeeSharp.Shading.Materials {
             else
                 result.diffuseReflectance *= result.diffuseWeight;
             result.retroReflectance = result.baseColor * result.diffuseWeight;
-            result.specularTransmittance = parameters.specularTransmittance * ColorRGB.Sqrt(result.baseColor);
+            result.specularTransmittance = parameters.specularTransmittance * RgbColor.Sqrt(result.baseColor);
 
             return result;
         }
 
-        (ColorRGB, ColorRGB, ColorRGB) GetColorAndTints(SurfacePoint hit) {
+        (RgbColor, RgbColor, RgbColor) GetColorAndTints(SurfacePoint hit) {
             // Isolate hue and saturation from the base color
-            var baseColor = parameters.baseColor.TextureLookup(hit.TextureCoordinates);
+            var baseColor = parameters.baseColor.Lookup(hit.TextureCoordinates);
             float luminance = baseColor.Luminance;
-            var colorTint = luminance > 0 ? (baseColor / luminance) : ColorRGB.White;
-            var specularTint = ColorRGB.Lerp(parameters.specularTintStrength, ColorRGB.White, colorTint);
+            var colorTint = luminance > 0 ? (baseColor / luminance) : RgbColor.White;
+            var specularTint = RgbColor.Lerp(parameters.specularTintStrength, RgbColor.White, colorTint);
             return (baseColor, colorTint, specularTint);
         }
 
@@ -248,8 +249,8 @@ namespace SeeSharp.Shading.Materials {
                 return CreateMicrofacetDistribution(roughness);
         }
 
-        Fresnel CreateFresnel(ColorRGB baseColor, ColorRGB specularTint) {
-            var specularReflectanceAtNormal = ColorRGB.Lerp(parameters.metallic,
+        Fresnel CreateFresnel(RgbColor baseColor, RgbColor specularTint) {
+            var specularReflectanceAtNormal = RgbColor.Lerp(parameters.metallic,
                 FresnelSchlick.SchlickR0FromEta(parameters.indexOfRefraction) * specularTint,
                 baseColor);
             return new DisneyFresnel {

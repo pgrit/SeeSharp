@@ -1,4 +1,4 @@
-﻿using SeeSharp.Shading;
+﻿using SimpleImageIO;
 using SeeSharp.Shading.Emitters;
 using SeeSharp.Shading.Materials;
 using SeeSharp.Image;
@@ -17,9 +17,9 @@ namespace SeeSharp.Geometry {
         }
 
         public static void AddToScene(ObjMesh mesh, Scene scene, Dictionary<string, Material> materialOverride,
-                                      Dictionary<string, ColorRGB> emissionOverride = null) {
+                                      Dictionary<string, RgbColor> emissionOverride = null) {
             // Create a dummy constant texture color for incorrect texture references
-            var dummyColor  = Image<ColorRGB>.Constant(new ColorRGB(1.0f, 1.0f, 1.0f));
+            var dummyColor = new TextureRgb(RgbColor.White);
             var dummyMaterial = new GenericMaterial(new GenericMaterial.Parameters{
                 baseColor = dummyColor
             });
@@ -27,7 +27,7 @@ namespace SeeSharp.Geometry {
             // Create the materials for this OBJ file
             var errors = new List<string>();
             var materials = new Dictionary<string, Material>();
-            var emitters = new Dictionary<string, ColorRGB>();
+            var emitters = new Dictionary<string, RgbColor>();
             for (int i = 1, n = mesh.file.materials.Count; i < n; i++) {
                 // Try to find the correct material
                 string materialName = mesh.file.materials[i];
@@ -43,17 +43,17 @@ namespace SeeSharp.Geometry {
                 switch (objMaterial.illuminationModel) {
                 case 5: // perfect mirror
                     materialParameters = new GenericMaterial.Parameters {
-                        baseColor = Image<ColorRGB>.Constant(objMaterial.specular),
+                        baseColor = new TextureRgb(objMaterial.specular),
                         specularTintStrength = 1.0f,
                         metallic = 1,
-                        roughness = Image<Scalar>.Constant(0),
+                        roughness = new TextureMono(0),
                     };
                     break;
                 case 7: // perfect glass
                     materialParameters = new GenericMaterial.Parameters {
-                        baseColor = Image<ColorRGB>.Constant(objMaterial.specular),
+                        baseColor = new TextureRgb(objMaterial.specular),
                         metallic = 0,
-                        roughness = Image<Scalar>.Constant(0),
+                        roughness = new TextureMono(0),
                         indexOfRefraction = objMaterial.indexOfRefraction,
                         specularTransmittance = 1.0f,
                         specularTintStrength = 1.0f
@@ -61,16 +61,19 @@ namespace SeeSharp.Geometry {
                     break;
                 case 2:
                 default: // We pretend that anything else would be "2", aka, a phong shader
-                    Image<ColorRGB> baseColor;
+                    TextureRgb baseColor;
                     baseColor = string.IsNullOrEmpty(objMaterial.diffuseTexture)
-                        ? Image<ColorRGB>.Constant(objMaterial.diffuse)
-                        : Image<ColorRGB>.LoadFromFile(System.IO.Path.Join(mesh.basePath, objMaterial.diffuseTexture));
+                        ? new TextureRgb(objMaterial.diffuse)
+                        : new TextureRgb(System.IO.Path.Join(mesh.basePath, objMaterial.diffuseTexture));
 
                     // We coarsely map the "ns" term to roughness, use the diffuse color as base color,
                     // and ignore everything else.
                     materialParameters = new GenericMaterial.Parameters {
                         baseColor = baseColor,
-                        roughness = Image<Scalar>.Constant(objMaterial.specularIndex == 0 ? 1 : 1 / objMaterial.specularIndex),
+                        roughness = new TextureMono(
+                            objMaterial.specularIndex == 0
+                            ? 1
+                            : 1 / objMaterial.specularIndex),
                         metallic = 0.5f
                     };
                     break;
@@ -78,7 +81,7 @@ namespace SeeSharp.Geometry {
                 materials[materialName] = new GenericMaterial(materialParameters);
 
                 // Check if the material is emissive
-                if (objMaterial.emission != ColorRGB.Black)
+                if (objMaterial.emission != RgbColor.Black)
                     emitters[materialName] = objMaterial.emission;
             }
 
@@ -172,7 +175,7 @@ namespace SeeSharp.Geometry {
                         scene.Meshes.Add(m);
 
                         // Create an emitter if the obj material is emissive
-                        ColorRGB emission;
+                        RgbColor emission;
                         if (emissionOverride != null && emissionOverride.TryGetValue(materialName, out emission)) {
                             var emitter = new DiffuseEmitter(m, emission);
                             scene.Emitters.Add(emitter);

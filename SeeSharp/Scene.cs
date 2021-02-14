@@ -11,6 +11,7 @@ using System.IO;
 using System.Numerics;
 using System.Text.Json;
 using TinyEmbree;
+using SimpleImageIO;
 
 namespace SeeSharp {
     public class Scene {
@@ -118,14 +119,16 @@ namespace SeeSharp {
         }
 
         /// <summary>
-        /// Loads a .json file and parses it as a scene. Assumes the file has been validated against the correct schema.
+        /// Loads a .json file and parses it as a scene. Assumes the file has been validated against
+        /// the correct schema.
         /// </summary>
         /// <param name="path">Path to the .json scene file.</param>
         /// <returns>The scene created from the file.</returns>
         public static Scene LoadFromFile(string path) {
             // String parsing adheres to the OS specified culture settings.
             // However, we always want our .json files to use the decimal point . rather than a comma
-            System.Globalization.CultureInfo.DefaultThreadCurrentCulture = System.Globalization.CultureInfo.InvariantCulture;
+            System.Globalization.CultureInfo.DefaultThreadCurrentCulture =
+                System.Globalization.CultureInfo.InvariantCulture;
 
             string jsonString = File.ReadAllText(path);
 
@@ -136,20 +139,20 @@ namespace SeeSharp {
                     json[2].GetSingle());
             }
 
-            ColorRGB ReadColorRGB(JsonElement json) {
+            RgbColor ReadRgbColor(JsonElement json) {
                 var vec = ReadVector(json.GetProperty("value"));
-                return new ColorRGB(vec.X, vec.Y, vec.Z);
+                return new RgbColor(vec.X, vec.Y, vec.Z);
             }
 
-            Image<ColorRGB> ReadColorOrTexture(JsonElement json) {
+            TextureRgb ReadColorOrTexture(JsonElement json) {
                 string type = json.GetProperty("type").GetString();
                 if (type == "rgb") {
-                    var rgb = ReadColorRGB(json);
-                    return Image<ColorRGB>.Constant(rgb);
+                    var rgb = ReadRgbColor(json);
+                    return new TextureRgb(rgb);
                 } else if (type == "texture") {
                     var texturePath = json.GetProperty("path").GetString();
                     texturePath = Path.Join(Path.GetDirectoryName(path), texturePath);
-                    return Image<ColorRGB>.LoadFromFile(texturePath);
+                    return new TextureRgb(texturePath);
                 } else
                     return null;
             }
@@ -214,7 +217,7 @@ namespace SeeSharp {
                         string dir = Path.GetDirectoryName(path);
                         filename = Path.Join(dir, filename);
 
-                        resultScene.Background = new EnvironmentMap(Image<ColorRGB>.LoadFromFile(filename));
+                        resultScene.Background = new EnvironmentMap(new RgbImage(filename));
                     }
                 }
 
@@ -222,7 +225,7 @@ namespace SeeSharp {
                 var watch = System.Diagnostics.Stopwatch.StartNew();
                 System.Console.WriteLine("Start parsing materials...");
                 var namedMaterials = new Dictionary<string, Material>();
-                var emissiveMaterials = new Dictionary<string, ColorRGB>();
+                var emissiveMaterials = new Dictionary<string, RgbColor>();
                 JsonElement materials;
                 if (root.TryGetProperty("materials", out materials)) {
                     foreach (var m in materials.EnumerateArray()) {
@@ -257,7 +260,7 @@ namespace SeeSharp {
                         } else {
                             var parameters = new GenericMaterial.Parameters {
                                 baseColor = ReadColorOrTexture(m.GetProperty("baseColor")),
-                                roughness = Image<Scalar>.Constant(ReadOptionalFloat("roughness", 0.5f)),
+                                roughness = new TextureMono(ReadOptionalFloat("roughness", 0.5f)),
                                 anisotropic = ReadOptionalFloat("anisotropic", 0.0f),
                                 diffuseTransmittance = ReadOptionalFloat("diffuseTransmittance", 1.0f),
                                 indexOfRefraction = ReadOptionalFloat("IOR", 1.0f),
@@ -271,7 +274,7 @@ namespace SeeSharp {
 
                         // Check if the material is emissive
                         if (m.TryGetProperty("emission", out elem)) {
-                            emissiveMaterials.Add(name, ReadColorRGB(elem));
+                            emissiveMaterials.Add(name, ReadRgbColor(elem));
                         }
                     }
                 }
@@ -336,7 +339,7 @@ namespace SeeSharp {
                         JsonElement emissionJson;
                         if (m.TryGetProperty("emission", out emissionJson)) { // The object is an emitter
                             // TODO update schema to allow different types of emitters here
-                            var emission = ReadColorRGB(emissionJson);
+                            var emission = ReadRgbColor(emissionJson);
                             emitter = new DiffuseEmitter(mesh, emission);
                             resultScene.Emitters.Add(emitter);
                         }

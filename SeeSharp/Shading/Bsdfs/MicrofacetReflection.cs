@@ -1,21 +1,22 @@
 ﻿using SeeSharp.Shading.MicrofacetDistributions;
+using SimpleImageIO;
 using System.Numerics;
 
 namespace SeeSharp.Shading.Bsdfs {
     public struct MicrofacetReflection {
         TrowbridgeReitzDistribution distribution;
         Fresnel fresnel;
-        ColorRGB tint;
+        RgbColor tint;
 
-        public MicrofacetReflection(TrowbridgeReitzDistribution distribution, Fresnel fresnel, ColorRGB tint) {
+        public MicrofacetReflection(TrowbridgeReitzDistribution distribution, Fresnel fresnel, RgbColor tint) {
             this.distribution = distribution;
             this.fresnel = fresnel;
             this.tint = tint;
         }
 
-        public ColorRGB Evaluate(Vector3 outDir, Vector3 inDir, bool isOnLightSubpath) {
+        public RgbColor Evaluate(Vector3 outDir, Vector3 inDir, bool isOnLightSubpath) {
             if (!ShadingSpace.SameHemisphere(outDir, inDir))
-                return ColorRGB.Black;
+                return RgbColor.Black;
 
             float cosThetaO = ShadingSpace.AbsCosTheta(outDir);
             float cosThetaI = ShadingSpace.AbsCosTheta(inDir);
@@ -23,9 +24,9 @@ namespace SeeSharp.Shading.Bsdfs {
 
             // Handle degenerate cases for microfacet reflection
             if (cosThetaI == 0 || cosThetaO == 0)
-                return ColorRGB.Black;
+                return RgbColor.Black;
             if (halfVector.X == 0 && halfVector.Y == 0 && halfVector.Z == 0)
-                return ColorRGB.Black;
+                return RgbColor.Black;
 
             // For the Fresnel call, make sure that wh is in the same hemisphere
             // as the surface normal, so that total internal reflection is handled correctly.
@@ -35,8 +36,13 @@ namespace SeeSharp.Shading.Bsdfs {
 
             var cosine = Vector3.Dot(inDir, halfVector);
             var f = fresnel.Evaluate(cosine);
-            return tint * distribution.NormalDistribution(halfVector)
-                * distribution.MaskingShadowing(outDir, inDir) * f / (4 * cosThetaI * cosThetaO);
+
+            var nd = distribution.NormalDistribution(halfVector);
+            var ms = distribution.MaskingShadowing(outDir, inDir);
+
+            var test = tint * nd * ms * f;
+
+            return tint * nd * ms * f / (4 * cosThetaI * cosThetaO);
         }
 
         public (float, float) Pdf(Vector3 outDir, Vector3 inDir, bool isOnLightSubpath) {

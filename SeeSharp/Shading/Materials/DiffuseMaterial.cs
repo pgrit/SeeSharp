@@ -2,11 +2,12 @@
 using SeeSharp.Shading.Bsdfs;
 using SeeSharp.Image;
 using System.Numerics;
+using SimpleImageIO;
 
 namespace SeeSharp.Shading.Materials {
     public class DiffuseMaterial : Material {
         public class Parameters {
-            public Image<ColorRGB> baseColor = Image<ColorRGB>.Constant(ColorRGB.White);
+            public TextureRgb baseColor = new TextureRgb(RgbColor.White);
             public bool transmitter = false;
         }
 
@@ -14,19 +15,16 @@ namespace SeeSharp.Shading.Materials {
 
         public override float GetRoughness(SurfacePoint hit) => 1;
 
-        public override ColorRGB GetScatterStrength(SurfacePoint hit) {
-            var tex = hit.TextureCoordinates;
-            var baseColor = parameters.baseColor[tex.X * parameters.baseColor.Width, tex.Y * parameters.baseColor.Height];
-            return baseColor;
-        }
+        public override RgbColor GetScatterStrength(SurfacePoint hit)
+        => parameters.baseColor.Lookup(hit.TextureCoordinates);
 
-        public override ColorRGB Evaluate(SurfacePoint hit, Vector3 outDir, Vector3 inDir, bool isOnLightSubpath) {
+        public override RgbColor Evaluate(SurfacePoint hit, Vector3 outDir, Vector3 inDir, bool isOnLightSubpath) {
             // Transform directions to shading space and normalize
             var normal = hit.ShadingNormal;
             outDir = ShadingSpace.WorldToShading(normal, outDir);
             inDir = ShadingSpace.WorldToShading(normal, inDir);
 
-            var baseColor = parameters.baseColor.TextureLookup(hit.TextureCoordinates);
+            var baseColor = parameters.baseColor.Lookup(hit.TextureCoordinates);
             if (parameters.transmitter) {
                 return new DiffuseTransmission(baseColor).Evaluate(outDir, inDir, isOnLightSubpath);
             } else {
@@ -38,7 +36,7 @@ namespace SeeSharp.Shading.Materials {
             var normal = hit.ShadingNormal;
             outDir = ShadingSpace.WorldToShading(normal, outDir);
 
-            var baseColor = parameters.baseColor.TextureLookup(hit.TextureCoordinates);
+            var baseColor = parameters.baseColor.Lookup(hit.TextureCoordinates);
             Vector3? sample = null;
             if (parameters.transmitter) {
                 sample = new DiffuseTransmission(baseColor).Sample(outDir, isOnLightSubpath, primarySample);
@@ -78,7 +76,7 @@ namespace SeeSharp.Shading.Materials {
             outDir = ShadingSpace.WorldToShading(normal, outDir);
             inDir = ShadingSpace.WorldToShading(normal, inDir);
 
-            var baseColor = parameters.baseColor.TextureLookup(hit.TextureCoordinates);
+            var baseColor = parameters.baseColor.Lookup(hit.TextureCoordinates);
             if (parameters.transmitter) {
                 return new DiffuseTransmission(baseColor).Pdf(outDir, inDir, isOnLightSubpath);
             } else {

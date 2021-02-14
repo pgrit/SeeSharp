@@ -1,6 +1,6 @@
 ﻿using SeeSharp.Geometry;
 using SeeSharp.Sampling;
-using SeeSharp.Shading;
+using SimpleImageIO;
 using System;
 using System.Numerics;
 using TinyEmbree;
@@ -70,7 +70,7 @@ namespace SeeSharp.Cameras {
 
             return new CameraRaySample(
                 ray,
-                ColorRGB.White,
+                RgbColor.White,
                 new SurfacePoint { Position = Position, Normal = Direction },
                 SolidAngleToPixelJacobian(pos + dir) * pdfLens, pdfLens
             );
@@ -108,7 +108,7 @@ namespace SeeSharp.Cameras {
             float pdfEmit = invLensArea * surfaceToSolidAngle * solidAngleToPixel;
 
             return new CameraResponseSample(new Vector2(filmPos.Value.X, filmPos.Value.Y),
-                                            response * ColorRGB.White, pdfConnect, pdfEmit);
+                                            response * RgbColor.White, pdfConnect, pdfEmit);
         }
 
         public override Vector3? WorldToFilm(Vector3 pos) {

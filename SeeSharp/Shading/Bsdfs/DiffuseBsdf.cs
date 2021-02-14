@@ -1,17 +1,18 @@
 ﻿using SeeSharp.Sampling;
+using SimpleImageIO;
 using System;
 using System.Numerics;
 
 namespace SeeSharp.Shading.Bsdfs {
     public struct DiffuseBsdf {
-        ColorRGB reflectance;
+        RgbColor reflectance;
 
-        public DiffuseBsdf(ColorRGB reflectance) => this.reflectance = reflectance;
+        public DiffuseBsdf(RgbColor reflectance) => this.reflectance = reflectance;
 
-        public ColorRGB Evaluate(Vector3 outDir, Vector3 inDir, bool isOnLightSubpath) {
+        public RgbColor Evaluate(Vector3 outDir, Vector3 inDir, bool isOnLightSubpath) {
             // No transmission
             if (!ShadingSpace.SameHemisphere(outDir, inDir))
-                return ColorRGB.Black;
+                return RgbColor.Black;
             return reflectance / MathF.PI;
         }
 
@@ -38,14 +39,14 @@ namespace SeeSharp.Shading.Bsdfs {
     }
 
     public struct DiffuseTransmission {
-        ColorRGB transmittance;
+        RgbColor transmittance;
 
-        public DiffuseTransmission(ColorRGB transmittance) => this.transmittance = transmittance;
+        public DiffuseTransmission(RgbColor transmittance) => this.transmittance = transmittance;
 
-        public ColorRGB Evaluate(Vector3 outDir, Vector3 inDir, bool isOnLightSubpath) {
+        public RgbColor Evaluate(Vector3 outDir, Vector3 inDir, bool isOnLightSubpath) {
             // No reflection
             if (ShadingSpace.SameHemisphere(outDir, inDir))
-                return ColorRGB.Black;
+                return RgbColor.Black;
             return transmittance / MathF.PI;
         }
 

@@ -4,6 +4,7 @@ using SeeSharp.Geometry;
 using SeeSharp.Sampling;
 using SeeSharp.Image;
 using TinyEmbree;
+using SimpleImageIO;
 
 namespace SeeSharp.Shading.Background {
     /// <summary>
@@ -17,24 +18,25 @@ namespace SeeSharp.Shading.Background {
     /// worldspace positive z axis. Rotation is CCW about the y axis.
     /// </summary>
     public class EnvironmentMap : Background {
-        public EnvironmentMap(Image<ColorRGB> image) {
+        public EnvironmentMap(RgbImage image) {
             this.image = image;
             directionSampler = BuildSamplingGrid(image);
         }
 
-        public override ColorRGB EmittedRadiance(Vector3 direction) {
+        public override RgbColor EmittedRadiance(Vector3 direction) {
             var sphericalDir = WorldToSpherical(direction);
             var pixelCoords = SphericalToPixel(sphericalDir);
 
             var col = pixelCoords.X * image.Width;
             var row = pixelCoords.Y * image.Height;
-            return image[col, row];
+            return image.GetPixel((int)col, (int)row);
         }
 
-        public override ColorRGB ComputeTotalPower() {
+        public override RgbColor ComputeTotalPower() {
             // TOOD / FIXME this is not quite correct: the latlong map does not preserve area and we
             //              are ignoring the jacobian term (sin(y)).
-            return image.Sum() * 4 * MathF.PI / (image.Width * image.Height);
+            // return image.Sum() * 4 * MathF.PI / (image.Width * image.Height);
+            throw new NotImplementedException();
         }
 
         public override BackgroundSample SampleDirection(Vector2 primary) {
@@ -53,14 +55,17 @@ namespace SeeSharp.Shading.Background {
                 return new BackgroundSample {
                     Direction = direction,
                     Pdf = 0,
-                    Weight = ColorRGB.Black
+                    Weight = RgbColor.Black
                 };
             }
             pdf /= jacobian;
             // TODO we could (and should) pre-multiply the pdf by the sine, to avoid oversampling regions that will receive zero weight
 
             // Compute the sample weight
-            var weight = image[pixelPrimary.X * image.Width, pixelPrimary.Y * image.Height] / pdf;
+            var weight = image.GetPixel(
+                (int)(pixelPrimary.X * image.Width),
+                (int)(pixelPrimary.Y * image.Height)
+            ) / pdf;
 
             return new BackgroundSample {
                 Direction = direction,
@@ -81,7 +86,7 @@ namespace SeeSharp.Shading.Background {
             return directionSampler.Pdf(pixelCoords) / (MathF.Sin(sphericalDir.Y) * MathF.PI * MathF.PI * 2.0f);
         }
 
-        public override (Ray, ColorRGB, float) SampleRay(Vector2 primaryPos, Vector2 primaryDir) {
+        public override (Ray, RgbColor, float) SampleRay(Vector2 primaryPos, Vector2 primaryDir) {
             // Sample a direction from the scene to the background
             var dirSample = SampleDirection(primaryDir);
 
@@ -131,14 +136,14 @@ namespace SeeSharp.Shading.Background {
         /// </summary>
         /// <param name="image">The source image to importance sample</param>
         /// <returns>Tabulated pdf for the image.</returns>
-        public virtual RegularGrid2d BuildSamplingGrid(Image<ColorRGB> image) {
+        public virtual RegularGrid2d BuildSamplingGrid(RgbImage image) {
             var result = new RegularGrid2d(image.Width, image.Height);
 
             for (int row = 0; row < image.Height; ++row) {
                 for (int col = 0; col < image.Width; ++col) {
                     var x = col / (float)image.Width;
                     var y = row / (float)image.Height;
-                    result.Splat(x, y, image[col, row].Luminance);
+                    result.Splat(x, y, image.GetPixel(col, row).Luminance);
                 }
             }
 
@@ -162,7 +167,7 @@ namespace SeeSharp.Shading.Background {
         Vector2 PixelToSpherical(Vector2 pixel)
         => new Vector2(pixel.X * 2 * MathF.PI, pixel.Y * MathF.PI);
 
-        readonly Image<ColorRGB> image;
+        readonly RgbImage image;
         readonly RegularGrid2d directionSampler;
     }
 }

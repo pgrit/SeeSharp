@@ -1,10 +1,10 @@
 using System;
-using SeeSharp.Shading;
+using System.Threading.Tasks;
+using SimpleImageIO;
 
 namespace SeeSharp.Image {
     public abstract class Filter {
-        public abstract void Apply(Image<ColorRGB> original, Image<ColorRGB> target);
-        public abstract void Apply(Image<Scalar> original, Image<Scalar> target);
+        public abstract void Apply(ImageBase original, ImageBase target);
     }
 
     public class BoxFilter {
@@ -12,7 +12,7 @@ namespace SeeSharp.Image {
             this.radius = radius;
         }
 
-        protected virtual ColorRGB Kernel(Image<ColorRGB> original, int centerRow, int centerCol) {
+        protected virtual float[] Kernel(ImageBase original, int centerRow, int centerCol) {
             int top = Math.Max(0, centerRow - radius);
             int bottom = Math.Min(original.Height - 1, centerRow + radius);
             int left = Math.Max(0, centerCol - radius);
@@ -21,45 +21,18 @@ namespace SeeSharp.Image {
             int area = (bottom - top + 1) * (right - left + 1);
             float normalization = 1.0f / area;
 
-            ColorRGB result = ColorRGB.Black;
-            for (int row = top; row <= bottom; ++row) {
-                for (int col = left; col <= right; ++col) {
-                    result += original[col, row] * normalization;
-                }
-            }
+            float[] result = new float[original.NumChannels];
+            for (int chan = 0; chan < original.NumChannels; ++chan)
+                for (int row = top; row <= bottom; ++row)
+                    for (int col = left; col <= right; ++col)
+                        result[chan] += original.GetPixelChannel(col, row, chan) * normalization;
             return result;
         }
 
-        protected virtual Scalar Kernel(Image<Scalar> original, int centerRow, int centerCol) {
-            int top = Math.Max(0, centerRow - radius);
-            int bottom = Math.Min(original.Height - 1, centerRow + radius);
-            int left = Math.Max(0, centerCol - radius);
-            int right = Math.Min(original.Width - 1, centerCol + radius);
-
-            int area = (bottom - top + 1) * (right - left + 1);
-            float normalization = 1.0f / area;
-
-            Scalar result = new Scalar(0);
-            for (int row = top; row <= bottom; ++row) {
-                for (int col = left; col <= right; ++col) {
-                    result += original[col, row] * normalization;
-                }
-            }
-            return result;
-        }
-
-        public void Apply(Image<ColorRGB> original, Image<ColorRGB> target) {
-            System.Threading.Tasks.Parallel.For(0, original.Height, row => {
+        public void Apply(ImageBase original, ImageBase target) {
+            Parallel.For(0, original.Height, row => {
                 for (int col = 0; col < original.Width; ++col) {
-                    target[col, row] = Kernel(original, row, col);
-                }
-            });
-        }
-
-        public void Apply(Image<Scalar> original, Image<Scalar> target) {
-            System.Threading.Tasks.Parallel.For(0, original.Height, row => {
-                for (int col = 0; col < original.Width; ++col) {
-                    target[col, row] = Kernel(original, row, col);
+                    target.SetPixelChannels(col, row, Kernel(original, row, col));
                 }
             });
         }
@@ -70,7 +43,7 @@ namespace SeeSharp.Image {
     public class NeighborAverage : BoxFilter {
         public NeighborAverage() : base(1) {}
 
-        protected override ColorRGB Kernel(Image<ColorRGB> original, int centerRow, int centerCol) {
+        protected override float[] Kernel(ImageBase original, int centerRow, int centerCol) {
             int top = Math.Max(0, centerRow - 1);
             int bottom = Math.Min(original.Height - 1, centerRow + 1);
             int left = Math.Max(0, centerCol - 1);
@@ -79,11 +52,14 @@ namespace SeeSharp.Image {
             int area = (bottom - top + 1) * (right - left + 1) - 1;
             float normalization = 1.0f / area;
 
-            ColorRGB result = ColorRGB.Black;
-            for (int row = top; row <= bottom; ++row) {
-                for (int col = left; col <= right; ++col) {
-                    if (row == centerRow && col == centerCol) continue;
-                    result += original[col, row] * normalization;
+            float[] result = new float[original.NumChannels];
+            for (int chan = 0; chan < original.NumChannels; ++chan) {
+                for (int row = top; row <= bottom; ++row) {
+                    for (int col = left; col <= right; ++col) {
+                        if (row == centerRow && col == centerCol)
+                            continue;
+                        result[chan] += original.GetPixelChannel(col, row, chan) * normalization;
+                    }
                 }
             }
             return result;

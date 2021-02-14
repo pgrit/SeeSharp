@@ -1,16 +1,16 @@
-using SeeSharp.Shading;
+using SimpleImageIO;
 using System;
 using System.Collections.Generic;
 using System.Numerics;
 using System.Threading.Tasks;
 
 namespace SeeSharp.Integrators.Util {
-    public class LoggedPath : ICloneable {
+    public class LoggedPath {
         public List<Vector3> Vertices = new();
-        public ColorRGB Contribution = ColorRGB.Black;
+        public RgbColor Contribution = RgbColor.Black;
         public List<int> UserTypes = new();
 
-        public object Clone() => new LoggedPath {
+        public LoggedPath Copy() => new LoggedPath {
             Vertices = new(Vertices),
             Contribution = Contribution,
             UserTypes = new(UserTypes)
@@ -49,7 +49,7 @@ namespace SeeSharp.Integrators.Util {
             int id;
             lock (paths) {
                 id = paths.Count;
-                paths.Add(paths[original.Local].Clone() as LoggedPath);
+                paths.Add(paths[original.Local].Copy());
             }
             return new PathIndex { Pixel = original.Pixel, Local = id };
         }
@@ -65,7 +65,7 @@ namespace SeeSharp.Integrators.Util {
             pixelPaths[id.Pixel][id.Local].UserTypes.Add(type);
         }
 
-        public void SetContrib(PathIndex id, ColorRGB contrib) {
+        public void SetContrib(PathIndex id, RgbColor contrib) {
             pixelPaths[id.Pixel][id.Local].Contribution = contrib;
         }
 
@@ -75,7 +75,7 @@ namespace SeeSharp.Integrators.Util {
             return row * width + col;
         }
 
-        public List<LoggedPath> GetAllInPixel(int col, int row, ColorRGB minContrib) {
+        public List<LoggedPath> GetAllInPixel(int col, int row, RgbColor minContrib) {
             List<LoggedPath> result = new();
             var candidates = pixelPaths[row * width + col];
             foreach (var c in candidates) {

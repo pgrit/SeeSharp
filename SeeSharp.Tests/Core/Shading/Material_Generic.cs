@@ -1,7 +1,6 @@
 ﻿using SeeSharp.Geometry;
-using SeeSharp.Shading;
 using SeeSharp.Shading.Materials;
-using SeeSharp.Image;
+using SimpleImageIO;
 using System.Numerics;
 using Xunit;
 
@@ -10,8 +9,8 @@ namespace SeeSharp.Tests.Shading {
         [Fact]
         public void Pdfs_ShouldBeConsistent() {
             Material mtl = new GenericMaterial(new GenericMaterial.Parameters {
-                baseColor = Image<ColorRGB>.Constant(new ColorRGB(1, 1, 1)),
-                roughness = Image<Scalar>.Constant(0.2f),
+                baseColor = new(new RgbColor(1, 1, 1)),
+                roughness = new(0.2f),
                 specularTransmittance = 0.8f,
                 diffuseTransmittance = 0.3f
             });

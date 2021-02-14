@@ -30,15 +30,15 @@ namespace SeeSharp.Validation {
             //    0, 1, 2, 0, 2, 3
             //}));
             //scene.Meshes[^1].Material = new DiffuseMaterial(new DiffuseMaterial.Parameters {
-            //    baseColor = Image.Constant(ColorRGB.White)
+            //    baseColor = Image.Constant(RgbColor.White)
             //});
 
             //// Environment map background illumination
             //Image image = new Image(512, 256);
             //for (int row = 0; row < image.Height; ++row)
             //    for (int col = 0; col < image.Width; ++col)
-            //        image.Splat(col, row, ColorRGB.White * 1.0f);
-            ////image.Splat(255, 128, ColorRGB.White * 1000);
+            //        image.Splat(col, row, RgbColor.White * 1.0f);
+            ////image.Splat(255, 128, RgbColor.White * 1000);
             //scene.Background = new EnvironmentMap(image);
 
             //// Camera and frame buffer

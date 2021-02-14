@@ -1,6 +1,6 @@
 ﻿using SeeSharp.Cameras;
 using SeeSharp.Geometry;
-using SeeSharp.Shading;
+using SimpleImageIO;
 using SeeSharp.Shading.Emitters;
 using SeeSharp.Shading.Materials;
 using SeeSharp.Image;
@@ -29,7 +29,7 @@ namespace SeeSharp.Tests {
             ));
 
             scene.Meshes[^1].Material = new GenericMaterial(new GenericMaterial.Parameters {
-                baseColor = Image<ColorRGB>.Constant(new ColorRGB(0, 0, 1))
+                baseColor = new(new RgbColor(0, 0, 1))
             });
 
             scene.Meshes.Add(new Mesh(
@@ -45,7 +45,7 @@ namespace SeeSharp.Tests {
             ));
 
             scene.Meshes[^1].Material = new GenericMaterial(new GenericMaterial.Parameters {
-                baseColor = Image<ColorRGB>.Constant(new ColorRGB(1, 0, 0))
+                baseColor = new(new RgbColor(1, 0, 0))
             });
 
             scene.Camera = new PerspectiveCamera(Matrix4x4.CreateLookAt(new Vector3(0, 0, 0),
@@ -73,7 +73,7 @@ namespace SeeSharp.Tests {
         public void TwoQuads_EmitterShouldBeFound() {
             var scene = MakeDummyScene();
 
-            scene.Emitters.Add(new DiffuseEmitter(scene.Meshes[0], new ColorRGB(1, 1, 1)));
+            scene.Emitters.Add(new DiffuseEmitter(scene.Meshes[0], new RgbColor(1, 1, 1)));
             scene.Prepare();
 
             Assert.Single(scene.Emitters);

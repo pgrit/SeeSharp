@@ -1,17 +1,18 @@
 ﻿using SeeSharp.Sampling;
+using SimpleImageIO;
 using System;
 using System.Numerics;
 
 namespace SeeSharp.Shading.Bsdfs {
     public struct DisneyDiffuse {
-        public ColorRGB reflectance;
+        public RgbColor reflectance;
 
-        public DisneyDiffuse(ColorRGB reflectance) => this.reflectance = reflectance;
+        public DisneyDiffuse(RgbColor reflectance) => this.reflectance = reflectance;
 
-        public ColorRGB Evaluate(Vector3 outDir, Vector3 inDir, bool isOnLightSubpath) {
+        public RgbColor Evaluate(Vector3 outDir, Vector3 inDir, bool isOnLightSubpath) {
             // No transmission
             if (!ShadingSpace.SameHemisphere(outDir, inDir))
-                return ColorRGB.Black;
+                return RgbColor.Black;
 
             float fresnelOut = FresnelSchlick.SchlickWeight(ShadingSpace.AbsCosTheta(outDir));
             float fresnelIn = FresnelSchlick.SchlickWeight(ShadingSpace.AbsCosTheta(inDir));
@@ -44,20 +45,20 @@ namespace SeeSharp.Shading.Bsdfs {
     }
 
     public struct DisneyRetroReflection {
-        ColorRGB reflectance;
+        RgbColor reflectance;
         float roughness;
 
-        public DisneyRetroReflection(ColorRGB reflectance, float roughness) {
+        public DisneyRetroReflection(RgbColor reflectance, float roughness) {
             this.reflectance = reflectance;
             this.roughness = roughness;
         }
 
-        public ColorRGB Evaluate(Vector3 outDir, Vector3 inDir, bool isOnLightSubpath) {
+        public RgbColor Evaluate(Vector3 outDir, Vector3 inDir, bool isOnLightSubpath) {
             if (!ShadingSpace.SameHemisphere(outDir, inDir))
-                return ColorRGB.Black;
+                return RgbColor.Black;
 
             Vector3 wh = inDir + outDir;
-            if (wh == Vector3.Zero) return ColorRGB.Black;
+            if (wh == Vector3.Zero) return RgbColor.Black;
             wh = Vector3.Normalize(wh);
 
             float cosThetaD = Vector3.Dot(inDir, wh);

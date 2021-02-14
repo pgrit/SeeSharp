@@ -1,11 +1,26 @@
-using SeeSharp.Shading;
+using SimpleImageIO;
 using System;
+using System.Collections.Generic;
+using System.Linq;
 
 namespace SeeSharp.Image {
     public class FrameBuffer {
+        public abstract class Layer {
+            public ImageBase Image { get; protected set; }
+            public abstract void Init(int width, int height);
+            public virtual void Reset() => Image.Scale(0);
+            public virtual void SplatSample(float x, float y, RgbColor value) {}
+            public virtual void OnStartIteration(int curIteration) {
+                if (curIteration > 1)
+                    Image.Scale((curIteration - 1.0f) / curIteration);
+            }
+        }
+
         public int Width => Image.Width;
         public int Height => Image.Height;
-        public Image<ColorRGB> Image;
+        public RgbImage Image;
+
+        public void AddLayer(string name, Layer layer) => layers.Add(name, layer);
 
         /// <summary>
         /// 1-based index of the current iteration (i.e., the total number of iterations so far)
@@ -31,10 +46,10 @@ namespace SeeSharp.Image {
         Flags flags;
         TevIpc tevIpc;
 
-        public FrameBuffer(int width, int height, string filename, Flags flags = Flags.None,
-                           int varianceTileSize = 4) {
-            Image = new Image<ColorRGB>(width, height);
-            varianceEstimator = new VarianceEstimator(varianceTileSize, width, height);
+        public FrameBuffer(int width, int height, string filename, Flags flags = Flags.None) {
+            Image = new RgbImage(width, height);
+            foreach (var (_, layer) in layers)
+                layer.Init(width, height);
             this.filename = filename;
             this.flags = flags;
 
@@ -42,13 +57,18 @@ namespace SeeSharp.Image {
                 tevIpc = new TevIpc();
                 // If a file with the same name is open, close it to avoid conflicts
                 tevIpc.CloseImage(filename);
-                tevIpc.CreateImage(width, height, filename);
+                tevIpc.CreateImageSync(filename, width, height,
+                    layers.Select(kv => (kv.Key, kv.Value.Image))
+                          .Append(("default", Image))
+                          .ToArray()
+                );
             }
         }
 
-        public virtual void Splat(float x, float y, ColorRGB value) {
-            Image.Splat(x, y, value / CurIteration);
-            varianceEstimator.AddSample(x, y, value);
+        public virtual void Splat(float x, float y, RgbColor value) {
+            Image.AtomicAdd((int)x, (int)y, value / CurIteration);
+            foreach (var (_, layer) in layers)
+                layer.SplatSample(x, y, value);
         }
 
         public virtual void StartIteration() {
@@ -57,6 +77,9 @@ namespace SeeSharp.Image {
             // Correct the division by the number of iterations from the previous iterations
             if (CurIteration > 1)
                 Image.Scale((CurIteration - 1.0f) / CurIteration);
+
+            foreach (var (_, layer) in layers)
+                layer.OnStartIteration(CurIteration);
 
             stopwatch.Start();
         }
@@ -69,27 +92,33 @@ namespace SeeSharp.Image {
             if (flags.HasFlag(Flags.WriteIntermediate)) {
                 string name = Basename + "-iter" + CurIteration.ToString("D3")
                     + $"-{stopwatch.ElapsedMilliseconds}ms" + ".exr";
-                Image<ColorRGB>.WriteToFile(Image, name);
+                WriteToFile(name);
             }
 
             if (flags.HasFlag(Flags.WriteContinously))
                 WriteToFile();
 
             if (flags.HasFlag(Flags.SendToTev))
-                tevIpc.UpdateImage(Image, filename);
+                tevIpc.UpdateImage(filename);
         }
 
         public virtual void Reset() {
             CurIteration = 0;
             Image.Scale(0);
-            varianceEstimator.Reset();
             stopwatch.Reset();
         }
 
-        public void WriteToFile() => Image<ColorRGB>.WriteToFile(Image, filename);
+        public void WriteToFile(string fname = null) {
+            if (fname == null) fname = filename;
+            ImageBase.WriteLayeredExr(fname,
+                layers.Select(kv => (kv.Key, kv.Value.Image))
+                      .Append(("default", Image))
+                      .ToArray()
+            );
+        }
 
         protected string filename;
-        protected VarianceEstimator varianceEstimator;
+        protected Dictionary<string, Layer> layers = new();
         protected System.Diagnostics.Stopwatch stopwatch = new System.Diagnostics.Stopwatch();
     }
 }

@@ -1,7 +1,6 @@
-﻿using SeeSharp;
-using SeeSharp.Geometry;
+﻿using SeeSharp.Geometry;
 using SeeSharp.Sampling;
-using SeeSharp.Shading;
+using SimpleImageIO;
 using SeeSharp.Shading.Emitters;
 using TinyEmbree;
 
@@ -19,7 +18,7 @@ namespace SeeSharp.Integrators.Common {
             this.pathIdx = pathIdx;
         }
 
-        public override ColorRGB StartFromEmitter(EmitterSample emitterSample, ColorRGB initialWeight) {
+        public override RgbColor StartFromEmitter(EmitterSample emitterSample, RgbColor initialWeight) {
             nextReversePdf = 0.0f;
             // Add the vertex on the light source
             lastId = cache.AddVertex(new PathVertex {
@@ -28,14 +27,14 @@ namespace SeeSharp.Integrators.Common {
                 Point = emitterSample.Point,
                 PdfFromAncestor = 0.0f, // unused
                 PdfReverseAncestor = 0.0f, // unused
-                Weight = ColorRGB.Black, // the first known weight is that at the first hit point
+                Weight = RgbColor.Black, // the first known weight is that at the first hit point
                 AncestorId = -1,
                 Depth = 0
             }, pathIdx);
             return base.StartFromEmitter(emitterSample, initialWeight);
         }
 
-        public override ColorRGB StartFromBackground(Ray ray, ColorRGB initialWeight, float pdf) {
+        public override RgbColor StartFromBackground(Ray ray, RgbColor initialWeight, float pdf) {
             nextReversePdf = 0.0f;
             // Add the vertex on the light source
             lastId = cache.AddVertex(new PathVertex {
@@ -44,14 +43,14 @@ namespace SeeSharp.Integrators.Common {
                 Point = new SurfacePoint { Position = ray.Origin },
                 PdfFromAncestor = 0.0f, // unused
                 PdfReverseAncestor = 0.0f, // unused
-                Weight = ColorRGB.Black, // the first known weight is that at the first hit point
+                Weight = RgbColor.Black, // the first known weight is that at the first hit point
                 AncestorId = -1,
                 Depth = 0
             }, pathIdx);
             return base.StartFromBackground(ray, initialWeight, pdf);
         }
 
-        protected override ColorRGB OnHit(Ray ray, SurfacePoint hit, float pdfFromAncestor, ColorRGB throughput,
+        protected override RgbColor OnHit(Ray ray, SurfacePoint hit, float pdfFromAncestor, RgbColor throughput,
                                           int depth, float toAncestorJacobian) {
             // Add the next vertex
             lastId = cache.AddVertex(new PathVertex {
@@ -62,7 +61,7 @@ namespace SeeSharp.Integrators.Common {
                 AncestorId = lastId,
                 Depth = (byte)depth
             }, pathIdx);
-            return ColorRGB.Black;
+            return RgbColor.Black;
         }
 
         protected override void OnContinue(float pdfToAncestor, int depth) {

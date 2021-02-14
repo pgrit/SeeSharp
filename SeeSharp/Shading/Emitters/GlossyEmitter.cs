@@ -1,11 +1,12 @@
 ﻿using SeeSharp.Geometry;
 using SeeSharp.Sampling;
+using SimpleImageIO;
 using System;
 using System.Numerics;
 
 namespace SeeSharp.Shading.Emitters {
     public class GlossyEmitter : Emitter {
-        public GlossyEmitter(Mesh mesh, ColorRGB radiance, float exponent) {
+        public GlossyEmitter(Mesh mesh, RgbColor radiance, float exponent) {
             Mesh = mesh;
             this.radiance = radiance;
             this.exponent = exponent;
@@ -14,9 +15,9 @@ namespace SeeSharp.Shading.Emitters {
             normalizationFactor = (exponent + 1) / (2 * MathF.PI);
         }
 
-        public override ColorRGB EmittedRadiance(SurfacePoint point, Vector3 direction) {
+        public override RgbColor EmittedRadiance(SurfacePoint point, Vector3 direction) {
             float cosine = Vector3.Dot(point.ShadingNormal, direction) / direction.Length();
-            if (cosine < 0) return ColorRGB.Black;
+            if (cosine < 0) return RgbColor.Black;
             return radiance * MathF.Pow(cosine, exponent) * normalizationFactor;
         }
 
@@ -69,10 +70,10 @@ namespace SeeSharp.Shading.Emitters {
             return (posPrimary, dirPrimary);
         }
 
-        public override ColorRGB ComputeTotalPower()
+        public override RgbColor ComputeTotalPower()
         => radiance * 2.0f * MathF.PI * Mesh.SurfaceArea;
 
-        ColorRGB radiance;
+        RgbColor radiance;
         float exponent;
         float normalizationFactor;
     }

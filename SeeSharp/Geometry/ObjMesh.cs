@@ -1,4 +1,4 @@
-﻿using SeeSharp.Shading;
+﻿using SimpleImageIO;
 using System.Collections.Generic;
 using System.Numerics;
 using System.Text.RegularExpressions;
@@ -66,13 +66,13 @@ namespace SeeSharp.Geometry {
         }
 
         public class Material {
-            public ColorRGB ambient;
-            public ColorRGB diffuse;
-            public ColorRGB specular;
-            public ColorRGB emission;
+            public RgbColor ambient;
+            public RgbColor diffuse;
+            public RgbColor specular;
+            public RgbColor emission;
             public float specularIndex;
             public float indexOfRefraction;
-            public ColorRGB transmittance;
+            public RgbColor transmittance;
             public float transparency;
             public float dissolveFactor;
             public int illuminationModel;
@@ -304,8 +304,8 @@ namespace SeeSharp.Geometry {
                 return file.materialLib[mtl_name];
             };
 
-            ColorRGB ParseRGB() {
-                ColorRGB v = new ColorRGB();
+            RgbColor ParseRGB() {
+                RgbColor v = new RgbColor();
                 var matches = regexFloat.Matches(line);
                 if (matches.Count != 3)
                     errors.Add($"Invalid vector (line {cur_line}).");

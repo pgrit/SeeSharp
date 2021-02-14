@@ -1,4 +1,5 @@
 ﻿using SeeSharp.Geometry;
+using SimpleImageIO;
 using System.Numerics;
 
 namespace SeeSharp.Shading.Emitters {
@@ -8,6 +9,6 @@ namespace SeeSharp.Shading.Emitters {
         public float Pdf;
 
         // Sample weight for an MC estimate of the total emitted power
-        public ColorRGB Weight;
+        public RgbColor Weight;
     }
 }

@@ -1,4 +1,5 @@
 using SeeSharp.Geometry;
+using SimpleImageIO;
 using System.Numerics;
 
 namespace SeeSharp.Shading.Emitters {
@@ -11,8 +12,8 @@ namespace SeeSharp.Shading.Emitters {
         public abstract EmitterSample SampleRay(Vector2 primaryPos, Vector2 primaryDir);
         public abstract (Vector2, Vector2) SampleRayInverse(SurfacePoint point, Vector3 direction);
         public abstract float PdfRay(SurfacePoint point, Vector3 direction);
-        public abstract ColorRGB EmittedRadiance(SurfacePoint point, Vector3 direction);
+        public abstract RgbColor EmittedRadiance(SurfacePoint point, Vector3 direction);
 
-        public abstract ColorRGB ComputeTotalPower();
+        public abstract RgbColor ComputeTotalPower();
     }
 }

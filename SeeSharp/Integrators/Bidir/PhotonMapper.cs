@@ -1,7 +1,6 @@
-﻿using SeeSharp;
-using SeeSharp.Geometry;
+﻿using SeeSharp.Geometry;
 using SeeSharp.Sampling;
-using SeeSharp.Shading;
+using SimpleImageIO;
 using System;
 using System.Numerics;
 using System.Threading.Tasks;
@@ -42,16 +41,16 @@ namespace SeeSharp.Integrators.Bidir {
             photonMap.Build(lightPaths, scene.Radius / 100);
         }
 
-        public virtual ColorRGB EstimatePixelValue(SurfacePoint cameraPoint, Vector2 filmPosition, Ray primaryRay,
-                                                   float pdfFromCamera, ColorRGB initialWeight, RNG rng) {
+        public virtual RgbColor EstimatePixelValue(SurfacePoint cameraPoint, Vector2 filmPosition, Ray primaryRay,
+                                                   float pdfFromCamera, RgbColor initialWeight, RNG rng) {
             // Trace the primary ray into the scene
             var hit = scene.Raytracer.Trace(primaryRay);
             if (!hit)
-                return scene.Background != null ? scene.Background.EmittedRadiance(primaryRay.Direction) : ColorRGB.Black;
+                return scene.Background != null ? scene.Background.EmittedRadiance(primaryRay.Direction) : RgbColor.Black;
 
             // Gather nearby photons
             float radius = scene.Radius / 100.0f;
-            ColorRGB estimate = ColorRGB.Black;
+            RgbColor estimate = RgbColor.Black;
             photonMap.Query(hit.Position, (pathIdx, vertexIdx, mergeDistanceSquared) => {
                 // Compute the contribution of the photon
                 var photon = lightPaths.PathCache[pathIdx, vertexIdx];

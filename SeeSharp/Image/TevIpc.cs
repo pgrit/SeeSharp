@@ -1,8 +1,9 @@
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Net.Sockets;
 using System.Text;
-using SeeSharp.Shading;
+using SimpleImageIO;
 
 namespace SeeSharp.Image {
     struct CreateImagePacket {
@@ -150,6 +151,7 @@ namespace SeeSharp.Image {
     public class TevIpc {
         TcpClient client;
         NetworkStream stream;
+        Dictionary<string, (string name, ImageBase image)[]> syncedImages = new();
 
         public TevIpc(string ip = "127.0.0.1", int port = 14158) {
             try {
@@ -161,16 +163,38 @@ namespace SeeSharp.Image {
             }
         }
 
-        public void CreateImage(int width, int height, string name) {
+        public void CreateImageSync(string name, int width, int height, params (string, ImageBase)[] layers) {
             if (client == null) return;
+
+            Debug.Assert(!syncedImages.ContainsKey(name));
+            syncedImages[name] = layers;
+
+            // Count channels and generate layer names
+            int numChannels = 0;
+            List<string> channelNames = new();
+            foreach (var (layerName, image) in layers) {
+                Debug.Assert(image.NumChannels == 1 || image.NumChannels == 3 || image.NumChannels == 4);
+                Debug.Assert(image.Width == width && image.Height == height);
+
+                numChannels += image.NumChannels;
+                if (image.NumChannels == 1) {
+                    channelNames.Add(layerName + ".Y");
+                } else {
+                    channelNames.Add(layerName + ".R");
+                    channelNames.Add(layerName + ".G");
+                    channelNames.Add(layerName + ".B");
+                }
+                if (image.NumChannels == 4)
+                    channelNames.Add(layerName + ".A");
+            }
 
             var packet = new CreateImagePacket {
                 ImageName = name,
                 GrabFocus = false,
                 Width = width,
                 Height = height,
-                NumChannels = 3,
-                ChannelNames = new string[] {"R", "G", "B"}
+                NumChannels = numChannels,
+                ChannelNames = channelNames.ToArray()
             };
             var bytes = packet.IpcPacket;
             stream.Write(bytes, 0, bytes.Length);
@@ -179,6 +203,9 @@ namespace SeeSharp.Image {
         public void CloseImage(string name) {
             if (client == null) return;
 
+            if (syncedImages.ContainsKey(name))
+                syncedImages.Remove(name);
+
             var packet = new CloseImagePacket {
                 ImageName = name
             };
@@ -186,72 +213,75 @@ namespace SeeSharp.Image {
             stream.Write(bytes, 0, bytes.Length);
         }
 
-        public void OpenImage(string name) {
+        public void OpenImage(string filename) {
             if (client == null) return;
 
             var packet = new OpenImagePacket {
                 GrabFocus = false,
-                ImageName = name
+                ImageName = filename
             };
             var bytes = packet.IpcPacket;
             stream.Write(bytes, 0, bytes.Length);
         }
 
-        public void ReloadImage(string name) {
+        public void ReloadImage(string filename) {
             if (client == null) return;
 
             var packet = new ReloadImagePacket {
                 GrabFocus = false,
-                ImageName = name
+                ImageName = filename
             };
             var bytes = packet.IpcPacket;
             stream.Write(bytes, 0, bytes.Length);
         }
 
-        public void UpdateImage(Image<ColorRGB> image, string name) {
+        public void UpdateImage(string name) {
             if (client == null) return;
+            var layers = syncedImages[name];
 
             // How many rows to transmit at once. Set to be large enough, yet below tev's buffer size.
-            int stride = 200000 / image.Width;
+            int stride = 200000 / layers[0].image.Width;
 
             var updatePacket = new UpdateImagePacket {
                 ImageName = name,
                 GrabFocus = false,
-                Width = image.Width,
-                Data = new float[image.Width * stride]
+                Width = layers[0].image.Width,
+                Data = new float[layers[0].image.Width * stride]
             };
 
-            for (int rowStart = 0; rowStart < image.Height; rowStart += stride) {
+            for (int rowStart = 0; rowStart < layers[0].image.Height; rowStart += stride) {
                 updatePacket.Left = 0;
                 updatePacket.Top = rowStart;
-                updatePacket.Height = Math.Min(image.Height - rowStart, stride);
+                updatePacket.Height = Math.Min(layers[0].image.Height - rowStart, stride);
 
-                updatePacket.ChannelName = "R";
-                for (int row = rowStart; row < image.Height && row < rowStart + stride; row++) {
-                    for (int col = 0; col < image.Width; col++) {
-                        updatePacket.Data[(row - rowStart) * image.Width + col] = image[col, row].R;
+                void SendPacket(ImageBase image, int channel) {
+                    for (int row = rowStart; row < image.Height && row < rowStart + stride; row++) {
+                        for (int col = 0; col < image.Width; col++) {
+                            updatePacket.Data[(row - rowStart) * image.Width + col] =
+                                image.GetPixelChannel(col, row, channel);
+                        }
+                    }
+                    var bytes = updatePacket.IpcPacket;
+                    stream.Write(bytes, 0, bytes.Length);
+                }
+
+                foreach (var layer in layers) {
+                    if (layer.image.NumChannels == 1) {
+                        updatePacket.ChannelName = layer.name + ".Y";
+                        SendPacket(layer.image, 0);
+                    } else {
+                        updatePacket.ChannelName = layer.name + ".R";
+                        SendPacket(layer.image, 0);
+                        updatePacket.ChannelName = layer.name + ".G";
+                        SendPacket(layer.image, 1);
+                        updatePacket.ChannelName = layer.name + ".B";
+                        SendPacket(layer.image, 2);
+                    }
+                    if (layer.image.NumChannels == 4) {
+                        updatePacket.ChannelName = layer.name + ".A";
+                        SendPacket(layer.image, 3);
                     }
                 }
-                var bytes = updatePacket.IpcPacket;
-                stream.Write(bytes, 0, bytes.Length);
-
-                updatePacket.ChannelName = "G";
-                for (int row = rowStart; row < image.Height && row < rowStart + stride; row++) {
-                    for (int col = 0; col < image.Width; col++) {
-                        updatePacket.Data[(row - rowStart) * image.Width + col] = image[col, row].G;
-                    }
-                }
-                bytes = updatePacket.IpcPacket;
-                stream.Write(bytes, 0, bytes.Length);
-
-                updatePacket.ChannelName = "B";
-                for (int row = rowStart; row < image.Height && row < rowStart + stride; row++) {
-                    for (int col = 0; col < image.Width; col++) {
-                        updatePacket.Data[(row - rowStart) * image.Width + col] = image[col, row].B;
-                    }
-                }
-                bytes = updatePacket.IpcPacket;
-                stream.Write(bytes, 0, bytes.Length);
             }
         }
     }

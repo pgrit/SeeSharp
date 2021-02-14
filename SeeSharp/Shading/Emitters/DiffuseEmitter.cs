@@ -1,18 +1,19 @@
 ﻿using SeeSharp.Geometry;
 using SeeSharp.Sampling;
+using SimpleImageIO;
 using System;
 using System.Numerics;
 
 namespace SeeSharp.Shading.Emitters {
     public class DiffuseEmitter : Emitter {
-        public DiffuseEmitter(Mesh mesh, ColorRGB radiance) {
+        public DiffuseEmitter(Mesh mesh, RgbColor radiance) {
             Mesh = mesh;
             this.radiance = radiance;
         }
 
-        public override ColorRGB EmittedRadiance(SurfacePoint point, Vector3 direction) {
+        public override RgbColor EmittedRadiance(SurfacePoint point, Vector3 direction) {
             if (Vector3.Dot(point.ShadingNormal, direction) < 0)
-                return ColorRGB.Black;
+                return RgbColor.Black;
             return radiance;
         }
 
@@ -60,9 +61,9 @@ namespace SeeSharp.Shading.Emitters {
             return (posPrimary, dirPrimary);
         }
 
-        public override ColorRGB ComputeTotalPower()
+        public override RgbColor ComputeTotalPower()
         => radiance * 2.0f * MathF.PI * Mesh.SurfaceArea;
 
-        ColorRGB radiance;
+        RgbColor radiance;
     }
 }

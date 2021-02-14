@@ -1,7 +1,6 @@
-﻿using SeeSharp;
-using SeeSharp.Geometry;
+﻿using SeeSharp.Geometry;
 using SeeSharp.Sampling;
-using SeeSharp.Shading;
+using SimpleImageIO;
 using SeeSharp.Shading.Emitters;
 using SeeSharp.Integrators.Common;
 using System;
@@ -71,7 +70,7 @@ namespace SeeSharp.Integrators.Bidir {
             return pdfEmit;
         }
 
-        public virtual (Ray, ColorRGB, float) SampleBackground(RNG rng) {
+        public virtual (Ray, RgbColor, float) SampleBackground(RNG rng) {
             // Sample a ray from the background towards the scene
             var primaryPos = rng.NextFloat2D();
             var primaryDir = rng.NextFloat2D();
@@ -103,8 +102,8 @@ namespace SeeSharp.Integrators.Bidir {
                 : base(scene, rng, maxDepth, cache, pathIdx) {
             }
 
-            protected override ColorRGB OnHit(Ray ray, SurfacePoint hit, float pdfFromAncestor,
-                                              ColorRGB throughput, int depth, float toAncestorJacobian) {
+            protected override RgbColor OnHit(Ray ray, SurfacePoint hit, float pdfFromAncestor,
+                                              RgbColor throughput, int depth, float toAncestorJacobian) {
                 // Call the base first, so the vertex gets created
                 var weight = base.OnHit(ray, hit, pdfFromAncestor, throughput, depth, toAncestorJacobian);
 

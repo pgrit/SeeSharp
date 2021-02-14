@@ -1,6 +1,7 @@
 ﻿using System.Numerics;
 using SeeSharp.Geometry;
 using SeeSharp.Shading.Bsdfs;
+using SimpleImageIO;
 
 namespace SeeSharp.Shading.Materials {
     public abstract class Material {
@@ -16,11 +17,11 @@ namespace SeeSharp.Shading.Materials {
         /// Computes the sum of reflectance and transmittance.
         /// Can be an approximation, with the accuracy depending on the material.
         /// </summary>
-        public abstract ColorRGB GetScatterStrength(SurfacePoint hit);
+        public abstract RgbColor GetScatterStrength(SurfacePoint hit);
 
-        public abstract ColorRGB Evaluate(SurfacePoint hit, Vector3 outDir, Vector3 inDir, bool isOnLightSubpath);
+        public abstract RgbColor Evaluate(SurfacePoint hit, Vector3 outDir, Vector3 inDir, bool isOnLightSubpath);
 
-        public virtual ColorRGB EvaluateWithCosine(SurfacePoint hit, Vector3 outDir, Vector3 inDir, bool isOnLightSubpath) {
+        public virtual RgbColor EvaluateWithCosine(SurfacePoint hit, Vector3 outDir, Vector3 inDir, bool isOnLightSubpath) {
             var bsdf = Evaluate(hit, outDir, inDir, isOnLightSubpath);
             inDir = ShadingSpace.WorldToShading(hit.ShadingNormal, inDir);
             return bsdf * ShadingSpace.AbsCosTheta(inDir);

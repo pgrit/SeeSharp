@@ -1,13 +1,12 @@
-using SeeSharp;
 using SeeSharp.Geometry;
-using SeeSharp.Shading;
+using SimpleImageIO;
 using System;
 using System.Collections.Generic;
 using System.Numerics;
 
 namespace SeeSharp.Integrators.Util {
     public class PathVisualizer : DebugVisualizer {
-        public Dictionary<int, ColorRGB> TypeToColor;
+        public Dictionary<int, RgbColor> TypeToColor;
         public List<LoggedPath> Paths;
 
         public float Radius = 0.01f;
@@ -32,12 +31,12 @@ namespace SeeSharp.Integrators.Util {
             scene.Prepare();
         }
 
-        public override ColorRGB ComputeColor(SurfacePoint hit, Vector3 from) {
+        public override RgbColor ComputeColor(SurfacePoint hit, Vector3 from) {
             int type;
             if (!markerTypes.TryGetValue(hit.Mesh, out type))
                 return base.ComputeColor(hit, from);
 
-            ColorRGB color = new ColorRGB(1, 0, 0);
+            RgbColor color = new RgbColor(1, 0, 0);
             TypeToColor.TryGetValue(type, out color);
 
             float cosine = Math.Abs(Vector3.Dot(hit.Normal, from));

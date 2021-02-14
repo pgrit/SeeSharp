@@ -1,5 +1,5 @@
 using System.Numerics;
-using SeeSharp.Geometry;
+using SimpleImageIO;
 using TinyEmbree;
 
 namespace SeeSharp.Shading.Background {
@@ -10,14 +10,14 @@ namespace SeeSharp.Shading.Background {
         /// <summary>
         /// Computes the emitted radiance from a given direction. All backgrounds are invariant with respect to the position.
         /// </summary>
-        public abstract ColorRGB EmittedRadiance(Vector3 direction);
+        public abstract RgbColor EmittedRadiance(Vector3 direction);
 
-        public abstract ColorRGB ComputeTotalPower();
+        public abstract RgbColor ComputeTotalPower();
 
         public abstract BackgroundSample SampleDirection(Vector2 primary);
         public abstract Vector2 SampleDirectionInverse(Vector3 Direction);
         public abstract float DirectionPdf(Vector3 Direction);
-        public abstract (Ray, ColorRGB, float) SampleRay(Vector2 primaryPos, Vector2 primaryDir);
+        public abstract (Ray, RgbColor, float) SampleRay(Vector2 primaryPos, Vector2 primaryDir);
         public abstract (Vector2, Vector2) SampleRayInverse(Vector3 dir, Vector3 pos);
 
         /// <summary>

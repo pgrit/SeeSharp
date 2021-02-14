@@ -1,4 +1,4 @@
-using SeeSharp.Core;
+using SeeSharp;
 
 namespace SeeSharp.Validation {
     abstract class ValidationSceneFactory {

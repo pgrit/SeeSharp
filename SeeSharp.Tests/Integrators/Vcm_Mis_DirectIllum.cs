@@ -1,4 +1,4 @@
-﻿using SeeSharp.Core;
+﻿using SeeSharp;
 using SeeSharp.Integrators.Bidir;
 using System.Collections.Generic;
 using System.Numerics;

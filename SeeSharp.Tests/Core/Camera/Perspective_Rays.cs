@@ -1,9 +1,10 @@
-﻿using SeeSharp.Core.Image;
+﻿using SeeSharp.Image;
+using SeeSharp.Sampling;
 using System;
 using System.Numerics;
 using Xunit;
 
-namespace SeeSharp.Core.Tests.Camera {
+namespace SeeSharp.Tests.Camera {
     public class Perspective_Rays {
         Cameras.Camera MakeTestCamera() {
             var frameBuffer = new FrameBuffer(3, 3, "");
@@ -22,7 +23,7 @@ namespace SeeSharp.Core.Tests.Camera {
             var cam = MakeTestCamera();
 
             // bottom left corner
-            var ray = cam.GenerateRay(new Vector2(0, 0), new Core.Sampling.RNG()).Ray;
+            var ray = cam.GenerateRay(new Vector2(0, 0), new RNG()).Ray;
 
             Assert.Equal(0, ray.Origin.X);
             Assert.Equal(0, ray.Origin.Y);
@@ -42,7 +43,7 @@ namespace SeeSharp.Core.Tests.Camera {
             var cam = MakeTestCamera();
 
             // image center
-            var ray = cam.GenerateRay(new Vector2(1.5f, 1.5f), new Core.Sampling.RNG()).Ray;
+            var ray = cam.GenerateRay(new Vector2(1.5f, 1.5f), new RNG()).Ray;
 
             Assert.Equal(0, ray.Origin.X);
             Assert.Equal(0, ray.Origin.Y);
@@ -61,7 +62,7 @@ namespace SeeSharp.Core.Tests.Camera {
             var cam = MakeTestCamera();
 
             // left center
-            var ray = cam.GenerateRay(new Vector2(0, 1.5f), new Core.Sampling.RNG()).Ray;
+            var ray = cam.GenerateRay(new Vector2(0, 1.5f), new RNG()).Ray;
 
             Assert.Equal(0, ray.Origin.X);
             Assert.Equal(0, ray.Origin.Y);
@@ -81,7 +82,7 @@ namespace SeeSharp.Core.Tests.Camera {
             var cam = MakeTestCamera();
 
             // left center
-            var ray = cam.GenerateRay(new Vector2(3, 1.5f), new Core.Sampling.RNG()).Ray;
+            var ray = cam.GenerateRay(new Vector2(3, 1.5f), new RNG()).Ray;
 
             Assert.Equal(0, ray.Origin.X);
             Assert.Equal(0, ray.Origin.Y);
@@ -101,7 +102,7 @@ namespace SeeSharp.Core.Tests.Camera {
             var cam = MakeTestCamera();
 
             // bottom left corner
-            var ray = cam.GenerateRay(new Vector2(3, 3), new Core.Sampling.RNG()).Ray;
+            var ray = cam.GenerateRay(new Vector2(3, 3), new RNG()).Ray;
 
             Assert.Equal(0, ray.Origin.X);
             Assert.Equal(0, ray.Origin.Y);

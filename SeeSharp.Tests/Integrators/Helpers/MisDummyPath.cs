@@ -1,4 +1,4 @@
-﻿using SeeSharp.Core.Geometry;
+﻿using SeeSharp.Geometry;
 using SeeSharp.Integrators.Common;
 using System;
 using System.Collections.Generic;

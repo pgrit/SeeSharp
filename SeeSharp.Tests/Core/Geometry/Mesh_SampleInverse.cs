@@ -1,8 +1,8 @@
-using SeeSharp.Core.Geometry;
+using SeeSharp.Geometry;
 using System.Numerics;
 using Xunit;
 
-namespace SeeSharp.Core.Tests.Geometry {
+namespace SeeSharp.Tests.Geometry {
     public class Mesh_SampleInverse {
         [Fact]
         public void SingleTriangle() {
@@ -32,7 +32,7 @@ namespace SeeSharp.Core.Tests.Geometry {
                 new(1, 0, 0),
                 new(1, 1, 1),
             }, new[] {
-                0, 1, 2, 
+                0, 1, 2,
                 3, 4, 5
             });
 

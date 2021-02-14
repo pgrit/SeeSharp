@@ -1,16 +1,17 @@
-﻿using SeeSharp.Core.Cameras;
-using SeeSharp.Core.Geometry;
-using SeeSharp.Core.Shading;
-using SeeSharp.Core.Shading.Emitters;
-using SeeSharp.Core.Shading.Materials;
-using SeeSharp.Core.Image;
+﻿using SeeSharp.Cameras;
+using SeeSharp.Geometry;
+using SimpleImageIO;
+using SeeSharp.Shading.Emitters;
+using SeeSharp.Shading.Materials;
+using SeeSharp.Image;
+using SeeSharp.Sampling;
 using System;
 using System.IO;
 using System.Numerics;
 using System.Reflection;
 using Xunit;
 
-namespace SeeSharp.Core.Tests {
+namespace SeeSharp.Tests {
     public class Scene_Assemble {
         Scene MakeDummyScene() {
             var scene = new Scene();
@@ -28,7 +29,7 @@ namespace SeeSharp.Core.Tests {
             ));
 
             scene.Meshes[^1].Material = new GenericMaterial(new GenericMaterial.Parameters {
-                baseColor = Image<ColorRGB>.Constant(new ColorRGB(0, 0, 1))
+                baseColor = new(new RgbColor(0, 0, 1))
             });
 
             scene.Meshes.Add(new Mesh(
@@ -44,7 +45,7 @@ namespace SeeSharp.Core.Tests {
             ));
 
             scene.Meshes[^1].Material = new GenericMaterial(new GenericMaterial.Parameters {
-                baseColor = Image<ColorRGB>.Constant(new ColorRGB(1, 0, 0))
+                baseColor = new(new RgbColor(1, 0, 0))
             });
 
             scene.Camera = new PerspectiveCamera(Matrix4x4.CreateLookAt(new Vector3(0, 0, 0),
@@ -61,7 +62,7 @@ namespace SeeSharp.Core.Tests {
             scene.Prepare();
             var hit = scene.Raytracer.Trace(scene.Camera.GenerateRay(
                 new Vector2(0.5f, 0.5f),
-                new Core.Sampling.RNG()
+                new RNG()
             ).Ray);
 
             Assert.True(hit);
@@ -72,7 +73,7 @@ namespace SeeSharp.Core.Tests {
         public void TwoQuads_EmitterShouldBeFound() {
             var scene = MakeDummyScene();
 
-            scene.Emitters.Add(new DiffuseEmitter(scene.Meshes[0], new ColorRGB(1, 1, 1)));
+            scene.Emitters.Add(new DiffuseEmitter(scene.Meshes[0], new RgbColor(1, 1, 1)));
             scene.Prepare();
 
             Assert.Single(scene.Emitters);

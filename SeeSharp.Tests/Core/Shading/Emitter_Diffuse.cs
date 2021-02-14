@@ -1,11 +1,11 @@
-﻿using SeeSharp.Core.Geometry;
-using SeeSharp.Core.Shading;
-using SeeSharp.Core.Shading.Emitters;
+﻿using SeeSharp.Geometry;
+using SimpleImageIO;
+using SeeSharp.Shading.Emitters;
 using System;
 using System.Numerics;
 using Xunit;
 
-namespace SeeSharp.Core.Tests.Shading {
+namespace SeeSharp.Tests.Shading {
     public class Emitter_Diffuse {
         [Fact]
         public void EmittedRays_ShouldHaveOffset() {
@@ -20,7 +20,7 @@ namespace SeeSharp.Core.Tests.Shading {
                     0, 2, 3
                 }
             );
-            var emitter = new DiffuseEmitter(mesh, ColorRGB.White);
+            var emitter = new DiffuseEmitter(mesh, RgbColor.White);
 
             var sample = emitter.SampleRay(new Vector2(0.3f, 0.8f), new Vector2(0.56f, 0.03f));
 
@@ -46,7 +46,7 @@ namespace SeeSharp.Core.Tests.Shading {
                     new Vector3(0, 1, 0)
                 }
             );
-            var emitter = new DiffuseEmitter(mesh, ColorRGB.White);
+            var emitter = new DiffuseEmitter(mesh, RgbColor.White);
 
             var sample = emitter.SampleRay(new Vector2(0.3f, 0.8f), new Vector2(0.56f, 0.03f));
 
@@ -72,7 +72,7 @@ namespace SeeSharp.Core.Tests.Shading {
                     new Vector3(0, -1, 0)
                 }
             );
-            var emitter = new DiffuseEmitter(mesh, ColorRGB.White);
+            var emitter = new DiffuseEmitter(mesh, RgbColor.White);
 
             var sample = emitter.SampleRay(new Vector2(0.3f, 0.8f), new Vector2(0.56f, 0.03f));
 
@@ -98,7 +98,7 @@ namespace SeeSharp.Core.Tests.Shading {
                     new Vector3(0, 1, 0)
                 }
             );
-            var emitter = new DiffuseEmitter(mesh, ColorRGB.White);
+            var emitter = new DiffuseEmitter(mesh, RgbColor.White);
 
             var dummyHit = new SurfacePoint {
                 Mesh = mesh
@@ -130,7 +130,7 @@ namespace SeeSharp.Core.Tests.Shading {
                     new Vector3(0, 1, 0)
                 }
             );
-            var emitter = new DiffuseEmitter(mesh, ColorRGB.White);
+            var emitter = new DiffuseEmitter(mesh, RgbColor.White);
 
             var dummyHit = new SurfacePoint {
                 Mesh = mesh
@@ -162,7 +162,7 @@ namespace SeeSharp.Core.Tests.Shading {
                     new Vector3(0, 1, 0)
                 }
             );
-            var emitter = new DiffuseEmitter(mesh, ColorRGB.White);
+            var emitter = new DiffuseEmitter(mesh, RgbColor.White);
 
             var sample = emitter.SampleRay(new Vector2(0.3f, 0.8f), new Vector2(0.56f, 0.03f));
 
@@ -189,7 +189,7 @@ namespace SeeSharp.Core.Tests.Shading {
                     new Vector3(0, 1, 0)
                 }
             );
-            var emitter = new DiffuseEmitter(mesh, ColorRGB.White);
+            var emitter = new DiffuseEmitter(mesh, RgbColor.White);
 
             var sample = emitter.SampleRay(new Vector2(0.3f, 0.8f), new Vector2(0.56f, 0.03f));
 
@@ -224,7 +224,7 @@ namespace SeeSharp.Core.Tests.Shading {
                     new Vector3(0, 1, 0)
                 }
             );
-            var emitter = new DiffuseEmitter(mesh, ColorRGB.White);
+            var emitter = new DiffuseEmitter(mesh, RgbColor.White);
 
             var sample = emitter.SampleRay(new Vector2(0.3f, 0.8f), new Vector2(0.56f, 0.03f));
 

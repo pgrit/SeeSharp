@@ -1,7 +1,7 @@
-﻿using SeeSharp.Core.Sampling;
+﻿using SeeSharp.Sampling;
 using Xunit;
 
-namespace Core.Tests.Sampling {
+namespace Tests.Sampling {
     public class PiecewiseConstant_SampleInverse {
         [Fact]
         public void TwoElements_EqualWeights() {

@@ -1,10 +1,10 @@
-﻿using SeeSharp.Core.Datastructs;
+﻿using SeeSharp.Datastructs;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Numerics;
 
-namespace SeeSharp.Core.Benchmark {
+namespace SeeSharp.Benchmark {
     class NearestNeighborBench<T> where T : INearestNeighbor {
         NearestNeighborBench(T accel) { this.accel = accel; }
 

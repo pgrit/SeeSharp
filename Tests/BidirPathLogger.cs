@@ -1,14 +1,14 @@
-using SeeSharp.Core.Shading;
 using SeeSharp.Integrators.Bidir;
 using SeeSharp.Integrators.Util;
 using System.Collections.Generic;
+using SimpleImageIO;
 
 namespace SeeSharp.Tests {
     static class BidirPathLogger_HomeOffice {
         public static void Run() {
-            var scene = SeeSharp.Core.Scene.LoadFromFile("../Data/Scenes/HomeOffice/office.json");
-            scene.FrameBuffer = new SeeSharp.Core.Image.FrameBuffer(640, 480, "test.exr",
-                SeeSharp.Core.Image.FrameBuffer.Flags.SendToTev);
+            var scene = SeeSharp.Scene.LoadFromFile("../Data/Scenes/HomeOffice/office.json");
+            scene.FrameBuffer = new SeeSharp.Image.FrameBuffer(640, 480, "test.exr",
+                SeeSharp.Image.FrameBuffer.Flags.SendToTev);
             scene.Prepare();
 
             var integrator = new ClassicBidir() {
@@ -20,15 +20,15 @@ namespace SeeSharp.Tests {
             integrator.PathLogger = new(640, 480);
             integrator.Render(scene);
 
-            var paths = integrator.PathLogger.GetAllInPixel(150, 253, ColorRGB.White * 0.1f);
-            paths.AddRange(integrator.PathLogger.GetAllInPixel(148, 127, ColorRGB.White * 100.0f));
+            var paths = integrator.PathLogger.GetAllInPixel(150, 253, RgbColor.White * 0.1f);
+            paths.AddRange(integrator.PathLogger.GetAllInPixel(148, 127, RgbColor.White * 100.0f));
 
-            scene.FrameBuffer = new SeeSharp.Core.Image.FrameBuffer(640, 480, "test-paths.exr",
-                SeeSharp.Core.Image.FrameBuffer.Flags.SendToTev);
+            scene.FrameBuffer = new SeeSharp.Image.FrameBuffer(640, 480, "test-paths.exr",
+                SeeSharp.Image.FrameBuffer.Flags.SendToTev);
             new PathVisualizer() {
                 Radius = 0.0025f, HeadHeight = 0.005f,
-                TypeToColor = new Dictionary<int, ColorRGB> {
-                    { 1, new ColorRGB(0.9f, 0.01f, 0.01f) }
+                TypeToColor = new Dictionary<int, RgbColor> {
+                    { 1, new RgbColor(0.9f, 0.01f, 0.01f) }
                 },
                 Paths = paths,
                 TotalSpp = 4
@@ -38,9 +38,9 @@ namespace SeeSharp.Tests {
 
     static class BidirPathLogger_IndirectRoom {
         public static void Run() {
-            var scene = SeeSharp.Core.Scene.LoadFromFile("../Data/Scenes/IndirectRoom/IndirectRoom.json");
-            scene.FrameBuffer = new SeeSharp.Core.Image.FrameBuffer(640, 480, "test.exr",
-                SeeSharp.Core.Image.FrameBuffer.Flags.SendToTev);
+            var scene = SeeSharp.Scene.LoadFromFile("../Data/Scenes/IndirectRoom/IndirectRoom.json");
+            scene.FrameBuffer = new SeeSharp.Image.FrameBuffer(640, 480, "test.exr",
+                SeeSharp.Image.FrameBuffer.Flags.SendToTev);
             scene.Prepare();
 
             var integrator = new ClassicBidir() {
@@ -52,15 +52,15 @@ namespace SeeSharp.Tests {
             integrator.PathLogger = new(640, 480);
             integrator.Render(scene);
 
-            var paths = integrator.PathLogger.GetAllInPixel(263, 294, ColorRGB.White * 1.1f);
-            paths.AddRange(integrator.PathLogger.GetAllInPixel(453, 323, ColorRGB.White * 0.5f));
+            var paths = integrator.PathLogger.GetAllInPixel(263, 294, RgbColor.White * 1.1f);
+            paths.AddRange(integrator.PathLogger.GetAllInPixel(453, 323, RgbColor.White * 0.5f));
 
-            scene.FrameBuffer = new SeeSharp.Core.Image.FrameBuffer(640, 480, "test-paths.exr",
-                SeeSharp.Core.Image.FrameBuffer.Flags.SendToTev);
+            scene.FrameBuffer = new SeeSharp.Image.FrameBuffer(640, 480, "test-paths.exr",
+                SeeSharp.Image.FrameBuffer.Flags.SendToTev);
             new PathVisualizer() {
                 Radius = 0.0025f, HeadHeight = 0.005f,
-                TypeToColor = new Dictionary<int, ColorRGB> {
-                    { 1, new ColorRGB(0.9f, 0.01f, 0.01f) }
+                TypeToColor = new Dictionary<int, RgbColor> {
+                    { 1, new RgbColor(0.9f, 0.01f, 0.01f) }
                 },
                 Paths = paths,
                 TotalSpp = 4

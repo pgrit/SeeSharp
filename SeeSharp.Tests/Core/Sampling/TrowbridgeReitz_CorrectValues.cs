@@ -1,8 +1,8 @@
-﻿using SeeSharp.Core.Shading.MicrofacetDistributions;
+﻿using SeeSharp.Shading.MicrofacetDistributions;
 using System;
 using Xunit;
 
-namespace SeeSharp.Core.Tests.Sampling {
+namespace SeeSharp.Tests.Sampling {
     public class TrowbridgeReitz_CorrectValues {
         [Fact]
         public void NDF_Orthogonal() {

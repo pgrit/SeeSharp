@@ -1,7 +1,6 @@
-﻿using SeeSharp.Core;
-using SeeSharp.Core.Geometry;
-using SeeSharp.Core.Sampling;
-using SeeSharp.Core.Shading;
+﻿using SeeSharp.Geometry;
+using SeeSharp.Sampling;
+using SimpleImageIO;
 using System;
 using System.Numerics;
 using TinyEmbree;
@@ -25,11 +24,11 @@ namespace SeeSharp.Integrators {
             }
         }
 
-        public virtual ColorRGB ComputeColor(SurfacePoint hit, Vector3 from) {
+        public virtual RgbColor ComputeColor(SurfacePoint hit, Vector3 from) {
             float cosine = Math.Abs(Vector3.Dot(hit.Normal, from));
             cosine /= hit.Normal.Length();
             cosine /= from.Length();
-            return ColorRGB.White * cosine;
+            return RgbColor.White * cosine;
         }
 
         private void RenderPixel(Scene scene, uint row, uint col, uint sampleIndex) {
@@ -44,7 +43,7 @@ namespace SeeSharp.Integrators {
             var hit = scene.Raytracer.Trace(primaryRay);
 
             // Shade and splat
-            ColorRGB value = ColorRGB.Black;
+            RgbColor value = RgbColor.Black;
             if (hit) value = ComputeColor(hit, -primaryRay.Direction);
             scene.FrameBuffer.Splat(col, row, value);
         }

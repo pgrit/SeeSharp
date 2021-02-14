@@ -1,6 +1,5 @@
-﻿using SeeSharp.Core.Shading;
+﻿using SimpleImageIO;
 using System.Collections.Generic;
-using SeeSharp.Core.Image;
 
 using TechniqueNames = System.Collections.Generic.Dictionary
     <(int cameraPathEdges, int lightPathEdges, int totalEdges), string>;
@@ -52,29 +51,27 @@ namespace SeeSharp.Integrators.Bidir {
             }
 
             // Create an image for every technique
-            techniqueImages = new Dictionary<(int, int, int), Image<ColorRGB>>();
+            techniqueImages = new Dictionary<(int, int, int), RgbImage>();
             foreach (var tech in techniqueNames) {
-                techniqueImages[tech.Key] = new Image<ColorRGB>(width, height);
+                techniqueImages[tech.Key] = new RgbImage(width, height);
             }
         }
 
         public void Add(int cameraPathEdges, int lightPathEdges, int totalEdges,
-                        Vector2 filmPoint, ColorRGB value) {
+                        Vector2 filmPoint, RgbColor value) {
             var image = techniqueImages[(cameraPathEdges, lightPathEdges, totalEdges)];
-            image.Splat(filmPoint.X, filmPoint.Y, value);
+            image.AtomicAdd((int)filmPoint.X, (int)filmPoint.Y, value);
         }
 
         public void WriteToFiles(string basename) {
             foreach (var t in techniqueImages) {
                 var name = techniqueNames[t.Key];
                 var filename = basename + $"{name}.exr";
-                var image = t.Value;
-
-                Image<ColorRGB>.WriteToFile(image, filename);
+                t.Value.WriteToFile(filename);
             }
         }
 
         TechniqueNames techniqueNames;
-        Dictionary<(int, int, int), Image<ColorRGB>> techniqueImages;
+        Dictionary<(int, int, int), RgbImage> techniqueImages;
     }
 }

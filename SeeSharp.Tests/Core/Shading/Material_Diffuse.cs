@@ -1,17 +1,16 @@
-using SeeSharp.Core.Geometry;
-using SeeSharp.Core.Shading;
-using SeeSharp.Core.Shading.Materials;
-using SeeSharp.Core.Image;
+using SeeSharp.Geometry;
+using SimpleImageIO;
+using SeeSharp.Shading.Materials;
 using System;
 using System.Numerics;
 using Xunit;
 
-namespace SeeSharp.Core.Tests {
+namespace SeeSharp.Tests {
     public class Material_Diffuse {
         [Fact]
         public void NoLightLeaks() {
             Material mtl = new DiffuseMaterial(new DiffuseMaterial.Parameters {
-                baseColor = Image<ColorRGB>.Constant(new ColorRGB(1, 1, 1))
+                baseColor = new(new RgbColor(1, 1, 1))
             });
 
             var mesh = new Mesh(new Vector3[] {
@@ -48,7 +47,7 @@ namespace SeeSharp.Core.Tests {
         [Fact]
         public void ForwardAndReverse_ShouldMatch() {
             Material mtl = new DiffuseMaterial(new DiffuseMaterial.Parameters {
-                baseColor = Image<ColorRGB>.Constant(new ColorRGB(1, 1, 1))
+                baseColor = new(new RgbColor(1, 1, 1))
             });
 
             var mesh = new Mesh(new Vector3[] {
@@ -88,7 +87,7 @@ namespace SeeSharp.Core.Tests {
         [Fact]
         public void Albedo_ShouldBeWhite() {
             Material mtl = new DiffuseMaterial(new DiffuseMaterial.Parameters {
-                baseColor = Image<ColorRGB>.Constant(new ColorRGB(1, 1, 1))
+                baseColor = new(new RgbColor(1, 1, 1))
             });
 
             var mesh = new Mesh(new Vector3[] {
@@ -128,7 +127,7 @@ namespace SeeSharp.Core.Tests {
         [Fact]
         public void Albedo_ShouldBeRed() {
             Material mtl = new DiffuseMaterial(new DiffuseMaterial.Parameters {
-                baseColor = Image<ColorRGB>.Constant(new ColorRGB(1, 0, 0))
+                baseColor = new(new RgbColor(1, 0, 0))
             });
 
             var mesh = new Mesh(new Vector3[] {
@@ -168,7 +167,7 @@ namespace SeeSharp.Core.Tests {
         [Fact]
         public void EdgeCases_ShouldNotCauseOutliers() {
             Material mtl = new DiffuseMaterial(new DiffuseMaterial.Parameters {
-                baseColor = Image<ColorRGB>.Constant(new ColorRGB(1, 1, 1))
+                baseColor = new(new RgbColor(1, 1, 1))
             });
 
             var mesh = new Mesh(new Vector3[] {

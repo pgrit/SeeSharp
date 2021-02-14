@@ -1,11 +1,12 @@
 using System.Numerics;
-using SeeSharp.Core;
-using SeeSharp.Core.Cameras;
-using SeeSharp.Core.Geometry;
-using SeeSharp.Core.Shading;
-using SeeSharp.Core.Shading.Emitters;
-using SeeSharp.Core.Shading.Materials;
-using SeeSharp.Core.Image;
+using SeeSharp;
+using SeeSharp.Cameras;
+using SeeSharp.Geometry;
+using SeeSharp.Shading;
+using SeeSharp.Shading.Emitters;
+using SeeSharp.Shading.Materials;
+using SeeSharp.Image;
+using SimpleImageIO;
 
 namespace SeeSharp.Validation {
     class Validate_MultiLight : ValidationSceneFactory {
@@ -28,7 +29,7 @@ namespace SeeSharp.Validation {
                 0, 1, 2, 0, 2, 3
             }));
             scene.Meshes[^1].Material = new DiffuseMaterial(new DiffuseMaterial.Parameters {
-                baseColor = Image<ColorRGB>.Constant(ColorRGB.White)
+                baseColor = new TextureRgb(RgbColor.White)
             });
 
             // Three emitters
@@ -50,9 +51,9 @@ namespace SeeSharp.Validation {
                     new Vector3(0, 0, -1),
                 }));
                 scene.Meshes[^1].Material = new DiffuseMaterial(new DiffuseMaterial.Parameters {
-                    baseColor = Image<ColorRGB>.Constant(ColorRGB.Black)
+                    baseColor = new TextureRgb(RgbColor.Black)
                 });
-                scene.Emitters.Add(new DiffuseEmitter(scene.Meshes[^1], ColorRGB.White * 1000));
+                scene.Emitters.Add(new DiffuseEmitter(scene.Meshes[^1], RgbColor.White * 1000));
             }
             AddEmitter(-1, 0);
             AddEmitter(1, 0);

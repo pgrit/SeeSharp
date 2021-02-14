@@ -1,13 +1,12 @@
-using SeeSharp.Core;
-using SeeSharp.Core.Geometry;
-using SeeSharp.Core.Shading;
+using SeeSharp.Geometry;
+using SimpleImageIO;
 using System;
 using System.Collections.Generic;
 using System.Numerics;
 
 namespace SeeSharp.Integrators.Util {
     public class PathVisualizer : DebugVisualizer {
-        public Dictionary<int, ColorRGB> TypeToColor;
+        public Dictionary<int, RgbColor> TypeToColor;
         public List<LoggedPath> Paths;
 
         public float Radius = 0.01f;
@@ -32,12 +31,12 @@ namespace SeeSharp.Integrators.Util {
             scene.Prepare();
         }
 
-        public override ColorRGB ComputeColor(SurfacePoint hit, Vector3 from) {
+        public override RgbColor ComputeColor(SurfacePoint hit, Vector3 from) {
             int type;
             if (!markerTypes.TryGetValue(hit.Mesh, out type))
                 return base.ComputeColor(hit, from);
 
-            ColorRGB color = new ColorRGB(1, 0, 0);
+            RgbColor color = new RgbColor(1, 0, 0);
             TypeToColor.TryGetValue(type, out color);
 
             float cosine = Math.Abs(Vector3.Dot(hit.Normal, from));
@@ -53,8 +52,8 @@ namespace SeeSharp.Integrators.Util {
             var headStart = end + headHeight * (start - end);
             var line = MeshFactory.MakeCylinder(start, headStart, radius, NumSegments);
             var head = MeshFactory.MakeCone(headStart, end, radius * 2, NumSegments);
-            line.Material = new SeeSharp.Core.Shading.Materials.DiffuseMaterial(new());
-            head.Material = new SeeSharp.Core.Shading.Materials.DiffuseMaterial(new());
+            line.Material = new SeeSharp.Shading.Materials.DiffuseMaterial(new());
+            head.Material = new SeeSharp.Shading.Materials.DiffuseMaterial(new());
 
             curScene.Meshes.Add(line);
             curScene.Meshes.Add(head);

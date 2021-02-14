@@ -1,8 +1,7 @@
-﻿using SeeSharp.Core;
-using SeeSharp.Core.Geometry;
-using SeeSharp.Core.Sampling;
-using SeeSharp.Core.Shading;
-using SeeSharp.Core.Shading.Emitters;
+﻿using SeeSharp.Geometry;
+using SeeSharp.Sampling;
+using SimpleImageIO;
+using SeeSharp.Shading.Emitters;
 using SeeSharp.Integrators.Common;
 using System;
 using System.Diagnostics;
@@ -29,7 +28,7 @@ namespace SeeSharp.Integrators.Bidir {
 
         public virtual (Emitter, float) SelectLight(float primary) {
             if (primary < BackgroundProbability) {
-                return (null, BackgroundProbability); 
+                return (null, BackgroundProbability);
             } else {
                 // Remap the primary sample and select an emitter in the scene
                 primary = (primary - BackgroundProbability) / (1 - BackgroundProbability);
@@ -57,7 +56,7 @@ namespace SeeSharp.Integrators.Bidir {
             return emitter.SampleRay(primaryPos, primaryDir);
         }
 
-        public virtual float ComputeEmitterPdf(Emitter emitter, SurfacePoint point, Vector3 lightToSurface, 
+        public virtual float ComputeEmitterPdf(Emitter emitter, SurfacePoint point, Vector3 lightToSurface,
                                                float reversePdfJacobian) {
             float pdfEmit = emitter.PdfRay(point, lightToSurface);
             pdfEmit *= reversePdfJacobian;
@@ -71,7 +70,7 @@ namespace SeeSharp.Integrators.Bidir {
             return pdfEmit;
         }
 
-        public virtual (Ray, ColorRGB, float) SampleBackground(RNG rng) {
+        public virtual (Ray, RgbColor, float) SampleBackground(RNG rng) {
             // Sample a ray from the background towards the scene
             var primaryPos = rng.NextFloat2D();
             var primaryDir = rng.NextFloat2D();
@@ -103,8 +102,8 @@ namespace SeeSharp.Integrators.Bidir {
                 : base(scene, rng, maxDepth, cache, pathIdx) {
             }
 
-            protected override ColorRGB OnHit(Ray ray, SurfacePoint hit, float pdfFromAncestor,
-                                              ColorRGB throughput, int depth, float toAncestorJacobian) {
+            protected override RgbColor OnHit(Ray ray, SurfacePoint hit, float pdfFromAncestor,
+                                              RgbColor throughput, int depth, float toAncestorJacobian) {
                 // Call the base first, so the vertex gets created
                 var weight = base.OnHit(ray, hit, pdfFromAncestor, throughput, depth, toAncestorJacobian);
 
@@ -150,7 +149,7 @@ namespace SeeSharp.Integrators.Bidir {
             }
         }
 
-        int TraceEmitterPath(RNG rng, Emitter emitter, float selectProb, 
+        int TraceEmitterPath(RNG rng, Emitter emitter, float selectProb,
                              NextEventPdfCallback nextEventPdfCallback, int idx) {
             var emitterSample = SampleEmitter(rng, emitter);
 

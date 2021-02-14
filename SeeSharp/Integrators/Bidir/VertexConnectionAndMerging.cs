@@ -1,8 +1,7 @@
-﻿using SeeSharp.Core;
-using SeeSharp.Core.Geometry;
-using SeeSharp.Core.Sampling;
-using SeeSharp.Core.Shading;
-using SeeSharp.Core.Shading.Emitters;
+﻿using SeeSharp.Geometry;
+using SeeSharp.Sampling;
+using SimpleImageIO;
+using SeeSharp.Shading.Emitters;
 using SeeSharp.Integrators.Common;
 using System;
 using System.Numerics;
@@ -79,7 +78,7 @@ namespace SeeSharp.Integrators.Bidir {
             ShrinkRadius();
         }
 
-        public override void RegisterSample(ColorRGB weight, float misWeight, Vector2 pixel,
+        public override void RegisterSample(RgbColor weight, float misWeight, Vector2 pixel,
                                             int cameraPathLength, int lightPathLength, int fullLength) {
             if (!RenderTechniquePyramid)
                 return;
@@ -120,15 +119,15 @@ namespace SeeSharp.Integrators.Bidir {
             if (EnableMerging) photonMap.Build(lightPaths, Radius);
         }
 
-        public virtual void MergeUpdate(ColorRGB weight, float misWeight, CameraPath cameraPath,
+        public virtual void MergeUpdate(RgbColor weight, float misWeight, CameraPath cameraPath,
                                         PathVertex lightVertex, float pdfCameraReverse,
                                         float pdfLightReverse, float pdfNextEvent) {}
 
-        public virtual ColorRGB PerformMerging(Ray ray, SurfacePoint hit, CameraPath path, float cameraJacobian) {
-            if (path.Vertices.Count == 1 && !MergePrimary) return ColorRGB.Black;
-            if (!EnableMerging) return ColorRGB.Black;
+        public virtual RgbColor PerformMerging(Ray ray, SurfacePoint hit, CameraPath path, float cameraJacobian) {
+            if (path.Vertices.Count == 1 && !MergePrimary) return RgbColor.Black;
+            if (!EnableMerging) return RgbColor.Black;
 
-            ColorRGB estimate = ColorRGB.Black;
+            RgbColor estimate = RgbColor.Black;
             photonMap.Query(hit.Position, (pathIdx, vertexIdx, mergeDistanceSquared) => {
                 var photon = lightPaths.PathCache[pathIdx, vertexIdx];
 
@@ -151,7 +150,7 @@ namespace SeeSharp.Integrators.Bidir {
                 float misWeight = MergeMis(path, photon, pdfCameraReverse, pdfLightReverse, pdfNextEvent);
 
                 // Prevent NaNs in corner cases
-                if (photonContrib == ColorRGB.Black || pdfCameraReverse == 0 || pdfLightReverse == 0)
+                if (photonContrib == RgbColor.Black || pdfCameraReverse == 0 || pdfLightReverse == 0)
                     return;
 
                 // Epanechnikov kernel
@@ -170,10 +169,10 @@ namespace SeeSharp.Integrators.Bidir {
             return estimate;
         }
 
-        public override ColorRGB OnCameraHit(CameraPath path, RNG rng, int pixelIndex, Ray ray,
-                                             SurfacePoint hit, float pdfFromAncestor, ColorRGB throughput,
+        public override RgbColor OnCameraHit(CameraPath path, RNG rng, int pixelIndex, Ray ray,
+                                             SurfacePoint hit, float pdfFromAncestor, RgbColor throughput,
                                              int depth, float toAncestorJacobian) {
-            ColorRGB value = ColorRGB.Black;
+            RgbColor value = RgbColor.Black;
 
             // Was a light hit?
             Emitter light = scene.QueryEmitter(hit);

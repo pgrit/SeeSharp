@@ -1,12 +1,13 @@
-using SeeSharp.Core;
-using SeeSharp.Core.Cameras;
-using SeeSharp.Core.Geometry;
-using SeeSharp.Core.Shading;
-using SeeSharp.Core.Shading.Emitters;
-using SeeSharp.Core.Shading.Materials;
-using SeeSharp.Core.Image;
+using SeeSharp;
+using SeeSharp.Cameras;
+using SeeSharp.Geometry;
+using SeeSharp.Shading;
+using SeeSharp.Shading.Emitters;
+using SeeSharp.Shading.Materials;
+using SeeSharp.Image;
 using System;
 using System.Numerics;
+using SimpleImageIO;
 
 namespace SeeSharp.Validation {
     class Validate_SingleBounceGlossy : ValidationSceneFactory {
@@ -36,8 +37,8 @@ namespace SeeSharp.Validation {
                 0, 2, 3,
             });
             mesh.Material = new GenericMaterial(new GenericMaterial.Parameters {
-                baseColor = Image<ColorRGB>.Constant(ColorRGB.White),
-                roughness = Image<Scalar>.Constant(0.5f),
+                baseColor = new TextureRgb(RgbColor.White),
+                roughness = new TextureMono(0.5f),
                 specularTransmittance = 1,
                 thin = true,
                 diffuseTransmittance = 1,
@@ -54,8 +55,8 @@ namespace SeeSharp.Validation {
                 0, 2, 3,
             });
             mesh.Material = new GenericMaterial(new GenericMaterial.Parameters {
-                baseColor = Image<ColorRGB>.Constant(ColorRGB.White),
-                roughness = Image<Scalar>.Constant(0.5f),
+                baseColor = new TextureRgb(RgbColor.White),
+                roughness = new TextureMono(0.5f),
                 thin = true,
                 diffuseTransmittance = 1,
             });
@@ -79,12 +80,12 @@ namespace SeeSharp.Validation {
                 -Vector3.UnitZ,
             });
             lightMesh.Material = new DiffuseMaterial(new DiffuseMaterial.Parameters {
-                baseColor = Image<ColorRGB>.Constant(ColorRGB.Black)
+                baseColor = new TextureRgb(RgbColor.Black)
             });
             scene.Meshes.Add(lightMesh);
             var lightPower = 500;
             var radiance = lightPower / (MathF.PI * lightArea);
-            var emitter = new DiffuseEmitter(lightMesh, ColorRGB.White * radiance);
+            var emitter = new DiffuseEmitter(lightMesh, RgbColor.White * radiance);
             scene.Emitters.Add(emitter);
 
             scene.FrameBuffer = new FrameBuffer(512, 512, "");

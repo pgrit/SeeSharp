@@ -1,9 +1,9 @@
-﻿using SeeSharp.Core.Image;
+﻿using SeeSharp.Image;
 using System;
 using System.Numerics;
 using Xunit;
 
-namespace SeeSharp.Core.Tests.Camera {
+namespace SeeSharp.Tests.Camera {
     public class Perspective_Splatting {
         Cameras.Camera MakeTestCamera() {
             var frameBuffer = new FrameBuffer(3, 3, "");

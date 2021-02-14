@@ -1,7 +1,7 @@
-﻿using SeeSharp.Core.Geometry;
+﻿using SeeSharp.Geometry;
 using Xunit;
 
-namespace SeeSharp.Core.Tests.Geometry {
+namespace SeeSharp.Tests.Geometry {
     public class ObjFiles_Import {
 
         [Fact]
@@ -48,7 +48,7 @@ namespace SeeSharp.Core.Tests.Geometry {
             var dummyScene = new Scene();
             ObjConverter.AddToScene(mesh, dummyScene, null);
 
-            // There should be four meshes in total (one per group, except if there are multiple 
+            // There should be four meshes in total (one per group, except if there are multiple
             // materials in the same group)
             Assert.Equal(4, dummyScene.Meshes.Count);
         }

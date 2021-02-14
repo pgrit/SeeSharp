@@ -1,4 +1,4 @@
-﻿using SeeSharp.Core.Sampling;
+﻿using SeeSharp.Sampling;
 using SeeSharp.Integrators.Common;
 using System.Collections.Generic;
 

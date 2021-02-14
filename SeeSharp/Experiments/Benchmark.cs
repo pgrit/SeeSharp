@@ -12,14 +12,14 @@ namespace SeeSharp.Experiments {
             this.imageHeight = imageHeight;
         }
 
-        public void Run(List<string> sceneFilter = null, bool forceReference = false) {
+        public void Run(List<string> sceneFilter = null, bool forceReference = false, string format = ".exr") {
             foreach (var experiment in Experiments) {
                 if (sceneFilter != null && !sceneFilter.Contains(experiment.Key))
                     continue;
 
                 var conductor = new ExperimentConductor(experiment.Value,
                     Path.Join(DirectoryName, experiment.Key), imageWidth, imageHeight);
-                conductor.Run(forceReference);
+                conductor.Run(forceReference, format);
             }
         }
 

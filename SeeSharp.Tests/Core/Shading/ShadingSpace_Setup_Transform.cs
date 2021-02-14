@@ -1,8 +1,8 @@
-﻿using SeeSharp.Core.Shading;
+﻿using SeeSharp.Shading;
 using System.Numerics;
 using Xunit;
 
-namespace SeeSharp.Core.Tests.Shading {
+namespace SeeSharp.Tests.Shading {
     public class ShadingSpace_Setup_Transform {
         [Fact]
         public void WorldToShade_ShouldBeZAxis() {

@@ -1,5 +1,5 @@
-using SeeSharp.Core.Geometry;
-using SeeSharp.Core.Shading;
+using SeeSharp.Geometry;
+using SimpleImageIO;
 using System;
 
 namespace SeeSharp.Integrators.Common {
@@ -16,7 +16,7 @@ namespace SeeSharp.Integrators.Common {
         // Surface area pdf of next event estimation at the ancestor (if applicable)
         public float PdfNextEventAncestor;
 
-        public ColorRGB Weight;
+        public RgbColor Weight;
 
         public int AncestorId;
         public int PathId;

@@ -1,17 +1,16 @@
 using System.Numerics;
-using SeeSharp.Core.Image;
-using SeeSharp.Core.Shading;
-using SeeSharp.Core.Shading.Background;
+using SimpleImageIO;
+using SeeSharp.Shading.Background;
 using Xunit;
 
-namespace SeeSharp.Core.Tests.Shading {
+namespace SeeSharp.Tests.Shading {
     public class Background_EnvironmentMap {
         Background MakeSimpleMap() {
             // The basis is a black image.
-            Image<ColorRGB> image = new Image<ColorRGB>(512, 256);
+            RgbImage image = new(512, 256);
 
             // Create a "sun".
-            image.Splat(128, 64, ColorRGB.White * 10);
+            image.AtomicAdd(128, 64, RgbColor.White * 10);
 
             // Create the background object
             var bgn = new EnvironmentMap(image);

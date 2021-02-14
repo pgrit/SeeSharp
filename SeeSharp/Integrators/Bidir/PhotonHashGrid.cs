@@ -1,5 +1,5 @@
-﻿using SeeSharp.Core.Geometry;
-using SeeSharp.Core.Shading;
+﻿using SeeSharp.Geometry;
+using SimpleImageIO;
 using SeeSharp.Integrators.Common;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -14,7 +14,7 @@ namespace SeeSharp.Integrators.Bidir {
         }
 
         protected virtual bool Filter(PathVertex vertex)
-            => vertex.Depth >= 1 && vertex.Weight != ColorRGB.Black;
+            => vertex.Depth >= 1 && vertex.Weight != RgbColor.Black;
 
         protected virtual void AssemblePhotons(LightPathCache paths) {
             photons = new List<PhotonReference>(paths.MaxDepth * paths.NumPaths);

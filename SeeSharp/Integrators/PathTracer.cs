@@ -1,8 +1,7 @@
-using SeeSharp.Core;
-using SeeSharp.Core.Geometry;
-using SeeSharp.Core.Sampling;
-using SeeSharp.Core.Shading;
-using SeeSharp.Core.Shading.Emitters;
+using SeeSharp.Geometry;
+using SeeSharp.Sampling;
+using SimpleImageIO;
+using SeeSharp.Shading.Emitters;
 using SeeSharp.Integrators.Bidir;
 using System;
 using System.Diagnostics;
@@ -10,6 +9,7 @@ using System.Numerics;
 using TinyEmbree;
 
 namespace SeeSharp.Integrators {
+
     public class PathTracer : Integrator {
         public UInt32 BaseSeed = 0xC030114;
         public int TotalSpp = 20;
@@ -17,12 +17,14 @@ namespace SeeSharp.Integrators {
         public uint MinDepth = 1;
         public int NumShadowRays = 1;
         public bool EnableBsdfDI = true;
-        public bool RenderTechniquePyramid = true;
+        public bool RenderTechniquePyramid = false;
 
         TechPyramid techPyramidRaw;
         TechPyramid techPyramidWeighted;
 
-        public virtual void RegisterSample(Vector2 pixel, ColorRGB weight, float misWeight, uint depth,
+        Util.FeatureLogger features;
+
+        public virtual void RegisterSample(Vector2 pixel, RgbColor weight, float misWeight, uint depth,
                                            bool isNextEvent) {
             if (!RenderTechniquePyramid)
                 return;
@@ -33,8 +35,8 @@ namespace SeeSharp.Integrators {
         }
 
         protected virtual void RegisterRadianceEstimate(SurfacePoint hit, Vector3 outDir, Vector3 inDir,
-                                                        ColorRGB directIllum, ColorRGB indirectIllum,
-                                                        Vector2 pixel, ColorRGB throughput, float pdfInDir,
+                                                        RgbColor directIllum, RgbColor indirectIllum,
+                                                        Vector2 pixel, RgbColor throughput, float pdfInDir,
                                                         float pdfNextEvent) {}
 
         protected virtual void PreIteration(Scene scene, uint iterIdx) {}
@@ -47,6 +49,9 @@ namespace SeeSharp.Integrators {
                 techPyramidWeighted = new TechPyramid(scene.FrameBuffer.Width, scene.FrameBuffer.Height,
                     (int)MinDepth, (int)MaxDepth, false, false, false);
             }
+
+            // Add custom frame buffer layers
+            features = new(scene.FrameBuffer);
 
             for (uint sampleIndex = 0; sampleIndex < TotalSpp; ++sampleIndex) {
                 scene.FrameBuffer.StartIteration();
@@ -71,11 +76,11 @@ namespace SeeSharp.Integrators {
         }
 
         protected struct RadianceEstimate {
-            public ColorRGB Emitted { get; init; }
-            public ColorRGB Reflected { get; init; }
+            public RgbColor Emitted { get; init; }
+            public RgbColor Reflected { get; init; }
             public float NextEventPdf { get; init; }
 
-            public ColorRGB Outgoing => Emitted + Reflected;
+            public RgbColor Outgoing => Emitted + Reflected;
 
             public static RadianceEstimate Absorbed
             => new RadianceEstimate();
@@ -92,7 +97,7 @@ namespace SeeSharp.Integrators {
             var pixel = new Vector2(col, row) + offset;
             Ray primaryRay = scene.Camera.GenerateRay(pixel, rng).Ray;
 
-            var estimate = EstimateIncidentRadiance(scene, primaryRay, rng, pixel, ColorRGB.White);
+            var estimate = EstimateIncidentRadiance(scene, primaryRay, rng, pixel, RgbColor.White);
 
             // TODO / HACK we do nearest neighbor splatting manually here, to avoid numerical
             //             issues if the primary samples are almost 1 (400 + 0.99999999f = 401)
@@ -100,7 +105,7 @@ namespace SeeSharp.Integrators {
         }
 
         private RadianceEstimate EstimateIncidentRadiance(Scene scene, Ray ray, RNG rng, Vector2 pixel,
-                                                          ColorRGB throughput, uint depth = 1,
+                                                          RgbColor throughput, uint depth = 1,
                                                           SurfacePoint? previousHit = null,
                                                           float previousPdf = 0.0f) {
             // Trace the next ray
@@ -108,7 +113,7 @@ namespace SeeSharp.Integrators {
                 return RadianceEstimate.Absorbed;
             var hit = scene.Raytracer.Trace(ray);
 
-            ColorRGB directHitContrib = ColorRGB.Black;
+            RgbColor directHitContrib = RgbColor.Black;
             float nextEventPdf = 0;
 
             if (!hit && depth >= MinDepth) {
@@ -121,6 +126,11 @@ namespace SeeSharp.Integrators {
                 return RadianceEstimate.Absorbed;
             }
 
+            if (depth == 1) {
+                var albedo = ((SurfacePoint)hit).Material.GetScatterStrength(hit);
+                features.LogPrimaryHit(pixel, albedo, hit.Normal, hit.Distance);
+            }
+
             // Check if a light source was hit.
             Emitter light = scene.QueryEmitter(hit);
             if (light != null && depth >= MinDepth) {
@@ -128,7 +138,7 @@ namespace SeeSharp.Integrators {
                     previousHit, previousPdf, hit, light);
             }
 
-            ColorRGB nextEventContrib = ColorRGB.Black;
+            RgbColor nextEventContrib = RgbColor.Black;
             // Perform next event estimation
             if (depth + 1 >= MinDepth && depth < MaxDepth) {
                 for (int i = 0; i < NumShadowRays; ++i) {
@@ -139,7 +149,7 @@ namespace SeeSharp.Integrators {
 
             // Sample a direction to continue the random walk
             (var bsdfRay, float bsdfPdf, var bsdfSampleWeight) = SampleDirection(scene, ray, hit, rng);
-            if (bsdfPdf == 0 || bsdfSampleWeight == ColorRGB.Black)
+            if (bsdfPdf == 0 || bsdfSampleWeight == RgbColor.Black)
                 return new RadianceEstimate {
                     Emitted = directHitContrib,
                     NextEventPdf = nextEventPdf,
@@ -158,10 +168,10 @@ namespace SeeSharp.Integrators {
             };
         }
 
-        private (ColorRGB, float) OnBackgroundHit(Scene scene, Ray ray, Vector2 pixel, ColorRGB throughput,
+        private (RgbColor, float) OnBackgroundHit(Scene scene, Ray ray, Vector2 pixel, RgbColor throughput,
                                                   uint depth, float previousPdf) {
             if (scene.Background == null || !EnableBsdfDI)
-                return (ColorRGB.Black, 0);
+                return (RgbColor.Black, 0);
 
             float misWeight = 1.0f;
             float pdfNextEvent = 0;
@@ -176,7 +186,7 @@ namespace SeeSharp.Integrators {
             return (misWeight * emission, pdfNextEvent);
         }
 
-        private (ColorRGB, float) OnLightHit(Scene scene, Ray ray, Vector2 pixel, ColorRGB throughput,
+        private (RgbColor, float) OnLightHit(Scene scene, Ray ray, Vector2 pixel, RgbColor throughput,
                                              uint depth, SurfacePoint? previousHit, float previousPdf,
                                              SurfacePoint hit, Emitter light) {
             float misWeight = 1.0f;
@@ -198,10 +208,10 @@ namespace SeeSharp.Integrators {
             return (misWeight * emission, pdfNextEvt);
         }
 
-        private ColorRGB PerformBackgroundNextEvent(Scene scene, Ray ray, SurfacePoint hit, RNG rng,
-                                                    Vector2 pixel, ColorRGB throughput, uint depth) {
+        private RgbColor PerformBackgroundNextEvent(Scene scene, Ray ray, SurfacePoint hit, RNG rng,
+                                                    Vector2 pixel, RgbColor throughput, uint depth) {
             if (scene.Background == null)
-                return ColorRGB.Black; // There is no background
+                return RgbColor.Black; // There is no background
 
             var sample = scene.Background.SampleDirection(rng.NextFloat2D());
             if (scene.Raytracer.LeavesScene(hit, sample.Direction)) {
@@ -211,9 +221,9 @@ namespace SeeSharp.Integrators {
 
                 // Prevent NaN / Inf
                 if (pdfBsdf == 0 || sample.Pdf == 0) {
-                    RegisterRadianceEstimate(hit, -ray.Direction, sample.Direction, ColorRGB.Black,
-                        ColorRGB.Black, pixel, ColorRGB.Black, 0, 0);
-                    return ColorRGB.Black;
+                    RegisterRadianceEstimate(hit, -ray.Direction, sample.Direction, RgbColor.Black,
+                        RgbColor.Black, pixel, RgbColor.Black, 0, 0);
+                    return RgbColor.Black;
                 }
 
                 // Since the densities are in solid angle unit, no need for any conversions here
@@ -225,21 +235,21 @@ namespace SeeSharp.Integrators {
 
                 RegisterSample(pixel, contrib * throughput, misWeight, depth + 1, true);
                 RegisterRadianceEstimate(hit, -ray.Direction, sample.Direction,
-                    misWeight * sample.Weight * sample.Pdf, ColorRGB.Black, pixel,
+                    misWeight * sample.Weight * sample.Pdf, RgbColor.Black, pixel,
                     throughput * bsdfTimesCosine, sample.Pdf * NumShadowRays, sample.Pdf);
 
                 return misWeight * contrib;
             }
 
-            RegisterRadianceEstimate(hit, -ray.Direction, sample.Direction, ColorRGB.Black, ColorRGB.Black,
-                pixel, ColorRGB.Black, 0, 0);
-            return ColorRGB.Black;
+            RegisterRadianceEstimate(hit, -ray.Direction, sample.Direction, RgbColor.Black, RgbColor.Black,
+                pixel, RgbColor.Black, 0, 0);
+            return RgbColor.Black;
         }
 
-        private ColorRGB PerformNextEventEstimation(Scene scene, Ray ray, SurfacePoint hit, RNG rng,
-                                                    Vector2 pixel, ColorRGB throughput, uint depth) {
+        private RgbColor PerformNextEventEstimation(Scene scene, Ray ray, SurfacePoint hit, RNG rng,
+                                                    Vector2 pixel, RgbColor throughput, uint depth) {
             if (scene.Emitters.Count == 0)
-                return ColorRGB.Black;
+                return RgbColor.Black;
 
             // Select a light source
             int idx = rng.NextInt(0, scene.Emitters.Count);
@@ -265,9 +275,9 @@ namespace SeeSharp.Integrators {
 
                 // Avoid Inf / NaN
                 if (pdfBsdf == 0 || jacobian == 0) {
-                    RegisterRadianceEstimate(hit, -ray.Direction, -lightToSurface, ColorRGB.Black,
-                        ColorRGB.Black, pixel, ColorRGB.Black, 0, 0);
-                    return ColorRGB.Black;
+                    RegisterRadianceEstimate(hit, -ray.Direction, -lightToSurface, RgbColor.Black,
+                        RgbColor.Black, pixel, RgbColor.Black, 0, 0);
+                    return RgbColor.Black;
                 }
 
                 // Compute the resulting power heuristic weights
@@ -279,20 +289,20 @@ namespace SeeSharp.Integrators {
                 var pdf = lightSample.Pdf / jacobian * lightSelectProb * NumShadowRays;
                 RegisterSample(pixel, emission / pdf * bsdfCos * throughput, misWeight, depth + 1, true);
                 RegisterRadianceEstimate(hit, -ray.Direction, -lightToSurface, misWeight * emission,
-                    ColorRGB.Black, pixel, throughput * bsdfCos, pdf, pdfNextEvt / jacobian);
+                    RgbColor.Black, pixel, throughput * bsdfCos, pdf, pdfNextEvt / jacobian);
                 return misWeight * emission / pdf * bsdfCos;
             }
 
             // We register zero-valued samples, as they are used by, e.g., path guiding and optimal MIS
-            RegisterRadianceEstimate(hit, -ray.Direction, -lightToSurface, ColorRGB.Black, ColorRGB.Black,
-                pixel, ColorRGB.Black, 0, 0);
-            return ColorRGB.Black;
+            RegisterRadianceEstimate(hit, -ray.Direction, -lightToSurface, RgbColor.Black, RgbColor.Black,
+                pixel, RgbColor.Black, 0, 0);
+            return RgbColor.Black;
         }
 
         protected virtual float DirectionPdf(SurfacePoint hit, Vector3 outDir, Vector3 sampledDir)
         => hit.Material.Pdf(hit, outDir, sampledDir, false).Item1;
 
-        protected virtual (Ray, float, ColorRGB) SampleDirection(Scene scene, Ray ray, SurfacePoint hit,
+        protected virtual (Ray, float, RgbColor) SampleDirection(Scene scene, Ray ray, SurfacePoint hit,
                                                                  RNG rng) {
             var primary = rng.NextFloat2D();
             var bsdfSample = hit.Material.Sample(hit, -ray.Direction, false, primary);

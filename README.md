@@ -118,8 +118,8 @@ The following example of a .csx script conducts an experiment that compares a pa
 #r "nuget: SeeSharp, 0.2.0"
 
 using SeeSharp;
-using SeeSharp.Core;
-using SeeSharp.Core.Image;
+using SeeSharp;
+using SeeSharp.Image;
 using SeeSharp.Experiments;
 using SeeSharp.Integrators;
 using SeeSharp.Integrators.Bidir;
@@ -181,9 +181,9 @@ def tonemap(img):
 
 def make_figure(dirname, method_names):
     # Read the files
-    ref = pyexr.read(os.path.join(dirname, "reference.exr"))
+    ref = pyexr.read(os.path.join(dirname, "Reference.exr"))
     methods = [
-        pyexr.read(os.path.join(dirname, name, "render.exr"))
+        pyexr.read(os.path.join(dirname, name, "Render.exr"))
         for name in method_names
     ]
     errors = [ f"{util.image.relative_mse(m, ref):.4f}" for m in methods ]

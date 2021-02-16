@@ -54,6 +54,7 @@ namespace SeeSharp.Image {
 
     public class TextureMono : ImageTexture {
         public TextureMono(float color) => constColor = color;
+        public TextureMono(MonochromeImage img) => image = img;
 
         // TODO not yet supported in SimpleImageIO
         // public TextureMono(string filename) => image = new MonochromeImage(filename);

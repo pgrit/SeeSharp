@@ -1,4 +1,5 @@
 using System;
+using System.Diagnostics;
 using System.Threading.Tasks;
 using SimpleImageIO;
 
@@ -30,6 +31,10 @@ namespace SeeSharp.Image {
         }
 
         public void Apply(ImageBase original, ImageBase target) {
+            Debug.Assert(target.NumChannels == original.NumChannels);
+            Debug.Assert(target.Width == original.Width);
+            Debug.Assert(target.Height == original.Height);
+
             Parallel.For(0, original.Height, row => {
                 for (int col = 0; col < original.Width; ++col) {
                     target.SetPixelChannels(col, row, Kernel(original, row, col));
@@ -38,31 +43,5 @@ namespace SeeSharp.Image {
         }
 
         int radius;
-    }
-
-    public class NeighborAverage : BoxFilter {
-        public NeighborAverage() : base(1) {}
-
-        protected override float[] Kernel(ImageBase original, int centerRow, int centerCol) {
-            int top = Math.Max(0, centerRow - 1);
-            int bottom = Math.Min(original.Height - 1, centerRow + 1);
-            int left = Math.Max(0, centerCol - 1);
-            int right = Math.Min(original.Width - 1, centerCol + 1);
-
-            int area = (bottom - top + 1) * (right - left + 1) - 1;
-            float normalization = 1.0f / area;
-
-            float[] result = new float[original.NumChannels];
-            for (int chan = 0; chan < original.NumChannels; ++chan) {
-                for (int row = top; row <= bottom; ++row) {
-                    for (int col = left; col <= right; ++col) {
-                        if (row == centerRow && col == centerCol)
-                            continue;
-                        result[chan] += original.GetPixelChannel(col, row, chan) * normalization;
-                    }
-                }
-            }
-            return result;
-        }
     }
 }

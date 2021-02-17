@@ -22,7 +22,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="SimpleImageIO" Version="0.5.1" />
+    <PackageReference Include="SimpleImageIO" Version="0.5.2" />
     <PackageReference Include="TinyEmbree" Version="0.2.0" />
   </ItemGroup>
 

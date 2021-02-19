@@ -21,6 +21,8 @@ def map_texture_or_color(node):
     try:
         texture = node.links[0].from_node.image
         path = texture.filepath_raw.replace('//', '')
+        # Always use unix-style separators, so the generated file is portable
+        path = texture.filepath_raw.replace('\\', '/')
         return { "type": "texture", "path": path }
     except:
         pass
@@ -96,25 +98,10 @@ def export_background(result, filepath):
 
         # Next, copy the texture file to a location relative to the output file
         export_path = os.path.join(texture_dir, os.path.basename(path))
-
-        # If this is an .hdr, convert to .exr
-        if bgn.file_format == "HDR":
-            # export the image to .exr
-            export_path = export_path.replace(".hdr", ".exr")
-            old_path = bgn.filepath_raw
-            bgn.filepath_raw = export_path
-            bgn.file_format = "OPEN_EXR"
-            bgn.save()
-
-            # restore the original file connection - don't mess with user data!
-            bgn.filepath_raw = old_path
-            bgn.file_format = "HDR"
-        else:
-            # save the image using the same file format
-            old_path = bgn.filepath_raw
-            bgn.filepath_raw = export_path
-            bgn.save()
-            bgn.filepath_raw = old_path
+        old_path = bgn.filepath_raw
+        bgn.filepath_raw = export_path
+        bgn.save()
+        bgn.filepath_raw = old_path
 
         # Store the relative file path in the scene description
         relative_path = "textures/" + os.path.basename(export_path)
@@ -191,10 +178,6 @@ def export_scene(filepath):
     with open(filepath, 'w') as fp:
         json.dump(result, fp, indent=2)
 
-def write_some_data(context, filepath):
-    export_scene(filepath)
-    return {'FINISHED'}
-
 class SeeSharpExport(Operator, ExportHelper):
     """SeeSharp scene exporter"""
     bl_idname = "export.to_seesharp"
@@ -210,7 +193,8 @@ class SeeSharpExport(Operator, ExportHelper):
     )
 
     def execute(self, context):
-        return write_some_data(context, self.filepath)
+        export_scene(self.filepath)
+        return {'FINISHED'}
 
 def menu_func_export(self, context):
     self.layout.operator(SeeSharpExport.bl_idname, text="SeeSharp Export")

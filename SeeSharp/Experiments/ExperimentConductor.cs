@@ -20,14 +20,16 @@ namespace SeeSharp.Experiments {
         /// Each method's images are placed in a separate folder, using the method's name
         /// as the folder's name.
         /// </summary>
-        public void Run(bool forceReference = false, string format = ".exr") {
+        public void Run(bool forceReference = false, string format = ".exr", bool skipReference = false) {
             var scene = factory.MakeScene();
-
-            // Render the reference image (only if it does not exist or forced)
             string refFilename = Path.Join(workingDirectory, "Reference" + format);
             scene.FrameBuffer = new FrameBuffer(width, height, refFilename);
             scene.Prepare();
-            RenderReference(scene, forceReference, refFilename);
+
+            // Render the reference image (only if it does not exist or forced)
+            if (!skipReference) {
+                RenderReference(scene, forceReference, refFilename);
+            }
 
             var methods = factory.MakeMethods();
             foreach (var method in methods) {

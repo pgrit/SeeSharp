@@ -1,8 +1,8 @@
-using System.Numerics;
 using SeeSharp.Datastructs;
+using System.Numerics;
 using Xunit;
 
-namespace SeeSharp.Tests.Datastructs {
+namespace SeeSharp.Tests.Core.Datastructs {
     public class NearestNeighborTree_Simple {
         [Fact]
         public void SinglePoint_ShouldBeFound() {

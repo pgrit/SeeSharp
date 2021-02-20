@@ -3,7 +3,7 @@ using System;
 using System.Numerics;
 using Xunit;
 
-namespace SeeSharp.Tests.Geometry {
+namespace SeeSharp.Tests.Core.Geometry {
     public class Mesh_Attributes {
         [Fact]
         public void ShadingNormals_ShouldBeSet() {

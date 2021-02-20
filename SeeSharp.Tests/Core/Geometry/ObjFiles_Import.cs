@@ -1,7 +1,7 @@
 ﻿using SeeSharp.Geometry;
 using Xunit;
 
-namespace SeeSharp.Tests.Geometry {
+namespace SeeSharp.Tests.Core.Geometry {
     public class ObjFiles_Import {
 
         [Fact]

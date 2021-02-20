@@ -8,6 +8,12 @@
     <Folder Include="Properties\" />
   </ItemGroup>
 
+  <ItemGroup>
+    <Compile Remove="Results\**" />
+    <EmbeddedResource Remove="Results\**" />
+    <None Remove="Results\**" />
+  </ItemGroup>
+
   <PropertyGroup>
     <OutputType>Exe</OutputType>
     <TargetFramework>net5.0</TargetFramework>

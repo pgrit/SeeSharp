@@ -3,7 +3,7 @@ using System;
 using System.Numerics;
 using Xunit;
 
-namespace SeeSharp.Tests.Geometry {
+namespace SeeSharp.Tests.Core.Geometry {
     public class Mesh_Sampling {
         [Fact]
         public void Distribution_TwoTriangles_ShouldBeUniform() {

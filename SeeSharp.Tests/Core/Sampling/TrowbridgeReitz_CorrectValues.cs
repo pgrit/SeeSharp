@@ -2,7 +2,7 @@
 using System;
 using Xunit;
 
-namespace SeeSharp.Tests.Sampling {
+namespace SeeSharp.Tests.Core.Sampling {
     public class TrowbridgeReitz_CorrectValues {
         [Fact]
         public void NDF_Orthogonal() {

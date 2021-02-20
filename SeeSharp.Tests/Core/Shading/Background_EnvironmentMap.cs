@@ -1,9 +1,9 @@
-using System.Numerics;
-using SimpleImageIO;
 using SeeSharp.Shading.Background;
+using SimpleImageIO;
+using System.Numerics;
 using Xunit;
 
-namespace SeeSharp.Tests.Shading {
+namespace SeeSharp.Tests.Core.Shading {
     public class Background_EnvironmentMap {
         Background MakeSimpleMap() {
             // The basis is a black image.

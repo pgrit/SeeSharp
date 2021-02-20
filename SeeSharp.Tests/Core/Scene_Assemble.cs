@@ -1,17 +1,17 @@
 ﻿using SeeSharp.Cameras;
 using SeeSharp.Geometry;
-using SimpleImageIO;
-using SeeSharp.Shading.Emitters;
-using SeeSharp.Shading.Materials;
 using SeeSharp.Image;
 using SeeSharp.Sampling;
+using SeeSharp.Shading.Emitters;
+using SeeSharp.Shading.Materials;
+using SimpleImageIO;
 using System;
 using System.IO;
 using System.Numerics;
 using System.Reflection;
 using Xunit;
 
-namespace SeeSharp.Tests {
+namespace SeeSharp.Tests.Core {
     public class Scene_Assemble {
         Scene MakeDummyScene() {
             var scene = new Scene();

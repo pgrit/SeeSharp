@@ -1,7 +1,7 @@
 using SeeSharp.Sampling;
 using Xunit;
 
-namespace SeeSharp.Tests.Sampling {
+namespace SeeSharp.Tests.Core.Sampling {
     public class SampleWarp_Triangle {
         [Fact]
         public void Inverse_ShouldBeZero() {

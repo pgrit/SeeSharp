@@ -4,7 +4,7 @@ using SimpleImageIO;
 using System.Numerics;
 using Xunit;
 
-namespace SeeSharp.Tests.Shading {
+namespace SeeSharp.Tests.Core.Shading {
     public class Material_Generic {
         [Fact]
         public void Pdfs_ShouldBeConsistent() {

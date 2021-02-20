@@ -1,11 +1,11 @@
 using SeeSharp.Geometry;
-using SimpleImageIO;
 using SeeSharp.Shading.Materials;
+using SimpleImageIO;
 using System;
 using System.Numerics;
 using Xunit;
 
-namespace SeeSharp.Tests {
+namespace SeeSharp.Tests.Core.Shading {
     public class Material_Diffuse {
         [Fact]
         public void NoLightLeaks() {

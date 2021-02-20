@@ -2,7 +2,7 @@
 using System.Numerics;
 using Xunit;
 
-namespace SeeSharp.Tests.Shading {
+namespace SeeSharp.Tests.Core.Shading {
     public class ShadingSpace_Setup_Transform {
         [Fact]
         public void WorldToShade_ShouldBeZAxis() {

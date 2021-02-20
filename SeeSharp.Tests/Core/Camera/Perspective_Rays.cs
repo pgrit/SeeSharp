@@ -4,7 +4,7 @@ using System;
 using System.Numerics;
 using Xunit;
 
-namespace SeeSharp.Tests.Camera {
+namespace SeeSharp.Tests.Core.Camera {
     public class Perspective_Rays {
         Cameras.Camera MakeTestCamera() {
             var frameBuffer = new FrameBuffer(3, 3, "");

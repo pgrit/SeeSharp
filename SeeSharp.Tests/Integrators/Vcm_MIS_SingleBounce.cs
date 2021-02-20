@@ -1,23 +1,23 @@
-﻿using SeeSharp;
-using SeeSharp.Integrators.Bidir;
+﻿using SeeSharp.Integrators.Bidir;
+using SeeSharp.Tests.Integrators.Helpers;
 using System.Collections.Generic;
 using System.Numerics;
 using Xunit;
 using static SeeSharp.Integrators.Bidir.BidirBase;
 
-namespace SeeSharp.Integrators.Tests {
+namespace SeeSharp.Tests.Integrators {
     public class Vcm_MIS_SingleBounce {
 
-        static Helpers.MisDummyPath dummyPath = new Helpers.MisDummyPath(
+        static MisDummyPath dummyPath = new(
             lightArea: 2.0f,
             numLightPaths: 500,
-            positions: new Vector3[] {
+            positions: new[] {
                 new Vector3 { X = 0, Y = 2, Z = 0 }, // light
                 new Vector3 { X = 0, Y = 0, Z = 0 }, // surface A
                 new Vector3 { X = 2, Y = 1, Z = 0 }, // surface B
                 new Vector3 { X = 2, Y = 0, Z = 0 }  // camera
             },
-            normals: new Vector3[] {
+            normals: new[] {
                 Vector3.Normalize(new Vector3 { X =    0, Y = -1, Z = 0 }), // light
                 Vector3.Normalize(new Vector3 { X = 0.3f, Y =  1, Z = 0.2f }), // surface A
                 Vector3.Normalize(new Vector3 { X =   -1, Y = -1, Z = 0 }), // surface B

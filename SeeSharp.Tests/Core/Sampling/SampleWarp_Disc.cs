@@ -1,7 +1,7 @@
 ﻿using SeeSharp.Sampling;
 using Xunit;
 
-namespace Tests.Sampling {
+namespace SeeSharp.Tests.Core.Sampling {
     public class SampleWarp_Disc {
         [Fact]
         public void ConcentricDisc_Inverse() {

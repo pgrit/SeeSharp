@@ -1,13 +1,14 @@
 ﻿using SeeSharp.Integrators.Bidir;
+using SeeSharp.Tests.Integrators.Helpers;
 using System.Collections.Generic;
 using System.Numerics;
 using Xunit;
 using static SeeSharp.Integrators.Bidir.BidirBase;
 
-namespace SeeSharp.Integrators.Tests {
+namespace SeeSharp.Tests.Integrators {
     public class ClassicBidir_Mis_DirectIllum {
 
-        Helpers.MisDummyPath dummyPath = new Helpers.MisDummyPath(
+        MisDummyPath dummyPath = new MisDummyPath(
             lightArea: 2.0f,
             numLightPaths: 500,
             positions: new Vector3[] {

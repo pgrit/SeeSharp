@@ -5,7 +5,7 @@ using System.Collections.Generic;
 using System.Numerics;
 using static SeeSharp.Integrators.Bidir.BidirBase;
 
-namespace SeeSharp.Integrators.Tests.Helpers {
+namespace SeeSharp.Tests.Integrators.Helpers {
     public struct MisDummyPath {
         public float lightArea;
         public int numLightPaths;

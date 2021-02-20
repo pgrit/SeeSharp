@@ -4,7 +4,7 @@ using SimpleImageIO;
 using System.Numerics;
 using Xunit;
 
-namespace Tests.Shading {
+namespace SeeSharp.Tests.Core.Shading {
     public class Emitter_Glossy {
         [Fact]
         public void EmittedRays_SampleInverse() {

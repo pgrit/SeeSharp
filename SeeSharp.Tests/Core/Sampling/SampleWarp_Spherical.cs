@@ -1,8 +1,8 @@
-using Xunit;
 using SeeSharp.Sampling;
 using System.Numerics;
+using Xunit;
 
-namespace SeeSharp.Tests.Sampling {
+namespace SeeSharp.Tests.Core.Sampling {
     public class SampleWarp_Spherical {
         [Fact]
         public void SphericalInverse() {

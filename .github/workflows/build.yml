@@ -25,9 +25,27 @@ jobs:
       working-directory: ${{github.workspace}}
       run: dotnet test
 
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v2
+
+    - name: Setup .NET Core SDK
+      uses: actions/setup-dotnet@v1.7.2
+      with:
+        dotnet-version: '5.0.x'
+
+    # fixes sporadic build fails on Windows (https://github.com/actions/setup-dotnet/issues/155)
+    - name: Clean
+      run: dotnet clean -c Release && dotnet nuget locals all --clear
+
+    - name: Run validation
+      working-directory: ${{github.workspace}}
+      run: dotnet run -c Release -p Validation
+
   pack:
     runs-on: ubuntu-latest
-    needs: [test]
+    needs: [test, validate]
 
     steps:
     - uses: actions/checkout@v2

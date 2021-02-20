@@ -83,6 +83,7 @@ namespace SeeSharp.Validation {
 
             if (!ValidateImages(images)) {
                 Console.WriteLine("Validation error: Average image values too far appart!");
+                throw new Exception("Validation error: Average image values too far appart!");
             }
 
             times.Add(sceneLoadTime);

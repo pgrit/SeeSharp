@@ -6,7 +6,10 @@ namespace SeeSharp.Validation {
             var allTests = new List<ValidationSceneFactory>() {
                 new Validate_DirectIllum(),
                 new Validate_SingleBounce(),
-                new Validate_SingleBounceGlossy(),
+
+                // Needs more samples to correctly validate (PT produces mostly outliers)
+                // new Validate_SingleBounceGlossy(),
+
                 new Validate_MultiLight(),
                 new Validate_GlossyLight(),
                 new Validate_Environment(),

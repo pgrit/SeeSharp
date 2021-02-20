@@ -3,6 +3,8 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Threading;
+using System.Threading.Tasks;
 
 namespace SeeSharp.Image {
     public class FrameBuffer {
@@ -15,6 +17,7 @@ namespace SeeSharp.Image {
                     Image.Scale((curIteration - 1.0f) / curIteration);
                 this.curIteration = curIteration;
             }
+            public virtual void OnEndIteration(int curIteration) { }
             protected int curIteration;
         }
 
@@ -30,9 +33,93 @@ namespace SeeSharp.Image {
             => (Image as MonochromeImage).AtomicAdd((int)x, (int)y, value / curIteration);
         }
 
+        /// <summary>
+        /// Estimates the pixel variance in the rendered image.
+        /// "Pixel variance" is defined as the squared deviation of the pixel value from each iteration
+        /// from the mean pixel value across all iterations.
+        /// Note that this does not necessarily equal the variance of the underlying Monte Carlo estimator,
+        /// especially not if MIS is used. It is a lower-bound approximation of that.
+        /// </summary>
+        public class VarianceLayer : Layer {
+            MonochromeImage momentImage;
+            MonochromeImage meanImage;
+            MonochromeImage bufferImage;
+
+            public float Average;
+
+            void AtomicAddFloat(ref float target, float value) {
+                float initialValue, computedValue;
+                do {
+                    initialValue = target;
+                    computedValue = initialValue + value;
+                } while (initialValue != Interlocked.CompareExchange(ref target,
+                    computedValue, initialValue));
+            }
+
+            public override void Init(int width, int height) {
+                Image = new MonochromeImage(width, height);
+                momentImage = new MonochromeImage(width, height);
+                meanImage = new MonochromeImage(width, height);
+                bufferImage = new MonochromeImage(width, height);
+            }
+
+            public override void Reset() {
+                base.Reset();
+                momentImage.Scale(0);
+                meanImage.Scale(0);
+                bufferImage.Scale(0);
+            }
+
+            public virtual void Splat(float x, float y, RgbColor value)
+            => bufferImage.AtomicAdd((int)x, (int)y, value.Average);
+
+            public override void OnStartIteration(int curIteration) {
+                if (curIteration > 1) {
+                    momentImage.Scale((curIteration - 1.0f) / curIteration);
+                    meanImage.Scale((curIteration - 1.0f) / curIteration);
+                }
+                this.curIteration = curIteration;
+
+                // Each iteration needs to store the final pixel value of that iteration
+                bufferImage.Scale(0);
+            }
+
+            public override void OnEndIteration(int curIteration) {
+                // Update the mean and moment based on the buffered image of the current iteration
+                Parallel.For(0, momentImage.Height, row => {
+                    for (int col = 0; col < momentImage.Width; ++col) {
+                        float val = bufferImage.GetPixel(col, row);
+                        momentImage.AtomicAdd(col, row, val * val / curIteration);
+                        meanImage.AtomicAdd(col, row, val / curIteration);
+                    }
+                });
+
+                // Blur both buffers to get a more stable estimate.
+                // TODO this could be done in-place by directly splatting in multiple pixels above
+                BoxFilter filter = new(1);
+                MonochromeImage blurredMean = new(meanImage.Width, meanImage.Height);
+                MonochromeImage blurredMoment = new(meanImage.Width, meanImage.Height);
+                filter.Apply(meanImage, blurredMean);
+                filter.Apply(momentImage, blurredMoment);
+
+                // Compute the final variance and update the main image
+                Average = 0;
+                Parallel.For(0, momentImage.Height, row => {
+                    for (int col = 0; col < momentImage.Width; ++col) {
+                        float mean = blurredMean.GetPixel(col, row);
+                        float variance = blurredMoment.GetPixel(col, row) - mean * mean;
+                        variance /= (mean * mean + 0.001f);
+                        Image.SetPixelChannels(col, row, variance);
+                        AtomicAddFloat(ref Average, variance);
+                    }
+                });
+            }
+        }
+
         public int Width => width;
         public int Height => height;
         public RgbImage Image;
+        public VarianceLayer PixelVariance;
 
         public void AddLayer(string name, Layer layer) => layers.Add(name, layer);
 
@@ -64,10 +151,14 @@ namespace SeeSharp.Image {
             this.flags = flags;
             this.width = width;
             this.height = height;
+
+            PixelVariance = new();
+            AddLayer("variance", PixelVariance);
         }
 
         public virtual void Splat(float x, float y, RgbColor value) {
             Image.AtomicAdd((int)x, (int)y, value / CurIteration);
+            PixelVariance.Splat(x, y, value);
         }
 
         public virtual void StartIteration() {
@@ -104,6 +195,9 @@ namespace SeeSharp.Image {
 
         public virtual void EndIteration() {
             stopwatch.Stop();
+
+            foreach (var (_, layer) in layers)
+                layer.OnEndIteration(CurIteration);
 
             if (flags.HasFlag(Flags.WriteIntermediate)) {
                 string name = Basename + "-iter" + CurIteration.ToString("D3")

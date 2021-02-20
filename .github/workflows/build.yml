@@ -41,7 +41,7 @@ jobs:
 
     - name: Run validation
       working-directory: ${{github.workspace}}
-      run: dotnet run -c Release -p Validation
+      run: dotnet run -c Release -p SeeSharp.Validation
 
   pack:
     runs-on: ubuntu-latest

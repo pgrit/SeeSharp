@@ -11,8 +11,8 @@ namespace SeeSharp.Sampling {
 
             ref float GetByIdx(ref Vector3 v, int idx) {
                 if (idx == 0) return ref v.X;
-                else if (idx == 1) return ref v.Y;
-                else return ref v.Z;
+                if (idx == 1) return ref v.Y;
+                return ref v.Z;
             }
 
             float invLen = 1.0f / MathF.Sqrt(GetByIdx(ref normal, id0) * GetByIdx(ref normal, id0) + normal.Z * normal.Z);

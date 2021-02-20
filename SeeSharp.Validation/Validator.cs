@@ -40,8 +40,8 @@ namespace SeeSharp.Validation {
 
                 // Create a new empty frame buffer with the desired output filename
                 scene.FrameBuffer = new FrameBuffer(scene.FrameBuffer.Width, scene.FrameBuffer.Height,
-                    System.IO.Path.Join("Results", $"{testname}", $"{name.Current}.exr"),
-                    FrameBuffer.Flags.SendToTev);
+                    System.IO.Path.Join("Results", $"{testname}", $"{name.Current}.exr"));//,
+                    // FrameBuffer.Flags.SendToTev);
 
                 alg.Render(scene);
 
@@ -70,12 +70,12 @@ namespace SeeSharp.Validation {
                 { "ClassicBidir", new ClassicBidir() {
                     NumIterations = sceneFactory.SamplesPerPixel / 2,
                     MaxDepth = sceneFactory.MaxDepth,
-                    RenderTechniquePyramid = true
+                    RenderTechniquePyramid = false
                 }},
                 { "Vcm", new VertexConnectionAndMerging() {
                     NumIterations = sceneFactory.SamplesPerPixel / 2,
                     MaxDepth = sceneFactory.MaxDepth,
-                    RenderTechniquePyramid = true,
+                    RenderTechniquePyramid = false,
                 }}
             };
 

@@ -15,9 +15,9 @@ namespace SeeSharp.Integrators {
         public readonly Span<float> PdfsLightToCamera;
         public readonly Span<float> PdfsCameraToLight;
 
-        public BidirPathPdfs(PathCache cache, int numPdfs) {
-            PdfsCameraToLight = new float[numPdfs];
-            PdfsLightToCamera = new float[numPdfs];
+        public BidirPathPdfs(PathCache cache, Span<float> lightToCam, Span<float> camToLight) {
+            PdfsCameraToLight = camToLight;
+            PdfsLightToCamera = lightToCam;
             LightPathCache = cache;
         }
 

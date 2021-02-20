@@ -7,11 +7,11 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SeeSharp", "SeeSharp\SeeSha
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SeeSharp.Tests", "SeeSharp.Tests\SeeSharp.Tests.csproj", "{97DFC525-75C9-415C-B987-001E059C1671}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Validation", "Validation\Validation.csproj", "{81C895E3-79F4-426C-93D2-9E488E0E302C}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SeeSharp.Validation", "SeeSharp.Validation\SeeSharp.Validation.csproj", "{81C895E3-79F4-426C-93D2-9E488E0E302C}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Tests", "Tests\Tests.csproj", "{D499CEF2-EE66-4E24-A86C-10596E740DF8}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SeeSharp.IntegrationTests", "SeeSharp.IntegrationTests\SeeSharp.IntegrationTests.csproj", "{D499CEF2-EE66-4E24-A86C-10596E740DF8}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Benchmark", "Benchmark\Benchmark.csproj", "{957383F5-B5A0-4CA5-A283-0F2154FFC96A}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SeeSharp.Benchmark", "SeeSharp.Benchmark\SeeSharp.Benchmark.csproj", "{957383F5-B5A0-4CA5-A283-0F2154FFC96A}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SeeSharp.Examples", "SeeSharp.Examples\SeeSharp.Examples.csproj", "{5FB3E5AD-2DB5-4A84-9E03-268AF95C5C6D}"
 EndProject

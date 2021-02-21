@@ -103,7 +103,7 @@ namespace SeeSharp.Common {
                 // If the last output got split over multiple lines, accomodate for that.
                 // Note that this currently breaks if the console was resized in-between output operations
                 int w = Console.WindowWidth;
-                int numLines = curText.Length / w + 1;
+                int numLines = w == 0 ? 1 : (curText.Length / w + 1);
 
                 Console.SetCursorPosition(0, top - numLines);
             } else if (outputIsDirty && !dirtEndsInNewline)

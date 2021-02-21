@@ -50,6 +50,9 @@ namespace SeeSharp.Common {
             } catch (Exception) {
                 supportsRewrite = false;
             }
+
+            if (Console.WindowHeight == 0 || Console.WindowWidth == 0)
+                supportsRewrite = false;
         }
 
         public void ReportDone(int amount, double elapsedSeconds) {
@@ -101,9 +104,7 @@ namespace SeeSharp.Common {
                 (_, int top) = Console.GetCursorPosition();
 
                 // If the last output got split over multiple lines, accomodate for that.
-                // Note that this currently breaks if the console was resized in-between output operations
-                int w = Console.WindowWidth;
-                int numLines = w == 0 ? 1 : (curText.Length / w + 1);
+                int numLines = (curText.Length / Console.WindowWidth + 1);
 
                 Console.SetCursorPosition(0, top - numLines);
             } else if (outputIsDirty && !dirtEndsInNewline)

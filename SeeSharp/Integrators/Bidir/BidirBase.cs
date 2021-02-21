@@ -8,6 +8,7 @@ using System.Collections.Generic;
 using System.Numerics;
 using System.Threading.Tasks;
 using TinyEmbree;
+using System.Diagnostics;
 
 namespace SeeSharp.Integrators.Bidir {
     public abstract class BidirBase : Integrator {
@@ -101,7 +102,9 @@ namespace SeeSharp.Integrators.Bidir {
 
             lightPaths = MakeLightPathCache();
 
+            SeeSharp.Common.ProgressBar progressBar = new(NumIterations);
             for (uint iter = 0; iter < NumIterations; ++iter) {
+                var stop = Stopwatch.StartNew();
                 scene.FrameBuffer.StartIteration();
                 PreIteration(iter);
 
@@ -117,6 +120,7 @@ namespace SeeSharp.Integrators.Bidir {
 
                 scene.FrameBuffer.EndIteration();
                 PostIteration(iter);
+                progressBar.ReportDone(1, stop.Elapsed.TotalSeconds);
             }
         }
 

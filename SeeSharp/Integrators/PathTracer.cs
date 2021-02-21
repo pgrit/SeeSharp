@@ -80,7 +80,9 @@ namespace SeeSharp.Integrators {
             // Add custom frame buffer layers
             features = new(scene.FrameBuffer);
 
+            SeeSharp.Common.ProgressBar progressBar = new(TotalSpp);
             for (uint sampleIndex = 0; sampleIndex < TotalSpp; ++sampleIndex) {
+                var stop = Stopwatch.StartNew();
                 scene.FrameBuffer.StartIteration();
                 OnPreIteration(sampleIndex);
                 System.Threading.Tasks.Parallel.For(0, scene.FrameBuffer.Height,
@@ -92,6 +94,7 @@ namespace SeeSharp.Integrators {
                 );
                 OnPostIteration(sampleIndex);
                 scene.FrameBuffer.EndIteration();
+                progressBar.ReportDone(1, stop.Elapsed.TotalSeconds);
             }
 
             if (RenderTechniquePyramid) {

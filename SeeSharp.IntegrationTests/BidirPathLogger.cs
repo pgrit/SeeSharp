@@ -3,7 +3,7 @@ using SeeSharp.Integrators.Util;
 using System.Collections.Generic;
 using SimpleImageIO;
 
-namespace SeeSharp.Tests {
+namespace SeeSharp.IntegrationTests {
     static class BidirPathLogger_HomeOffice {
         public static void Run() {
             var scene = SeeSharp.Scene.LoadFromFile("../Data/Scenes/HomeOffice/office.json");

@@ -47,15 +47,6 @@ namespace SeeSharp.Image {
 
             public float Average;
 
-            void AtomicAddFloat(ref float target, float value) {
-                float initialValue, computedValue;
-                do {
-                    initialValue = target;
-                    computedValue = initialValue + value;
-                } while (initialValue != Interlocked.CompareExchange(ref target,
-                    computedValue, initialValue));
-            }
-
             public override void Init(int width, int height) {
                 Image = new MonochromeImage(width, height);
                 momentImage = new MonochromeImage(width, height);
@@ -110,7 +101,7 @@ namespace SeeSharp.Image {
                         float variance = blurredMoment.GetPixel(col, row) - mean * mean;
                         variance /= (mean * mean + 0.001f);
                         Image.SetPixelChannels(col, row, variance);
-                        AtomicAddFloat(ref Average, variance);
+                        Common.Atomic.AddFloat(ref Average, variance);
                     }
                 });
             }
@@ -159,6 +150,13 @@ namespace SeeSharp.Image {
         public virtual void Splat(float x, float y, RgbColor value) {
             Image.AtomicAdd((int)x, (int)y, value / CurIteration);
             PixelVariance.Splat(x, y, value);
+
+            // Catch invalid values in long running Release mode renderings.
+            // Ideally can be reproduced with a single sample from a correctly seeded RNG.
+            if (!float.IsFinite(value.Average)) {
+                Console.WriteLine("NaN or Inf written to frame buffer! " +
+                    $"Iteration: {CurIteration}, Pixel: ({x},{y})");
+            }
         }
 
         public virtual void StartIteration() {

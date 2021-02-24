@@ -46,9 +46,11 @@ namespace SeeSharp.Common {
             try {
                 (int left, int top) = Console.GetCursorPosition();
                 Console.SetCursorPosition(left, top);
+
                 if (Console.WindowHeight == 0 || Console.WindowWidth == 0)
                     supportsRewrite = false;
-                supportsRewrite = true;
+                else
+                    supportsRewrite = true;
             } catch (Exception) {
                 supportsRewrite = false;
             }

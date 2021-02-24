@@ -46,13 +46,12 @@ namespace SeeSharp.Common {
             try {
                 (int left, int top) = Console.GetCursorPosition();
                 Console.SetCursorPosition(left, top);
+                if (Console.WindowHeight == 0 || Console.WindowWidth == 0)
+                    supportsRewrite = false;
                 supportsRewrite = true;
             } catch (Exception) {
                 supportsRewrite = false;
             }
-
-            if (Console.WindowHeight == 0 || Console.WindowWidth == 0)
-                supportsRewrite = false;
         }
 
         public void ReportDone(int amount, double elapsedSeconds) {

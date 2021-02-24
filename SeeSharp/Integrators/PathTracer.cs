@@ -62,8 +62,8 @@ namespace SeeSharp.Integrators {
         /// <summary>
         /// Called for every surface hit, before any sampling takes place.
         /// </summary>
-        protected virtual void OnHit(Ray ray, RNG rng, Vector2 pixel, RgbColor throughput, uint depth,
-                                     SurfacePoint? previousHit, float previousPdf) {}
+        protected virtual void OnHit(Ray ray, Hit hit, RNG rng, Vector2 pixel, RgbColor throughput,
+                                     uint depth, SurfacePoint? previousHit, float previousPdf) {}
 
         public override void Render(Scene scene) {
             this.scene = scene;
@@ -154,7 +154,7 @@ namespace SeeSharp.Integrators {
                 return RadianceEstimate.Absorbed;
             }
 
-            OnHit(ray, rng, pixel, throughput, depth, previousHit, previousPdf);
+            OnHit(ray, hit, rng, pixel, throughput, depth, previousHit, previousPdf);
 
             if (depth == 1) {
                 var albedo = ((SurfacePoint)hit).Material.GetScatterStrength(hit);

@@ -5,7 +5,8 @@ using System.Numerics;
 namespace SeeSharp.Geometry {
     public static class MeshFactory {
         public static Mesh MakeCylinder(Vector3 from, Vector3 to, float radius, int numSegments) {
-            var (tan, binorm) = Sampling.SampleWarp.ComputeBasisVectors(Vector3.Normalize(to - from));
+            Vector3 tan, binorm;
+            Sampling.SampleWarp.ComputeBasisVectors(Vector3.Normalize(to - from), out tan, out binorm);
 
             List<Vector3> vertices = new();
             List<int> indices = new();
@@ -40,7 +41,8 @@ namespace SeeSharp.Geometry {
         }
 
         public static Mesh MakeCone(Vector3 baseCenter, Vector3 tip, float radius, int numSegments) {
-            var (tan, binorm) = Sampling.SampleWarp.ComputeBasisVectors(Vector3.Normalize(tip - baseCenter));
+            Vector3 tan, binorm;
+            Sampling.SampleWarp.ComputeBasisVectors(Vector3.Normalize(tip - baseCenter), out tan, out binorm);
 
             List<Vector3> vertices = new();
             List<int> indices = new();

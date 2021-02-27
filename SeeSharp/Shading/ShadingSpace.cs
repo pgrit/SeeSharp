@@ -12,8 +12,8 @@ namespace SeeSharp.Shading {
             shadingNormal = Vector3.Normalize(shadingNormal);
             worldDirection = Vector3.Normalize(worldDirection);
 
-            var (tangent, binormal) = SampleWarp.ComputeBasisVectors(shadingNormal);
-
+            Vector3 tangent, binormal;
+            SampleWarp.ComputeBasisVectors(shadingNormal, out tangent, out binormal);
             float z = Vector3.Dot(shadingNormal, worldDirection);
             float x = Vector3.Dot(tangent, worldDirection);
             float y = Vector3.Dot(binormal, worldDirection);
@@ -25,7 +25,8 @@ namespace SeeSharp.Shading {
             shadingNormal = Vector3.Normalize(shadingNormal);
             shadingDirection = Vector3.Normalize(shadingDirection);
 
-            var (tangent, binormal) = SampleWarp.ComputeBasisVectors(shadingNormal);
+            Vector3 tangent, binormal;
+            SampleWarp.ComputeBasisVectors(shadingNormal, out tangent, out binormal);
             Vector3 dir = shadingDirection.Z * shadingNormal
                         + shadingDirection.X * tangent
                         + shadingDirection.Y * binormal;

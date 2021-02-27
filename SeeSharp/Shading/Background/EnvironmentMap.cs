@@ -94,7 +94,8 @@ namespace SeeSharp.Shading.Background {
             var unitDiscPoint = SampleWarp.ToConcentricDisc(primaryPos);
 
             // And transform it to the scene spanning disc orthogonal to the selected direction
-            var (tangent, binormal) = SampleWarp.ComputeBasisVectors(dirSample.Direction);
+            Vector3 tangent, binormal;
+            SampleWarp.ComputeBasisVectors(dirSample.Direction, out tangent, out binormal);
             var pos = SceneCenter + SceneRadius * (dirSample.Direction // offset outside of the scene
                                                    + tangent * unitDiscPoint.X // remap unit disc x coordinate
                                                    + binormal * unitDiscPoint.Y); // remap unit disc y coordinate
@@ -115,7 +116,8 @@ namespace SeeSharp.Shading.Background {
             var primaryDir = SampleDirectionInverse(-dir);
 
             // Project the point onto the plane with normal "dir"
-            var (tangent, binormal) = SampleWarp.ComputeBasisVectors(-dir);
+            Vector3 tangent, binormal;
+            SampleWarp.ComputeBasisVectors(-dir, out tangent, out binormal);
             var offset = pos - SceneCenter;
             float x = Vector3.Dot(offset, tangent) / SceneRadius;
             float y = Vector3.Dot(offset, binormal) / SceneRadius;

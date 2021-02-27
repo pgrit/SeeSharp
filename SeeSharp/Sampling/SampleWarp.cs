@@ -4,27 +4,12 @@ using System.Numerics;
 
 namespace SeeSharp.Sampling {
     public static class SampleWarp {
-        public static (Vector3, Vector3) ComputeBasisVectors(Vector3 normal) {
-            int   id0 = (Math.Abs(normal.X) > Math.Abs(normal.Y)) ?     0 : 1;
-            int   id1 = (Math.Abs(normal.X) > Math.Abs(normal.Y)) ?     1 : 0;
-            float sig = (Math.Abs(normal.X) > Math.Abs(normal.Y)) ? -1.0f : 1.0f;
-
-            ref float GetByIdx(ref Vector3 v, int idx) {
-                if (idx == 0) return ref v.X;
-                if (idx == 1) return ref v.Y;
-                return ref v.Z;
-            }
-
-            float invLen = 1.0f / MathF.Sqrt(GetByIdx(ref normal, id0) * GetByIdx(ref normal, id0) + normal.Z * normal.Z);
-
-            var tangentOut = new Vector3();
-            GetByIdx(ref tangentOut, id0) = normal.Z * sig * invLen;
-            GetByIdx(ref tangentOut, id1) = 0.0f;
-            tangentOut.Z = GetByIdx(ref normal, id0) * -1.0f * sig * invLen;
-
-            var binormalOut = Vector3.Cross(normal, tangentOut);
-
-            return ((tangentOut), (binormalOut));
+        public static void ComputeBasisVectors(Vector3 normal, out Vector3 tangent, out Vector3 binormal) {
+            if (Math.Abs(normal.X) > Math.Abs(normal.Y))
+                tangent = new Vector3(-normal.Z, 0.0f, normal.X) / MathF.Sqrt(normal.X * normal.X + normal.Z * normal.Z);
+            else
+                tangent = new Vector3(0.0f, normal.Z, -normal.Y) / MathF.Sqrt(normal.Y * normal.Y + normal.Z * normal.Z);
+            binormal = Vector3.Cross(normal, tangent);
         }
 
         public static Vector2 ToUniformTriangle(Vector2 primary) {

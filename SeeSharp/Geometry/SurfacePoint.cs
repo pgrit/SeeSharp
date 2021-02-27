@@ -20,9 +20,8 @@ namespace SeeSharp.Geometry {
             return new SurfacePoint { hit = hit };
         }
 
-        public Vector3 ShadingNormal => Mesh.ComputeShadingNormal((int)PrimId, BarycentricCoords);
-
-        public Vector2 TextureCoordinates => Mesh.ComputeTextureCoordinates((int)PrimId, BarycentricCoords);
+        public Vector3 ShadingNormal => hit.ShadingNormal;
+        public Vector2 TextureCoordinates => hit.TextureCoordinates;
 
         public Material Material => Mesh.Material;
 

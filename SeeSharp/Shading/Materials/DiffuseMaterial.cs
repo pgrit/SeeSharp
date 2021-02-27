@@ -37,23 +37,21 @@ namespace SeeSharp.Shading.Materials {
             outDir = ShadingSpace.WorldToShading(normal, outDir);
 
             var baseColor = parameters.baseColor.Lookup(hit.TextureCoordinates);
-            Vector3? sample = null;
+            Vector3? sample;
             if (parameters.transmitter) {
                 sample = new DiffuseTransmission(baseColor).Sample(outDir, isOnLightSubpath, primarySample);
             } else {
                 sample = new DiffuseBsdf(baseColor).Sample(outDir, isOnLightSubpath, primarySample);
             }
 
-            if (!sample.HasValue)
-                return BsdfSample.Invalid;
-
             // Terminate if no valid direction was sampled
             if (!sample.HasValue)
                 return BsdfSample.Invalid;
-            var sampledDir = ShadingSpace.ShadingToWorld(hit.ShadingNormal, sample.Value);
+            
+            var sampledDir = ShadingSpace.ShadingToWorld(normal, sample.Value);
 
             // Evaluate all components
-            var outWorld = ShadingSpace.ShadingToWorld(hit.ShadingNormal, outDir);
+            var outWorld = ShadingSpace.ShadingToWorld(normal, outDir);
             var value = EvaluateWithCosine(hit, outWorld, sampledDir, isOnLightSubpath);
 
             // Compute all pdfs

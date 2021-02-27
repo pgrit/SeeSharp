@@ -8,8 +8,11 @@ namespace SeeSharp.Shading {
     /// This is where all conventions of the shading space are defined.
     /// </summary>
     public static class ShadingSpace {
+        /// <summary>
+        /// Trnasforms the given direction into normalized shading space.
+        /// Assumes the shading normal is a valid normal (i.e. normalized).
+        /// </summary>
         public static Vector3 WorldToShading(Vector3 shadingNormal, Vector3 worldDirection) {
-            shadingNormal = Vector3.Normalize(shadingNormal);
             worldDirection = Vector3.Normalize(worldDirection);
 
             Vector3 tangent, binormal;
@@ -21,8 +24,11 @@ namespace SeeSharp.Shading {
             return new Vector3(x, y, z);
         }
 
+        /// <summary>
+        /// Trnasforms the given direction from shading space into world space and normalizes it.
+        /// Assumes the shading normal is a valid normal (i.e. normalized).
+        /// </summary>
         public static Vector3 ShadingToWorld(Vector3 shadingNormal, Vector3 shadingDirection) {
-            shadingNormal = Vector3.Normalize(shadingNormal);
             shadingDirection = Vector3.Normalize(shadingDirection);
 
             Vector3 tangent, binormal;

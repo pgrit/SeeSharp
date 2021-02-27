@@ -90,7 +90,7 @@ namespace SeeSharp.Integrators {
                         // Seed the random number generator
                         var seed = RNG.HashSeed(BaseSeed, (uint)row, sampleIndex);
                         var rng = new RNG(seed);
-                        
+
                         for (uint col = 0; col < scene.FrameBuffer.Width; ++col) {
                             RenderPixel((uint)row, col, rng);
                         }

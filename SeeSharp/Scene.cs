@@ -1,6 +1,5 @@
 using SeeSharp.Cameras;
 using SeeSharp.Geometry;
-using SeeSharp.Shading;
 using SeeSharp.Shading.Background;
 using SeeSharp.Shading.Emitters;
 using SeeSharp.Shading.Materials;
@@ -18,17 +17,17 @@ namespace SeeSharp {
         public FrameBuffer FrameBuffer;
         public Camera Camera;
 
-        public List<Mesh> Meshes = new List<Mesh>();
+        public List<Mesh> Meshes = new();
         public Raytracer Raytracer { get; private set; }
 
-        public List<Emitter> Emitters { get; private set; } = new List<Emitter>();
+        public List<Emitter> Emitters { get; private set; } = new();
         public Background Background;
 
         public Vector3 Center { get; private set; }
         public float Radius { get; private set; }
         public BoundingBox Bounds { get; private set; }
 
-        public List<string> ValidationErrorMessages { get; private set; } = new List<string>();
+        public List<string> ValidationErrorMessages { get; private set; } = new();
 
         public void Prepare() {
             if (!IsValid)

@@ -120,10 +120,10 @@ namespace SeeSharp.Shading.Materials {
 
             // Terminate if no valid direction was sampled
             if (!sample.HasValue) return BsdfSample.Invalid;
-            var sampledDir = ShadingSpace.ShadingToWorld(hit.ShadingNormal, sample.Value);
+            var sampledDir = ShadingSpace.ShadingToWorld(normal, sample.Value);
 
             // Evaluate all components
-            var outWorld = ShadingSpace.ShadingToWorld(hit.ShadingNormal, outDir);
+            var outWorld = ShadingSpace.ShadingToWorld(normal, outDir);
             var value = EvaluateWithCosine(hit, outWorld, sampledDir, isOnLightSubpath);
 
             // Compute all pdfs

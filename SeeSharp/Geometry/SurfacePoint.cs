@@ -14,7 +14,7 @@ namespace SeeSharp.Geometry {
 
         public static implicit operator bool(SurfacePoint point) => point.hit;
 
-        public static implicit operator TinyEmbree.Hit(SurfacePoint point) => point.hit;
+        public static implicit operator Hit(SurfacePoint point) => point.hit;
 
         public static implicit operator SurfacePoint(Hit hit) {
             return new SurfacePoint { hit = hit };

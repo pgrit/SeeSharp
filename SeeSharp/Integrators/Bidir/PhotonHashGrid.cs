@@ -78,12 +78,14 @@ namespace SeeSharp.Integrators.Bidir {
             });
         }
 
-        public delegate void Callback(int pathIdx, int vertIdx, float distanceSquared);
+        public delegate RgbColor Callback<in T>(T userData, SurfacePoint hit, Vector3 outDir, 
+                                                int pathIdx, int vertIdx, float distanceSquared);
 
-        public void Query(Vector3 pos, Callback callback, float radius) {
-            if (!bounds.IsInside(pos)) return;
+        public RgbColor Accumulate<T>(T userData, SurfacePoint hit, Vector3 outDir, Callback<T> callback, float radius) {
+            if (!bounds.IsInside(hit.Position)) 
+                return RgbColor.Black;
 
-            var p = (pos - bounds.Min) * inverseBinSize;
+            var p = (hit.Position - bounds.Min) * inverseBinSize;
             uint px1 = (uint)p.X;
             uint py1 = (uint)p.Y;
             uint pz1 = (uint)p.Z;
@@ -91,21 +93,22 @@ namespace SeeSharp.Integrators.Bidir {
             uint py2 = (uint)(py1 + (p.Y - py1 > 0.5f ? 1 : -1));
             uint pz2 = (uint)(pz1 + (p.Z - pz1 > 0.5f ? 1 : -1));
 
-            int count = 0;
+            RgbColor result = RgbColor.Black;
             for (int i = 0; i < 8; i++) {
-                var (start, end) = CellRange((i & 1) != 0 ? px2 : px1,
-                                             (i & 2) != 0 ? py2 : py1,
-                                             (i & 4) != 0 ? pz2 : pz1);
+                (int start, int end) = CellRange((i & 1) != 0 ? px2 : px1,
+                                                 (i & 2) != 0 ? py2 : py1,
+                                                 (i & 4) != 0 ? pz2 : pz1);
 
                 for (int j = start; j < end; j++) {
                     var photon = photons[photonIndices[j]];
-                    float distanceSqr = (pos - photon.Position).LengthSquared();
+                    float distanceSqr = (hit.Position - photon.Position).LengthSquared();
                     if (distanceSqr < radius * radius) {
-                        callback(photon.PathIndex, photon.VertexIndex, distanceSqr);
-                        count++;
+                        result += callback(userData, hit, outDir, photon.PathIndex, photon.VertexIndex, distanceSqr);
                     }
                 }
             }
+
+            return result;
         }
 
         /// <summary>

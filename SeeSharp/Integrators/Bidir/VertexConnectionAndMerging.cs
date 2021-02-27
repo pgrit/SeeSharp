@@ -1,9 +1,10 @@
 ﻿using SeeSharp.Geometry;
-using SeeSharp.Sampling;
-using SimpleImageIO;
-using SeeSharp.Shading.Emitters;
 using SeeSharp.Integrators.Common;
+using SeeSharp.Sampling;
+using SeeSharp.Shading.Emitters;
+using SimpleImageIO;
 using System;
+using System.IO;
 using System.Numerics;
 using TinyEmbree;
 
@@ -35,7 +36,7 @@ namespace SeeSharp.Integrators.Bidir {
         /// </summary>
         public virtual void InitializeRadius(Scene scene) {
             // Sample a small number of primary rays and compute the average pixel footprint area
-            var primarySamples = new Vector2[] {
+            var primarySamples = new[] {
                 new Vector2(0.5f, 0.5f),
                 new Vector2(0.25f, 0.25f),
                 new Vector2(0.75f, 0.75f),
@@ -106,10 +107,10 @@ namespace SeeSharp.Integrators.Bidir {
 
             // Store the technique pyramids
             if (RenderTechniquePyramid) {
-                string pathRaw = System.IO.Path.Join(scene.FrameBuffer.Basename, "techs-raw");
+                string pathRaw = Path.Join(scene.FrameBuffer.Basename, "techs-raw");
                 techPyramidRaw.WriteToFiles(pathRaw);
 
-                string pathWeighted = System.IO.Path.Join(scene.FrameBuffer.Basename, "techs-weighted");
+                string pathWeighted = Path.Join(scene.FrameBuffer.Basename, "techs-weighted");
                 techPyramidWeighted.WriteToFiles(pathWeighted);
             }
         }
@@ -123,50 +124,52 @@ namespace SeeSharp.Integrators.Bidir {
                                         PathVertex lightVertex, float pdfCameraReverse,
                                         float pdfLightReverse, float pdfNextEvent) {}
 
+        RgbColor Merge((CameraPath path, float cameraJacobian) userData, SurfacePoint hit, Vector3 outDir, 
+                       int pathIdx, int vertexIdx, float distSqr) {
+            var photon = lightPaths.PathCache[pathIdx, vertexIdx];
+            CameraPath path = userData.path;
+            float cameraJacobian = userData.cameraJacobian;
+
+            // Check that the path does not exceed the maximum length
+            var depth = path.Vertices.Count + photon.Depth;
+            if (depth > MaxDepth || depth < MinDepth) 
+                return RgbColor.Black;
+
+            // Compute the contribution of the photon
+            var ancestor = lightPaths.PathCache[pathIdx, photon.AncestorId];
+            var dirToAncestor = ancestor.Point.Position - photon.Point.Position;
+            var bsdfValue = hit.Material.Evaluate(hit, outDir, dirToAncestor, false);
+            var photonContrib = photon.Weight * bsdfValue / NumLightPaths;
+
+            // Compute the missing pdf terms and the MIS weight
+            var (pdfLightReverse, pdfCameraReverse) =
+                hit.Material.Pdf(hit, outDir, dirToAncestor, false);
+            pdfCameraReverse *= cameraJacobian;
+            pdfLightReverse *= SampleWarp.SurfaceAreaToSolidAngle(hit, ancestor.Point);
+            float pdfNextEvent = (photon.Depth == 1) ? NextEventPdf(hit, ancestor.Point) : 0;
+            float misWeight = MergeMis(path, photon, pdfCameraReverse, pdfLightReverse, pdfNextEvent);
+
+            // Prevent NaNs in corner cases
+            if (photonContrib == RgbColor.Black || pdfCameraReverse == 0 || pdfLightReverse == 0)
+                return RgbColor.Black;
+
+            // Epanechnikov kernel
+            float radiusSquared = Radius * Radius;
+            photonContrib *= 2 * (radiusSquared - distSqr);
+            photonContrib /= MathF.PI * radiusSquared * radiusSquared;
+
+            RegisterSample(photonContrib * path.Throughput, misWeight, path.Pixel, path.Vertices.Count,
+                photon.Depth, depth);
+            MergeUpdate(photonContrib * path.Throughput, misWeight, path, photon, pdfCameraReverse,
+                pdfLightReverse, pdfNextEvent);
+
+            return photonContrib * misWeight;
+        }
+        
         public virtual RgbColor PerformMerging(Ray ray, SurfacePoint hit, CameraPath path, float cameraJacobian) {
             if (path.Vertices.Count == 1 && !MergePrimary) return RgbColor.Black;
             if (!EnableMerging) return RgbColor.Black;
-
-            RgbColor estimate = RgbColor.Black;
-            photonMap.Query(hit.Position, (pathIdx, vertexIdx, mergeDistanceSquared) => {
-                var photon = lightPaths.PathCache[pathIdx, vertexIdx];
-
-                // Check that the path does not exceed the maximum length
-                var depth = path.Vertices.Count + photon.Depth;
-                if (depth > MaxDepth || depth < MinDepth) return;
-
-                // Compute the contribution of the photon
-                var ancestor = lightPaths.PathCache[pathIdx, photon.AncestorId];
-                var dirToAncestor = ancestor.Point.Position - photon.Point.Position;
-                var bsdfValue = hit.Material.Evaluate(hit, -ray.Direction, dirToAncestor, false);
-                var photonContrib = photon.Weight * bsdfValue / NumLightPaths;
-
-                // Compute the missing pdf terms and the MIS weight
-                var (pdfLightReverse, pdfCameraReverse) =
-                    hit.Material.Pdf(hit, -ray.Direction, dirToAncestor, false);
-                pdfCameraReverse *= cameraJacobian;
-                pdfLightReverse *= SampleWarp.SurfaceAreaToSolidAngle(hit, ancestor.Point);
-                float pdfNextEvent = (photon.Depth == 1) ? NextEventPdf(hit, ancestor.Point) : 0;
-                float misWeight = MergeMis(path, photon, pdfCameraReverse, pdfLightReverse, pdfNextEvent);
-
-                // Prevent NaNs in corner cases
-                if (photonContrib == RgbColor.Black || pdfCameraReverse == 0 || pdfLightReverse == 0)
-                    return;
-
-                // Epanechnikov kernel
-                float radiusSquared = Radius * Radius;
-                photonContrib *= 2 * (radiusSquared - mergeDistanceSquared);
-                photonContrib /= MathF.PI * radiusSquared * radiusSquared;
-
-                RegisterSample(photonContrib * path.Throughput, misWeight, path.Pixel, path.Vertices.Count,
-                    photon.Depth, depth);
-                MergeUpdate(photonContrib * path.Throughput, misWeight, path, photon, pdfCameraReverse,
-                    pdfLightReverse, pdfNextEvent);
-
-                estimate += photonContrib * misWeight;
-            }, Radius);
-
-            return estimate;
+            return photonMap.Accumulate((path, cameraJacobian), hit, -ray.Direction, Merge, Radius);
         }
 
         public override RgbColor OnCameraHit(CameraPath path, RNG rng, int pixelIndex, Ray ray,

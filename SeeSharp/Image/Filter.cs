@@ -13,7 +13,7 @@ namespace SeeSharp.Image {
             this.radius = radius;
         }
 
-        protected virtual float[] Kernel(ImageBase original, int centerRow, int centerCol) {
+        protected virtual void Kernel(ImageBase original, ImageBase target, int centerRow, int centerCol) {
             int top = Math.Max(0, centerRow - radius);
             int bottom = Math.Min(original.Height - 1, centerRow + radius);
             int left = Math.Max(0, centerCol - radius);
@@ -22,12 +22,13 @@ namespace SeeSharp.Image {
             int area = (bottom - top + 1) * (right - left + 1);
             float normalization = 1.0f / area;
 
-            float[] result = new float[original.NumChannels];
-            for (int chan = 0; chan < original.NumChannels; ++chan)
+            for (int chan = 0; chan < original.NumChannels; ++chan) {
+                float result = 0;
                 for (int row = top; row <= bottom; ++row)
-                    for (int col = left; col <= right; ++col)
-                        result[chan] += original.GetPixelChannel(col, row, chan) * normalization;
-            return result;
+                for (int col = left; col <= right; ++col)
+                    result += original.GetPixelChannel(col, row, chan) * normalization;
+                target.SetPixelChannel(centerCol, centerRow, chan, result);
+            }
         }
 
         public void Apply(ImageBase original, ImageBase target) {
@@ -37,7 +38,7 @@ namespace SeeSharp.Image {
 
             Parallel.For(0, original.Height, row => {
                 for (int col = 0; col < original.Width; ++col) {
-                    target.SetPixelChannels(col, row, Kernel(original, row, col));
+                    Kernel(original, target, row, col);
                 }
             });
         }

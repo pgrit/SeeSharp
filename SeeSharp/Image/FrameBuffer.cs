@@ -100,7 +100,7 @@ namespace SeeSharp.Image {
                         float mean = blurredMean.GetPixel(col, row);
                         float variance = blurredMoment.GetPixel(col, row) - mean * mean;
                         variance /= (mean * mean + 0.001f);
-                        Image.SetPixelChannels(col, row, variance);
+                        Image.SetPixelChannel(col, row, 0, variance);
                         Common.Atomic.AddFloat(ref Average, variance);
                     }
                 });

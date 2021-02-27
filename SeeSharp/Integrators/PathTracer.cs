@@ -87,8 +87,12 @@ namespace SeeSharp.Integrators {
                 OnPreIteration(sampleIndex);
                 System.Threading.Tasks.Parallel.For(0, scene.FrameBuffer.Height,
                     row => {
+                        // Seed the random number generator
+                        var seed = RNG.HashSeed(BaseSeed, (uint)row, sampleIndex);
+                        var rng = new RNG(seed);
+                        
                         for (uint col = 0; col < scene.FrameBuffer.Width; ++col) {
-                            RenderPixel((uint)row, col, sampleIndex);
+                            RenderPixel((uint)row, col, rng);
                         }
                     }
                 );
@@ -116,12 +120,7 @@ namespace SeeSharp.Integrators {
             => new RadianceEstimate();
         }
 
-        private void RenderPixel(uint row, uint col, uint sampleIndex) {
-            // Seed the random number generator
-            uint pixelIndex = row * (uint)scene.FrameBuffer.Width + col;
-            var seed = RNG.HashSeed(BaseSeed, pixelIndex, sampleIndex);
-            var rng = new RNG(seed);
-
+        private void RenderPixel(uint row, uint col, RNG rng) {
             // Sample a ray from the camera
             var offset = rng.NextFloat2D();
             var pixel = new Vector2(col, row) + offset;

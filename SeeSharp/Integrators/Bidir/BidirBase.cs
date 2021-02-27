@@ -185,7 +185,7 @@ namespace SeeSharp.Integrators.Bidir {
         }
 
         public virtual void ConnectLightPathToCamera(int pathIdx) {
-            lightPaths.ForEachVertex(pathIdx, (vertex, ancestor, dirToAncestor) => {
+            lightPaths.ForEachVertex(pathIdx, (pathIdx, vertex, ancestor, dirToAncestor) => {
                 if (vertex.Depth + 1 < MinDepth) return;
 
                 // Compute image plane location
@@ -332,7 +332,13 @@ namespace SeeSharp.Integrators.Bidir {
                 Connect(vertex, ancestor, dirToAncestor);
             } else if (lightPathIdx >= 0) {
                 // Connect with all vertices along the path
-                lightPaths.ForEachVertex(lightPathIdx, Connect);
+                int n = lightPaths.PathCache.Length(lightPathIdx);
+                for (int i = 1; i < n; ++i) {
+                    var ancestor = lightPaths.PathCache[lightPathIdx, i-1];
+                    var vertex = lightPaths.PathCache[lightPathIdx, i];
+                    var dirToAncestor = ancestor.Point.Position - vertex.Point.Position;
+                    Connect(vertex, ancestor, dirToAncestor);
+                }
             }
 
             return result;

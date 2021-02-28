@@ -199,14 +199,6 @@ class SeeSharpExport(Operator, ExportHelper):
 def menu_func_export(self, context):
     self.layout.operator(SeeSharpExport.bl_idname, text="SeeSharp Export")
 
-bl_info = {
-    "name": "SeeSharp Export",
-    "author": "Pascal Grittmann",
-    "version": (0, 1),
-    "blender": (2, 80, 0),
-    "category": "Import-Export",
-}
-
 def register():
     bpy.utils.register_class(SeeSharpExport)
     bpy.types.TOPBAR_MT_file_export.append(menu_func_export)

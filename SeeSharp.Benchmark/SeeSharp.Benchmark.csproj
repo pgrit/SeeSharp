@@ -8,7 +8,6 @@
     <OutputType>Exe</OutputType>
     <TargetFramework>net5.0</TargetFramework>
     <IsPackable>false</IsPackable>
-    <RootNamespace>Benchmark</RootNamespace>
   </PropertyGroup>
 
 </Project>

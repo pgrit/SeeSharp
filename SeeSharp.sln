@@ -15,6 +15,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SeeSharp.Benchmark", "SeeSh
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SeeSharp.Examples", "SeeSharp.Examples\SeeSharp.Examples.csproj", "{5FB3E5AD-2DB5-4A84-9E03-268AF95C5C6D}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SeeSharp.PreviewRender", "SeeSharp.PreviewRender\SeeSharp.PreviewRender.csproj", "{93EBE289-351C-4F29-95CA-B559F3675031}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -100,5 +102,17 @@ Global
 		{5FB3E5AD-2DB5-4A84-9E03-268AF95C5C6D}.Release|x64.Build.0 = Release|Any CPU
 		{5FB3E5AD-2DB5-4A84-9E03-268AF95C5C6D}.Release|x86.ActiveCfg = Release|Any CPU
 		{5FB3E5AD-2DB5-4A84-9E03-268AF95C5C6D}.Release|x86.Build.0 = Release|Any CPU
+		{93EBE289-351C-4F29-95CA-B559F3675031}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{93EBE289-351C-4F29-95CA-B559F3675031}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{93EBE289-351C-4F29-95CA-B559F3675031}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{93EBE289-351C-4F29-95CA-B559F3675031}.Debug|x64.Build.0 = Debug|Any CPU
+		{93EBE289-351C-4F29-95CA-B559F3675031}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{93EBE289-351C-4F29-95CA-B559F3675031}.Debug|x86.Build.0 = Debug|Any CPU
+		{93EBE289-351C-4F29-95CA-B559F3675031}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{93EBE289-351C-4F29-95CA-B559F3675031}.Release|Any CPU.Build.0 = Release|Any CPU
+		{93EBE289-351C-4F29-95CA-B559F3675031}.Release|x64.ActiveCfg = Release|Any CPU
+		{93EBE289-351C-4F29-95CA-B559F3675031}.Release|x64.Build.0 = Release|Any CPU
+		{93EBE289-351C-4F29-95CA-B559F3675031}.Release|x86.ActiveCfg = Release|Any CPU
+		{93EBE289-351C-4F29-95CA-B559F3675031}.Release|x86.Build.0 = Release|Any CPU
 	EndGlobalSection
 EndGlobal

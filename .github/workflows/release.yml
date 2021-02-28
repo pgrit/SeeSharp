@@ -23,7 +23,9 @@ jobs:
     - name: Publish
       run: dotnet publish ${{github.workspace}}/SeeSharp.PreviewRender -c Release -o ${{github.workspace}}/see_blender/bin
 
-    - run: zip --junk-paths see_blender see_blender
+    - name: Zip
+      working-directory: ${{github.workspace}}
+      run: zip -r see_blender see_blender
 
     - name: Create Release
       id: create_release

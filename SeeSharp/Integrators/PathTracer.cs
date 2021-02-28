@@ -1,12 +1,13 @@
-using SeeSharp.Geometry;
-using SeeSharp.Sampling;
-using SimpleImageIO;
-using SeeSharp.Shading.Emitters;
-using SeeSharp.Integrators.Bidir;
 using System;
 using System.Diagnostics;
 using System.Numerics;
+using System.Threading.Tasks;
+using SimpleImageIO;
 using TinyEmbree;
+using SeeSharp.Geometry;
+using SeeSharp.Sampling;
+using SeeSharp.Shading.Emitters;
+using SeeSharp.Integrators.Bidir;
 
 namespace SeeSharp.Integrators {
 
@@ -85,7 +86,7 @@ namespace SeeSharp.Integrators {
                 var stop = Stopwatch.StartNew();
                 scene.FrameBuffer.StartIteration();
                 OnPreIteration(sampleIndex);
-                System.Threading.Tasks.Parallel.For(0, scene.FrameBuffer.Height,
+                Parallel.For(0, scene.FrameBuffer.Height,
                     row => {
                         // Seed the random number generator
                         var seed = RNG.HashSeed(BaseSeed, (uint)row, sampleIndex);

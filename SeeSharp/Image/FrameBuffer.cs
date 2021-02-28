@@ -107,10 +107,11 @@ namespace SeeSharp.Image {
             }
         }
 
-        public int Width => width;
-        public int Height => height;
-        public RgbImage Image;
-        public VarianceLayer PixelVariance;
+        public readonly int Width;
+        public readonly int Height;
+        public RgbImage Image { get; private set; }
+        public readonly VarianceLayer PixelVariance = new();
+        public readonly Dictionary<string, dynamic> MetaData = new();
 
         public void AddLayer(string name, Layer layer) => layers.Add(name, layer);
 
@@ -140,10 +141,8 @@ namespace SeeSharp.Image {
         public FrameBuffer(int width, int height, string filename, Flags flags = Flags.None) {
             this.filename = filename;
             this.flags = flags;
-            this.width = width;
-            this.height = height;
-
-            PixelVariance = new();
+            Width = width;
+            Height = height;
             AddLayer("variance", PixelVariance);
         }
 
@@ -161,15 +160,15 @@ namespace SeeSharp.Image {
 
         public virtual void StartIteration() {
             if (CurIteration == 0) {
-                Image = new RgbImage(width, height);
+                Image = new RgbImage(Width, Height);
                 foreach (var (_, layer) in layers)
-                    layer.Init(width, height);
+                    layer.Init(Width, Height);
 
                 if (flags.HasFlag(Flags.SendToTev)) {
                     tevIpc = new TevIpc();
                     // If a file with the same name is open, close it to avoid conflicts
                     tevIpc.CloseImage(filename);
-                    tevIpc.CreateImageSync(filename, width, height,
+                    tevIpc.CreateImageSync(filename, Width, Height,
                         layers.Select(kv => (kv.Key, kv.Value.Image))
                             .Append(("default", Image))
                             .ToArray()
@@ -193,6 +192,8 @@ namespace SeeSharp.Image {
 
         public virtual void EndIteration() {
             stopwatch.Stop();
+
+            MetaData["RenderTime"] = stopwatch.ElapsedMilliseconds;
 
             foreach (var (_, layer) in layers)
                 layer.OnEndIteration(CurIteration);
@@ -218,6 +219,10 @@ namespace SeeSharp.Image {
         public void WriteToFile(string fname = null) {
             if (fname == null) fname = filename;
 
+            string dir = Path.GetDirectoryName(fname);
+            string fileBase = Path.GetFileNameWithoutExtension(fname);
+            string basename = Path.Combine(dir, fileBase);
+
             if (Path.GetExtension(fname).ToLower() == ".exr") {
                 ImageBase.WriteLayeredExr(fname,
                     layers.Select(kv => (kv.Key, kv.Value.Image))
@@ -228,20 +233,21 @@ namespace SeeSharp.Image {
                 // write all layers into individual files
                 Image.WriteToFile(fname);
 
-                string dir = Path.GetDirectoryName(fname);
-                string fileBase = Path.GetFileNameWithoutExtension(fname);
-                string basename = Path.Combine(dir, fileBase);
-
                 string ext = Path.GetExtension(fname);
                 foreach (var (name, layer) in layers) {
                     layer.Image.WriteToFile(basename + "-" + name + ext);
                 }
             }
+
+            // Write the metadata as json
+            string json = System.Text.Json.JsonSerializer.Serialize(MetaData, options: new() {
+                WriteIndented = true
+            });
+            File.WriteAllText(basename + ".json", json);
         }
 
         Flags flags;
         TevIpc tevIpc;
-        int width, height;
 
         protected string filename;
         protected Dictionary<string, Layer> layers = new();

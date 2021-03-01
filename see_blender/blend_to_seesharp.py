@@ -1,13 +1,15 @@
 import os
-from math import degrees
+from math import degrees, atan, tan
 import bpy
 from bpy_extras.io_utils import ExportHelper
 from bpy.props import StringProperty
 from bpy.types import Operator
 
 def export_obj_meshes(filepath):
+    # Maps the geometry such that: x = -x', y = z', z = -y'
+    # Where x',y',z' is the position in the Blender coordinate system.
     bpy.ops.export_scene.obj(filepath=filepath,
-        axis_forward='-Z', axis_up='Y',
+        axis_forward='Z', axis_up='Y',
         group_by_material=True, group_by_object=True,
         use_mesh_modifiers=True)
     mtlpath = filepath.replace(".obj", ".mtl")
@@ -94,6 +96,8 @@ def export_background(result, filepath):
     try:
         # Try to find an environment texture first
         bgn = bpy.data.worlds['World'].node_tree.nodes["Environment Texture"].image
+
+        # Remove the starting double slash on relative paths
         path = bgn.filepath_raw.replace('//', '')
 
         # Next, copy the texture file to a location relative to the output file
@@ -132,22 +136,25 @@ def export_cameras(result):
         {
             "name": "camera",
             "position": [
-                camera.location.x,
+                -camera.location.x,
                 camera.location.z,
                 -camera.location.y
             ],
+            # At (0,0,0) rotation, the Blender camera faces towards negative z, with positive y pointing up
+            # We account for this extra rotation here, because we want it to face _our_ negative z with _our_
+            # y axis pointing upwards instead.
             "rotation": [
                 degrees(camera.rotation_euler.x) - 90,
-                degrees(camera.rotation_euler.z),
-                degrees(camera.rotation_euler.y) + 180
+                degrees(camera.rotation_euler.z) + 180,
+                degrees(camera.rotation_euler.y)
             ],
-            "scale": [ -1.0, 1.0, 1.0 ]
+            "scale": [ 1.0, 1.0, 1.0 ]
         }
     ]
 
     result["cameras"] = [
         {
-            "fov": degrees(camera.data.angle) * aspect_ratio,
+            "fov": degrees(2 * atan(aspect_ratio * tan(camera.data.angle / 2))),
             "transform": "camera",
             "name": "default",
             "type": "perspective"

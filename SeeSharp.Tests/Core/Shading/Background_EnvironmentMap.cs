@@ -26,7 +26,7 @@ namespace SeeSharp.Tests.Core.Shading {
         public void Radiance_ShouldBeTen() {
             var map = MakeSimpleMap();
 
-            var val = map.EmittedRadiance(Vector3.UnitY - Vector3.UnitX);
+            var val = map.EmittedRadiance(Vector3.UnitY + Vector3.UnitZ);
 
             Assert.Equal(10.0f, val.R);
             Assert.Equal(10.0f, val.G);
@@ -49,20 +49,24 @@ namespace SeeSharp.Tests.Core.Shading {
             Assert.Equal(0.0f, valLeft.B);
         }
 
+
         [Fact]
-        public void SampleDirection_ShouldBeUpwardsLeft() {
-            var map = MakeSimpleMap();
+        public void Rotation_ShouldBeCW() {
+            RgbImage image = new(512, 256);
 
-            var sample = map.SampleDirection(Vector2.One * 0.42f);
+            // Create two markers: one should be along positive x, the other along positive z
+            image.AtomicAdd(0, 128, RgbColor.White * 10); // x
+            image.AtomicAdd(128, 128, RgbColor.White * 5); // z
 
-            // The direction should be the diagonal of the XY plane
-            Assert.True(sample.Direction.X < 0);
-            Assert.True(sample.Direction.Y > 0);
-            Assert.Equal(0.0f, sample.Direction.Z, 2);
-            Assert.Equal(sample.Direction.X, -sample.Direction.Y, 1);
+            var bgn = new EnvironmentMap(image);
+            bgn.SceneCenter = new Vector3(1, 2, 3);
+            bgn.SceneRadius = 42;
 
-            // It should also be normalized
-            Assert.Equal(1.0f, sample.Direction.Length(), 4);
+            var xclr = bgn.EmittedRadiance(new(1, 0, 0));
+            var zclr = bgn.EmittedRadiance(new(0, 0, 1));
+
+            Assert.Equal(RgbColor.White * 10, xclr);
+            Assert.Equal(RgbColor.White * 5, zclr);
         }
 
         [Fact]

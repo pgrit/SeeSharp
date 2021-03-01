@@ -1,8 +1,6 @@
 using System;
 using System.Numerics;
-using SeeSharp.Geometry;
 using SeeSharp.Sampling;
-using SeeSharp.Image;
 using TinyEmbree;
 using SimpleImageIO;
 
@@ -15,7 +13,7 @@ namespace SeeSharp.Shading.Background {
     /// The "up" direction (top center pixel of the image) corresponds to the worldspace
     /// positive y direction.
     /// The longitude is measured such that an angle of zero indicates a direction along the
-    /// worldspace positive z axis. Rotation is CCW about the y axis.
+    /// worldspace negative x axis. Rotation is CCW about the y axis, when looking along positive y.
     /// </summary>
     public class EnvironmentMap : Background {
         public EnvironmentMap(RgbImage image) {
@@ -153,14 +151,23 @@ namespace SeeSharp.Shading.Background {
             return result;
         }
 
-        Vector2 WorldToSpherical(Vector3 direction) {
-            var dir = ShadingSpace.WorldToShading(Vector3.UnitY, direction);
-            return SampleWarp.CartesianToSpherical(dir);
+        Vector2 WorldToSpherical(Vector3 dir) {
+            dir = Vector3.Normalize(dir);
+            var sp = new Vector2(
+                MathF.Atan2(dir.Z, dir.X),
+                MathF.Atan2(MathF.Sqrt(dir.X * dir.X + dir.Z * dir.Z), dir.Y)
+            );
+            if (sp.X < 0) sp.X += MathF.PI * 2.0f;
+            return sp;
         }
 
         Vector3 SphericalToWorld(Vector2 spherical) {
-            var dir = SampleWarp.SphericalToCartesian(MathF.Sin(spherical.Y), MathF.Cos(spherical.Y), spherical.X);
-            return ShadingSpace.ShadingToWorld(Vector3.UnitY, dir);
+            float sinTheta = MathF.Sin(spherical.Y);
+            return new Vector3(
+                sinTheta * MathF.Cos(spherical.X),
+                MathF.Cos(spherical.Y),
+                sinTheta * MathF.Sin(spherical.X)
+            );
         }
 
         Vector2 SphericalToPixel(Vector2 sphericalDir)

@@ -19,10 +19,10 @@ namespace SeeSharp.Tests.Core.Camera {
         }
 
         [Fact]
-        public void Directions_BottomLeft() {
+        public void Directions_TopLeft() {
             var cam = MakeTestCamera();
 
-            // bottom left corner
+            // top left corner
             var ray = cam.GenerateRay(new Vector2(0, 0), new RNG()).Ray;
 
             Assert.Equal(0, ray.Origin.X);
@@ -34,7 +34,7 @@ namespace SeeSharp.Tests.Core.Camera {
             var expectedXYZ = c / len;
 
             Assert.Equal(expectedXYZ, ray.Direction.X, 3);
-            Assert.Equal(-expectedXYZ, ray.Direction.Y, 3);
+            Assert.Equal(expectedXYZ, ray.Direction.Y, 3);
             Assert.Equal(expectedXYZ, ray.Direction.Z, 3);
         }
 
@@ -98,7 +98,7 @@ namespace SeeSharp.Tests.Core.Camera {
         }
 
         [Fact]
-        public void Directions_TopRight() {
+        public void Directions_BottomRight() {
             var cam = MakeTestCamera();
 
             // bottom left corner
@@ -113,7 +113,7 @@ namespace SeeSharp.Tests.Core.Camera {
             var expectedXYZ = c / len;
 
             Assert.Equal(-expectedXYZ, ray.Direction.X, 3);
-            Assert.Equal(expectedXYZ, ray.Direction.Y, 3);
+            Assert.Equal(-expectedXYZ, ray.Direction.Y, 3);
             Assert.Equal(expectedXYZ, ray.Direction.Z, 3);
         }
     }

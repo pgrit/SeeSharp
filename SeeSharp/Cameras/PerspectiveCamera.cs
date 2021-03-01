@@ -41,8 +41,9 @@ namespace SeeSharp.Cameras {
         }
 
         public override CameraRaySample GenerateRay(Vector2 filmPos, RNG rng) {
-            // Transform the direction from film to world space
-            var view = new Vector3(filmPos.X / Width * 2 - 1, filmPos.Y / Height * 2 - 1, 0);
+            // Transform the direction from film to world space.
+            // The view space is vertically flipped compared to the film.
+            var view = new Vector3(2 * filmPos.X / Width - 1, 1 - 2 * filmPos.Y / Height, 0);
             var localDir = Vector3.Transform(view, viewToCamera);
             var dirHomo = Vector4.Transform(new Vector4(localDir, 0), cameraToWorld);
             var dir = new Vector3(dirHomo.X, dirHomo.Y, dirHomo.Z);
@@ -118,7 +119,10 @@ namespace SeeSharp.Cameras {
             if (local.Z > 0) return null;
 
             var view = Vector4.Transform(local, cameraToView);
-            var film = new Vector3((view.X / view.W + 1) / 2 * Width, (view.Y / view.W + 1) / 2 * Height, local.Length());
+            var film = new Vector3(
+                (view.X / view.W + 1) / 2 * Width,
+                (1 - view.Y / view.W) / 2 * Height,
+                local.Length());
 
             // Check that the point is within the frustum
             if (film.X < 0 || film.X > Width || film.Y < 0 || film.Y > Height)

@@ -28,14 +28,14 @@ namespace SeeSharp.Tests.Core.Camera {
         }
 
         [Fact]
-        public void BottomLeft_CorrectPixel() {
+        public void TopLeft_CorrectPixel() {
             var cam = MakeTestCamera();
 
             var c = MathF.Cos(MathF.PI / 4.0f);
             var len = MathF.Sqrt(c * c * 3);
             var xyz = c / len;
 
-            var raster = cam.WorldToFilm(new Vector3(xyz, -xyz, xyz)).Value;
+            var raster = cam.WorldToFilm(new Vector3(xyz, xyz, xyz)).Value;
 
             Assert.Equal(0.0f, raster.X, 4);
             Assert.Equal(0.0f, raster.Y, 4);

@@ -86,10 +86,6 @@ only the BaseColor can be textured at the moment
 That is, for most existing scenes, you will need to manually simplify the usually complex shader graphs to
 one of the above, else only the viewport settings will be used.
 
-Note that, for now, the conventions are not matched perfectly.
-The camera FOV is not exactly the same and HDR backgrounds will be horizontally flipped.
-This is a known bug that will be fixed eventually.
-
 
 ### Conducting an experiment
 

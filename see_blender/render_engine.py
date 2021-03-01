@@ -5,14 +5,14 @@ import os
 import subprocess
 import tempfile
 
-from . import blend_to_seesharp
+from . import exporter
 
 class SeeSharpRenderEngine(bpy.types.RenderEngine):
     # These three members are used by blender to set up the
     # RenderEngine; define its internal name, visible name and capabilities.
     bl_idname = "SEE_SHARP"
     bl_label = "SeeSharp"
-    bl_use_preview = True
+    bl_use_preview = False
 
     # Init is called whenever a new render engine instance is created. Multiple
     # instances may exist at the same time, for example for a viewport and final
@@ -38,7 +38,7 @@ class SeeSharpRenderEngine(bpy.types.RenderEngine):
 
         exe = os.path.dirname(__file__) + "/bin/SeeSharp.PreviewRender"
         with tempfile.TemporaryDirectory() as tempdir:
-            blend_to_seesharp.export_scene(tempdir + "/scene.json")
+            exporter.export_scene(tempdir + "/scene.json")
             args = [exe]
             args.extend([
                 "--scene", tempdir + "/scene.json",
@@ -138,7 +138,6 @@ class SeeSharpScene(bpy.types.PropertyGroup):
 def register():
     bpy.utils.register_class(SeeSharpConfig)
     bpy.utils.register_class(SeeSharpScene)
-    SeeSharpScene.register()
     bpy.utils.register_class(SeeSharpPanel)
     bpy.utils.register_class(SeeSharpRenderEngine)
     for panel in get_panels():
@@ -146,7 +145,6 @@ def register():
 
 def unregister():
     bpy.utils.unregister_class(SeeSharpConfig)
-    SeeSharpScene.unregister()
     bpy.utils.unregister_class(SeeSharpScene)
     bpy.utils.unregister_class(SeeSharpPanel)
     bpy.utils.unregister_class(SeeSharpRenderEngine)

@@ -1,7 +1,7 @@
 import bpy
 
-from . import blend_to_seesharp
-from . import blender_render
+from . import exporter
+from . import render_engine
 
 bl_info = {
     "name": "SeeSharp Renderer",
@@ -12,9 +12,9 @@ bl_info = {
 }
 
 def register():
-    blend_to_seesharp.register()
-    blender_render.register()
+    exporter.register()
+    render_engine.register()
 
 def unregister():
-    blend_to_seesharp.unregister()
-    blender_render.unregister()
+    exporter.unregister()
+    render_engine.unregister()

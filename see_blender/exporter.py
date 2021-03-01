@@ -1,8 +1,9 @@
 import os
+import json
 from math import degrees, atan, tan
 import bpy
 from bpy_extras.io_utils import ExportHelper
-from bpy.props import StringProperty
+from bpy.props import StringProperty, BoolProperty
 from bpy.types import Operator
 
 def export_obj_meshes(filepath):
@@ -18,14 +19,22 @@ def export_obj_meshes(filepath):
 def map_rgb(rgb):
     return { "type": "rgb", "value": [ rgb[0], rgb[1], rgb[2] ] }
 
-def map_texture_or_color(node):
+def map_texture_or_color(node, out_dir):
     default_rgb = [node.default_value[0], node.default_value[1], node.default_value[2]]
     try:
         texture = node.links[0].from_node.image
         path = texture.filepath_raw.replace('//', '')
-        # Always use unix-style separators, so the generated file is portable
-        path = texture.filepath_raw.replace('\\', '/')
-        return { "type": "texture", "path": path }
+
+        # Export the texture and store its path
+        name = os.path.basename(path)
+        old = texture.filepath_raw
+        try:
+            texture.filepath_raw = f"{out_dir}/Textures/{name}"
+            texture.save()
+        finally: # Never break the scene!
+            texture.filepath_raw = old
+
+        return { "type": "texture", "path": f"Textures/{name}" }
     except:
         pass
     return { "type": "rgb", "value": default_rgb }
@@ -33,10 +42,10 @@ def map_texture_or_color(node):
 def map_float(node):
     return node.default_value
 
-def map_principled(shader):
+def map_principled(shader, out_dir):
     return {
         "type": "generic",
-        "baseColor": map_texture_or_color(shader.inputs['Base Color']),
+        "baseColor": map_texture_or_color(shader.inputs['Base Color'], out_dir),
         "roughness": map_float(shader.inputs["Roughness"]),
         "anisotropic": map_float(shader.inputs["Anisotropic"]),
         "IOR": map_float(shader.inputs["IOR"]),
@@ -47,19 +56,19 @@ def map_principled(shader):
         "specularTint": map_float(shader.inputs["Specular Tint"]),
     }
 
-def map_diffuse(shader):
+def map_diffuse(shader, out_dir):
     return {
         "type": "diffuse",
-        "baseColor": map_texture_or_color(shader.inputs['Color']),
+        "baseColor": map_texture_or_color(shader.inputs['Color'], out_dir),
     }
 
-def map_view_shader(material):
+def map_view_shader(material, out_dir):
     return {
         "type": "diffuse",
         "baseColor": map_rgb(material.diffuse_color)
     }
 
-def map_emission(shader):
+def map_emission(shader, out_dir):
     # get the W/m2 scaling factor
     strength = shader.inputs['Strength'].default_value
     print(strength)
@@ -77,22 +86,18 @@ shader_matcher = {
     "Emission": map_emission
 }
 
-def export_materials(result):
+def export_materials(result, out_dir):
     result["materials"] = []
     for material in list(bpy.data.materials):
         try: # try to interpret as a known shader
             last_shader = material.node_tree.nodes['Material Output'].inputs['Surface'].links[0].from_node
-            result["materials"].append(shader_matcher[last_shader.name](last_shader))
+            result["materials"].append(shader_matcher[last_shader.name](last_shader, out_dir))
         except Exception as e: # use the view shading settings instead
-            result["materials"].append(map_view_shader(material))
+            result["materials"].append(map_view_shader(material, out_dir))
         result["materials"][-1]["name"] = material.name.replace(" ", "_")
 
-def export_background(result, filepath):
-    out_dir = os.path.dirname(filepath)
-    texture_dir = os.path.join(out_dir, 'textures')
-    if not os.path.exists(texture_dir):
-        os.makedirs(texture_dir)
-
+def export_background(result, out_dir):
+    texture_dir = os.path.join(out_dir, 'Textures')
     try:
         # Try to find an environment texture first
         bgn = bpy.data.worlds['World'].node_tree.nodes["Environment Texture"].image
@@ -103,12 +108,14 @@ def export_background(result, filepath):
         # Next, copy the texture file to a location relative to the output file
         export_path = os.path.join(texture_dir, os.path.basename(path))
         old_path = bgn.filepath_raw
-        bgn.filepath_raw = export_path
-        bgn.save()
-        bgn.filepath_raw = old_path
+        try:
+            bgn.filepath_raw = export_path
+            bgn.save()
+        finally: # Never break the scene!
+            bgn.filepath_raw = old_path
 
         # Store the relative file path in the scene description
-        relative_path = "textures/" + os.path.basename(export_path)
+        relative_path = "Textures/" + os.path.basename(export_path)
         result["background"] = {
             "type": "image",
             "filename": relative_path
@@ -138,7 +145,7 @@ def export_cameras(result):
             "position": [
                 -camera.location.x,
                 camera.location.z,
-                -camera.location.y
+                camera.location.y
             ],
             # At (0,0,0) rotation, the Blender camera faces towards negative z, with positive y pointing up
             # We account for this extra rotation here, because we want it to face _our_ negative z with _our_
@@ -167,11 +174,10 @@ def export_scene(filepath):
 
     # Write all materials and cameras to a dict with the layout of our json file
     result = {}
-    export_materials(result)
+    export_materials(result, os.path.dirname(filepath))
     export_cameras(result)
-    export_background(result, filepath)
+    export_background(result, os.path.dirname(filepath))
 
-    import os
     obj_name = os.path.splitext(os.path.basename(filepath))[0] + '.obj'
 
     result['objects'] = [{
@@ -181,7 +187,6 @@ def export_scene(filepath):
     }]
 
     # Write the result into the .json
-    import json
     with open(filepath, 'w') as fp:
         json.dump(result, fp, indent=2)
 
@@ -199,8 +204,19 @@ class SeeSharpExport(Operator, ExportHelper):
         maxlen=255,  # Max internal buffer length, longer would be clamped.
     )
 
+    animations: BoolProperty(
+        name="Export Animations",
+        description="If true, writes .json and .obj files for each frame in the animation.",
+        default=False,
+    )
+
     def execute(self, context):
-        export_scene(self.filepath)
+        if self.animations is True:
+            for frame in range(context.scene.frame_start, context.scene.frame_end+1):
+                context.scene.frame_set(frame)
+                export_scene(self.filepath.replace('.json', f'{frame:04}.json'))
+        else:
+            export_scene(self.filepath)
         return {'FINISHED'}
 
 def menu_func_export(self, context):

@@ -46,7 +46,8 @@ class SeeSharpRenderEngine(bpy.types.RenderEngine):
                 "--resx", str(size_x),
                 "--resy", str(size_y),
                 "--samples", str(config.samples),
-                "--algo", str(config.engine)
+                "--algo", str(config.engine),
+                "--maxdepth", str(config.maxdepth)
             ])
             subprocess.call(args)
 
@@ -65,6 +66,7 @@ def get_panels():
         'VIEWLAYER_PT_layer_passes',
     }
 
+    # TODO remove this after we have our own proper UI support + conversion scripts
     include_panels = {
         'CYCLES_WORLD_PT_settings',
         'CYCLES_WORLD_PT_settings_surface',
@@ -97,7 +99,8 @@ class SeeSharpPanel(bpy.types.Panel):
 
         col = self.layout.column(align=True)
         col.prop(config, "samples", text="Samples per pixel")
-        col.prop(config, "engine", text="Rendering engine")
+        col.prop(config, "engine", text="Algorithm")
+        col.prop(config, "maxdepth", text="Max. depth")
 
 PATH_DESC = (
     "Simple unidirectional path tracer with next event estimation.\n"
@@ -111,6 +114,11 @@ SAMPLES_DESC = (
     "Number of samples per pixel in the rendered image."
 )
 
+MAXDEPTH_DESC = (
+    "Maximum number of bounces to render. If set to one, only directly visible light\n"
+    "sources will be rendered. If set to two, only direct illumination, and so on."
+)
+
 class SeeSharpConfig(bpy.types.PropertyGroup):
     engines = [
         ("PT", "Path Tracer", PATH_DESC, 0),
@@ -119,6 +127,8 @@ class SeeSharpConfig(bpy.types.PropertyGroup):
     engine: EnumProperty(name="Engine", items=engines, default="PT")
 
     samples: IntProperty(name="Samples", default=8, min=1, description=SAMPLES_DESC)
+
+    maxdepth: IntProperty(name="Max. bounces", default=8, min=1, description=MAXDEPTH_DESC)
 
 class SeeSharpScene(bpy.types.PropertyGroup):
     config: PointerProperty(type=SeeSharpConfig)

@@ -14,7 +14,6 @@ namespace SeeSharp.Integrators {
     public class PathTracer : Integrator {
         public UInt32 BaseSeed = 0xC030114;
         public int TotalSpp = 20;
-        public uint MaxDepth = 2;
         public uint MinDepth = 1;
         public int NumShadowRays = 1;
         public bool EnableBsdfDI = true;

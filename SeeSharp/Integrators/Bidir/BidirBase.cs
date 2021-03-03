@@ -14,7 +14,6 @@ namespace SeeSharp.Integrators.Bidir {
     public abstract class BidirBase : Integrator {
         public int NumIterations = 2;
         public int NumLightPaths = 0;
-        public int MaxDepth = 10;
         public int MinDepth = 1;
 
         public uint BaseSeedCamera = 0xC030114u;

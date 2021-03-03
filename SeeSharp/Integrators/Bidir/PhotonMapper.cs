@@ -10,7 +10,6 @@ namespace SeeSharp.Integrators.Bidir {
     public class PhotonMapper : Integrator {
         public int NumIterations = 2;
         public int NumLightPaths = 0;
-        public int MaxDepth = 10;
         public uint BaseSeedLight = 0xC030114u;
         public uint BaseSeedCamera = 0x13C0FEFEu;
 
@@ -55,7 +54,7 @@ namespace SeeSharp.Integrators.Bidir {
 
             return photonContrib;
         }
-        
+
         public virtual RgbColor EstimatePixelValue(SurfacePoint cameraPoint, Vector2 filmPosition, Ray primaryRay,
                                                    float pdfFromCamera, RgbColor initialWeight, RNG rng) {
             // Trace the primary ray into the scene

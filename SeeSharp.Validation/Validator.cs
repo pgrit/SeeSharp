@@ -64,7 +64,7 @@ namespace SeeSharp.Validation {
             var algorithms = new Dictionary<string, Integrator>() {
                 { "PathTracer", new PathTracer() {
                    TotalSpp = sceneFactory.SamplesPerPixel,
-                   MaxDepth = (uint)sceneFactory.MaxDepth,
+                   MaxDepth = sceneFactory.MaxDepth,
                    MinDepth = 1
                 }},
                 { "ClassicBidir", new ClassicBidir() {

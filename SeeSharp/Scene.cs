@@ -13,6 +13,9 @@ using TinyEmbree;
 using SimpleImageIO;
 
 namespace SeeSharp {
+    /// <summary>
+    /// Manages all information required to render a scene.
+    /// </summary>
     public class Scene {
         public FrameBuffer FrameBuffer;
         public Camera Camera;
@@ -28,6 +31,19 @@ namespace SeeSharp {
         public BoundingBox Bounds { get; private set; }
 
         public List<string> ValidationErrorMessages { get; private set; } = new();
+
+        /// <summary>
+        /// Creates a semi-deep copy of the scene. That is, a shallow copy except that all lists of references
+        /// are copied into new lists of references. So meshes in the new scene can be removed or added.
+        /// </summary>
+        /// <returns>A copy of the scene</returns>
+        public Scene Copy() {
+            Scene cpy = (Scene)this.MemberwiseClone();
+            cpy.Meshes = new(this.Meshes);
+            cpy.Emitters = new(this.Emitters);
+            cpy.ValidationErrorMessages = new(this.ValidationErrorMessages);
+            return cpy;
+        }
 
         public void Prepare() {
             if (!IsValid)
@@ -99,6 +115,10 @@ namespace SeeSharp {
                     if (m.Material == null)
                         ValidationErrorMessages.Add($"Mesh[{idx}] does not have a material.");
                     idx++;
+                }
+
+                foreach (string msg in ValidationErrorMessages) {
+                    Common.Logger.Log(msg, Common.Verbosity.Error);
                 }
 
                 return ValidationErrorMessages.Count == 0;

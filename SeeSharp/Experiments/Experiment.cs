@@ -1,12 +1,11 @@
-﻿using SeeSharp;
-using SeeSharp.Integrators;
-using SeeSharp.Image;
+﻿using SeeSharp.Integrators;
 using System.Collections.Generic;
 
 namespace SeeSharp.Experiments {
-    public abstract class ExperimentFactory {
-        public virtual FrameBuffer.Flags FrameBufferFlags => FrameBuffer.Flags.SendToTev;
-
+    /// <summary>
+    /// Describes an experiment with a list of named integrators.
+    /// </summary>
+    public abstract class Experiment {
         public readonly struct Method {
             public readonly string name;
             public readonly Integrator integrator;
@@ -18,9 +17,5 @@ namespace SeeSharp.Experiments {
         }
 
         public abstract List<Method> MakeMethods();
-
-        public abstract Scene MakeScene();
-
-        public abstract Integrator MakeReferenceIntegrator();
     }
 }

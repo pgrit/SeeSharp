@@ -37,7 +37,7 @@ namespace SeeSharp.PreviewRender {
 
             if (algo == "PT") {
                 new PathTracer() {
-                    MaxDepth = (uint)maxdepth,
+                    MaxDepth = maxdepth,
                     TotalSpp = samples
                 }.Render(sc);
             } else if (algo == "VCM") {

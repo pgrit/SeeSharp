@@ -1,4 +1,3 @@
-using SeeSharp;
 using SeeSharp.Image;
 
 namespace SeeSharp.Validation {
@@ -10,7 +9,7 @@ namespace SeeSharp.Validation {
         public override string Name => "CornellBox";
 
         public override Scene MakeScene() {
-            var scene = Scene.LoadFromFile("Data/Scenes/cbox.json");
+            var scene = Scene.LoadFromFile("Data/Scenes/CornellBox/CornellBox.json");
             scene.FrameBuffer = new FrameBuffer(512, 512, "");
             scene.Prepare();
             return scene;

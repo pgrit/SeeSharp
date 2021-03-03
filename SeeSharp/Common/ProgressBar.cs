@@ -116,10 +116,10 @@ namespace SeeSharp.Common {
 
             // Create the progress bar
             StringBuilder next = new();
-            next.Append('[');
-            next.Append('#', activeBlocks);
-            next.Append('-', numBlocks - activeBlocks);
-            next.Append(']');
+            next.Append(" |");
+            next.Append('█', activeBlocks);
+            next.Append(' ', numBlocks - activeBlocks);
+            next.Append('|');
             next.Append($" {(int)(fractionDone * 100)}%");
 
             if (displayWork)

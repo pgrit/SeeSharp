@@ -39,7 +39,7 @@ namespace SeeSharp.Cameras {
 
         /// <summary>
         /// Computes the jacobian determinant for the change of variables from film to solid angle about the view direction.
-        /// That is, the change of variables performed by the <see cref="GenerateRay(Vector2)"/> method.
+        /// That is, the change of variables performed by the <see cref="GenerateRay(Vector2, RNG)"/> method.
         /// </summary>
         /// <param name="pos">A point in world space, visible to the camera.</param>
         /// <returns>The jacobian.</returns>

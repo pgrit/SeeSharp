@@ -67,7 +67,10 @@ namespace SeeSharp.Common {
 
             estimTotalSeconds = secondsPerUnit * total;
 
-            UpdateText();
+            // Assumes that all other
+            lock (Console.Out) {
+                UpdateText();
+            }
         }
 
         string MakeTimeString(double seconds) {

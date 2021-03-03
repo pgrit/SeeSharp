@@ -6,6 +6,7 @@
 
 
             ConsoleUtils.TestProgressBar();
+            ConsoleUtils.TestLogger();
         }
     }
 }

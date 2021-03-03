@@ -1,3 +1,4 @@
+using SeeSharp.Common;
 using System;
 using System.Threading;
 
@@ -15,6 +16,22 @@ namespace SeeSharp.IntegrationTests {
                 if (i == 4)
                     Console.Write("gimme your attention!");
             }
+        }
+
+        public static void TestLogger() {
+            Logger.Log("This is an info thing");
+            Logger.Log("And now a WARNING", Verbosity.Warning);
+            Logger.Log("And now a error message!!!!", Verbosity.Error);
+
+            Logger.Verbosity = Verbosity.Warning;
+            Logger.Log("This is an info thing");
+            Logger.Log("And now a WARNING", Verbosity.Warning);
+            Logger.Log("And now a error message!!!!", Verbosity.Error);
+
+            Logger.Verbosity = Verbosity.Error;
+            Logger.Log("This is an info thing");
+            Logger.Log("And now a WARNING", Verbosity.Warning);
+            Logger.Log("And now a error message!!!!", Verbosity.Error);
         }
     }
 }

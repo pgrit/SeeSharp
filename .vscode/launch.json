@@ -31,12 +31,12 @@
             "stopAtEntry": false
         },
         {
-            "name": "Tests",
+            "name": "Examples",
             "type": "coreclr",
             "request": "launch",
             "preLaunchTask": "build",
             // If you have changed target frameworks, make sure to update the program path.
-            "program": "${workspaceFolder}/Tests/bin/Debug/net5.0/Tests.dll",
+            "program": "${workspaceFolder}/SeeSharp.Examples/bin/Debug/net5.0/SeeSharp.Examples.dll",
             "args": [],
             "cwd": "${workspaceFolder}",
             // For more information about the 'console' field, see https://aka.ms/VSCode-CS-LaunchJson-Console

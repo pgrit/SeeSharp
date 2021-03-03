@@ -37,6 +37,3 @@ docs/*
 # Generated images of the validation test
 /SeeSharp.Validation/Results
 /Results
-
-# The larger test scenes are kept separate to not bloat the repository
-/Data/Scenes/*/**

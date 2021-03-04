@@ -111,41 +111,45 @@ Or, you could write a [C# script](https://github.com/filipw/dotnet-script) or F#
 
 The following example of a .csx script conducts an experiment that compares a path tracer to the vertex connection and merging algorithm, at equal sample count:
 ```C#
-#r "nuget: SeeSharp, 0.2.0"
+#r "nuget: SeeSharp, 1.4.0"
 
-using SeeSharp;
-using SeeSharp;
-using SeeSharp.Image;
+using System.Collections.Generic;
+using System.Diagnostics;
 using SeeSharp.Experiments;
+using SeeSharp.Image;
 using SeeSharp.Integrators;
 using SeeSharp.Integrators.Bidir;
 
-// Configure the experiment we want to run: test scene, maximum depth,
-// best reference integrator, which methods to compare.
-class MySimpleExperiment : ExperimentFactory {
-    // Specify the scene and how to render references
-    public override Scene MakeScene() => Scene.LoadFromFile("cbox.json");
-    public override Integrator MakeReferenceIntegrator()
-    => new PathTracer { MaxDepth = 5, TotalSpp = 128 };
-
-    // Specify the methods (named integrators) to compare
+// Configure an experiment that compares VCM and path tracing.
+class PathVsVcm : Experiment {
     public override List<Method> MakeMethods() => new() {
         new("PathTracer", new PathTracer() { MaxDepth = 5, TotalSpp = 4 }),
         new("Vcm", new VertexConnectionAndMerging() { MaxDepth = 5, NumIterations = 2 })
     };
 }
 
-// The Benchmark class can be used to run multiple experiments,
-// for example to render different test scenes or different configurations.
-Benchmark bench = new(new Dictionary<string, ExperimentFactory>() {
-    { "CornellBox", new MySimpleExperiment() },
-}, 512, 512) { DirectoryName = "Results" };
-bench.Run();
+// Register the directory as a scene file provider.
+// Asides from the geometry, it is also used as a reference image cache.
+SceneRegistry.AddSource("Data/Scenes");
+
+// Configure a benchmark to compare path tracing and VCM on the CornellBox
+// at 512x512 resolution. Display images in tev during rendering (localhost, default port)
+Benchmark benchmark = new(new PathVsVcm(), new() {
+    SceneRegistry.LoadScene("CornellBox", maxDepth: 5),
+    SceneRegistry.LoadScene("CornellBox", maxDepth: 2).WithName("CornellBoxDirectIllum")
+}, "Results/PathVsVcm", 512, 512, FrameBuffer.Flags.SendToTev);
+
+// Render the images
+benchmark.Run(format: ".exr");
 
 // Optional, but usually a good idea: assemble the rendering results in an overview
 // figure using a Python script.
-Process.Start("python", "./MakeFigure.py Results PathTracer Vcm").WaitForExit();
-Process.Start("magick", "-density 300 ./Overview.pdf ExampleFigure.png").WaitForExit();
+Process.Start("python", "./SeeSharp.Examples/MakeFigure.py Results/PathVsVcm PathTracer Vcm")
+    .WaitForExit();
+
+// For our README file, we further convert the pdf to png with ImageMagick
+Process.Start("magick", "-density 300 ./Results/PathVsVcm/Overview.pdf ExampleFigure.png")
+    .WaitForExit();
 ```
 
 The first line automatically downloads and installs the SeeSharp package using nuget. Hence, you can simply run the experiment via:
@@ -164,46 +168,11 @@ to assemble the rendered images in a comparison figure. We use [figuregen](https
 python -m pip install figuregen
 ```
 
-The content of `MakeFigure.py` is below:
-
-```Python
-import figuregen
-from figuregen import util
-import pyexr
-import sys, os
-
-def tonemap(img):
-    return figuregen.PNG(util.image.lin_to_srgb(img))
-
-def make_figure(dirname, method_names):
-    # Read the files
-    ref = pyexr.read(os.path.join(dirname, "Reference.exr"))
-    methods = [
-        pyexr.read(os.path.join(dirname, name, "Render.exr"))
-        for name in method_names
-    ]
-    errors = [ f"{util.image.relative_mse(m, ref):.4f}" for m in methods ]
-
-    # Put side by side and write error values underneath
-    grid = figuregen.Grid(1, len(method_names) + 1)
-    grid.get_element(0, 0).set_image(tonemap(ref)).set_caption("Error (relMSE):")
-    for i in range(len(methods)):
-        grid.get_element(0, i + 1).set_image(tonemap(methods[i])).set_caption(errors[i])
-    grid.get_layout().set_caption(3, fontsize=8, offset_mm=1)
-
-    figuregen.horizontal_figure([grid], 18, "Overview.pdf")
-
-if __name__ == "__main__":
-    result_dir = sys.argv[1]
-    method_names = []
-    for i in range(2, len(sys.argv)):
-        method_names.append(sys.argv[i])
-    make_figure(os.path.join(result_dir, "CornellBox"), method_names)
-```
-
 And here's the generated overview figure:
 
 ![](ExampleFigure.png)
+
+The project-file based version of this example, as well as the [MakeFigure.py](SeeSharp.Examples/MakeFigure.py) script, can be found in the [SeeSharp.Examples](SeeSharp.Examples) directory.
 
 ## Coding conventions
 

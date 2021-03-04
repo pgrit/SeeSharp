@@ -11,7 +11,7 @@ namespace SeeSharp.Experiments {
     public class Benchmark {
         public Benchmark(Experiment experiment, List<SceneConfig> sceneConfigs,
                          string workingDirectory, int width, int height,
-                         FrameBuffer.Flags frameBufferFlags) {
+                         FrameBuffer.Flags frameBufferFlags = FrameBuffer.Flags.None) {
             this.experiment = experiment;
             this.sceneConfigs = sceneConfigs;
             this.workingDirectory = workingDirectory;

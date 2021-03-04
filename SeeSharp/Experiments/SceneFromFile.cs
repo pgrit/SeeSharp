@@ -91,14 +91,6 @@ namespace SeeSharp.Experiments {
             return scn.FrameBuffer.Image;
         }
 
-        public override void DeleteReferenceImages() {
-            DirectoryInfo refDir = new(Path.Join(file.DirectoryName, "References"));
-            foreach (FileInfo file in refDir.EnumerateFiles()) {
-                if (file.Extension.ToLowerInvariant() == ".exr")
-                    file.Delete();
-            }
-        }
-
         public SceneFromFile(string filename, int maxDepth, string name = null) {
             file = new(filename);
             scene = Scene.LoadFromFile(filename);

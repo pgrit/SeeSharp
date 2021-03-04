@@ -30,7 +30,7 @@ namespace SeeSharp.Experiments {
         /// of the sources (not guaranteed to be a specific one in case of duplicates).
         /// </summary>
         /// <param name="name">The name of the scene. We look for a file "[source]/name/name.json</param>
-        /// <param name="variant">If given, load the "name-variant.json" file instead of "name.json"</param>
+        /// <param name="variant">If given, load the "name/variant/name-variant.json" file instead</param>
         /// <param name="maxDepth">If given, overrides the default maximum path length</param>
         /// <returns>A <see cref="SceneFromFile"/> that represents the scene, if found, or null.</returns>
         public static SceneFromFile LoadScene(string name, string variant = null, int? maxDepth = null) {
@@ -49,9 +49,9 @@ namespace SeeSharp.Experiments {
 
             string sceneFile = (variant == null)
                 ? Path.Join(candidate, $"{name}.json")
-                : Path.Join(candidate, $"{name}-{variant}.json");
+                : Path.Join(candidate, variant, $"{name}-{variant}.json");
 
-            return new SceneFromFile(sceneFile, maxDepth ?? 5, name);
+            return new SceneFromFile(sceneFile, maxDepth ?? 5, name + (variant ?? ""));
         }
     }
 }

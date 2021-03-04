@@ -1,4 +1,5 @@
 ﻿using SeeSharp.Experiments;
+using SeeSharp.Image;
 using System.Diagnostics;
 
 namespace SeeSharp.Examples {
@@ -13,7 +14,7 @@ namespace SeeSharp.Examples {
             Benchmark benchmark = new(new PathVsVcm(), new() {
                 SceneRegistry.LoadScene("CornellBox", maxDepth: 5),
                 SceneRegistry.LoadScene("CornellBox", maxDepth: 2).WithName("CornellBoxDirectIllum")
-            }, "Results/PathVsVcm", 512, 512, Image.FrameBuffer.Flags.SendToTev);
+            }, "Results/PathVsVcm", 512, 512, FrameBuffer.Flags.SendToTev);
 
             // Render the images
             benchmark.Run(format: ".exr");

@@ -117,6 +117,9 @@ namespace SeeSharp {
                     idx++;
                 }
 
+                if (Emitters.Count == 0 && Background == null)
+                    ValidationErrorMessages.Add("No emitters and no background in the scene.");
+
                 foreach (string msg in ValidationErrorMessages) {
                     Common.Logger.Log(msg, Common.Verbosity.Error);
                 }

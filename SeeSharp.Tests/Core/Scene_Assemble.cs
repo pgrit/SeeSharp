@@ -52,6 +52,8 @@ namespace SeeSharp.Tests.Core {
                 new Vector3(0, 5, 0), new Vector3(0, 0, 1)), 90, null);
             scene.FrameBuffer = new FrameBuffer(1, 1, "");
 
+            scene.Emitters.Add(new DiffuseEmitter(scene.Meshes[0], new RgbColor(1, 1, 1)));
+
             return scene;
         }
 
@@ -73,7 +75,6 @@ namespace SeeSharp.Tests.Core {
         public void TwoQuads_EmitterShouldBeFound() {
             var scene = MakeDummyScene();
 
-            scene.Emitters.Add(new DiffuseEmitter(scene.Meshes[0], new RgbColor(1, 1, 1)));
             scene.Prepare();
 
             Assert.Single(scene.Emitters);

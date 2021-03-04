@@ -25,6 +25,11 @@ def map_texture_or_color(node, out_dir):
         texture = node.links[0].from_node.image
         path = texture.filepath_raw.replace('//', '')
 
+        if path == '':
+            path = texture.name + ".png"
+
+        os.makedirs(f"{out_dir}/Textures", exist_ok=True)
+
         # Export the texture and store its path
         name = os.path.basename(path)
         old = texture.filepath_raw

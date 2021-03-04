@@ -1,0 +1,79 @@
+{
+  "materials": [
+    {
+      "type": "diffuse",
+      "baseColor": {
+        "type": "rgb",
+        "value": [
+          0.800000011920929,
+          0.800000011920929,
+          0.800000011920929
+        ]
+      },
+      "name": "Dots_Stroke"
+    },
+    {
+      "type": "diffuse",
+      "baseColor": {
+        "type": "rgb",
+        "value": [
+          0,
+          0,
+          0
+        ]
+      },
+      "emission": {
+        "type": "rgb",
+        "value": [
+          10.0,
+          10.0,
+          10.0
+        ]
+      },
+      "name": "Material.001"
+    },
+    {
+      "type": "diffuse",
+      "baseColor": {
+        "type": "texture",
+        "path": "Textures/TestPattern.png"
+      },
+      "name": "Material.002"
+    }
+  ],
+  "transforms": [
+    {
+      "name": "camera",
+      "position": [
+        0.05385369062423706,
+        5.471238613128662,
+        -0.059679657220840454
+      ],
+      "rotation": [
+        -89.45677456474138,
+        179.8844821311455,
+        0.4280197540739464
+      ],
+      "scale": [
+        1.0,
+        1.0,
+        1.0
+      ]
+    }
+  ],
+  "cameras": [
+    {
+      "fov": 22.895194130645738,
+      "transform": "camera",
+      "name": "default",
+      "type": "perspective"
+    }
+  ],
+  "objects": [
+    {
+      "name": "scene",
+      "type": "obj",
+      "relativePath": "TextureTest.obj"
+    }
+  ]
+}

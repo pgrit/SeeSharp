@@ -29,8 +29,8 @@ namespace SeeSharp.Image {
 
         /// <returns> The (x,y) / (col,row) coordinate of the texel. </returns>
         public (int, int) ComputeTexel(Vector2 uv) {
-            int row = (int)(uv.X * image.Width);
-            int col = (int)(uv.Y * image.Height);
+            int col = (int)(uv.X * image.Width);
+            int row = (int)(uv.Y * image.Height);
             return ApplyBorderHandling(col, row);
         }
 

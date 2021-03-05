@@ -36,10 +36,10 @@ class SeeSharpRenderEngine(bpy.types.RenderEngine):
 
         config = scene.seesharp.config
 
-        exe = os.path.dirname(__file__) + "/bin/SeeSharp.PreviewRender"
+        exe = os.path.dirname(__file__) + "/bin/SeeSharp.PreviewRender.dll"
         with tempfile.TemporaryDirectory() as tempdir:
             exporter.export_scene(tempdir + "/scene.json")
-            args = [exe]
+            args = ["dotnet", exe]
             args.extend([
                 "--scene", tempdir + "/scene.json",
                 "--output", tempdir + "/Render.hdr",

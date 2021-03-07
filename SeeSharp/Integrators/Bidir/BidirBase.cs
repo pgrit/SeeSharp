@@ -106,6 +106,7 @@ namespace SeeSharp.Integrators.Bidir {
             denoiseBuffers = new(scene.FrameBuffer);
 
             SeeSharp.Common.ProgressBar progressBar = new(NumIterations);
+            RNG camSeedGen = new(BaseSeedCamera);
             for (uint iter = 0; iter < NumIterations; ++iter) {
                 var stop = Stopwatch.StartNew();
                 scene.FrameBuffer.StartIteration();
@@ -115,7 +116,7 @@ namespace SeeSharp.Integrators.Bidir {
                     lightPaths.TraceAllPaths(iter,
                         (origin, primary, nextDirection) => NextEventPdf(primary.Point, origin.Point));
                     ProcessPathCache();
-                    TraceAllCameraPaths(iter);
+                    TraceAllCameraPaths(camSeedGen);
                 } catch {
                     Console.WriteLine($"Exception in iteration {iter} out of {NumIterations}!");
                     throw;
@@ -130,16 +131,18 @@ namespace SeeSharp.Integrators.Bidir {
             }
         }
 
-        private void TraceAllCameraPaths(uint iter) {
-            Parallel.For(0, scene.FrameBuffer.Height,
-                row => {
-                    var seed = RNG.HashSeed(BaseSeedCamera, (uint)row, iter);
-                    var rng = new RNG(seed);
-                    for (uint col = 0; col < scene.FrameBuffer.Width; ++col) {
-                        RenderPixel((uint)row, col, rng);
-                    }
+        private void TraceAllCameraPaths(RNG seedGen) {
+            int[] rowSeeds = new int[scene.FrameBuffer.Height];
+            for (int i = 0; i < scene.FrameBuffer.Height; ++i) {
+                rowSeeds[i] = seedGen.NextInt(int.MinValue, int.MaxValue);
+            }
+
+            Parallel.For(0, scene.FrameBuffer.Height, row => {
+                var rng = new RNG((uint)rowSeeds[row]);
+                for (uint col = 0; col < scene.FrameBuffer.Width; ++col) {
+                    RenderPixel((uint)row, col, rng);
                 }
-            );
+            });
         }
 
         private void RenderPixel(uint row, uint col, RNG rng) {

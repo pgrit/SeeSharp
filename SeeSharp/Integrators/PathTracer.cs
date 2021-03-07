@@ -82,20 +82,27 @@ namespace SeeSharp.Integrators {
             denoiseBuffers = new(scene.FrameBuffer);
 
             SeeSharp.Common.ProgressBar progressBar = new(TotalSpp);
+            RNG seedGen = new(BaseSeed);
+            int[] rowSeeds = new int[scene.FrameBuffer.Height];
             for (uint sampleIndex = 0; sampleIndex < TotalSpp; ++sampleIndex) {
                 var stop = Stopwatch.StartNew();
                 scene.FrameBuffer.StartIteration();
                 OnPreIteration(sampleIndex);
-                Parallel.For(0, scene.FrameBuffer.Height,
-                    row => {
-                        // Seed the random number generator
-                        var seed = RNG.HashSeed(BaseSeed, (uint)row, sampleIndex);
-                        var rng = new RNG(seed);
-                        for (uint col = 0; col < scene.FrameBuffer.Width; ++col) {
-                            RenderPixel((uint)row, col, rng);
-                        }
+
+                // We have one random generator per image row. Here, we pre-compute the seeds to they
+                // are deterministic. This produces lower correlation than hashing the sample index and
+                // row index, at basically no cost (less than one millisecond).
+                for (int i = 0; i < scene.FrameBuffer.Height; ++i) {
+                    rowSeeds[i] = seedGen.NextInt(int.MinValue, int.MaxValue);
+                }
+
+                Parallel.For(0, scene.FrameBuffer.Height, row => {
+                    RNG rng = new((ulong)rowSeeds[row]);
+                    for (uint col = 0; col < scene.FrameBuffer.Width; ++col) {
+                        RenderPixel((uint)row, col, rng);
                     }
-                );
+                });
+
                 OnPostIteration(sampleIndex);
 
                 if (sampleIndex == TotalSpp - 1)

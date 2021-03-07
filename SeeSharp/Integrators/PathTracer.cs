@@ -1,3 +1,4 @@
+using SeeSharp.Common;
 using System;
 using System.Diagnostics;
 using System.Numerics;
@@ -22,7 +23,7 @@ namespace SeeSharp.Integrators {
         TechPyramid techPyramidRaw;
         TechPyramid techPyramidWeighted;
 
-        Util.FeatureLogger features;
+        Util.DenoiseBuffers denoiseBuffers;
 
         protected Scene scene;
 
@@ -78,7 +79,7 @@ namespace SeeSharp.Integrators {
             }
 
             // Add custom frame buffer layers
-            features = new(scene.FrameBuffer);
+            denoiseBuffers = new(scene.FrameBuffer);
 
             SeeSharp.Common.ProgressBar progressBar = new(TotalSpp);
             for (uint sampleIndex = 0; sampleIndex < TotalSpp; ++sampleIndex) {
@@ -90,13 +91,16 @@ namespace SeeSharp.Integrators {
                         // Seed the random number generator
                         var seed = RNG.HashSeed(BaseSeed, (uint)row, sampleIndex);
                         var rng = new RNG(seed);
-
                         for (uint col = 0; col < scene.FrameBuffer.Width; ++col) {
                             RenderPixel((uint)row, col, rng);
                         }
                     }
                 );
                 OnPostIteration(sampleIndex);
+
+                if (sampleIndex == TotalSpp - 1)
+                    denoiseBuffers.Denoise();
+
                 scene.FrameBuffer.EndIteration();
                 progressBar.ReportDone(1, stop.Elapsed.TotalSeconds);
             }
@@ -157,7 +161,7 @@ namespace SeeSharp.Integrators {
 
             if (depth == 1) {
                 var albedo = ((SurfacePoint)hit).Material.GetScatterStrength(hit);
-                features.LogPrimaryHit(pixel, albedo, hit.Normal, hit.Distance);
+                denoiseBuffers.LogPrimaryHit(pixel, albedo, hit.Normal);
             }
 
             // Check if a light source was hit.

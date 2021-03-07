@@ -24,6 +24,8 @@ namespace SeeSharp.Integrators.Bidir {
         public Scene scene;
         public LightPathCache lightPaths;
 
+        protected Util.DenoiseBuffers denoiseBuffers;
+
         public struct PathPdfPair {
             public float PdfFromAncestor;
             public float PdfToAncestor;
@@ -101,6 +103,8 @@ namespace SeeSharp.Integrators.Bidir {
 
             lightPaths = MakeLightPathCache();
 
+            denoiseBuffers = new(scene.FrameBuffer);
+
             SeeSharp.Common.ProgressBar progressBar = new(NumIterations);
             for (uint iter = 0; iter < NumIterations; ++iter) {
                 var stop = Stopwatch.StartNew();
@@ -116,6 +120,9 @@ namespace SeeSharp.Integrators.Bidir {
                     Console.WriteLine($"Exception in iteration {iter} out of {NumIterations}!");
                     throw;
                 }
+
+                if (iter == NumIterations - 1)
+                    denoiseBuffers.Denoise();
 
                 scene.FrameBuffer.EndIteration();
                 PostIteration(iter);
@@ -523,6 +530,11 @@ namespace SeeSharp.Integrators.Bidir {
 
             protected override RgbColor OnHit(Ray ray, SurfacePoint hit, float pdfFromAncestor,
                                               RgbColor throughput, int depth, float toAncestorJacobian) {
+                if (depth == 1) {
+                    var albedo = ((SurfacePoint)hit).Material.GetScatterStrength(hit);
+                    integrator.denoiseBuffers.LogPrimaryHit(path.Pixel, albedo, hit.Normal);
+                }
+
                 path.Vertices.Add(new PathPdfPair {
                     PdfFromAncestor = pdfFromAncestor,
                     PdfToAncestor = 0

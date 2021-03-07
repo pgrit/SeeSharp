@@ -3,13 +3,12 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using System.Threading;
 using System.Threading.Tasks;
 
 namespace SeeSharp.Image {
     public class FrameBuffer {
         public abstract class Layer {
-            public ImageBase Image { get; protected set; }
+            public ImageBase Image { get; set; }
             public abstract void Init(int width, int height);
             public virtual void Reset() => Image.Scale(0);
             public virtual void OnStartIteration(int curIteration) {

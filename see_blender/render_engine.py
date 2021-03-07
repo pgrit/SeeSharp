@@ -47,7 +47,8 @@ class SeeSharpRenderEngine(bpy.types.RenderEngine):
                 "--resy", str(size_y),
                 "--samples", str(config.samples),
                 "--algo", str(config.engine),
-                "--maxdepth", str(config.maxdepth)
+                "--maxdepth", str(config.maxdepth),
+                "--denoise", str(config.denoise)
             ])
             subprocess.call(args)
 
@@ -101,6 +102,7 @@ class SeeSharpPanel(bpy.types.Panel):
         col.prop(config, "samples", text="Samples per pixel")
         col.prop(config, "engine", text="Algorithm")
         col.prop(config, "maxdepth", text="Max. depth")
+        col.prop(config, "denoise", text="Denoise")
 
 PATH_DESC = (
     "Simple unidirectional path tracer with next event estimation.\n"
@@ -119,6 +121,10 @@ MAXDEPTH_DESC = (
     "sources will be rendered. If set to two, only direct illumination, and so on."
 )
 
+DENOISE_DESC = (
+    "Whether or not to run a denoiser (Open Image Denoise) on the rendered image"
+)
+
 class SeeSharpConfig(bpy.types.PropertyGroup):
     engines = [
         ("PT", "Path Tracer", PATH_DESC, 0),
@@ -129,6 +135,8 @@ class SeeSharpConfig(bpy.types.PropertyGroup):
     samples: IntProperty(name="Samples", default=8, min=1, description=SAMPLES_DESC)
 
     maxdepth: IntProperty(name="Max. bounces", default=8, min=1, description=MAXDEPTH_DESC)
+
+    denoise: BoolProperty(name="Denoise", default=True, description=DENOISE_DESC)
 
 class SeeSharpScene(bpy.types.PropertyGroup):
     config: PointerProperty(type=SeeSharpConfig)

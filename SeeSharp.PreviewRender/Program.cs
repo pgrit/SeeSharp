@@ -16,6 +16,7 @@ namespace SeeSharp.PreviewRender {
         /// <param name="output">Name of the output file</param>
         /// <param name="flatten">Set to false to write a multi-layer file with AOVs</param>
         /// <param name="algo">One of: PT, VCM</param>
+        /// <param name="denoise">Whether to run Open Image Denoise on the flattened output image</param>
         static int Main(
             FileInfo scene,
             int samples = 8,
@@ -24,7 +25,8 @@ namespace SeeSharp.PreviewRender {
             int resy = 512,
             string output = "Render.exr",
             bool flatten = true,
-            string algo = "PT"
+            string algo = "PT",
+            bool denoise = true
         ) {
             if (scene == null) {
                 Console.WriteLine("Please provide a scene filename via --scene [file.json]");
@@ -49,7 +51,9 @@ namespace SeeSharp.PreviewRender {
                 Console.WriteLine($"Unknown rendering algorithm: {algo}");
             }
 
-            if (flatten)
+            if (flatten && denoise)
+                sc.FrameBuffer.GetLayer("denoised").Image.WriteToFile(output);
+            else if (flatten)
                 sc.FrameBuffer.Image.WriteToFile(output);
             else
                 sc.FrameBuffer.WriteToFile();

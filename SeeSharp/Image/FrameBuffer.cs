@@ -113,6 +113,7 @@ namespace SeeSharp.Image {
         public readonly Dictionary<string, dynamic> MetaData = new();
 
         public void AddLayer(string name, Layer layer) => layers.Add(name, layer);
+        public Layer GetLayer(string name) => layers[name];
 
         /// <summary>
         /// 1-based index of the current iteration (i.e., the total number of iterations so far)

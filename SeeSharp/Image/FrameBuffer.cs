@@ -1,3 +1,4 @@
+using SeeSharp.Common;
 using SimpleImageIO;
 using System;
 using System.Collections.Generic;
@@ -153,8 +154,8 @@ namespace SeeSharp.Image {
             // Catch invalid values in long running Release mode renderings.
             // Ideally can be reproduced with a single sample from a correctly seeded RNG.
             if (!float.IsFinite(value.Average)) {
-                Console.WriteLine("NaN or Inf written to frame buffer! " +
-                    $"Iteration: {CurIteration}, Pixel: ({x},{y})");
+                Logger.Log($"NaN or Inf written to frame buffer! Iteration: {CurIteration}, Pixel: ({x},{y})",
+                    Verbosity.Warning);
             }
         }
 

@@ -168,7 +168,7 @@ namespace SeeSharp.Integrators {
 
             if (depth == 1) {
                 var albedo = ((SurfacePoint)hit).Material.GetScatterStrength(hit);
-                denoiseBuffers.LogPrimaryHit(pixel, albedo, hit.Normal);
+                denoiseBuffers.LogPrimaryHit(pixel, albedo, hit.ShadingNormal);
             }
 
             // Check if a light source was hit.

@@ -535,7 +535,7 @@ namespace SeeSharp.Integrators.Bidir {
                                               RgbColor throughput, int depth, float toAncestorJacobian) {
                 if (depth == 1) {
                     var albedo = ((SurfacePoint)hit).Material.GetScatterStrength(hit);
-                    integrator.denoiseBuffers.LogPrimaryHit(path.Pixel, albedo, hit.Normal);
+                    integrator.denoiseBuffers.LogPrimaryHit(path.Pixel, albedo, hit.ShadingNormal);
                 }
 
                 path.Vertices.Add(new PathPdfPair {

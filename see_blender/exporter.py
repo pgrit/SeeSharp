@@ -28,6 +28,10 @@ def map_texture_or_color(node, out_dir):
         if path == '':
             path = texture.name + ".png"
 
+        # Make sure the image is loaded to memory, so we can write it out
+        if not texture.has_data:
+            texture.pixels[0]
+
         os.makedirs(f"{out_dir}/Textures", exist_ok=True)
 
         # Export the texture and store its path
@@ -107,23 +111,33 @@ def export_background(result, out_dir):
         # Try to find an environment texture first
         bgn = bpy.data.worlds['World'].node_tree.nodes["Environment Texture"].image
 
-        # Remove the starting double slash on relative paths
-        path = bgn.filepath_raw.replace('//', '')
+        # Make sure the texture output folder exists, we will be writing to it
+        os.makedirs(texture_dir, exist_ok=True)
+
+        # If the file is embedded, generate a name based on the image name
+        filename = os.path.basename(bgn.filepath_raw)
+        if filename == '':
+            filename = bgn.name + ".hdr"
+
+        # Make sure the image is loaded to memory, so we can write it out
+        if not bgn.has_data:
+            bgn.pixels[0]
 
         # Next, copy the texture file to a location relative to the output file
-        export_path = os.path.join(texture_dir, os.path.basename(path))
+        export_path = os.path.join(texture_dir, filename)
         old_path = bgn.filepath_raw
         try:
             bgn.filepath_raw = export_path
             bgn.save()
+        except Exception as e:
+            print(e)
         finally: # Never break the scene!
             bgn.filepath_raw = old_path
 
         # Store the relative file path in the scene description
-        relative_path = "Textures/" + os.path.basename(export_path)
         result["background"] = {
             "type": "image",
-            "filename": relative_path
+            "filename": "Textures/" + filename
         }
     except:
         try:

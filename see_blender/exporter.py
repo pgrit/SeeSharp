@@ -71,6 +71,13 @@ def map_diffuse(shader, out_dir):
         "baseColor": map_texture_or_color(shader.inputs['Color'], out_dir),
     }
 
+def map_translucent(shader, out_dir):
+    return {
+        "type": "diffuse",
+        "baseColor": map_texture_or_color(shader.inputs['Color'], out_dir),
+        "thin": True
+    }
+
 def map_view_shader(material, out_dir):
     return {
         "type": "diffuse",
@@ -92,6 +99,7 @@ def map_emission(shader, out_dir):
 shader_matcher = {
     "Principled BSDF": map_principled,
     "Diffuse BSDF": map_diffuse,
+    "Translucent BSDF": map_translucent,
     "Emission": map_emission
 }
 

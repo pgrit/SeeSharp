@@ -11,6 +11,7 @@ using System.Numerics;
 using System.Text.Json;
 using TinyEmbree;
 using SimpleImageIO;
+using SeeSharp.Common;
 
 namespace SeeSharp {
     /// <summary>
@@ -276,7 +277,8 @@ namespace SeeSharp {
 
                         if (type == "diffuse") {
                             var parameters = new DiffuseMaterial.Parameters {
-                                baseColor = ReadColorOrTexture(m.GetProperty("baseColor"))
+                                baseColor = ReadColorOrTexture(m.GetProperty("baseColor")),
+                                transmitter = ReadOptionalBool("thin", false)
                             };
                             namedMaterials[name] = new DiffuseMaterial(parameters);
                         } else {

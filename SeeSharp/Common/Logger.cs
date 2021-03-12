@@ -5,6 +5,7 @@ namespace SeeSharp.Common {
         Error,
         Warning,
         Info,
+        Debug,
     }
 
     public static class Logger {
@@ -29,6 +30,9 @@ namespace SeeSharp.Common {
                         break;
                     case Verbosity.Info:
                         Console.Write("[INFO] ");
+                        break;
+                    case Verbosity.Debug:
+                        Console.Write("[DEBUG INFO] ");
                         break;
                 }
                 Console.WriteLine(message);

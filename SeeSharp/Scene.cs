@@ -245,7 +245,7 @@ namespace SeeSharp {
 
                 // Parse all materials
                 var watch = System.Diagnostics.Stopwatch.StartNew();
-                System.Console.WriteLine("Start parsing materials...");
+                Logger.Log("Start parsing materials.", Verbosity.Debug);
                 var namedMaterials = new Dictionary<string, Material>();
                 var emissiveMaterials = new Dictionary<string, RgbColor>();
                 JsonElement materials;
@@ -301,7 +301,7 @@ namespace SeeSharp {
                     }
                 }
                 watch.Stop();
-                System.Console.WriteLine($"Done parsing materials after {watch.ElapsedMilliseconds}ms.");
+                Logger.Log($"Done parsing materials after {watch.ElapsedMilliseconds}ms.", Verbosity.Info);
 
                 // Parse all triangle meshes
                 var namedMeshes = new Dictionary<string, Mesh>();

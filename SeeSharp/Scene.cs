@@ -182,7 +182,10 @@ namespace SeeSharp {
 
             var resultScene = new Scene();
 
-            using (JsonDocument document = JsonDocument.Parse(jsonString)) {
+            using (JsonDocument document = JsonDocument.Parse(jsonString, new JsonDocumentOptions {
+                AllowTrailingCommas = true,
+                CommentHandling = JsonCommentHandling.Skip
+            })) {
                 var root = document.RootElement;
 
                 // Parse all transforms

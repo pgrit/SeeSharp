@@ -3,6 +3,9 @@ using System.Diagnostics;
 using System.Numerics;
 
 namespace SeeSharp.Shading.MicrofacetDistributions {
+    /// <summary>
+    /// GGX microfacet distribution. Heavily based on PBRT v3.
+    /// </summary>
     public struct TrowbridgeReitzDistribution {
         public float AlphaX;
         public float AlphaY;

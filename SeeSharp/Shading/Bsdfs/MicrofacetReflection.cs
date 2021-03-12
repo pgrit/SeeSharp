@@ -1,5 +1,6 @@
 ﻿using SeeSharp.Shading.MicrofacetDistributions;
 using SimpleImageIO;
+using System;
 using System.Numerics;
 
 namespace SeeSharp.Shading.Bsdfs {
@@ -53,8 +54,8 @@ namespace SeeSharp.Shading.Bsdfs {
                 return (0, 0);
 
             halfVector = Vector3.Normalize(halfVector);
-            var pdfForward = distribution.Pdf(outDir, halfVector) / (4 * Vector3.Dot(outDir, halfVector));
-            var pdfReverse = distribution.Pdf(inDir, halfVector) / (4 * Vector3.Dot(inDir, halfVector));
+            var pdfForward = distribution.Pdf(outDir, halfVector) / Math.Abs(4 * Vector3.Dot(outDir, halfVector));
+            var pdfReverse = distribution.Pdf(inDir, halfVector) / Math.Abs(4 * Vector3.Dot(inDir, halfVector));
             return (pdfForward, pdfReverse);
         }
 

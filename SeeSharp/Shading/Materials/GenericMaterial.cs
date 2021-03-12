@@ -33,6 +33,8 @@ namespace SeeSharp.Shading.Materials {
         => parameters.baseColor.Lookup(hit.TextureCoordinates);
 
         public override RgbColor Evaluate(SurfacePoint hit, Vector3 outDir, Vector3 inDir, bool isOnLightSubpath) {
+            bool shouldReflect = ShouldReflect(hit, outDir, inDir);
+
             // Transform directions to shading space and normalize
             var normal = hit.ShadingNormal;
             outDir = ShadingSpace.WorldToShading(normal, outDir);
@@ -42,24 +44,26 @@ namespace SeeSharp.Shading.Materials {
 
             // Evaluate all components
             var result = RgbColor.Black;
-            if (local.diffuseWeight > 0) {
+            if (local.diffuseWeight > 0 && shouldReflect) {
                 result += new DisneyDiffuse(local.diffuseReflectance).Evaluate(outDir, inDir, isOnLightSubpath);
                 result += new DisneyRetroReflection(local.retroReflectance, local.roughness)
                     .Evaluate(outDir, inDir, isOnLightSubpath);
             }
-            if (parameters.specularTransmittance > 0) {
+            if (parameters.specularTransmittance > 0 && !shouldReflect) {
                 result += new MicrofacetTransmission(local.specularTransmittance,
                     local.transmissionDistribution, 1, parameters.indexOfRefraction)
                     .Evaluate(outDir, inDir, isOnLightSubpath);
             }
-            if (parameters.thin) {
+            if (parameters.thin && !shouldReflect) {
                 result += new DiffuseTransmission(local.baseColor * parameters.diffuseTransmittance)
                     .Evaluate(outDir, inDir, isOnLightSubpath);
             }
-            result += new MicrofacetReflection(local.microfacetDistrib, local.fresnel, local.specularTint)
-                .Evaluate(outDir, inDir, isOnLightSubpath);
+            if (shouldReflect) {
+                result += new MicrofacetReflection(local.microfacetDistrib, local.fresnel, local.specularTint)
+                    .Evaluate(outDir, inDir, isOnLightSubpath);
+            }
 
-            Debug.Assert(float.IsFinite(result.Average));
+            Debug.Assert(float.IsFinite(result.Average) && result.Average >= 0);
 
             return result;
         }
@@ -130,7 +134,7 @@ namespace SeeSharp.Shading.Materials {
             var (pdfFwd, pdfRev) = Pdf(hit, outWorld, sampledDir, isOnLightSubpath);
             if (pdfFwd == 0) return BsdfSample.Invalid;
 
-            Debug.Assert(float.IsFinite(value.Average / pdfFwd));
+            Debug.Assert(float.IsFinite(value.Average / pdfFwd) && pdfFwd > 0);
 
             // Combine results with balance heuristic MIS
             return new BsdfSample {
@@ -185,6 +189,7 @@ namespace SeeSharp.Shading.Materials {
                 pdfFwd += fwd * select.Reflect;
                 pdfRev += rev * select.ReflectRev;
             }
+            Debug.Assert(float.IsFinite(pdfFwd) && pdfFwd >= 0);
 
             return (pdfFwd, pdfRev);
         }

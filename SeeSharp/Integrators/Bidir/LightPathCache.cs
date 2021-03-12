@@ -105,6 +105,7 @@ namespace SeeSharp.Integrators.Bidir {
             protected override RgbColor OnHit(Ray ray, SurfacePoint hit, float pdfFromAncestor,
                                               RgbColor throughput, int depth, float toAncestorJacobian) {
                 // Call the base first, so the vertex gets created
+                Debug.Assert(pdfFromAncestor > 0);
                 var weight = base.OnHit(ray, hit, pdfFromAncestor, throughput, depth, toAncestorJacobian);
 
                 // The next event pdf is computed once the path has three vertices

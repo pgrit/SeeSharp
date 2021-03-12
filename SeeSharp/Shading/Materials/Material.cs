@@ -30,5 +30,23 @@ namespace SeeSharp.Shading.Materials {
         public abstract BsdfSample Sample(SurfacePoint hit, Vector3 outDir, bool isOnLightSubpath, Vector2 primarySample);
 
         public abstract (float, float) Pdf(SurfacePoint hit, Vector3 outDir, Vector3 inDir, bool isOnLightSubpath);
+
+        /// <summary>
+        /// Tests whether the incoming and outgoing direction are on the same or different sides of the
+        /// actual geometry, based on the actual normal, not the shading normal.
+        /// The directions do not have to be normalized.
+        /// </summary>
+        /// <param name="hit">The surface point</param>
+        /// <param name="outDir">Outgoing direction in world space, away from the surface</param>
+        /// <param name="inDir">Incoming direction in world space, away from the surface</param>
+        /// <returns>True, if they are on the same side, i.e., only reflection should be evaluated.</returns>
+        public bool ShouldReflect(SurfacePoint hit, Vector3 outDir, Vector3 inDir) {
+            // Prevent light leaks based on the actual geometric normal
+            float geoCosOut = Vector3.Dot(outDir, hit.Normal);
+            float geoCosIn = Vector3.Dot(inDir, hit.Normal);
+            if (geoCosIn * geoCosOut >= 0)
+                return true;
+            return false;
+        }
     }
 }

@@ -19,17 +19,20 @@ namespace SeeSharp.Shading.Materials {
         => parameters.baseColor.Lookup(hit.TextureCoordinates);
 
         public override RgbColor Evaluate(SurfacePoint hit, Vector3 outDir, Vector3 inDir, bool isOnLightSubpath) {
+            bool shouldReflect = ShouldReflect(hit, outDir, inDir);
+
             // Transform directions to shading space and normalize
             var normal = hit.ShadingNormal;
             outDir = ShadingSpace.WorldToShading(normal, outDir);
             inDir = ShadingSpace.WorldToShading(normal, inDir);
 
             var baseColor = parameters.baseColor.Lookup(hit.TextureCoordinates);
-            if (parameters.transmitter) {
+            if (parameters.transmitter && !shouldReflect) {
                 return new DiffuseTransmission(baseColor).Evaluate(outDir, inDir, isOnLightSubpath);
-            } else {
+            } else if (shouldReflect) {
                 return new DiffuseBsdf(baseColor).Evaluate(outDir, inDir, isOnLightSubpath);
-            }
+            } else
+                return RgbColor.Black;
         }
 
         public override BsdfSample Sample(SurfacePoint hit, Vector3 outDir, bool isOnLightSubpath, Vector2 primarySample) {
@@ -47,7 +50,7 @@ namespace SeeSharp.Shading.Materials {
             // Terminate if no valid direction was sampled
             if (!sample.HasValue)
                 return BsdfSample.Invalid;
-            
+
             var sampledDir = ShadingSpace.ShadingToWorld(normal, sample.Value);
 
             // Evaluate all components

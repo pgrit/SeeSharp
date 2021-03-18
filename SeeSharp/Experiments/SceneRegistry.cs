@@ -1,3 +1,4 @@
+using SeeSharp.Common;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
@@ -44,8 +45,12 @@ namespace SeeSharp.Experiments {
                 }
             }
 
-            if (candidate == null)
+            if (candidate == null) {
+                Logger.Log($"Scene \"{name}\" not found in any registered repository!", Verbosity.Error);
+                foreach (DirectoryInfo dir in directories)
+                    Logger.Log($"Searched: {dir.FullName}", Verbosity.Info);
                 return null;
+            }
 
             string sceneFile = (variant == null)
                 ? Path.Join(candidate, $"{name}.json")

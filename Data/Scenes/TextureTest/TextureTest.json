@@ -35,8 +35,8 @@
     {
       "type": "diffuse",
       "baseColor": {
-        "type": "texture",
-        "path": "Textures/TestPattern.png"
+        "type": "image",
+        "filename": "Textures/TestPattern.png"
       },
       "name": "Material.002"
     }

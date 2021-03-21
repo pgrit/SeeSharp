@@ -31,10 +31,15 @@ namespace SeeSharp.Shading.Background {
         }
 
         public override RgbColor ComputeTotalPower() {
-            // TOOD / FIXME this is not quite correct: the latlong map does not preserve area and we
-            //              are ignoring the jacobian term (sin(y)).
-            // return image.Sum() * 4 * MathF.PI / (image.Width * image.Height);
-            throw new NotImplementedException();
+            RgbColor totalPower = RgbColor.Black;
+            for (int row = 0; row < image.Height; ++row) {
+                for (int col = 0; col < image.Width; ++col) {
+                    // TOOD / FIXME this is not quite correct: the latlong map does not preserve area and we
+                    //              are ignoring the jacobian term (sin(y)).
+                    totalPower += image.GetPixel(col, row) * 4 * MathF.PI / (image.Width * image.Height);
+                }
+            }
+            return totalPower;
         }
 
         public override BackgroundSample SampleDirection(Vector2 primary) {

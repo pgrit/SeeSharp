@@ -86,7 +86,7 @@ class SeeSharpMaterial(bpy.types.PropertyGroup):
 
     @classmethod
     def unregister(cls):
-        del bpy.types.Scene.seesharp
+        del bpy.types.Material.seesharp
 
 def map_texture(node):
     try:

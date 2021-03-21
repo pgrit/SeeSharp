@@ -11,7 +11,7 @@ class SeeSharpRenderEngine(bpy.types.RenderEngine):
     # RenderEngine; define its internal name, visible name and capabilities.
     bl_idname = "SEE_SHARP"
     bl_label = "SeeSharp"
-    bl_use_preview = True
+    bl_use_preview = False
 
     # Init is called whenever a new render engine instance is created. Multiple
     # instances may exist at the same time, for example for a viewport and final

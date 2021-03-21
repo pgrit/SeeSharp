@@ -19,7 +19,7 @@ class SeeSharpWorld(bpy.types.PropertyGroup):
 
     @classmethod
     def unregister(cls):
-        del bpy.types.Scene.seesharp
+        del bpy.types.World.seesharp
 
 class SEESHARP_PT_context_world(WorldButtonsPanel, Panel):
     """

@@ -13,7 +13,7 @@ def export_fbx_meshes(filepath, scene, depsgraph):
         def report(self, *args, **kwargs):
             print(*args)
     save_single(DummyOp(), scene, depsgraph, filepath, object_types={"MESH"}, context_objects=depsgraph.objects,
-        use_tspace=False, )
+        use_tspace=False, axis_forward='Z', axis_up='Y')
 
 def map_rgb(rgb):
     return { "type": "rgb", "value": [ rgb[0], rgb[1], rgb[2] ] }
@@ -56,7 +56,12 @@ def material_to_json(material, out_dir):
         "metallic": material.metallic,
         "specularTintStrength": material.specularTintStrength,
         "specularTransmittance": material.specularTransmittance,
-        "thin": material.thin
+        "thin": material.thin,
+        "emission": map_rgb((
+            material.emission_color[0] * material.emission_strength,
+            material.emission_color[1] * material.emission_strength,
+            material.emission_color[2] * material.emission_strength
+        ))
     }
 
 def export_materials(result, out_dir):

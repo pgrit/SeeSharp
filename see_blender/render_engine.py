@@ -11,7 +11,7 @@ class SeeSharpRenderEngine(bpy.types.RenderEngine):
     # RenderEngine; define its internal name, visible name and capabilities.
     bl_idname = "SEE_SHARP"
     bl_label = "SeeSharp"
-    bl_use_preview = False
+    bl_use_preview = True
 
     # Init is called whenever a new render engine instance is created. Multiple
     # instances may exist at the same time, for example for a viewport and final
@@ -37,8 +37,8 @@ class SeeSharpRenderEngine(bpy.types.RenderEngine):
 
         exe = os.path.dirname(__file__) + "/bin/SeeSharp.PreviewRender.dll"
         with tempfile.TemporaryDirectory() as tempdir:
-            # TODO export the given scene / depsgraph instead of the default scene!
-            exporter.export_scene(tempdir + "/scene.json")
+            exporter.export_scene(tempdir + "/scene.json", scene, depsgraph)
+            exporter.export_scene("C:/Users/Rascal/Desktop" + "/scene.json", scene, depsgraph)
             args = ["dotnet", exe]
             args.extend([
                 "--scene", tempdir + "/scene.json",
@@ -67,16 +67,8 @@ def get_panels():
         'VIEWLAYER_PT_layer_passes',
     }
 
-    # TODO remove this after we have our own proper UI support + conversion scripts
     include_panels = {
         'MATERIAL_PT_preview',
-        'NODE_PT_material_slots'
-        # 'CYCLES_WORLD_PT_settings',
-        # 'CYCLES_WORLD_PT_settings_surface',
-        # 'CYCLES_MATERIAL_PT_preview',
-        # 'CYCLES_MATERIAL_PT_surface',
-        # 'CYCLES_MATERIAL_PT_settings',
-        # 'CYCLES_MATERIAL_PT_settings_surface'
     }
 
     panels = []

@@ -5,167 +5,73 @@ import bpy
 from bpy_extras.io_utils import ExportHelper
 from bpy.props import StringProperty, BoolProperty
 from bpy.types import Operator
+from io_scene_fbx.export_fbx_bin import save_single
 
-def export_obj_meshes(filepath):
-    # Maps the geometry such that: x = -x', y = z', z = -y'
-    # Where x',y',z' is the position in the Blender coordinate system.
-    bpy.ops.export_scene.obj(filepath=filepath,
-        axis_forward='Z', axis_up='Y',
-        group_by_material=True, group_by_object=True,
-        use_mesh_modifiers=True)
-    mtlpath = filepath.replace(".obj", ".mtl")
-    os.remove(mtlpath)
+def export_fbx_meshes(filepath, scene, depsgraph):
+    # Not sure what the "operator" is supposed to be, but passing a dummy seems to work fine.
+    class DummyOp:
+        def report(self, *args, **kwargs):
+            print(*args)
+    save_single(DummyOp(), scene, depsgraph, filepath, object_types={"MESH"}, context_objects=depsgraph.objects,
+        use_tspace=False, )
 
 def map_rgb(rgb):
     return { "type": "rgb", "value": [ rgb[0], rgb[1], rgb[2] ] }
 
-def map_texture_or_color(node, out_dir):
-    default_rgb = [node.default_value[0], node.default_value[1], node.default_value[2]]
+def map_texture(texture, out_dir):
+    path = texture.filepath_raw.replace('//', '')
+    if path == '':
+        path = texture.name + ".exr"
+
+    # Make sure the image is loaded to memory, so we can write it out
+    if not texture.has_data:
+        texture.pixels[0]
+
+    os.makedirs(f"{out_dir}/Textures", exist_ok=True)
+
+    # Export the texture and store its path
+    name = os.path.basename(path)
+    old = texture.filepath_raw
     try:
-        texture = node.links[0].from_node.image
-        path = texture.filepath_raw.replace('//', '')
+        texture.filepath_raw = f"{out_dir}/Textures/{name}"
+        texture.save()
+    finally: # Never break the scene!
+        texture.filepath_raw = old
 
-        if path == '':
-            path = texture.name + ".png"
+    return { "type": "image", "filename": f"Textures/{name}" }
 
-        # Make sure the image is loaded to memory, so we can write it out
-        if not texture.has_data:
-            texture.pixels[0]
+def material_to_json(material, out_dir):
+    if material.base_texture:
+        base_color = map_texture(material.base_texture, out_dir)
+    else:
+        base_color = map_rgb(material.base_color)
 
-        os.makedirs(f"{out_dir}/Textures", exist_ok=True)
-
-        # Export the texture and store its path
-        name = os.path.basename(path)
-        old = texture.filepath_raw
-        try:
-            texture.filepath_raw = f"{out_dir}/Textures/{name}"
-            texture.save()
-        finally: # Never break the scene!
-            texture.filepath_raw = old
-
-        return { "type": "texture", "path": f"Textures/{name}" }
-    except:
-        pass
-    return { "type": "rgb", "value": default_rgb }
-
-def map_float(node):
-    return node.default_value
-
-def map_principled(shader, out_dir):
     return {
         "type": "generic",
-        "baseColor": map_texture_or_color(shader.inputs['Base Color'], out_dir),
-        "roughness": map_float(shader.inputs["Roughness"]),
-        "anisotropic": map_float(shader.inputs["Anisotropic"]),
-        "IOR": map_float(shader.inputs["IOR"]),
-        "metallic": map_float(shader.inputs["Metallic"]),
-        # diffuse transmittance not directly matched: instead, Blender has a separate
-        # roughenss value for the transmission
-        "specularTransmittance": map_float(shader.inputs["Transmission"]),
-        "specularTint": map_float(shader.inputs["Specular Tint"]),
+        "baseColor": base_color,
+        "roughness": material.roughness,
+        "anisotropic": material.anisotropic,
+        "diffuseTransmittance": material.diffuseTransmittance,
+        "indexOfRefraction": material.indexOfRefraction,
+        "metallic": material.metallic,
+        "specularTintStrength": material.specularTintStrength,
+        "specularTransmittance": material.specularTransmittance,
+        "thin": material.thin
     }
-
-def map_diffuse(shader, out_dir):
-    return {
-        "type": "diffuse",
-        "baseColor": map_texture_or_color(shader.inputs['Color'], out_dir),
-    }
-
-def map_translucent(shader, out_dir):
-    return {
-        "type": "diffuse",
-        "baseColor": map_texture_or_color(shader.inputs['Color'], out_dir),
-        "thin": True
-    }
-
-def map_view_shader(material, out_dir):
-    return {
-        "type": "diffuse",
-        "baseColor": map_rgb(material.diffuse_color)
-    }
-
-def map_emission(shader, out_dir):
-    # get the W/m2 scaling factor
-    strength = shader.inputs['Strength'].default_value
-    print(strength)
-    color = shader.inputs['Color'].default_value
-    print(color)
-    return {
-        "type": "diffuse",
-        "baseColor": { "type": "rgb", "value": [0,0,0] },
-        "emission": map_rgb([color[0] * strength, color[1] * strength, color[2] * strength])
-    }
-
-shader_matcher = {
-    "Principled BSDF": map_principled,
-    "Diffuse BSDF": map_diffuse,
-    "Translucent BSDF": map_translucent,
-    "Emission": map_emission
-}
 
 def export_materials(result, out_dir):
     result["materials"] = []
     for material in list(bpy.data.materials):
-        try: # try to interpret as a known shader
-            last_shader = material.node_tree.nodes['Material Output'].inputs['Surface'].links[0].from_node
-            result["materials"].append(shader_matcher[last_shader.name](last_shader, out_dir))
-        except Exception as e: # use the view shading settings instead
-            result["materials"].append(map_view_shader(material, out_dir))
+        result["materials"].append(material_to_json(material.seesharp, out_dir))
         result["materials"][-1]["name"] = material.name.replace(" ", "_")
 
-def export_background(result, out_dir):
-    texture_dir = os.path.join(out_dir, 'Textures')
-    try:
-        # Try to find an environment texture first
-        bgn = bpy.data.worlds['World'].node_tree.nodes["Environment Texture"].image
+def export_background(result, out_dir, scene):
+    if scene.world.seesharp.hdr:
+        result["background"] = map_texture(scene.world.seesharp.hdr, out_dir)
 
-        # Make sure the texture output folder exists, we will be writing to it
-        os.makedirs(texture_dir, exist_ok=True)
-
-        # If the file is embedded, generate a name based on the image name
-        filename = os.path.basename(bgn.filepath_raw)
-        if filename == '':
-            filename = bgn.name + ".hdr"
-
-        # Make sure the image is loaded to memory, so we can write it out
-        if not bgn.has_data:
-            bgn.pixels[0]
-
-        # Next, copy the texture file to a location relative to the output file
-        export_path = os.path.join(texture_dir, filename)
-        old_path = bgn.filepath_raw
-        try:
-            bgn.filepath_raw = export_path
-            bgn.save()
-        except Exception as e:
-            print(e)
-        finally: # Never break the scene!
-            bgn.filepath_raw = old_path
-
-        # Store the relative file path in the scene description
-        result["background"] = {
-            "type": "image",
-            "filename": "Textures/" + filename
-        }
-    except:
-        try:
-            bgn = bpy.data.worlds['World'].node_tree.nodes["Sky Texture"]
-            # TODO support Hosek-Wilkie Sky parameters
-        except:
-            # All else failed: read the constant color!
-            bpy.data.worlds['World'].color
-            # TODO write into json result
-
-def export_cameras(result):
-    # TODO support multiple named cameras
-    if bpy.context.scene is None:
-        camera = bpy.data.scenes[0].camera
-        scene = bpy.data.scenes[0]
-    else:
-        camera = bpy.context.scene.camera
-        scene = bpy.context.scene
+def export_camera(result, scene):
+    camera = scene.camera
     aspect_ratio = scene.render.resolution_y / scene.render.resolution_x
-
     result["transforms"] = [
         {
             "name": "camera",
@@ -188,6 +94,7 @@ def export_cameras(result):
 
     result["cameras"] = [
         {
+            # convert horizontal FOV to vertical FOV
             "fov": degrees(2 * atan(aspect_ratio * tan(camera.data.angle / 2))),
             "transform": "camera",
             "name": "default",
@@ -195,22 +102,22 @@ def export_cameras(result):
         }
     ]
 
-def export_scene(filepath):
+def export_scene(filepath, scene, depsgraph):
     # export all meshes as obj
-    export_obj_meshes(filepath.replace('json', 'obj'))
+    export_fbx_meshes(filepath.replace('json', 'fbx'), scene, depsgraph)
 
     # Write all materials and cameras to a dict with the layout of our json file
     result = {}
     export_materials(result, os.path.dirname(filepath))
-    export_cameras(result)
-    export_background(result, os.path.dirname(filepath))
+    export_camera(result, scene)
+    export_background(result, os.path.dirname(filepath), scene)
 
-    obj_name = os.path.splitext(os.path.basename(filepath))[0] + '.obj'
+    fbx_name = os.path.splitext(os.path.basename(filepath))[0] + '.fbx'
 
     result['objects'] = [{
         "name": "scene",
-        "type": "obj",
-        "relativePath": obj_name
+        "type": "fbx",
+        "relativePath": fbx_name
     }]
 
     # Write the result into the .json
@@ -241,9 +148,11 @@ class SeeSharpExport(Operator, ExportHelper):
         if self.animations is True:
             for frame in range(context.scene.frame_start, context.scene.frame_end+1):
                 context.scene.frame_set(frame)
-                export_scene(self.filepath.replace('.json', f'{frame:04}.json'))
+                depsgraph = context.evaluated_depsgraph_get()
+                export_scene(self.filepath.replace('.json', f'{frame:04}.json'), context.scene, depsgraph)
         else:
-            export_scene(self.filepath)
+            depsgraph = context.evaluated_depsgraph_get()
+            export_scene(self.filepath, context.scene, depsgraph)
         return {'FINISHED'}
 
 def menu_func_export(self, context):

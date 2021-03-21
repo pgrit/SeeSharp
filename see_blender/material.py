@@ -164,15 +164,40 @@ def convert_material(material):
 class ConvertOperator(bpy.types.Operator):
     bl_idname = "seesharp.convert_material"
     bl_label = "Convert Cycles Material"
+    bl_description = "Sets the current material data by coarsely mapping a Cycles node graph"
+    bl_options = {"REGISTER", "UNDO"}
 
-    def invoke(self, context, event):
+    @classmethod
+    def poll(cls, context):
+        return context.material is not None
+
+    def execute(self, context):
         convert_material(context.material)
         return { "FINISHED" }
+
+class ConvertAllOperator(bpy.types.Operator):
+    bl_idname = "seesharp.convert_all_materials"
+    bl_label = "Convert All Cycles Materials"
+    bl_description = "Sets the data of all materials in the scene by coarsely mapping the Cycles node graphs"
+    bl_options = {"REGISTER", "UNDO"}
+
+    def execute(self, context):
+        for material in list(bpy.data.materials):
+            if material.node_tree is None: continue
+            convert_material(material)
+        return { "FINISHED" }
+
+def menu_func(self, context):
+    self.layout.operator_context = 'INVOKE_DEFAULT'
+    self.layout.operator(ConvertAllOperator.bl_idname, text="Convert all materials to SeeSharp")
 
 def register():
     bpy.utils.register_class(SeeSharpMaterial)
     bpy.utils.register_class(ConvertOperator)
+    bpy.utils.register_class(ConvertAllOperator)
+    bpy.types.TOPBAR_MT_file_import.append(menu_func)
 
 def unregister():
     bpy.utils.unregister_class(SeeSharpMaterial)
     bpy.utils.unregister_class(ConvertOperator)
+    bpy.utils.unregister_class(ConvertAllOperator)

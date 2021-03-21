@@ -173,7 +173,7 @@ namespace SeeSharp {
                     var rgb = ReadRgbColor(json);
                     return new TextureRgb(rgb);
                 } else if (type == "texture") {
-                    var texturePath = json.GetProperty("path").GetString();
+                    var texturePath = json.GetProperty("filename").GetString();
                     texturePath = Path.Join(Path.GetDirectoryName(path), texturePath);
                     return new TextureRgb(texturePath);
                 } else

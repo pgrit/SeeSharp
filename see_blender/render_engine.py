@@ -1,6 +1,5 @@
 import bpy
 from bpy.props import *
-import bgl
 import os
 import subprocess
 import tempfile
@@ -38,6 +37,7 @@ class SeeSharpRenderEngine(bpy.types.RenderEngine):
 
         exe = os.path.dirname(__file__) + "/bin/SeeSharp.PreviewRender.dll"
         with tempfile.TemporaryDirectory() as tempdir:
+            # TODO export the given scene / depsgraph instead of the default scene!
             exporter.export_scene(tempdir + "/scene.json")
             args = ["dotnet", exe]
             args.extend([
@@ -69,12 +69,14 @@ def get_panels():
 
     # TODO remove this after we have our own proper UI support + conversion scripts
     include_panels = {
-        'CYCLES_WORLD_PT_settings',
-        'CYCLES_WORLD_PT_settings_surface',
-        'CYCLES_MATERIAL_PT_preview',
-        'CYCLES_MATERIAL_PT_surface',
-        'CYCLES_MATERIAL_PT_settings',
-        'CYCLES_MATERIAL_PT_settings_surface'
+        'MATERIAL_PT_preview',
+        'NODE_PT_material_slots'
+        # 'CYCLES_WORLD_PT_settings',
+        # 'CYCLES_WORLD_PT_settings_surface',
+        # 'CYCLES_MATERIAL_PT_preview',
+        # 'CYCLES_MATERIAL_PT_surface',
+        # 'CYCLES_MATERIAL_PT_settings',
+        # 'CYCLES_MATERIAL_PT_settings_surface'
     }
 
     panels = []
@@ -131,11 +133,8 @@ class SeeSharpConfig(bpy.types.PropertyGroup):
         ("VCM", "VCM", VCM_DESC, 1),
     ]
     engine: EnumProperty(name="Engine", items=engines, default="PT")
-
     samples: IntProperty(name="Samples", default=8, min=1, description=SAMPLES_DESC)
-
     maxdepth: IntProperty(name="Max. bounces", default=8, min=1, description=MAXDEPTH_DESC)
-
     denoise: BoolProperty(name="Denoise", default=True, description=DENOISE_DESC)
 
 class SeeSharpScene(bpy.types.PropertyGroup):

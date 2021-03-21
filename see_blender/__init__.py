@@ -1,7 +1,6 @@
 import bpy
 
-from . import exporter
-from . import render_engine
+from . import exporter, render_engine, material_ui, material
 
 bl_info = {
     "name": "SeeSharp Renderer",
@@ -14,7 +13,11 @@ bl_info = {
 def register():
     exporter.register()
     render_engine.register()
+    material_ui.register()
+    material.register()
 
 def unregister():
     exporter.unregister()
     render_engine.unregister()
+    material_ui.unregister()
+    material.unregister()

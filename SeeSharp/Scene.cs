@@ -301,7 +301,9 @@ namespace SeeSharp {
 
                         // Check if the material is emissive
                         if (m.TryGetProperty("emission", out elem)) {
-                            emissiveMaterials.Add(name, ReadRgbColor(elem));
+                            RgbColor emission = ReadRgbColor(elem);
+                            if (emission != RgbColor.Black)
+                                emissiveMaterials.Add(name, emission);
                         }
                     }
                 }
@@ -382,6 +384,15 @@ namespace SeeSharp {
                         // they will replace any equally named materials from the .mtl file.
                         var objMesh = ObjMesh.FromFile(filename);
                         ObjConverter.AddToScene(objMesh, resultScene, namedMaterials, emissiveMaterials);
+                    } else if (type == "fbx") {
+                        // The path is relative to this .json, we need to make it absolute / relative to the CWD
+                        string relpath = m.GetProperty("relativePath").GetString();
+                        string dir = Path.GetDirectoryName(path);
+                        string filename = Path.Join(dir, relpath);
+
+                        // Load the mesh and add it to the scene. We pass all materials defined in the .json along
+                        // they will replace any equally named materials from the .fbx file
+                        FbxConverter.AddToScene(filename, resultScene, namedMaterials, emissiveMaterials);
                     }
                 }
             }

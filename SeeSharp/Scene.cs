@@ -176,8 +176,10 @@ namespace SeeSharp {
                     var texturePath = json.GetProperty("filename").GetString();
                     texturePath = Path.Join(Path.GetDirectoryName(path), texturePath);
                     return new TextureRgb(texturePath);
-                } else
-                    return null;
+                } else {
+                    Logger.Log($"Invalid texture specification: {json}", Verbosity.Error);
+                    return new TextureRgb(new RgbColor(1, 0, 1));
+                }
             }
 
             var resultScene = new Scene();

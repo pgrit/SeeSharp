@@ -6,7 +6,8 @@
         /// <summary>
         /// Maximum path length for global illumination algorithms.
         /// </summary>
-        public int MaxDepth { get; set; }
+        public int MaxDepth { get => maxDepth; set => maxDepth = value; }
+        int maxDepth = 5;
 
         /// <summary>
         /// Renders a scene to the frame buffer that is specified by the <see cref="Scene" /> object.

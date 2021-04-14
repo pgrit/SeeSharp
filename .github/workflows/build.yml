@@ -17,10 +17,6 @@ jobs:
       with:
         dotnet-version: '5.0.x'
 
-    # fixes sporadic build fails on Windows (https://github.com/actions/setup-dotnet/issues/155)
-    - name: Clean
-      run: dotnet clean -c Release && dotnet nuget locals all --clear
-
     - name: Test
       working-directory: ${{github.workspace}}
       run: dotnet test
@@ -34,10 +30,6 @@ jobs:
       uses: actions/setup-dotnet@v1.7.2
       with:
         dotnet-version: '5.0.x'
-
-    # fixes sporadic build fails on Windows (https://github.com/actions/setup-dotnet/issues/155)
-    - name: Clean
-      run: dotnet clean -c Release && dotnet nuget locals all --clear
 
     - name: Run validation
       working-directory: ${{github.workspace}}

@@ -36,7 +36,7 @@ namespace SeeSharp.Geometry {
                     texCoords = new Vector2[m.VertexCount];
                     var texCoordChannel = m.TextureCoordinateChannels[0];
                     for (int i = 0; i < m.VertexCount; ++i)
-                        texCoords[i] = new(texCoordChannel[i].X, texCoordChannel[i].Y);
+                        texCoords[i] = new(texCoordChannel[i].X, 1 - texCoordChannel[i].Y);
                 }
 
                 if (m.TextureCoordinateChannelCount > 1)

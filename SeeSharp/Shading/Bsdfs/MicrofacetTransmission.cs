@@ -1,6 +1,7 @@
 ﻿using SeeSharp.Shading.MicrofacetDistributions;
 using SimpleImageIO;
 using System;
+using System.Diagnostics;
 using System.Numerics;
 
 namespace SeeSharp.Shading.Bsdfs {
@@ -48,15 +49,20 @@ namespace SeeSharp.Shading.Bsdfs {
         float ComputeOneDir(Vector3 outDir, Vector3 inDir) {
             // Compute the half vector
             float eta = ShadingSpace.CosTheta(outDir) > 0 ? (insideIOR / outsideIOR) : (outsideIOR / insideIOR);
-            Vector3 wh = Vector3.Normalize(outDir + inDir * eta);
+            Vector3 wh = outDir + inDir * eta;
+            if (wh == Vector3.Zero) return 0; // Prevent NaN if outDir and inDir exactly align
+            wh = Vector3.Normalize(wh);
 
             if (Vector3.Dot(outDir, wh) * Vector3.Dot(inDir, wh) > 0) return 0;
 
             // Compute change of variables _dwh\_dinDir_ for microfacet transmission
             float sqrtDenom = Vector3.Dot(outDir, wh) + eta * Vector3.Dot(inDir, wh);
+            if (sqrtDenom == 0) return 0; // Prevent NaN in corner case
             float dwh_dinDir = Math.Abs((eta * eta * Vector3.Dot(inDir, wh)) / (sqrtDenom * sqrtDenom));
 
-            return Distribution.Pdf(outDir, wh) * dwh_dinDir;
+            float result = Distribution.Pdf(outDir, wh) * dwh_dinDir;
+            Debug.Assert(float.IsFinite(result));
+            return result;
         }
 
         public (float, float) Pdf(Vector3 outDir, Vector3 inDir, bool isOnLightSubpath) {

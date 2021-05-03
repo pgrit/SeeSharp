@@ -29,6 +29,19 @@ namespace SeeSharp.Shading.Materials {
         public override float GetRoughness(SurfacePoint hit)
         => parameters.roughness.Lookup(hit.TextureCoordinates);
 
+        public override float GetIndexOfRefractionRatio(SurfacePoint hit, Vector3 outDir, Vector3 inDir) {
+            var normal = hit.ShadingNormal;
+            outDir = ShadingSpace.WorldToShading(normal, outDir);
+            inDir = ShadingSpace.WorldToShading(normal, inDir);
+
+            if (ShadingSpace.SameHemisphere(outDir, inDir))
+                return 1; // does not change
+
+            float insideIOR = parameters.indexOfRefraction;
+            float outsideIOR = 1;
+            return ShadingSpace.CosTheta(outDir) > 0 ? (insideIOR / outsideIOR) : (outsideIOR / insideIOR);
+        }
+
         public override RgbColor GetScatterStrength(SurfacePoint hit)
         => parameters.baseColor.Lookup(hit.TextureCoordinates);
 

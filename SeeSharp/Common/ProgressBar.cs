@@ -107,10 +107,18 @@ namespace SeeSharp.Common {
             if (!outputIsDirty && curText.Length > 0 && supportsRewrite) {
                 (_, int top) = Console.GetCursorPosition();
 
-                // If the last output got split over multiple lines, accomodate for that.
-                int numLines = (curText.Length / Console.WindowWidth + 1);
-
-                Console.SetCursorPosition(0, top - numLines);
+                if (top <= 0) {
+                    // Some nasty consoles (VS code debug on Linux for example) report incorrectly that
+                    // you can write multiple lines when in fact you can't. In that case, the top position
+                    // reported here will be 0 (which should never happen as we wrote an entire line).
+                    if (outputIsDirty && !dirtEndsInNewline) {
+                        Console.WriteLine();
+                    }
+                } else {
+                    // If the last output got split over multiple lines, accomodate for that.
+                    int numLines = (curText.Length / Console.WindowWidth + 1);
+                    Console.SetCursorPosition(0, top - numLines);
+                }
             } else if (outputIsDirty && !dirtEndsInNewline)
                 Console.WriteLine();
 

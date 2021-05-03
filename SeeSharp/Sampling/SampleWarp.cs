@@ -35,6 +35,11 @@ namespace SeeSharp.Sampling {
             );
         }
 
+        /// <summary>
+        /// Converts a direction vector from spherical coordinates to cartesian coordinates.
+        /// </summary>
+        /// <param name="spherical">A vector where X is the longitude (phi) and Y the latitude (theta)</param>
+        /// <returns>Cartesian coordinates in a right handed system (z is up)</returns>
         public static Vector3 SphericalToCartesian(Vector2 spherical)
         => SphericalToCartesian(MathF.Sin(spherical.Y), MathF.Cos(spherical.Y), spherical.X);
 

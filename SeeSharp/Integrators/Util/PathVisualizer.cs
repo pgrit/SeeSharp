@@ -9,8 +9,19 @@ namespace SeeSharp.Integrators.Util {
         public Dictionary<int, RgbColor> TypeToColor;
         public List<LoggedPath> Paths;
 
+        /// <summary>
+        /// Radius of the arrow's cylinder segment, as a fraction of the scene radius.
+        /// </summary>
         public float Radius = 0.01f;
+
+        /// <summary>
+        /// Length of the arrow head, as a fraction of the scene radius.
+        /// </summary>
         public float HeadHeight = 0.02f;
+
+        /// <summary>
+        /// Number of quads used to model the cylinder / cone that make up each arrow.
+        /// </summary>
         public int NumSegments = 16;
 
         public override void Render(Scene scene) {

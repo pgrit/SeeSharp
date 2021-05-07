@@ -22,7 +22,7 @@ namespace SeeSharp.Tests.Core.Camera {
                 MinDistance = 0
             });
 
-            var camera = new LightProbeCamera(hit);
+            var camera = new LightProbeCamera(hit.Position, hit.Normal, hit.ErrorOffset, Vector3.UnitY);
             camera.UpdateFrameBuffer(new Image.FrameBuffer(512, 256, ""));
 
             return camera;
@@ -42,8 +42,8 @@ namespace SeeSharp.Tests.Core.Camera {
             var sample = camera.GenerateRay(new(200, 255), new());
 
             Assert.Equal(0.0f, sample.Ray.Direction.X, 1);
-            Assert.Equal(0.0f, sample.Ray.Direction.Y, 1);
-            Assert.Equal(-1.0f, sample.Ray.Direction.Z, 2);
+            Assert.Equal(-1.0f, sample.Ray.Direction.Y, 2);
+            Assert.Equal(0.0f, sample.Ray.Direction.Z, 1);
         }
 
         [Fact]
@@ -53,8 +53,8 @@ namespace SeeSharp.Tests.Core.Camera {
             var sample = camera.GenerateRay(new(200, 1), new());
 
             Assert.Equal(0.0f, sample.Ray.Direction.X, 1);
-            Assert.Equal(0.0f, sample.Ray.Direction.Y, 1);
-            Assert.Equal(1.0f, sample.Ray.Direction.Z, 2);
+            Assert.Equal(1.0f, sample.Ray.Direction.Y, 2);
+            Assert.Equal(0.0f, sample.Ray.Direction.Z, 1);
         }
     }
 }

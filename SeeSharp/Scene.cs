@@ -282,8 +282,8 @@ namespace SeeSharp {
 
                         if (type == "diffuse") {
                             var parameters = new DiffuseMaterial.Parameters {
-                                baseColor = ReadColorOrTexture(m.GetProperty("baseColor")),
-                                transmitter = ReadOptionalBool("thin", false)
+                                BaseColor = ReadColorOrTexture(m.GetProperty("baseColor")),
+                                Transmitter = ReadOptionalBool("thin", false)
                             };
                             namedMaterials[name] = new DiffuseMaterial(parameters);
                         } else {

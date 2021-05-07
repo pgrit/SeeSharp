@@ -16,6 +16,8 @@
     <PackageTags>rendering global illumination ray tracing bidirectional renderer</PackageTags>
 
     <PackageIcon>logo.png</PackageIcon>
+
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
   </PropertyGroup>
 
   <ItemGroup>

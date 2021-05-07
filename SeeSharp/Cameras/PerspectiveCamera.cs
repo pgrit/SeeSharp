@@ -69,12 +69,13 @@ namespace SeeSharp.Cameras {
                 pdfLens = 1 / (MathF.PI * lensRadius * lensRadius);
             }
 
-            return new CameraRaySample(
-                ray,
-                RgbColor.White,
-                new SurfacePoint { Position = Position, Normal = Direction },
-                SolidAngleToPixelJacobian(pos + dir) * pdfLens, pdfLens
-            );
+            return new CameraRaySample {
+                Ray = ray,
+                Weight = RgbColor.White,
+                Point = new SurfacePoint { Position = Position, Normal = Direction },
+                PdfRay = SolidAngleToPixelJacobian(pos + dir) * pdfLens,
+                PdfConnect = pdfLens
+            };
         }
 
         public override CameraResponseSample SampleResponse(SurfacePoint scenePoint, RNG rng) {
@@ -145,13 +146,6 @@ namespace SeeSharp.Cameras {
             float jacobian = d * d / MathF.Abs(cosine);
 
             return jacobian;
-        }
-
-        public override float SurfaceAreaToSolidAngleJacobian(Vector3 point, Vector3 normal) {
-            var dirToCam = Position - point;
-            float distToCam = dirToCam.Length();
-            float cosToCam = Math.Abs(Vector3.Dot(normal, dirToCam)) / distToCam;
-            return cosToCam / (distToCam * distToCam);
         }
 
         Matrix4x4 cameraToView;

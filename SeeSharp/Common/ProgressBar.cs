@@ -30,6 +30,14 @@ namespace SeeSharp.Common {
         int activeBlocks;
         bool supportsRewrite;
 
+        /// <summary>
+        /// Initializes a new progress bar for a given amount of work. The amount of work should be specified
+        /// as a number of (roughly) equally expensive steps.
+        /// </summary>
+        /// <param name="totalWork">Amount of steps that are performed in total (e.g., render iterations)</param>
+        /// <param name="numBlocks">Number of blocks to display in the ASCII bar</param>
+        /// <param name="displayWork">If true, displays the amount of total steps and the performed steps</param>
+        /// <param name="displayTime">If true, displays the elapsed time and predicted total time</param>
         public ProgressBar(int totalWork, int numBlocks = 20, bool displayWork = true, bool displayTime = true) {
             total = totalWork;
             this.numBlocks = numBlocks;
@@ -56,6 +64,11 @@ namespace SeeSharp.Common {
             }
         }
 
+        /// <summary>
+        /// Updates the progress bar after some work has been performed
+        /// </summary>
+        /// <param name="amount">How many steps have been performed</param>
+        /// <param name="elapsedSeconds">Time it took</param>
         public void ReportDone(int amount, double elapsedSeconds) {
             done += amount;
             accumSeconds += elapsedSeconds;

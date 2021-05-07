@@ -29,8 +29,8 @@ namespace SeeSharp.Validation {
                 0, 1, 2, 0, 2, 3
             }));
             scene.Meshes[^1].Material = new DiffuseMaterial(new DiffuseMaterial.Parameters {
-                baseColor = new TextureRgb(RgbColor.White),
-                transmitter = true
+                BaseColor = new TextureRgb(RgbColor.White),
+                Transmitter = true
             });
 
             // Emitter
@@ -51,7 +51,7 @@ namespace SeeSharp.Validation {
                 new Vector3(0, 0, 1),
             }));
             scene.Meshes[^1].Material = new DiffuseMaterial(new DiffuseMaterial.Parameters {
-                baseColor = new TextureRgb(RgbColor.Black)
+                BaseColor = new TextureRgb(RgbColor.Black)
             });
             scene.Emitters.Add(new GlossyEmitter(scene.Meshes[^1], RgbColor.White * 1000, 200));
             //scene.Emitters.Add(new DiffuseEmitter(scene.Meshes[^1], RgbColor.White * 1000));

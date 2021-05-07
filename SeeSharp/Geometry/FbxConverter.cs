@@ -50,11 +50,11 @@ namespace SeeSharp.Geometry {
                 } else if (material.HasColorDiffuse) {
                     var c = material.ColorDiffuse;
                     mat = new DiffuseMaterial(new() {
-                        baseColor = new Image.TextureRgb(new RgbColor(c.R, c.G, c.B))
+                        BaseColor = new Image.TextureRgb(new RgbColor(c.R, c.G, c.B))
                     });
                 } else {
                     mat = new DiffuseMaterial(new() {
-                        baseColor = new Image.TextureRgb(new RgbColor(1, 0, 1))
+                        BaseColor = new Image.TextureRgb(new RgbColor(1, 0, 1))
                     });
                 }
 

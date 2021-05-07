@@ -203,14 +203,13 @@ namespace SeeSharp.Integrators.Bidir {
                 var pixel = new Vector2(raster.Value.X, raster.Value.Y);
 
                 // Perform a change of variables from scene surface to pixel area.
-                // TODO this could be computed by the camera itself...
                 // First: map the scene surface to the solid angle about the camera
                 var dirToCam = scene.Camera.Position - vertex.Point.Position;
                 float distToCam = dirToCam.Length();
                 float cosToCam = Math.Abs(Vector3.Dot(vertex.Point.Normal, dirToCam)) / distToCam;
                 float surfaceToSolidAngle = cosToCam / (distToCam * distToCam);
 
-                if (distToCam == 0 || cosToCam == 0)
+                if (surfaceToSolidAngle == 0) // Prevent NaN / Inf
                     return;
 
                 // Second: map the solid angle to the pixel area
@@ -220,6 +219,7 @@ namespace SeeSharp.Integrators.Bidir {
                 float surfaceToPixelJacobian = surfaceToSolidAngle * solidAngleToPixel;
 
                 // Trace shadow ray
+                // TODO this should be computed by the camera itself
                 if (scene.Raytracer.IsOccluded(vertex.Point, scene.Camera.Position))
                     return;
 

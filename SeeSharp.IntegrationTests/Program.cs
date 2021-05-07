@@ -4,9 +4,11 @@
             // BidirPathLogger_HomeOffice.Run();
             // BidirPathLogger_IndirectRoom.Run();
 
+            //ConsoleUtils.TestProgressBar();
+            //ConsoleUtils.TestLogger();
 
-            ConsoleUtils.TestProgressBar();
-            ConsoleUtils.TestLogger();
+            //LightProbeTest.WhiteImage();
+            LightProbeTest.CornellProbe();
         }
     }
 }

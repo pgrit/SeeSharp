@@ -80,7 +80,7 @@ namespace SeeSharp.Validation {
                 -Vector3.UnitZ,
             });
             lightMesh.Material = new DiffuseMaterial(new DiffuseMaterial.Parameters {
-                baseColor = new TextureRgb(RgbColor.Black)
+                BaseColor = new TextureRgb(RgbColor.Black)
             });
             scene.Meshes.Add(lightMesh);
             var lightPower = 500;

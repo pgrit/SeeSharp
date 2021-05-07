@@ -1,17 +1,48 @@
 using System;
 
 namespace SeeSharp.Common {
+    /// <summary>
+    /// Verbosity level to hide / show less important messages
+    /// </summary>
     public enum Verbosity {
+        /// <summary>
+        /// Error message, almost always means that rendering cannot continue (correctly)
+        /// </summary>
         Error,
+
+        /// <summary>
+        /// A warning should be used if unexpected results can occur, but rendering can still proceed safely
+        /// </summary>
         Warning,
+
+        /// <summary>
+        /// Info messages typically contain statistics, notice that an operation is done, ...
+        /// </summary>
         Info,
+
+        /// <summary>
+        /// Highest verbosity level, used to output debug information
+        /// </summary>
         Debug,
     }
 
+    /// <summary>
+    /// A simple command line logger that colors and tags messages based on their type. Verbosity can be
+    /// set to control which types are displayed.
+    /// </summary>
     public static class Logger {
+        /// <summary>
+        /// Minimum level of verbosity a message needs to have to be displayed. Default is
+        /// <see cref="Verbosity.Info"/>.
+        /// </summary>
         public static Verbosity Verbosity { get => verbosity; set => verbosity = value; }
         static Verbosity verbosity = Verbosity.Info;
 
+        /// <summary>
+        /// Prints a log message with appropriate coloring if the verbosity level matches.
+        /// </summary>
+        /// <param name="message">The message to print</param>
+        /// <param name="verbosity">The verbosity level of this message</param>
         public static void Log(string message, Verbosity verbosity = Verbosity.Info) {
             if (Verbosity < verbosity)
                 return;

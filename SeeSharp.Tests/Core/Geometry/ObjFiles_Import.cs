@@ -11,7 +11,7 @@ namespace SeeSharp.Tests.Core.Geometry {
             var dummyScene = new Scene();
             ObjConverter.AddToScene(mesh, dummyScene, null);
 
-            Assert.Empty(mesh.errors);
+            Assert.Empty(mesh.Errors);
 
             // There should be some meshes
             Assert.NotEmpty(dummyScene.Meshes);

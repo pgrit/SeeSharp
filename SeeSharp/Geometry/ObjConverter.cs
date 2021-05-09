@@ -6,6 +6,10 @@ using System.Collections.Generic;
 using System.Numerics;
 
 namespace SeeSharp.Geometry {
+    /// <summary>
+    /// Converts our parsed wavefront .obj mesh representation into an actual mesh.
+    /// Triangulates surfaces and makes sure that one mesh is created for each material.
+    /// </summary>
     public static class ObjConverter {
 
         struct TriIdx  {
@@ -16,6 +20,21 @@ namespace SeeSharp.Geometry {
             }
         }
 
+        /// <summary>
+        /// Converts a parsed .obj file into one or more triangle meshes and adds it to the scene.
+        /// We are using our own code and not Assimp.NET, as the latter does not correctly handle meshes
+        /// with multiple materials assigned to different faces.
+        /// </summary>
+        /// <param name="mesh">The parsed .obj mesh</param>
+        /// <param name="scene">The scene to which the mesh should be added</param>
+        /// <param name="materialOverride">
+        ///     Materials from the .obj with a name matching one of the keys in this dictionary will be 
+        ///     replaced by the corresponding dictionary entry
+        /// </param>
+        /// <param name="emissionOverride">
+        ///     If a material name is a key in this dictionary, all meshes with that material will be 
+        ///     converted to diffuse emitters. The value from the dictionary determines their emitted radiance.
+        /// </param>
         public static void AddToScene(ObjMesh mesh, Scene scene, Dictionary<string, Material> materialOverride,
                                       Dictionary<string, RgbColor> emissionOverride = null) {
             // Create a dummy constant texture color for incorrect texture references
@@ -28,11 +47,11 @@ namespace SeeSharp.Geometry {
             var errors = new List<string>();
             var materials = new Dictionary<string, Material>();
             var emitters = new Dictionary<string, RgbColor>();
-            for (int i = 1, n = mesh.file.materials.Count; i < n; i++) {
+            for (int i = 1, n = mesh.Contents.Materials.Count; i < n; i++) {
                 // Try to find the correct material
-                string materialName = mesh.file.materials[i];
+                string materialName = mesh.Contents.Materials[i];
                 ObjMesh.Material objMaterial;
-                if (!mesh.file.materialLib.TryGetValue(materialName, out objMaterial)) {
+                if (!mesh.Contents.MaterialLib.TryGetValue(materialName, out objMaterial)) {
                     errors.Add($"Cannot find material '{materialName}'. Replacing by dummy.");
                     materials[materialName] = dummyMaterial;
                     continue;
@@ -64,7 +83,7 @@ namespace SeeSharp.Geometry {
                     TextureRgb baseColor;
                     baseColor = string.IsNullOrEmpty(objMaterial.diffuseTexture)
                         ? new TextureRgb(objMaterial.diffuse)
-                        : new TextureRgb(System.IO.Path.Join(mesh.basePath, objMaterial.diffuseTexture));
+                        : new TextureRgb(System.IO.Path.Join(mesh.BasePath, objMaterial.diffuseTexture));
 
                     // We coarsely map the "ns" term to roughness, use the diffuse color as base color,
                     // and ignore everything else.
@@ -86,7 +105,7 @@ namespace SeeSharp.Geometry {
             }
 
             // Convert the faces to triangles & build the new list of indices
-            foreach (var obj in mesh.file.objects) {
+            foreach (var obj in mesh.Contents.Objects) {
                 // Mapping from material index to triangle definition, per group
                 var triangleGroups = new List<Dictionary<int, List<TriIdx>>>();
 
@@ -94,26 +113,26 @@ namespace SeeSharp.Geometry {
                 bool has_normals = false;
                 bool has_texcoords = false;
                 bool empty = true;
-                foreach (var group in obj.groups) {
+                foreach (var group in obj.Groups) {
                     // Create the mapping from material index to triangle definition for this group.
                     triangleGroups.Add(new Dictionary<int, List<TriIdx>>());
 
-                    foreach (var face in group.faces) {
-                        int mtl_idx = face.material;
+                    foreach (var face in group.Faces) {
+                        int mtl_idx = face.Material;
                         triangleGroups[^1].TryAdd(mtl_idx, new List<TriIdx>());
 
                         // Check if any vertex has a normal or uv coordinate
-                        for (int i = 0; i < face.indices.Count; i++) {
-                            has_normals |= (face.indices[i].n != 0);
-                            has_texcoords |= (face.indices[i].t != 0);
+                        for (int i = 0; i < face.Indices.Count; i++) {
+                            has_normals |= (face.Indices[i].NormalIndex != 0);
+                            has_texcoords |= (face.Indices[i].TextureIndex != 0);
                         }
 
                         // Compute the triangle indices for every n-gon
                         int v0 = 0;
                         int prev = 1;
-                        for (int i = 1; i < face.indices.Count - 1; i++) {
+                        for (int i = 1; i < face.Indices.Count - 1; i++) {
                             int next = i + 1;
-                            triangleGroups[^1][mtl_idx].Add(new TriIdx(face.indices[v0], face.indices[prev], face.indices[next]));
+                            triangleGroups[^1][mtl_idx].Add(new TriIdx(face.Indices[v0], face.Indices[prev], face.Indices[next]));
                             prev = next;
 
                             empty = false;
@@ -126,7 +145,7 @@ namespace SeeSharp.Geometry {
                 // Create a mesh for each group of triangles with identical materials
                 foreach (var group in triangleGroups) {
                     foreach (var triangleSet in group) {
-                        string materialName = mesh.file.materials[triangleSet.Key];
+                        string materialName = mesh.Contents.Materials[triangleSet.Key];
 
                         // Either use the .obj material or the override
                         Material material;
@@ -143,13 +162,13 @@ namespace SeeSharp.Geometry {
                         int RemapIndex(ObjMesh.Index oldIndex) {
                             int newIndex;
                             if (!objToLocal.TryGetValue(oldIndex, out newIndex)) {
-                                localVertices.Add(mesh.file.vertices[oldIndex.v]);
+                                localVertices.Add(mesh.Contents.Vertices[oldIndex.VertexIndex]);
 
                                 if (has_normals)
-                                    localNormals.Add(mesh.file.normals[oldIndex.n]);
+                                    localNormals.Add(mesh.Contents.Normals[oldIndex.NormalIndex]);
 
                                 if (has_texcoords) {
-                                    var uv = mesh.file.texcoords[oldIndex.t];
+                                    var uv = mesh.Contents.Texcoords[oldIndex.TextureIndex];
                                     uv.Y = 1 - uv.Y;
                                     localTexcoords.Add(uv);
                                 }

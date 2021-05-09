@@ -7,8 +7,20 @@ namespace SeeSharp.Geometry {
     /// A simple triangle mesh with methods to uniformly sample its area.
     /// </summary>
     public class Mesh : TinyEmbree.TriangleMesh {
+        /// <summary>
+        /// The assigned material
+        /// </summary>
         public Material Material;
 
+        /// <summary>
+        /// Creates a new mesh based on the given list of vertices, indices, and optional parameters
+        /// </summary>
+        /// <param name="vertices">List of vertices</param>
+        /// <param name="indices">
+        ///     Three integers for each triangle that identify which vertices form that triangle
+        /// </param>
+        /// <param name="shadingNormals">Shading normals for each vertex</param>
+        /// <param name="textureCoordinates">Texture coordinates for each vertex</param>
         public Mesh(Vector3[] vertices, int[] indices, Vector3[] shadingNormals = null,
                     Vector2[] textureCoordinates = null)
             : base(vertices, indices, shadingNormals, textureCoordinates) {
@@ -36,6 +48,13 @@ namespace SeeSharp.Geometry {
             return errorDiagonal.Length() * 32.0f * 1.19209e-07f;
         }
 
+        /// <summary>
+        /// Samples a point uniformly distributed on the mesh surface
+        /// </summary>
+        /// <param name="primarySample">
+        ///     A primary sample space value that is projected onto the surface of the mesh.
+        /// </param>
+        /// <returns>A point and associated surface area pdf</returns>
         public SurfaceSample Sample(Vector2 primarySample) {
             var (faceIdx, newX) = triangleDistribution.Sample(primarySample.X);
             var barycentric = SampleWarp.ToUniformTriangle(new Vector2(newX, primarySample.Y));
@@ -53,16 +72,22 @@ namespace SeeSharp.Geometry {
             };
         }
 
+        /// <summary>
+        /// Performs the inverse of the projection done by <see cref="Sample"/>
+        /// </summary>
+        /// <param name="point">A point on the surface of this mesh</param>
+        /// <returns>The primary sample space point that would have been projected there</returns>
         public Vector2 SampleInverse(SurfacePoint point) {
             var local = SampleWarp.FromUniformTriangle(point.BarycentricCoords);
             float x = triangleDistribution.SampleInverse((int)point.PrimId, local.X);
             return new(x, local.Y);
         }
 
+        /// <returns>The surface area pdf of sampling the given point on the surface of this mesh.</returns>
         public float Pdf(SurfacePoint point) {
             return 1.0f / SurfaceArea;
         }
 
-        PiecewiseConstant triangleDistribution;
+        readonly PiecewiseConstant triangleDistribution;
     }
 }

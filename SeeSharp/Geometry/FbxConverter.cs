@@ -6,7 +6,25 @@ using System.Collections.Generic;
 using System.Numerics;
 
 namespace SeeSharp.Geometry {
+    /// <summary>
+    /// Loads .fbx geometries via Assimp.NET
+    /// </summary>
     public static class FbxConverter {
+        /// <summary>
+        /// Loads a mesh from a .fbx file and adds it to the given scene. Technically, this would also work
+        /// for any other file format supported by Assimp, but we are doing some .fbx specific hacks to achieve
+        /// the correct scale and other conventions.
+        /// </summary>
+        /// <param name="filename">Path to an existing .fbx mesh</param>
+        /// <param name="scene">The scene to which the mesh should be added</param>
+        /// <param name="materialOverride">
+        ///     Materials from the .fbx with a name matching one of the keys in this dictionary will be 
+        ///     replaced by the corresponding dictionary entry
+        /// </param>
+        /// <param name="emissionOverride">
+        ///     If a material name is a key in this dictionary, all meshes with that material will be 
+        ///     converted to diffuse emitters. The value from the dictionary determines their emitted radiance.
+        /// </param>
         public static void AddToScene(string filename, Scene scene, Dictionary<string, Material> materialOverride,
                                       Dictionary<string, RgbColor> emissionOverride = null) {
             // Load the file with some basic post-processing
@@ -64,8 +82,7 @@ namespace SeeSharp.Geometry {
                 scene.Meshes.Add(mesh);
 
                 // Create an emitter if requested
-                RgbColor emission;
-                if (emissionOverride != null && emissionOverride.TryGetValue(materialName, out emission)) {
+                if (emissionOverride != null && emissionOverride.TryGetValue(materialName, out var emission)) {
                     var emitter = new DiffuseEmitter(mesh, emission);
                     scene.Emitters.Add(emitter);
                 }

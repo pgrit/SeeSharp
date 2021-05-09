@@ -15,22 +15,58 @@ using SeeSharp.Common;
 
 namespace SeeSharp {
     /// <summary>
-    /// Manages all information required to render a scene.
+    /// Manages all information required to render a scene. Each object is meant to be used to render one
+    /// image. But shallow copies can be made (with replaced frame buffers) to re-render the same scene.
     /// </summary>
     public class Scene {
+        /// <summary>
+        /// The frame buffer that will receive the rendered image
+        /// </summary>
         public FrameBuffer FrameBuffer;
+
+        /// <summary>
+        /// The camera, which models how the frame buffer receives light from the scene
+        /// </summary>
         public Camera Camera;
 
+        /// <summary>
+        /// All meshes in the scene. There needs to be at least one.
+        /// </summary>
         public List<Mesh> Meshes = new();
+
+        /// <summary>
+        /// Acceleration structure for ray tracing the meshes
+        /// </summary>
         public Raytracer Raytracer { get; private set; }
 
+        /// <summary>
+        /// All emitters in the scene. There needs to be at least one, unless a background is given.
+        /// </summary>
         public List<Emitter> Emitters { get; private set; } = new();
+
+        /// <summary>
+        /// Defines radiance from rays that leave the scene. Must be given if no emitters are present.
+        /// </summary>
         public Background Background;
 
+        /// <summary>
+        /// Center of the geometry in the scene. Computed by <see cref="Prepare"/>
+        /// </summary>
         public Vector3 Center { get; private set; }
+
+        /// <summary>
+        /// Radius of the scene bounding sphere. Computed by <see cref="Prepare"/>
+        /// </summary>
         public float Radius { get; private set; }
+
+        /// <summary>
+        /// Axis aligned bounding box of the scene. Computed by <see cref="Prepare"/>
+        /// </summary>
         public BoundingBox Bounds { get; private set; }
 
+        /// <summary>
+        /// If <see cref="IsValid"/> is false, this list will contain all error messages found during validation.
+        /// </summary>
         public List<string> ValidationErrorMessages { get; private set; } = new();
 
         /// <summary>
@@ -39,13 +75,17 @@ namespace SeeSharp {
         /// </summary>
         /// <returns>A copy of the scene</returns>
         public Scene Copy() {
-            Scene cpy = (Scene)this.MemberwiseClone();
-            cpy.Meshes = new(this.Meshes);
-            cpy.Emitters = new(this.Emitters);
-            cpy.ValidationErrorMessages = new(this.ValidationErrorMessages);
+            Scene cpy = (Scene)MemberwiseClone();
+            cpy.Meshes = new(Meshes);
+            cpy.Emitters = new(Emitters);
+            cpy.ValidationErrorMessages = new(ValidationErrorMessages);
             return cpy;
         }
 
+        /// <summary>
+        /// Prepares the scene for rendering. Checks that there is no missing data, builds acceleration
+        /// structures, etc.
+        /// </summary>
         public void Prepare() {
             if (!IsValid)
                 throw new InvalidOperationException("Cannot finalize an invalid scene.");
@@ -122,7 +162,7 @@ namespace SeeSharp {
                     ValidationErrorMessages.Add("No emitters and no background in the scene.");
 
                 foreach (string msg in ValidationErrorMessages) {
-                    Common.Logger.Log(msg, Common.Verbosity.Error);
+                    Logger.Log(msg, Verbosity.Error);
                 }
 
                 return ValidationErrorMessages.Count == 0;
@@ -135,8 +175,7 @@ namespace SeeSharp {
         /// <param name="point">A point on a mesh surface.</param>
         /// <returns>The attached emitter reference, or null.</returns>
         public Emitter QueryEmitter(SurfacePoint point) {
-            Emitter emitter;
-            if (!meshToEmitter.TryGetValue(point.Mesh, out emitter))
+            if (!meshToEmitter.TryGetValue(point.Mesh, out var emitter))
                 return null;
             return emitter;
         }
@@ -198,23 +237,20 @@ namespace SeeSharp {
 
                     Matrix4x4 result = Matrix4x4.Identity;
 
-                    JsonElement scale;
-                    if (t.TryGetProperty("scale", out scale)) {
+                    if (t.TryGetProperty("scale", out var scale)) {
                         var sc = ReadVector(scale);
-                        result = result * Matrix4x4.CreateScale(sc);
+                        result *= Matrix4x4.CreateScale(sc);
                     }
 
-                    JsonElement rotation;
-                    if (t.TryGetProperty("rotation", out rotation)) {
+                    if (t.TryGetProperty("rotation", out var rotation)) {
                         var rot = ReadVector(rotation);
                         rot *= MathF.PI / 180.0f;
-                        result = result * Matrix4x4.CreateFromYawPitchRoll(rot.Y, rot.X, rot.Z);
+                        result *= Matrix4x4.CreateFromYawPitchRoll(rot.Y, rot.X, rot.Z);
                     }
 
-                    JsonElement position;
-                    if (t.TryGetProperty("position", out position)) {
+                    if (t.TryGetProperty("position", out var position)) {
                         var pos = ReadVector(position);
-                        result = result * Matrix4x4.CreateTranslation(pos);
+                        result *= Matrix4x4.CreateTranslation(pos);
                     }
 
                     namedTransforms[name] = result;
@@ -229,15 +265,13 @@ namespace SeeSharp {
                     float fov = c.GetProperty("fov").GetSingle();
                     string transform = c.GetProperty("transform").GetString();
                     var camToWorld = namedTransforms[transform];
-                    Matrix4x4 worldToCam;
-                    Matrix4x4.Invert(camToWorld, out worldToCam);
+                    Matrix4x4.Invert(camToWorld, out var worldToCam);
                     namedCameras[name] = new PerspectiveCamera(worldToCam, fov); // TODO support DOF thin lens
                     resultScene.Camera = namedCameras[name]; // TODO allow loading of multiple cameras? (and selecting one by name later)
                 }
 
                 // Parse the background images
-                JsonElement backgroundElement;
-                if (root.TryGetProperty("background", out backgroundElement)) {
+                if (root.TryGetProperty("background", out var backgroundElement)) {
                     string type = backgroundElement.GetProperty("type").GetString();
 
                     if (type == "image") {
@@ -254,29 +288,25 @@ namespace SeeSharp {
                 Logger.Log("Start parsing materials.", Verbosity.Debug);
                 var namedMaterials = new Dictionary<string, Material>();
                 var emissiveMaterials = new Dictionary<string, RgbColor>();
-                JsonElement materials;
-                if (root.TryGetProperty("materials", out materials)) {
+                if (root.TryGetProperty("materials", out var materials)) {
                     foreach (var m in materials.EnumerateArray()) {
                         string name = m.GetProperty("name").GetString();
 
                         float ReadOptionalFloat(string name, float defaultValue) {
-                            JsonElement elem;
-                            if (m.TryGetProperty(name, out elem))
+                            if (m.TryGetProperty(name, out var elem))
                                 return elem.GetSingle();
                             return defaultValue;
                         }
 
                         bool ReadOptionalBool(string name, bool defaultValue) {
-                            JsonElement elem;
-                            if (m.TryGetProperty(name, out elem))
+                            if (m.TryGetProperty(name, out var elem))
                                 return elem.GetBoolean();
                             return defaultValue;
                         }
 
                         // Check whether this is a purely diffuse material or "generic"
                         string type = "generic";
-                        JsonElement elem;
-                        if (m.TryGetProperty("type", out elem)) {
+                        if (m.TryGetProperty("type", out var elem)) {
                             type = elem.GetString();
                         }
 
@@ -353,22 +383,18 @@ namespace SeeSharp {
                         Vector3[] vertices = ReadVec3Array(m.GetProperty("vertices"));
                         int[] indices = ReadIntArray(m.GetProperty("indices"));
 
-                        JsonElement normalsJson;
                         Vector3[] normals = null;
-                        if (m.TryGetProperty("normals", out normalsJson))
+                        if (m.TryGetProperty("normals", out var normalsJson))
                             normals = ReadVec3Array(m.GetProperty("normals"));
 
-                        JsonElement uvJson;
                         Vector2[] uvs = null;
-                        if (m.TryGetProperty("uv", out uvJson))
+                        if (m.TryGetProperty("uv", out var uvJson))
                             uvs = ReadVec2Array(m.GetProperty("uv"));
 
-                        var mesh = new Mesh(vertices, indices, normals, uvs);
-                        mesh.Material = material;
+                        var mesh = new Mesh(vertices, indices, normals, uvs) { Material = material };
 
                         Emitter emitter;
-                        JsonElement emissionJson;
-                        if (m.TryGetProperty("emission", out emissionJson)) { // The object is an emitter
+                        if (m.TryGetProperty("emission", out var emissionJson)) { // The object is an emitter
                             // TODO update schema to allow different types of emitters here
                             var emission = ReadRgbColor(emissionJson);
                             emitter = new DiffuseEmitter(mesh, emission);
@@ -402,6 +428,6 @@ namespace SeeSharp {
             return resultScene;
         }
 
-        Dictionary<Mesh, Emitter> meshToEmitter = new Dictionary<Mesh, Emitter>();
+        readonly Dictionary<Mesh, Emitter> meshToEmitter = new();
     }
 }

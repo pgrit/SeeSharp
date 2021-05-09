@@ -9,7 +9,7 @@ namespace SeeSharp.Experiments {
     /// "sources" and will then be available everywhere.
     /// </summary>
     public static class SceneRegistry {
-        static HashSet<DirectoryInfo> directories = new();
+        static readonly HashSet<DirectoryInfo> directories = new();
 
         /// <summary>
         /// Adds a directory to the list of sources. The contents must adhere the expected structure:

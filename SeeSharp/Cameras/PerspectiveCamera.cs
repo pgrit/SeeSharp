@@ -102,6 +102,13 @@ namespace SeeSharp.Cameras {
             };
         }
 
+        /// <summary>
+        /// Samples a point on the camera lens that sees the given surface point. Returns an invalid
+        /// sample if there is no such point.
+        /// </summary>
+        /// <param name="scenePoint">A point on a scene surface that might be seen by the camera</param>
+        /// <param name="rng">RNG used to sample the lens. Can be null if the lens radius is zero.</param>
+        /// <returns>The pixel coordinates and weights, or an invalid sample</returns>
         public override CameraResponseSample SampleResponse(SurfacePoint scenePoint, RNG rng) {
             Debug.Assert(Width != 0 && Height != 0);
 
@@ -116,9 +123,8 @@ namespace SeeSharp.Cameras {
 
             // Map the scene point to the film
             var filmPos = WorldToFilm(scenePoint.Position);
-            if (!filmPos.HasValue) {
-                return new();
-            }
+            if (!filmPos.HasValue)
+                return CameraResponseSample.Invalid;
 
             // Compute the change of variables from scene surface to pixel area
             float jacobian = SolidAngleToPixelJacobian(scenePoint.Position);

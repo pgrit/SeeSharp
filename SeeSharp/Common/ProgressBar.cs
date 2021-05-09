@@ -10,11 +10,11 @@ namespace SeeSharp.Common {
     /// to [##--]).
     /// </summary>
     public class ProgressBar {
-        int numBlocks = 50;
-        bool displayTime;
-        bool displayWork;
+        readonly int numBlocks = 50;
+        readonly bool displayTime;
+        readonly bool displayWork;
 
-        int total;
+        readonly int total;
         int done;
 
         double accumSeconds;
@@ -22,13 +22,13 @@ namespace SeeSharp.Common {
         double secondsPerUnit;
         int numUpdates;
 
-        ConsoleWatchdog watcher;
+        readonly ConsoleWatchdog watcher;
         bool outputIsDirty;
         bool dirtEndsInNewline;
 
         string curText = "";
         int activeBlocks;
-        bool supportsRewrite;
+        readonly bool supportsRewrite;
 
         /// <summary>
         /// Initializes a new progress bar for a given amount of work. The amount of work should be specified
@@ -86,7 +86,7 @@ namespace SeeSharp.Common {
             }
         }
 
-        string MakeTimeString(double seconds) {
+        static string MakeTimeString(double seconds) {
             if (seconds > 60 * 120) { // hours
                 return $"{seconds / (60 * 60) :0.##}h";
             } else if (seconds > 120) { // minutes

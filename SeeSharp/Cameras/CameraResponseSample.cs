@@ -37,5 +37,10 @@ namespace SeeSharp.Cameras {
         /// Checks whether this is a valid sample, i.e., non-zero and sampled with non-zero pdf
         /// </summary>
         public bool IsValid => Weight != RgbColor.Black && PdfConnect != 0 && PdfEmit != 0;
+
+        /// <summary>
+        /// An invalid sample is one where everything is set to zero.
+        /// </summary>
+        public static CameraResponseSample Invalid => new();
     }
 }

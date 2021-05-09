@@ -1,5 +1,4 @@
-﻿using SeeSharp.Image;
-using SeeSharp.Sampling;
+﻿using SeeSharp.Sampling;
 using System;
 using System.Numerics;
 using Xunit;

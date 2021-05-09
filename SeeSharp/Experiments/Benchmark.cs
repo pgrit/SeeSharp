@@ -9,6 +9,17 @@ namespace SeeSharp.Experiments {
     /// Conducts an experiment by rendering all images.
     /// </summary>
     public class Benchmark {
+        /// <summary>
+        /// Sets up a new benchmark that runs an experiment on different scenes
+        /// </summary>
+        /// <param name="experiment">The experiment (list of methods) to run</param>
+        /// <param name="sceneConfigs">The scene configurations</param>
+        /// <param name="workingDirectory">
+        ///     Directory to which the rendered images and other data will be written
+        /// </param>
+        /// <param name="width">Width of the rendered images in pixels</param>
+        /// <param name="height">Height of the rendered images in pixels</param>
+        /// <param name="frameBufferFlags">Flags for the frame buffer, e.g., to sync with tev</param>
         public Benchmark(Experiment experiment, List<SceneConfig> sceneConfigs,
                          string workingDirectory, int width, int height,
                          FrameBuffer.Flags frameBufferFlags = FrameBuffer.Flags.None) {
@@ -46,32 +57,44 @@ namespace SeeSharp.Experiments {
 
             var methods = experiment.MakeMethods();
             foreach (var method in methods) {
-                string path = Path.Join(dir, method.name);
+                string path = Path.Join(dir, method.Name);
 
                 // Clear old files (if there are any)
                 if (Directory.Exists(path)) {
-                    var dirinfo = new System.IO.DirectoryInfo(path);
+                    var dirinfo = new DirectoryInfo(path);
                     foreach (var file in dirinfo.GetFiles()) {
                         if (file.Extension == format)
                             file.Delete();
                     }
                 }
 
-                Logger.Log($"Rendering {sceneConfig.Name} with {method.name}");
+                Logger.Log($"Rendering {sceneConfig.Name} with {method.Name}");
                 scene.FrameBuffer = MakeFrameBuffer(Path.Join(path, "Render" + format));
-                method.integrator.MaxDepth = sceneConfig.MaxDepth;
-                method.integrator.Render(scene);
+                method.Integrator.MaxDepth = sceneConfig.MaxDepth;
+                method.Integrator.Render(scene);
                 scene.FrameBuffer.WriteToFile();
             }
         }
 
+        /// <summary>
+        /// Creates a new frame buffer with the correct resolution
+        /// </summary>
+        /// <param name="filename">Desired file name</param>
         protected virtual FrameBuffer MakeFrameBuffer(string filename)
-        => new FrameBuffer(width, height, filename, frameBufferFlags);
+        => new(width, height, filename, frameBufferFlags);
 
+        /// <summary>
+        /// Resolution of all images
+        /// </summary>
         protected int width, height;
+
+        /// <summary>
+        /// The experiment to run on all scenes
+        /// </summary>
         protected Experiment experiment;
-        string workingDirectory;
-        List<SceneConfig> sceneConfigs;
-        FrameBuffer.Flags frameBufferFlags;
+
+        readonly string workingDirectory;
+        readonly List<SceneConfig> sceneConfigs;
+        readonly FrameBuffer.Flags frameBufferFlags;
     }
 }

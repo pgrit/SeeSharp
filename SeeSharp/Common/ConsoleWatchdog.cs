@@ -8,13 +8,13 @@ namespace SeeSharp.Common {
     /// Can be attached to the Console.Out to monitor output from all parts of the program.
     /// </summary>
     internal class ConsoleWatchdog : TextWriter {
-        TextWriter output;
+        readonly TextWriter output;
         public delegate void WriteCharEventHandler(char value);
         public event WriteCharEventHandler WriteCharEvent;
-        public ConsoleWatchdog(TextWriter original) { output = original; }
+        public ConsoleWatchdog(TextWriter original) => output = original;
         public override Encoding Encoding => output.Encoding;
 
-        [MethodImplAttribute(MethodImplOptions.Synchronized)]
+        [MethodImpl(MethodImplOptions.Synchronized)]
         public override void Write(char value) {
             output.Write(value);
             WriteCharEvent?.Invoke(value);

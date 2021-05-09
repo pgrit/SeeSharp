@@ -10,13 +10,19 @@ namespace SeeSharp.Experiments {
     /// Represents a scene loaded from a directory in the <see cref="SceneRegistry" />.
     /// </summary>
     public class SceneFromFile : SceneConfig {
-        FileInfo file;
-        int maxDepth;
-        Scene scene;
+        readonly FileInfo file;
+        readonly int maxDepth;
+        readonly Scene scene;
         string name;
 
+        /// <summary>
+        /// Maximum depth used to render the scene
+        /// </summary>
         public override int MaxDepth => maxDepth;
 
+        /// <summary>
+        /// Name of the scene
+        /// </summary>
         public override string Name => name;
 
         /// <summary>
@@ -25,17 +31,27 @@ namespace SeeSharp.Experiments {
         /// <param name="newName">The new name to use</param>
         /// <returns>Shallow copy with new name</returns>
         public SceneFromFile WithName(string newName) {
-            var copy = (SceneFromFile)this.MemberwiseClone();
+            var copy = (SceneFromFile) MemberwiseClone();
             copy.name = newName;
             return copy;
         }
 
-        static Dictionary<string, Type> IntegratorNames = new() {
+        static readonly Dictionary<string, Type> IntegratorNames = new() {
             { "PathTracer", typeof(Integrators.PathTracer) },
             { "VCM", typeof(Integrators.Bidir.VertexConnectionAndMerging) },
             { "ClassicBidir", typeof(Integrators.Bidir.ClassicBidir) },
         };
 
+        /// <summary>
+        /// Retrieves a cached reference image with the right resolution and maximum path length. If not
+        /// available, a new reference is rendered and added to the cache.
+        /// 
+        /// The reference cache is a directory called "References" next to the .json file that defines
+        /// the scene.
+        /// </summary>
+        /// <param name="width">Width in pixels</param>
+        /// <param name="height">Height in pixels</param>
+        /// <returns>The reference image</returns>
         public override RgbImage GetReferenceImage(int width, int height) {
             string refDir = Path.Join(file.DirectoryName, "References");
             Directory.CreateDirectory(refDir);
@@ -91,6 +107,12 @@ namespace SeeSharp.Experiments {
             return scn.FrameBuffer.Image;
         }
 
+        /// <summary>
+        /// Loads a new scene from file
+        /// </summary>
+        /// <param name="filename">Path to an existing scene's json file</param>
+        /// <param name="maxDepth">Maximum path length to use when rendering</param>
+        /// <param name="name">If a name different from the file basename is desired, specify it here.</param>
         public SceneFromFile(string filename, int maxDepth, string name = null) {
             file = new(filename);
             scene = Scene.LoadFromFile(filename);
@@ -98,13 +120,20 @@ namespace SeeSharp.Experiments {
             this.name = name ?? Path.GetFileNameWithoutExtension(filename);
         }
 
-        public virtual SeeSharp.Integrators.Integrator DefaultReferenceIntegrator
-        => new SeeSharp.Integrators.PathTracer() {
+        /// <summary>
+        /// The default integrator used when rendering reference images, if no config.json file is present.
+        /// </summary>
+        public virtual Integrators.Integrator DefaultReferenceIntegrator
+        => new Integrators.PathTracer() {
             BaseSeed = 571298512u,
             TotalSpp = 512,
             MaxDepth = MaxDepth
         };
 
+        /// <summary>
+        /// Creates a scene ready for rendering
+        /// </summary>
+        /// <returns>A shallow copy of the "blueprint" scene</returns>
         public override Scene MakeScene() => scene.Copy();
     }
 }

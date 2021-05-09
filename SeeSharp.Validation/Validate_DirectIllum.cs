@@ -55,7 +55,7 @@ namespace SeeSharp.Validation {
             });
             scene.Emitters.Add(new DiffuseEmitter(scene.Meshes[^1], RgbColor.White * 1000));
 
-            scene.Camera = new PerspectiveCamera(Matrix4x4.CreateLookAt(Vector3.Zero, -Vector3.UnitZ, Vector3.UnitY), 40, null);
+            scene.Camera = new PerspectiveCamera(Matrix4x4.CreateLookAt(Vector3.Zero, -Vector3.UnitZ, Vector3.UnitY), 40);
             scene.FrameBuffer = new FrameBuffer(512, 512, "");
 
             scene.Prepare();

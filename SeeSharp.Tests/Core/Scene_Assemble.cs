@@ -49,7 +49,7 @@ namespace SeeSharp.Tests.Core {
             });
 
             scene.Camera = new PerspectiveCamera(Matrix4x4.CreateLookAt(new Vector3(0, 0, 0),
-                new Vector3(0, 5, 0), new Vector3(0, 0, 1)), 90, null);
+                new Vector3(0, 5, 0), new Vector3(0, 0, 1)), 90);
             scene.FrameBuffer = new FrameBuffer(1, 1, "");
 
             scene.Emitters.Add(new DiffuseEmitter(scene.Meshes[0], new RgbColor(1, 1, 1)));
@@ -103,7 +103,7 @@ namespace SeeSharp.Tests.Core {
         public void Framebuffer_ShouldUpdateCamera() {
             var scene = MakeDummyScene();
             var cam = new PerspectiveCamera(Matrix4x4.CreateLookAt(new Vector3(0, 0, 0),
-                new Vector3(1,0,0), new Vector3(0, 1, 0)), 90, null);
+                new Vector3(1,0,0), new Vector3(0, 1, 0)), 90);
             scene.Camera = cam;
             scene.FrameBuffer = new FrameBuffer(10, 20, "");
 

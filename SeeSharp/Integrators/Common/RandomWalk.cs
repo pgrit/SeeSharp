@@ -22,7 +22,7 @@ namespace SeeSharp.Integrators.Common {
 
         public virtual RgbColor StartFromEmitter(EmitterSample emitterSample, RgbColor initialWeight) {
             isOnLightSubpath = true;
-            Ray ray = scene.Raytracer.SpawnRay(emitterSample.Point, emitterSample.Direction);
+            Ray ray = Raytracer.SpawnRay(emitterSample.Point, emitterSample.Direction);
             return ContinueWalk(ray, emitterSample.Point, emitterSample.Pdf, initialWeight, 1);
         }
 
@@ -53,7 +53,7 @@ namespace SeeSharp.Integrators.Common {
                 return estimate;
 
             // Continue the path with the next ray
-            ray = scene.Raytracer.SpawnRay(hit, direction);
+            ray = Raytracer.SpawnRay(hit, direction);
             return estimate + ContinueWalk(ray, hit, pdfNext, initialWeight * weight, 2);
         }
 
@@ -153,7 +153,7 @@ namespace SeeSharp.Integrators.Common {
                 weight *= 1.0f / (survivalProb * numSplits);
 
                 // Continue the path with the next ray
-                var nextRay = scene.Raytracer.SpawnRay(hit, direction);
+                var nextRay = Raytracer.SpawnRay(hit, direction);
                 estimate += ContinueWalk(nextRay, hit, pdfNext, throughput * weight, depth + 1);
             }
 

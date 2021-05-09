@@ -197,31 +197,15 @@ namespace SeeSharp.Integrators.Bidir {
                 if (vertex.Depth + 1 < MinDepth) return;
 
                 // Compute image plane location
-                var raster = scene.Camera.WorldToFilm(vertex.Point.Position);
-                if (!raster.HasValue)
+                var response = scene.Camera.SampleResponse(vertex.Point, null); // TODO get an RNG in there for DOF!
+                if (!response.IsValid)
                     return;
-                var pixel = new Vector2(raster.Value.X, raster.Value.Y);
 
-                // Perform a change of variables from scene surface to pixel area.
-                // First: map the scene surface to the solid angle about the camera
-                var dirToCam = scene.Camera.Position - vertex.Point.Position;
+                if (scene.Raytracer.IsOccluded(vertex.Point, response.Position))
+                    return;
+
+                var dirToCam = response.Position - vertex.Point.Position;
                 float distToCam = dirToCam.Length();
-                float cosToCam = Math.Abs(Vector3.Dot(vertex.Point.Normal, dirToCam)) / distToCam;
-                float surfaceToSolidAngle = cosToCam / (distToCam * distToCam);
-
-                if (surfaceToSolidAngle == 0) // Prevent NaN / Inf
-                    return;
-
-                // Second: map the solid angle to the pixel area
-                float solidAngleToPixel = scene.Camera.SolidAngleToPixelJacobian(vertex.Point.Position);
-
-                // Third: combine to get the full jacobian
-                float surfaceToPixelJacobian = surfaceToSolidAngle * solidAngleToPixel;
-
-                // Trace shadow ray
-                // TODO this should be computed by the camera itself
-                if (scene.Raytracer.IsOccluded(vertex.Point, scene.Camera.Position))
-                    return;
 
                 var bsdfValue = vertex.Point.Material.Evaluate(vertex.Point, dirToAncestor, dirToCam, true);
                 if (bsdfValue == RgbColor.Black)
@@ -240,18 +224,19 @@ namespace SeeSharp.Integrators.Bidir {
                 }
 
                 float misWeight =
-                    LightTracerMis(vertex, surfaceToPixelJacobian, pdfReverse, pdfNextEvent, pixel, distToCam);
+                    LightTracerMis(vertex, response.PdfEmit, pdfReverse, pdfNextEvent, response.Pixel, distToCam);
 
                 // Compute image contribution and splat
-                RgbColor weight = vertex.Weight * bsdfValue * surfaceToPixelJacobian / NumLightPaths;
+                RgbColor weight = vertex.Weight * bsdfValue * response.Weight / NumLightPaths;
+                scene.FrameBuffer.Splat(response.Pixel.X, response.Pixel.Y, misWeight * weight);
 
-                scene.FrameBuffer.Splat(pixel.X, pixel.Y, misWeight * weight);
-                RegisterSample(weight, misWeight, pixel, 0, vertex.Depth, vertex.Depth + 1);
-                LightTracerUpdate(weight, misWeight, pixel, vertex, surfaceToPixelJacobian, pdfReverse,
+                // Log the sample
+                RegisterSample(weight, misWeight, response.Pixel, 0, vertex.Depth, vertex.Depth + 1);
+                LightTracerUpdate(weight, misWeight, response.Pixel, vertex, response.PdfEmit, pdfReverse,
                     pdfNextEvent, distToCam);
 
                 if (PathLogger != null && misWeight != 0 && weight != RgbColor.Black) {
-                    var logId = PathLogger.StartNew(pixel);
+                    var logId = PathLogger.StartNew(response.Pixel);
                     for (int i = 0; i < vertex.Depth + 1; ++i) {
                         PathLogger.Continue(logId, lightPaths.PathCache[pathIdx, i].Point.Position, 1);
                     }

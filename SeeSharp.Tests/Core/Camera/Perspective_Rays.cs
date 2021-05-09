@@ -7,15 +7,15 @@ using Xunit;
 namespace SeeSharp.Tests.Core.Camera {
     public class Perspective_Rays {
         Cameras.Camera MakeTestCamera() {
-            var frameBuffer = new FrameBuffer(3, 3, "");
-
             var camTransform = Matrix4x4.CreateLookAt(
                 cameraPosition: new Vector3(0, 0, 0),
                 cameraTarget: new Vector3(0, 0, 10),
                 cameraUpVector: new Vector3(0, 1, 0));
             float fov = 90;
 
-            return new Cameras.PerspectiveCamera(camTransform, fov, frameBuffer);
+            var cam = new Cameras.PerspectiveCamera(camTransform, fov);
+            cam.UpdateResolution(3, 3);
+            return cam;
         }
 
         [Fact]

@@ -14,7 +14,8 @@ namespace SeeSharp.Cameras {
         public Vector3 Position => Vector3.Transform(new Vector3(0, 0, 0), cameraToWorld);
 
         /// <summary>
-        /// The principal view direction of the camera in world space (computed from the <see cref="WorldToCamera"/> matrix)
+        /// The principal view direction of the camera in world space (computed from the 
+        /// <see cref="WorldToCamera"/> matrix)
         /// </summary>
         public Vector3 Direction => Vector3.Transform(new Vector3(0, 0, -1), cameraToWorld);
 
@@ -35,15 +36,16 @@ namespace SeeSharp.Cameras {
                 worldToCamera = value;
                 var succ = Matrix4x4.Invert(worldToCamera, out cameraToWorld);
                 if (!succ)
-                    throw new System.ArgumentException("World to camera transform must be invertible.", "worldToCamera");
+                    throw new ArgumentException("World to camera transform must be invertible.", nameof(value));
             }
         }
 
         /// <summary>
         /// Updates camera parameters based on changed resolution in a frame buffer.
         /// </summary>
-        /// <param name="value">The new frame buffer that will be used with this camera</param>
-        public abstract void UpdateFrameBuffer(Image.FrameBuffer value);
+        /// <param name="width">The new width of the frame buffer in pixels</param>
+        /// <param name="height">The new height of the frame buffer in pixels</param>
+        public abstract void UpdateResolution(int width, int height);
 
         /// <summary>
         /// Samples a ray from the camera into the scene
@@ -62,18 +64,14 @@ namespace SeeSharp.Cameras {
         public abstract CameraResponseSample SampleResponse(SurfacePoint scenePoint, RNG rng);
 
         /// <summary>
-        /// Projects the given world space point onto the camera.
+        /// Computes the change of area when mapping the hemisphere of directions around the camera onto
+        /// pixels on the image.
         /// </summary>
-        /// <param name="pos">A position in world space.</param>
-        /// <returns>A 3D vector with the film coordinates in (x,y) and the distance from the camera in (z).</returns>
-        public abstract Vector3? WorldToFilm(Vector3 pos);
-
-        /// <summary>
-        /// Computes the jacobian determinant for the change of variables from film to solid angle about the view direction.
-        /// That is, the change of variables performed by the <see cref="GenerateRay(Vector2, RNG)"/> method.
-        /// </summary>
-        /// <param name="pos">A point in world space, visible to the camera.</param>
-        /// <returns>The jacobian.</returns>
+        /// <param name="pos">A point in the scene that the camera is looking at</param>
+        /// <returns>
+        ///     The jacobian. The factor by which the differential area on the image plane is larger than the 
+        ///     differential solid angle corresponding to the given direction.
+        /// </returns>
         public abstract float SolidAngleToPixelJacobian(Vector3 pos);
 
         /// <summary>

@@ -35,7 +35,7 @@ namespace SeeSharp.IntegrationTests {
 
             var camera = new LightProbeCamera(hit.Position, hit.Normal, hit.ErrorOffset, Vector3.UnitY);
             var framebuffer = new Image.FrameBuffer(512, 256, "WhiteProbe.exr", Image.FrameBuffer.Flags.SendToTev);
-            camera.UpdateFrameBuffer(framebuffer);
+            camera.UpdateResolution(framebuffer.Width, framebuffer.Height);
 
             int numIter = 10;
             for (int i = 0; i < numIter; ++i) {

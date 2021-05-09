@@ -23,7 +23,7 @@ namespace SeeSharp.Validation {
             var worldToCamera = Matrix4x4.CreateLookAt(-1 * Vector3.UnitZ,
                                                         Vector3.Zero,
                                                         Vector3.UnitY);
-            scene.Camera = new PerspectiveCamera(worldToCamera, 45, null);
+            scene.Camera = new PerspectiveCamera(worldToCamera, 45);
 
             // Create the two transmissive planes in-between
             // first plane

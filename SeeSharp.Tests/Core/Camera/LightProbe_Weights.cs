@@ -23,7 +23,7 @@ namespace SeeSharp.Tests.Core.Camera {
             });
 
             var camera = new LightProbeCamera(hit.Position, hit.Normal, hit.ErrorOffset, Vector3.UnitY);
-            camera.UpdateFrameBuffer(new Image.FrameBuffer(512, 256, ""));
+            camera.UpdateResolution(512, 256);
 
             return camera;
         }

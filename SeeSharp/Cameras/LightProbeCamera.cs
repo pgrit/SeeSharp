@@ -1,8 +1,8 @@
 using SeeSharp.Geometry;
-using SeeSharp.Image;
 using SeeSharp.Sampling;
 using SimpleImageIO;
 using System;
+using System.Diagnostics;
 using System.Numerics;
 using TinyEmbree;
 
@@ -37,7 +37,15 @@ namespace SeeSharp.Cameras {
             WorldToCamera = Matrix4x4.CreateLookAt(position + errorOffset * normal, position + forward, upVector);
         }
 
+        /// <summary>
+        /// Generates a ray from the camera into the scene.
+        /// </summary>
+        /// <param name="filmPos">Position (in pixels) on the image</param>
+        /// <param name="rng">Unused, can be null</param>
+        /// <returns>The chosen ray and associated weights</returns>
         public override CameraRaySample GenerateRay(Vector2 filmPos, RNG rng) {
+            Debug.Assert(width != 0 && height != 0);
+
             // Convert image position to spherical coordinates
             float phi = 2 * MathF.PI * (filmPos.X / width);
             float theta = MathF.PI * (filmPos.Y / height);
@@ -61,10 +69,37 @@ namespace SeeSharp.Cameras {
             };
         }
 
+        /// <summary>
+        /// Maps the point to the deterministic location on the image.
+        /// </summary>
+        /// <param name="scenePoint">A point on a scene surface</param>
+        /// <param name="rng">Unused, can be null</param>
+        /// <returns>Contribution, pixel, and sampling PDFs</returns>
         public override CameraResponseSample SampleResponse(SurfacePoint scenePoint, RNG rng) {
-            throw new System.NotImplementedException();
+            var filmPoint = WorldToFilm(scenePoint.Position);
+
+            float jacobian = SolidAngleToPixelJacobian(scenePoint.Position);
+            jacobian *= SurfaceAreaToSolidAngleJacobian(scenePoint.Position, scenePoint.Normal);
+
+            return new() {
+                Position = Position,
+                Pixel = new(filmPoint.X, filmPoint.Y),
+                Weight = jacobian * RgbColor.White,
+                PdfConnect = 1,
+                PdfEmit = jacobian
+            };
         }
 
+        /// <summary>
+        /// Computes the change of area when mapping a direction from the hemisphere around the camera
+        /// to the image. Given by our transformation to spherical coordinates, followed by the scaling to the
+        /// desired resolution.
+        /// </summary>
+        /// <param name="pos">Position in world space of a point towards which the direction points</param>
+        /// <returns>
+        ///     Jacobian determinant that describes how much larger an area on the image plane is than 
+        ///     the corresponding solid angle.
+        /// </returns>
         public override float SolidAngleToPixelJacobian(Vector3 pos) {
             var dir = pos - position;
             dir = Shading.ShadingSpace.WorldToShading(upVector, dir);
@@ -72,12 +107,18 @@ namespace SeeSharp.Cameras {
             return 1 / (2 * MathF.PI * MathF.PI * MathF.Sin(theta)) * width * height;
         }
 
-        public override void UpdateFrameBuffer(FrameBuffer value) {
-            width = value.Width;
-            height = value.Height;
+        /// <summary>
+        /// Updates the camera parameters after the frame buffer changed resolution.
+        /// Must be called at least once, and with the correct values.
+        /// </summary>
+        public override void UpdateResolution(int width, int height) {
+            this.width = width;
+            this.height = height;
         }
 
-        public override Vector3? WorldToFilm(Vector3 pos) {
+        Vector3 WorldToFilm(Vector3 pos) {
+            Debug.Assert(width != 0 && height != 0);
+
             var dir = pos - position;
             float distance = dir.Length();
             dir = Shading.ShadingSpace.WorldToShading(upVector, dir);

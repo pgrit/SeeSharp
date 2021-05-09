@@ -87,7 +87,7 @@ namespace SeeSharp {
             }
 
             // Make sure the camera is set for the correct resolution.
-            Camera.UpdateFrameBuffer(FrameBuffer);
+            Camera.UpdateResolution(FrameBuffer.Width, FrameBuffer.Height);
 
             // Build the mesh to emitter mapping
             meshToEmitter.Clear();
@@ -231,7 +231,7 @@ namespace SeeSharp {
                     var camToWorld = namedTransforms[transform];
                     Matrix4x4 worldToCam;
                     Matrix4x4.Invert(camToWorld, out worldToCam);
-                    namedCameras[name] = new PerspectiveCamera(worldToCam, fov, null);
+                    namedCameras[name] = new PerspectiveCamera(worldToCam, fov); // TODO support DOF thin lens
                     resultScene.Camera = namedCameras[name]; // TODO allow loading of multiple cameras? (and selecting one by name later)
                 }
 

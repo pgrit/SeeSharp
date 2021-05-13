@@ -5,116 +5,52 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
-using System.Threading.Tasks;
 
 namespace SeeSharp.Image {
+    /// <summary>
+    /// Provides an image buffer to receive pixel estimates during rendering. Additional named layers can
+    /// be attached to store AOVs.
+    /// </summary>
     public class FrameBuffer {
-        public abstract class Layer {
-            public ImageBase Image { get; set; }
-            public abstract void Init(int width, int height);
-            public virtual void Reset() => Image.Scale(0);
-            public virtual void OnStartIteration(int curIteration) {
-                if (curIteration > 1)
-                    Image.Scale((curIteration - 1.0f) / curIteration);
-                this.curIteration = curIteration;
-            }
-            public virtual void OnEndIteration(int curIteration) { }
-            protected int curIteration;
-        }
-
-        public class RgbLayer : Layer {
-            public override void Init(int width, int height) => Image = new RgbImage(width, height);
-            public virtual void Splat(float x, float y, RgbColor value)
-            => (Image as RgbImage).AtomicAdd((int)x, (int)y, value / curIteration);
-        }
-
-        public class MonoLayer : Layer {
-            public override void Init(int width, int height) => Image = new MonochromeImage(width, height);
-            public virtual void Splat(float x, float y, float value)
-            => (Image as MonochromeImage).AtomicAdd((int)x, (int)y, value / curIteration);
-        }
+        /// <summary>
+        /// Width of the frame buffer in pixels
+        /// </summary>
+        public readonly int Width;
 
         /// <summary>
-        /// Estimates the pixel variance in the rendered image.
-        /// "Pixel variance" is defined as the squared deviation of the pixel value from each iteration
-        /// from the mean pixel value across all iterations.
-        /// Note that this does not necessarily equal the variance of the underlying Monte Carlo estimator,
-        /// especially not if MIS is used. It is a lower-bound approximation of that.
+        /// Height of the frame buffer in pixels
         /// </summary>
-        public class VarianceLayer : Layer {
-            MonochromeImage momentImage;
-            MonochromeImage meanImage;
-            MonochromeImage bufferImage;
-
-            public float Average;
-
-            public override void Init(int width, int height) {
-                Image = new MonochromeImage(width, height);
-                momentImage = new MonochromeImage(width, height);
-                meanImage = new MonochromeImage(width, height);
-                bufferImage = new MonochromeImage(width, height);
-            }
-
-            public override void Reset() {
-                base.Reset();
-                momentImage.Scale(0);
-                meanImage.Scale(0);
-                bufferImage.Scale(0);
-            }
-
-            public virtual void Splat(float x, float y, RgbColor value)
-            => bufferImage.AtomicAdd((int)x, (int)y, value.Average);
-
-            public override void OnStartIteration(int curIteration) {
-                if (curIteration > 1) {
-                    momentImage.Scale((curIteration - 1.0f) / curIteration);
-                    meanImage.Scale((curIteration - 1.0f) / curIteration);
-                }
-                this.curIteration = curIteration;
-
-                // Each iteration needs to store the final pixel value of that iteration
-                bufferImage.Scale(0);
-            }
-
-            public override void OnEndIteration(int curIteration) {
-                // Update the mean and moment based on the buffered image of the current iteration
-                Parallel.For(0, momentImage.Height, row => {
-                    for (int col = 0; col < momentImage.Width; ++col) {
-                        float val = bufferImage.GetPixel(col, row);
-                        momentImage.AtomicAdd(col, row, val * val / curIteration);
-                        meanImage.AtomicAdd(col, row, val / curIteration);
-                    }
-                });
-
-                // Blur both buffers to get a more stable estimate.
-                // TODO this could be done in-place by directly splatting in multiple pixels above
-                BoxFilter filter = new(1);
-                MonochromeImage blurredMean = new(meanImage.Width, meanImage.Height);
-                MonochromeImage blurredMoment = new(meanImage.Width, meanImage.Height);
-                filter.Apply(meanImage, blurredMean);
-                filter.Apply(momentImage, blurredMoment);
-
-                // Compute the final variance and update the main image
-                Average = 0;
-                Parallel.For(0, momentImage.Height, row => {
-                    for (int col = 0; col < momentImage.Width; ++col) {
-                        float mean = blurredMean.GetPixel(col, row);
-                        float variance = blurredMoment.GetPixel(col, row) - mean * mean;
-                        variance /= (mean * mean + 0.001f);
-                        Image.SetPixelChannel(col, row, 0, variance);
-                        Common.Atomic.AddFloat(ref Average, variance);
-                    }
-                });
-            }
-        }
-
-        public readonly int Width;
         public readonly int Height;
+
+        /// <summary>
+        /// The (current) rendered image. Only normalized correctly after <see cref="EndIteration"/>
+        /// </summary>
         public RgbImage Image { get; private set; }
+
+        /// <summary>
+        /// Automatically added layer that estimates per-pixel variances in the frame buffer
+        /// </summary>
         public readonly VarianceLayer PixelVariance = new();
+
+        /// <summary>
+        /// Associated meta data that will be stored along with the final rendered image. By default only
+        /// contains a single item "RenderTime" which tracks the total time in milliseconds over all iterations.
+        /// </summary>
         public readonly Dictionary<string, dynamic> MetaData = new();
 
+        readonly Flags flags;
+        TevIpc tevIpc;
+        readonly string filename;
+        readonly Dictionary<string, Layer> layers = new();
+        readonly Stopwatch stopwatch = new Stopwatch();
+
+        /// <summary>
+        /// Adds a new layer to the frame buffer. Will be written with the final image, either as a layer or
+        /// separately, depending on the file format.
+        /// </summary>
         public void AddLayer(string name, Layer layer) => layers.Add(name, layer);
+
+        /// <returns>Layer with the given name</returns>
         public Layer GetLayer(string name) => layers[name];
 
         /// <summary>
@@ -122,6 +58,10 @@ namespace SeeSharp.Image {
         /// </summary>
         public int CurIteration = 0;
 
+        /// <summary>
+        /// The full path to the final rendered image file, but without the extension. Can be used to
+        /// generate adequate names for auxiliary files and debug data.
+        /// </summary>
         public string Basename {
             get {
                 string dir = Path.GetDirectoryName(filename);
@@ -130,16 +70,36 @@ namespace SeeSharp.Image {
             }
         }
 
+        /// <summary>
+        /// File extension of the final image, which also specifies the format.
+        /// </summary>
         public string Extension => Path.GetExtension(filename);
 
+        /// <summary>
+        /// Flags controlling some behaviour of the buffer
+        /// </summary>
         [Flags]
         public enum Flags {
+            /// <summary> Use default behaviour </summary>
             None = 0,
-            WriteIntermediate = 1, // Write the result of each iteration into a distinct file
-            WriteContinously = 2, // Continously update the rendering result after each iteration
-            SendToTev = 4 // Like WriteContinously, but sends the data via a socket instead
+
+            /// <summary> Write the result of each iteration into a distinct file </summary>
+            WriteIntermediate = 1,
+
+            /// <summary> Continously update the rendering result after each iteration </summary>
+            WriteContinously = 2,
+
+            ///<summary> Like WriteContinously, but sends the data via a socket to the tev viewer </summary>
+            SendToTev = 4 
         }
 
+        /// <param name="width">Width in pixels</param>
+        /// <param name="height">Height in pixels</param>
+        /// <param name="filename">
+        ///     Filename to use when writing the final rendering. Can be null if <see cref="WriteToFile"/> is
+        ///     never called without an explicit filename and no flags are set.
+        /// </param>
+        /// <param name="flags">Controls how incremental results are stored</param>
         public FrameBuffer(int width, int height, string filename, Flags flags = Flags.None) {
             this.filename = filename;
             this.flags = flags;
@@ -148,6 +108,12 @@ namespace SeeSharp.Image {
             AddLayer("variance", PixelVariance);
         }
 
+        /// <summary>
+        /// Adds a contribution to the frame buffer
+        /// </summary>
+        /// <param name="x">Horizontal pixel coordinate, [0, Width), left to right</param>
+        /// <param name="y">Vertical pixel coordinate, [0, Height), top to bottom</param>
+        /// <param name="value">Color to add to the current value</param>
         public virtual void Splat(float x, float y, RgbColor value) {
             Image.AtomicAdd((int)x, (int)y, value / CurIteration);
             PixelVariance.Splat(x, y, value);
@@ -161,6 +127,10 @@ namespace SeeSharp.Image {
             }
         }
 
+        /// <summary>
+        /// Should be called before the start of each new rendering iteration. A rendering iteration is one of
+        /// multiple equal-sized batches of samples per pixel.
+        /// </summary>
         public virtual void StartIteration() {
             if (CurIteration == 0) {
                 Image = new RgbImage(Width, Height);
@@ -191,8 +161,16 @@ namespace SeeSharp.Image {
             stopwatch.Start();
         }
 
+        /// <summary>
+        /// Current total time spent between <see cref="StartIteration"/> and <see cref="EndIteration"/>,
+        /// i.e, the render time without frame buffer overhead.
+        /// </summary>
         public long RenderTimeMs => stopwatch.ElapsedMilliseconds;
 
+        /// <summary>
+        /// Notifies that the rendering iteration is finished, intermediate results can be written, and time
+        /// measurments can be stopped.
+        /// </summary>
         public virtual void EndIteration() {
             stopwatch.Stop();
 
@@ -214,11 +192,18 @@ namespace SeeSharp.Image {
                 tevIpc.UpdateImage(filename);
         }
 
+        /// <summary>
+        /// Clears the image and all layers and resets the rendering time to zero
+        /// </summary>
         public virtual void Reset() {
             CurIteration = 0;
             stopwatch.Reset();
         }
 
+        /// <summary>
+        /// Writes the current rendered image to a file on disk.
+        /// </summary>
+        /// <param name="fname">The desired file name. If not given, uses the final image name.</param>
         public void WriteToFile(string fname = null) {
             if (fname == null) fname = filename;
 
@@ -248,12 +233,5 @@ namespace SeeSharp.Image {
             });
             File.WriteAllText(basename + ".json", json);
         }
-
-        Flags flags;
-        TevIpc tevIpc;
-
-        protected string filename;
-        protected Dictionary<string, Layer> layers = new();
-        protected System.Diagnostics.Stopwatch stopwatch = new System.Diagnostics.Stopwatch();
     }
 }

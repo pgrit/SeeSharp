@@ -317,6 +317,7 @@ namespace SeeSharp {
                             };
                             namedMaterials[name] = new DiffuseMaterial(parameters);
                         } else {
+                            // TODO check that there are no unsupported parameters
                             var parameters = new GenericMaterial.Parameters {
                                 baseColor = ReadColorOrTexture(m.GetProperty("baseColor")),
                                 roughness = new TextureMono(ReadOptionalFloat("roughness", 0.5f)),

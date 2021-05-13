@@ -6,10 +6,23 @@ using System.Numerics;
 using TinyEmbree;
 
 namespace SeeSharp.Integrators {
+    /// <summary>
+    /// Renders a simple and fast grayscale visualization of a scene
+    /// </summary>
     public class DebugVisualizer : Integrator {
+        /// <summary>
+        /// Base seed used for anti-aliasing
+        /// </summary>
         public uint BaseSeed = 0xC030114;
+
+        /// <summary>
+        /// Number of anti-aliasing samples to take in each pixel
+        /// </summary>
         public int TotalSpp = 1;
 
+        /// <summary>
+        /// Renders the given scene.
+        /// </summary>
         public override void Render(Scene scene) {
             for (uint sampleIndex = 0; sampleIndex < TotalSpp; ++sampleIndex) {
                 scene.FrameBuffer.StartIteration();
@@ -24,6 +37,10 @@ namespace SeeSharp.Integrators {
             }
         }
 
+        /// <summary>
+        /// The shading value at a primary hit point. The default implementation uses "eye light shading",
+        /// i.e., the cosine between the outgoing direction and the normal.
+        /// </summary>
         public virtual RgbColor ComputeColor(SurfacePoint hit, Vector3 from) {
             float cosine = Math.Abs(Vector3.Dot(hit.Normal, from));
             cosine /= hit.Normal.Length();

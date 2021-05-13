@@ -52,7 +52,7 @@ def material_to_json(material, out_dir):
         "roughness": material.roughness,
         "anisotropic": material.anisotropic,
         "diffuseTransmittance": material.diffuseTransmittance,
-        "indexOfRefraction": material.indexOfRefraction,
+        "IOR": material.indexOfRefraction,
         "metallic": material.metallic,
         "specularTintStrength": material.specularTintStrength,
         "specularTransmittance": material.specularTransmittance,

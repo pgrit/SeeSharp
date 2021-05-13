@@ -1,5 +1,6 @@
 import bpy
 from bpy.props import *
+from math import sqrt
 
 class SeeSharpMaterial(bpy.types.PropertyGroup):
     base_color: FloatVectorProperty(
@@ -135,7 +136,8 @@ def map_translucent(shader, seesharp):
     seesharp.diffuseTransmittance = 1
 
 def map_view_shader(material, seesharp):
-    seesharp.base_color = material.diffuse_color
+    clr = material.diffuse_color
+    seesharp.base_color = (clr[0], clr[1], clr[2])
     seesharp.roughness = material.roughness
     seesharp.metallic = material.metallic
 
@@ -147,18 +149,32 @@ def map_emission(shader, seesharp):
     seesharp.emission_strength = strength
     seesharp.base_color = (0, 0, 0)
 
+def map_glass(shader, seesharp):
+    clr_node = shader.inputs['Color']
+    tex = map_texture(clr_node)
+    if tex:
+        seesharp.base_texture = tex
+    else:
+        seesharp.base_color = (clr_node.default_value[0], clr_node.default_value[1], clr_node.default_value[2])
+
+    seesharp.roughness = shader.inputs['Roughness'].default_value
+    seesharp.indexOfRefraction = shader.inputs['IOR'].default_value
+    seesharp.specularTransmittance = 1
+    seesharp.specularTint = 1
+
 shader_matcher = {
     "Principled BSDF": map_principled,
     "Diffuse BSDF": map_diffuse,
     "Translucent BSDF": map_translucent,
-    "Emission": map_emission
+    "Emission": map_emission,
+    "Glass BSDF": map_glass
 }
 
 def convert_material(material):
     try: # try to interpret as a known shader
         last_shader = material.node_tree.nodes['Material Output'].inputs['Surface'].links[0].from_node
         return shader_matcher[last_shader.name](last_shader, material.seesharp)
-    except Exception as e: # use the view shading settings instead
+    except: # use the view shading settings instead
         map_view_shader(material, material.seesharp)
 
 class ConvertOperator(bpy.types.Operator):

@@ -29,8 +29,8 @@ namespace SeeSharp.Validation {
                 0, 1, 2, 0, 2, 3
             }));
             scene.Meshes[^1].Material = new GenericMaterial(new GenericMaterial.Parameters {
-                baseColor = new TextureRgb(RgbColor.White),
-                roughness = new TextureMono(0.5f),
+                BaseColor = new TextureRgb(RgbColor.White),
+                Roughness = new TextureMono(0.5f),
             });
 
             // Emitter

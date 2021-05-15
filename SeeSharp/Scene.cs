@@ -319,15 +319,15 @@ namespace SeeSharp {
                         } else {
                             // TODO check that there are no unsupported parameters
                             var parameters = new GenericMaterial.Parameters {
-                                baseColor = ReadColorOrTexture(m.GetProperty("baseColor")),
-                                roughness = new TextureMono(ReadOptionalFloat("roughness", 0.5f)),
-                                anisotropic = ReadOptionalFloat("anisotropic", 0.0f),
-                                diffuseTransmittance = ReadOptionalFloat("diffuseTransmittance", 1.0f),
-                                indexOfRefraction = ReadOptionalFloat("IOR", 1.0f),
-                                metallic = ReadOptionalFloat("metallic", 0.0f),
-                                specularTintStrength = ReadOptionalFloat("specularTint", 0.0f),
-                                specularTransmittance = ReadOptionalFloat("specularTransmittance", 0.0f),
-                                thin = ReadOptionalBool("thin", false)
+                                BaseColor = ReadColorOrTexture(m.GetProperty("baseColor")),
+                                Roughness = new TextureMono(ReadOptionalFloat("roughness", 0.5f)),
+                                Anisotropic = ReadOptionalFloat("anisotropic", 0.0f),
+                                DiffuseTransmittance = ReadOptionalFloat("diffuseTransmittance", 1.0f),
+                                IndexOfRefraction = ReadOptionalFloat("IOR", 1.0f),
+                                Metallic = ReadOptionalFloat("metallic", 0.0f),
+                                SpecularTintStrength = ReadOptionalFloat("specularTint", 0.0f),
+                                SpecularTransmittance = ReadOptionalFloat("specularTransmittance", 0.0f),
+                                Thin = ReadOptionalBool("thin", false)
                             };
                             namedMaterials[name] = new GenericMaterial(parameters);
                         }

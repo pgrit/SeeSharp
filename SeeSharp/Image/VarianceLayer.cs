@@ -84,6 +84,7 @@ namespace SeeSharp.Image {
                     Atomic.AddFloat(ref Average, variance);
                 }
             });
+            Average /= momentImage.Height * momentImage.Width;
         }
     }
 }

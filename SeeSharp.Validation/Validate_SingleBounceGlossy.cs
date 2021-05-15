@@ -37,11 +37,11 @@ namespace SeeSharp.Validation {
                 0, 2, 3,
             });
             mesh.Material = new GenericMaterial(new GenericMaterial.Parameters {
-                baseColor = new TextureRgb(RgbColor.White),
-                roughness = new TextureMono(0.5f),
-                specularTransmittance = 1,
-                thin = true,
-                diffuseTransmittance = 1,
+                BaseColor = new TextureRgb(RgbColor.White),
+                Roughness = new TextureMono(0.5f),
+                SpecularTransmittance = 1,
+                Thin = true,
+                DiffuseTransmittance = 1,
             });
             scene.Meshes.Add(mesh);
             // second plane
@@ -55,10 +55,10 @@ namespace SeeSharp.Validation {
                 0, 2, 3,
             });
             mesh.Material = new GenericMaterial(new GenericMaterial.Parameters {
-                baseColor = new TextureRgb(RgbColor.White),
-                roughness = new TextureMono(0.5f),
-                thin = true,
-                diffuseTransmittance = 1,
+                BaseColor = new TextureRgb(RgbColor.White),
+                Roughness = new TextureMono(0.5f),
+                Thin = true,
+                DiffuseTransmittance = 1,
             });
             scene.Meshes.Add(mesh);
 

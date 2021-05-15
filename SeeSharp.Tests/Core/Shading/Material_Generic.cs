@@ -9,10 +9,10 @@ namespace SeeSharp.Tests.Core.Shading {
         [Fact]
         public void Pdfs_ShouldBeConsistent() {
             Material mtl = new GenericMaterial(new GenericMaterial.Parameters {
-                baseColor = new(new RgbColor(1, 1, 1)),
-                roughness = new(0.2f),
-                specularTransmittance = 0.8f,
-                diffuseTransmittance = 0.3f
+                BaseColor = new(new RgbColor(1, 1, 1)),
+                Roughness = new(0.2f),
+                SpecularTransmittance = 0.8f,
+                DiffuseTransmittance = 0.3f
             });
 
             var mesh = new Mesh(new Vector3[] {

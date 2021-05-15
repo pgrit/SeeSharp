@@ -5,11 +5,27 @@ using System.Numerics;
 using System.Threading.Tasks;
 
 namespace SeeSharp.Integrators.Util {
+    /// <summary>
+    /// Stores geometry and contribution of a path sample for later visualization 
+    /// </summary>
     public class LoggedPath {
+        /// <summary>
+        /// The positions of the vertices along the path
+        /// </summary>
         public List<Vector3> Vertices = new();
+
+        /// <summary>
+        /// Contribution of the path to the image
+        /// </summary>
         public RgbColor Contribution = RgbColor.Black;
+
+        /// <summary>
+        /// For each vertex, some user defined number that identifies its "type" (e.g., light path or
+        /// camera path)
+        /// </summary>
         public List<int> UserTypes = new();
 
+        /// <returns>A deep copy of this path</returns>
         public LoggedPath Copy() => new LoggedPath {
             Vertices = new(Vertices),
             Contribution = Contribution,
@@ -17,10 +33,24 @@ namespace SeeSharp.Integrators.Util {
         };
     }
 
+    /// <summary>
+    /// Stores paths sampled by an integrator if they fulfill some user-defined filtering condition
+    /// </summary>
     public class PathLogger {
+        /// <summary>
+        /// Filter function used to determine which paths to store
+        /// </summary>
+        /// <returns>True if the path should be stored</returns>
         public delegate bool FilterFn(LoggedPath path);
+
+        /// <summary>
+        /// The filter function that determines which paths should be stored
+        /// </summary>
         public FilterFn Filter { get; init; }
 
+        /// <summary>
+        /// Creates a new logger that can store arbitrarily many paths per pixel
+        /// </summary>
         public PathLogger(int imageWidth, int imageHeight) {
             pixelPaths = new List<LoggedPath>[imageWidth * imageHeight];
             for (int i = 0; i < pixelPaths.Length; ++i)
@@ -29,11 +59,25 @@ namespace SeeSharp.Integrators.Util {
             height = imageHeight;
         }
 
+        /// <summary>
+        /// Tracks the index of a path in the per-pixel lists
+        /// </summary>
         public struct PathIndex {
+            /// <summary>
+            /// Index of the pixel
+            /// </summary>
             public int Pixel { get; init; }
+
+            /// <summary>
+            /// Index of the path within the pixel
+            /// </summary>
             public int Local { get; init; }
         }
 
+        /// <summary>
+        /// Starts a new path from a pixel
+        /// </summary>
+        /// <returns>Index of the new path</returns>
         public PathIndex StartNew(Vector2 pixel) {
             var paths = pixelPaths[PixelToIndex(pixel)];
             int id;
@@ -44,6 +88,11 @@ namespace SeeSharp.Integrators.Util {
             return new PathIndex { Pixel = PixelToIndex(pixel), Local = id };
         }
 
+        /// <summary>
+        /// Logs a splitting event, where one path is continued by multiple suffix paths
+        /// </summary>
+        /// <param name="original">The index of the path so far</param>
+        /// <returns>Index of a new path with identical prefix</returns>
         public PathIndex Split(PathIndex original) {
             var paths = pixelPaths[original.Pixel];
             int id;
@@ -54,6 +103,9 @@ namespace SeeSharp.Integrators.Util {
             return new PathIndex { Pixel = original.Pixel, Local = id };
         }
 
+        /// <summary>
+        /// Removes all paths that do not fulfill the filter conditions
+        /// </summary>
         public void OnEndIteration() {
             Parallel.ForEach(pixelPaths, paths => {
                 paths.RemoveAll(p => !Filter(p));

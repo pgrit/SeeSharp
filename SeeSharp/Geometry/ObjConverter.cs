@@ -40,7 +40,7 @@ namespace SeeSharp.Geometry {
             // Create a dummy constant texture color for incorrect texture references
             var dummyColor = new TextureRgb(RgbColor.White);
             var dummyMaterial = new GenericMaterial(new GenericMaterial.Parameters{
-                baseColor = dummyColor
+                BaseColor = dummyColor
             });
 
             // Create the materials for this OBJ file
@@ -62,20 +62,20 @@ namespace SeeSharp.Geometry {
                 switch (objMaterial.illuminationModel) {
                 case 5: // perfect mirror
                     materialParameters = new GenericMaterial.Parameters {
-                        baseColor = new TextureRgb(objMaterial.specular),
-                        specularTintStrength = 1.0f,
-                        metallic = 1,
-                        roughness = new TextureMono(0),
+                        BaseColor = new TextureRgb(objMaterial.specular),
+                        SpecularTintStrength = 1.0f,
+                        Metallic = 1,
+                        Roughness = new TextureMono(0),
                     };
                     break;
                 case 7: // perfect glass
                     materialParameters = new GenericMaterial.Parameters {
-                        baseColor = new TextureRgb(objMaterial.specular),
-                        metallic = 0,
-                        roughness = new TextureMono(0),
-                        indexOfRefraction = objMaterial.indexOfRefraction,
-                        specularTransmittance = 1.0f,
-                        specularTintStrength = 1.0f
+                        BaseColor = new TextureRgb(objMaterial.specular),
+                        Metallic = 0,
+                        Roughness = new TextureMono(0),
+                        IndexOfRefraction = objMaterial.indexOfRefraction,
+                        SpecularTransmittance = 1.0f,
+                        SpecularTintStrength = 1.0f
                     };
                     break;
                 case 2:
@@ -88,12 +88,12 @@ namespace SeeSharp.Geometry {
                     // We coarsely map the "ns" term to roughness, use the diffuse color as base color,
                     // and ignore everything else.
                     materialParameters = new GenericMaterial.Parameters {
-                        baseColor = baseColor,
-                        roughness = new TextureMono(
+                        BaseColor = baseColor,
+                        Roughness = new TextureMono(
                             objMaterial.specularIndex == 0
                             ? 1
                             : 1 / objMaterial.specularIndex),
-                        metallic = 0.5f
+                        Metallic = 0.5f
                     };
                     break;
                 }

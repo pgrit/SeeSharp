@@ -29,7 +29,7 @@ namespace SeeSharp.Tests.Core {
             ));
 
             scene.Meshes[^1].Material = new GenericMaterial(new GenericMaterial.Parameters {
-                baseColor = new(new RgbColor(0, 0, 1))
+                BaseColor = new(new RgbColor(0, 0, 1))
             });
 
             scene.Meshes.Add(new Mesh(
@@ -45,7 +45,7 @@ namespace SeeSharp.Tests.Core {
             ));
 
             scene.Meshes[^1].Material = new GenericMaterial(new GenericMaterial.Parameters {
-                baseColor = new(new RgbColor(1, 0, 0))
+                BaseColor = new(new RgbColor(1, 0, 0))
             });
 
             scene.Camera = new PerspectiveCamera(Matrix4x4.CreateLookAt(new Vector3(0, 0, 0),

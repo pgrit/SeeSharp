@@ -6,12 +6,12 @@ namespace SeeSharp.Shading {
         RgbColor Evaluate(float cosine);
     }
 
-    public struct FresnelConductor : Fresnel {
+    public class FresnelConductor : Fresnel {
         public RgbColor EtaI;
         public RgbColor EtaT;
         public RgbColor K;
 
-        RgbColor Fresnel.Evaluate(float cosine) => Evaluate(MathF.Abs(cosine), EtaI, EtaT, K);
+        public RgbColor Evaluate(float cosine) => Evaluate(MathF.Abs(cosine), EtaI, EtaT, K);
 
         // https://seblagarde.wordpress.com/2013/04/29/memo-on-fresnel-equations/
         public static RgbColor Evaluate(float cosThetaI, RgbColor etai, RgbColor etat, RgbColor k) {
@@ -39,11 +39,11 @@ namespace SeeSharp.Shading {
         }
     }
 
-    public struct FresnelDielectric : Fresnel {
+    public class FresnelDielectric : Fresnel {
         public float EtaI;
         public float EtaT;
 
-        RgbColor Fresnel.Evaluate(float cosine) => new RgbColor(Evaluate(cosine, EtaI, EtaT));
+        public RgbColor Evaluate(float cosine) => new RgbColor(Evaluate(cosine, EtaI, EtaT));
 
         public static float Evaluate(float cosThetaI, float etaI, float etaT) {
             cosThetaI = Math.Clamp(cosThetaI, -1, 1);
@@ -69,7 +69,7 @@ namespace SeeSharp.Shading {
         }
     }
 
-    public struct FresnelSchlick {
+    public class FresnelSchlick {
         // https://seblagarde.wordpress.com/2013/04/29/memo-on-fresnel-equations/
         //
         // The Schlick Fresnel approximation is:
@@ -99,14 +99,16 @@ namespace SeeSharp.Shading {
         }
     }
 
-    // Specialized Fresnel function used for the specular component, based on
-    // a mixture between dielectric and the Schlick Fresnel approximation.
-    public struct DisneyFresnel : Fresnel {
+    /// <summary>
+    /// Specialized Fresnel function used for the specular component, based on
+    /// a mixture between dielectric and the Schlick Fresnel approximation.
+    /// </summary>
+    public class DisneyFresnel : Fresnel {
         public RgbColor ReflectanceAtNormal;
         public float Metallic;
         public float IndexOfRefraction;
 
-        RgbColor Fresnel.Evaluate(float cosI) {
+        public RgbColor Evaluate(float cosI) {
             var diel = new RgbColor(FresnelDielectric.Evaluate(cosI, 1, IndexOfRefraction));
             var schlick = FresnelSchlick.Evaluate(ReflectanceAtNormal, cosI);
             return RgbColor.Lerp(Metallic, diel, schlick);

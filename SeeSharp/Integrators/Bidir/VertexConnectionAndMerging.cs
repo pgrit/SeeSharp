@@ -117,26 +117,26 @@ namespace SeeSharp.Integrators.Bidir {
 
         public override void ProcessPathCache() {
             if (EnableLightTracing) SplatLightVertices();
-            if (EnableMerging) photonMap.Build(lightPaths, Radius);
+            if (EnableMerging) photonMap.Build(LightPaths, Radius);
         }
 
         public virtual void MergeUpdate(RgbColor weight, float misWeight, CameraPath cameraPath,
                                         PathVertex lightVertex, float pdfCameraReverse,
                                         float pdfLightReverse, float pdfNextEvent) {}
 
-        RgbColor Merge((CameraPath path, float cameraJacobian) userData, SurfacePoint hit, Vector3 outDir, 
+        RgbColor Merge((CameraPath path, float cameraJacobian) userData, SurfacePoint hit, Vector3 outDir,
                        int pathIdx, int vertexIdx, float distSqr) {
-            var photon = lightPaths.PathCache[pathIdx, vertexIdx];
+            var photon = LightPaths.PathCache[pathIdx, vertexIdx];
             CameraPath path = userData.path;
             float cameraJacobian = userData.cameraJacobian;
 
             // Check that the path does not exceed the maximum length
             var depth = path.Vertices.Count + photon.Depth;
-            if (depth > MaxDepth || depth < MinDepth) 
+            if (depth > MaxDepth || depth < MinDepth)
                 return RgbColor.Black;
 
             // Compute the contribution of the photon
-            var ancestor = lightPaths.PathCache[pathIdx, photon.AncestorId];
+            var ancestor = LightPaths.PathCache[pathIdx, photon.AncestorId];
             var dirToAncestor = ancestor.Point.Position - photon.Point.Position;
             var bsdfValue = hit.Material.Evaluate(hit, outDir, dirToAncestor, false);
             var photonContrib = photon.Weight * bsdfValue / NumLightPaths;
@@ -165,7 +165,7 @@ namespace SeeSharp.Integrators.Bidir {
 
             return photonContrib * misWeight;
         }
-        
+
         public virtual RgbColor PerformMerging(Ray ray, SurfacePoint hit, CameraPath path, float cameraJacobian) {
             if (path.Vertices.Count == 1 && !MergePrimary) return RgbColor.Black;
             if (!EnableMerging) return RgbColor.Black;
@@ -178,7 +178,7 @@ namespace SeeSharp.Integrators.Bidir {
             RgbColor value = RgbColor.Black;
 
             // Was a light hit?
-            Emitter light = scene.QueryEmitter(hit);
+            Emitter light = Scene.QueryEmitter(hit);
             if (light != null && EnableBsdfLightHit && depth >= MinDepth) {
                 value += throughput * OnEmitterHit(light, hit, ray, path, toAncestorJacobian);
             }
@@ -205,7 +205,7 @@ namespace SeeSharp.Integrators.Bidir {
             Span<float> camToLight = stackalloc float[numPdfs];
             Span<float> lightToCam = stackalloc float[numPdfs];
 
-            var pathPdfs = new BidirPathPdfs(lightPaths.PathCache, lightToCam, camToLight);
+            var pathPdfs = new BidirPathPdfs(LightPaths.PathCache, lightToCam, camToLight);
             pathPdfs.GatherCameraPdfs(cameraPath, lastCameraVertexIdx);
             pathPdfs.GatherLightPdfs(lightVertex, lastCameraVertexIdx - 1, numPdfs);
 
@@ -244,7 +244,7 @@ namespace SeeSharp.Integrators.Bidir {
 
             if (numPdfs == 1) return 1.0f; // sole technique for rendering directly visible lights.
 
-            var pathPdfs = new BidirPathPdfs(lightPaths.PathCache, lightToCam, camToLight);
+            var pathPdfs = new BidirPathPdfs(LightPaths.PathCache, lightToCam, camToLight);
             pathPdfs.GatherCameraPdfs(cameraPath, lastCameraVertexIdx);
 
             pathPdfs.PdfsLightToCamera[^2] = pdfEmit;
@@ -271,7 +271,7 @@ namespace SeeSharp.Integrators.Bidir {
             Span<float> camToLight = stackalloc float[numPdfs];
             Span<float> lightToCam = stackalloc float[numPdfs];
 
-            var pathPdfs = new BidirPathPdfs(lightPaths.PathCache, lightToCam, camToLight);
+            var pathPdfs = new BidirPathPdfs(LightPaths.PathCache, lightToCam, camToLight);
 
             pathPdfs.GatherLightPdfs(lightVertex, lastCameraVertexIdx, numPdfs);
 
@@ -295,7 +295,7 @@ namespace SeeSharp.Integrators.Bidir {
             Span<float> camToLight = stackalloc float[numPdfs];
             Span<float> lightToCam = stackalloc float[numPdfs];
 
-            var pathPdfs = new BidirPathPdfs(lightPaths.PathCache, lightToCam, camToLight);
+            var pathPdfs = new BidirPathPdfs(LightPaths.PathCache, lightToCam, camToLight);
             pathPdfs.GatherCameraPdfs(cameraPath, lastCameraVertexIdx);
             pathPdfs.GatherLightPdfs(lightVertex, lastCameraVertexIdx, numPdfs);
 
@@ -322,7 +322,7 @@ namespace SeeSharp.Integrators.Bidir {
             Span<float> camToLight = stackalloc float[numPdfs];
             Span<float> lightToCam = stackalloc float[numPdfs];
 
-            var pathPdfs = new BidirPathPdfs(lightPaths.PathCache, lightToCam, camToLight);
+            var pathPdfs = new BidirPathPdfs(LightPaths.PathCache, lightToCam, camToLight);
 
             pathPdfs.GatherCameraPdfs(cameraPath, lastCameraVertexIdx);
 

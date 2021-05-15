@@ -89,6 +89,7 @@ namespace SeeSharp.Shading {
                 -1, 1);
         }
 
+        /// <returns>The perfect mirror reflection of outDir about the normal</returns>
         public static Vector3 Reflect(Vector3 outDir, Vector3 normal)
             => -outDir + 2 * Vector3.Dot(outDir, normal) * normal;
 

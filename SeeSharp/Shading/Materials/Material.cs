@@ -4,6 +4,9 @@ using SeeSharp.Shading.Bsdfs;
 using SimpleImageIO;
 
 namespace SeeSharp.Shading.Materials {
+    /// <summary>
+    /// Base class for all surface materials
+    /// </summary>
     public abstract class Material {
         /// <summary>
         /// Computes the surface roughness, a value between 0 and 1.
@@ -29,16 +32,47 @@ namespace SeeSharp.Shading.Materials {
         /// </summary>
         public abstract RgbColor GetScatterStrength(SurfacePoint hit);
 
+        /// <summary>
+        /// False if the material only reflects light (a BRDF), otherwise true (a BSDF)
+        /// </summary>
+        public abstract bool IsTransmissive(SurfacePoint hit);
+
+        /// <summary>
+        /// Evaluates the BSDF of the material
+        /// </summary>
+        /// <param name="hit">Surface point</param>
+        /// <param name="outDir">Outgoing direction away from the surface (towards camera in a path tracer)</param>
+        /// <param name="inDir">Incoming direction away from the surface (towards light in a path tracer)</param>
+        /// <param name="isOnLightSubpath">True for paths originating from a light source</param>
+        /// <returns>BSDF value</returns>
         public abstract RgbColor Evaluate(SurfacePoint hit, Vector3 outDir, Vector3 inDir, bool isOnLightSubpath);
 
+        /// <summary>
+        /// Computes product of the BSDF and the cosine between the incoming direction and the surface
+        /// shading normal. Usually more efficient / numerically stable than computing individually.
+        /// </summary>
+        /// <param name="hit">Surface point</param>
+        /// <param name="outDir">Outgoing direction away from the surface (towards camera in a path tracer)</param>
+        /// <param name="inDir">Incoming direction away from the surface (towards light in a path tracer)</param>
+        /// <param name="isOnLightSubpath">True for paths originating from a light source</param>
+        /// <returns>BSDF * cosine</returns>
         public virtual RgbColor EvaluateWithCosine(SurfacePoint hit, Vector3 outDir, Vector3 inDir, bool isOnLightSubpath) {
             var bsdf = Evaluate(hit, outDir, inDir, isOnLightSubpath);
             inDir = ShadingSpace.WorldToShading(hit.ShadingNormal, inDir);
             return bsdf * ShadingSpace.AbsCosTheta(inDir);
         }
 
+        /// <summary>
+        /// Importance samples the product of BSDF and cosine
+        /// </summary>
+        /// <param name="hit">Surface point</param>
+        /// <param name="outDir">Outgoing direction away from the surface (towards camera in a path tracer)</param>
+        /// <param name="isOnLightSubpath">True for paths originating from a light source</param>
+        /// <param name="primarySample">A uniform sample in [0,1]x[0,1] that should be transformed</param>
+        /// <returns>Sampled direction and associated weights</returns>
         public abstract BsdfSample Sample(SurfacePoint hit, Vector3 outDir, bool isOnLightSubpath, Vector2 primarySample);
 
+        /// <returns>The pdf of sampling the incoming direction via <see cref="Sample"/></returns>
         public abstract (float, float) Pdf(SurfacePoint hit, Vector3 outDir, Vector3 inDir, bool isOnLightSubpath);
 
         /// <summary>

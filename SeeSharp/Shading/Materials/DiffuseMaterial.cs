@@ -5,21 +5,44 @@ using System.Numerics;
 using SimpleImageIO;
 
 namespace SeeSharp.Shading.Materials {
+    /// <summary>
+    /// A simple Lambertian material that either only reflects or only transmits.
+    /// </summary>
     public class DiffuseMaterial : Material {
+        /// <summary>
+        /// Specifies the color and whether the material transmits or reflects
+        /// </summary>
         public class Parameters {
+            /// <summary>
+            /// Scattering color
+            /// </summary>
             public TextureRgb BaseColor = new TextureRgb(RgbColor.White);
+
+            /// <summary>
+            /// If true, only transmittance happens, if false, only reflection
+            /// </summary>
             public bool Transmitter = false;
         }
 
+        /// <returns>True if we only transmit</returns>
+        public override bool IsTransmissive(SurfacePoint hit) => parameters.Transmitter;
+
+        /// <summary>
+        /// Creates a new diffuse material with the given parameters
+        /// </summary>
         public DiffuseMaterial(Parameters parameters) => this.parameters = parameters;
 
+        /// <returns>Always 1</returns>
         public override float GetRoughness(SurfacePoint hit) => 1;
 
+        /// <returns>Always 1</returns>
         public override float GetIndexOfRefractionRatio(SurfacePoint hit, Vector3 outDir, Vector3 inDir) => 1;
 
+        /// <returns>The base color</returns>
         public override RgbColor GetScatterStrength(SurfacePoint hit)
         => parameters.BaseColor.Lookup(hit.TextureCoordinates);
 
+        /// <returns>1/pi * baseColor, or zero if the directions are not in the right hemispheres</returns>
         public override RgbColor Evaluate(SurfacePoint hit, Vector3 outDir, Vector3 inDir, bool isOnLightSubpath) {
             bool shouldReflect = ShouldReflect(hit, outDir, inDir);
 
@@ -37,6 +60,9 @@ namespace SeeSharp.Shading.Materials {
                 return RgbColor.Black;
         }
 
+        /// <summary>
+        /// Importance samples the cosine hemisphere
+        /// </summary>
         public override BsdfSample Sample(SurfacePoint hit, Vector3 outDir, bool isOnLightSubpath, Vector2 primarySample) {
             var normal = hit.ShadingNormal;
             outDir = ShadingSpace.WorldToShading(normal, outDir);
@@ -73,6 +99,7 @@ namespace SeeSharp.Shading.Materials {
             };
         }
 
+        /// <returns>PDF value used by <see cref="Sample"/></returns>
         public override (float, float) Pdf(SurfacePoint hit, Vector3 outDir, Vector3 inDir, bool isOnLightSubpath) {
             // Transform directions to shading space and normalize
             var normal = hit.ShadingNormal;

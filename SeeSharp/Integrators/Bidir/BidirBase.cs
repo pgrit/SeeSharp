@@ -11,26 +11,76 @@ using TinyEmbree;
 using System.Diagnostics;
 
 namespace SeeSharp.Integrators.Bidir {
+    /// <summary>
+    /// Basis for many bidirectional algorithms. Splits rendering into multiple iterations. Each iteration
+    /// traces a certain number of paths from the light sources and one camera path per pixel.
+    /// Derived classes can control the sampling decisions and techniques.
+    /// </summary>
     public abstract class BidirBase : Integrator {
+        /// <summary>
+        /// Number of iterations (batches of one sample per pixel) to render
+        /// </summary>
         public int NumIterations = 2;
+
+        /// <summary>
+        /// Number of light paths per iteration, or zero (default) to trace one per pixel.
+        /// </summary>
         public int NumLightPaths = 0;
+
+        /// <summary>
+        /// Minimum length (in edges) of a path that can contribute to the image. If set to 2, e.g., directly
+        /// visible lights are not rendered.
+        /// </summary>
         public int MinDepth = 1;
 
+        /// <summary>
+        /// The base seed to generate camera paths.
+        /// </summary>
         public uint BaseSeedCamera = 0xC030114u;
+
+        /// <summary>
+        /// The base seed used when sampling paths from the light sources
+        /// </summary>
         public uint BaseSeedLight = 0x13C0FEFEu;
 
+        /// <summary>
+        /// Can be set to log some or all paths that have been sampled. Full support is still WIP.
+        /// </summary>
         public Util.PathLogger PathLogger;
 
-        public Scene scene;
-        public LightPathCache lightPaths;
+        /// <summary>
+        /// The scene that is currently being rendered
+        /// </summary>
+        public Scene Scene;
 
-        protected Util.DenoiseBuffers denoiseBuffers;
+        /// <summary>
+        /// The current batch of light paths traced during the current iteration
+        /// </summary>
+        public LightPathCache LightPaths;
 
+        /// <summary>
+        /// Logs denoiser-related features at the primary hit points of all camera paths
+        /// </summary>
+        protected Util.DenoiseBuffers DenoiseBuffers;
+
+        /// <summary>
+        /// Forward and backward sampling probabilities of a path edge
+        /// </summary>
         public struct PathPdfPair {
+            /// <summary>
+            /// PDF of sampling this vertex when coming from its actual ancestor
+            /// </summary>
             public float PdfFromAncestor;
+
+            /// <summary>
+            /// PDF of sampling the ancestor of this vertex, if we were sampling the other way around
+            /// </summary>
             public float PdfToAncestor;
         }
 
+        /// <summary>
+        /// Tracks the state of a camera path
+        /// </summary>
         public struct CameraPath {
             /// <summary>
             /// The pixel position where the path was started.
@@ -47,6 +97,9 @@ namespace SeeSharp.Integrators.Bidir {
             /// </summary>
             public List<PathPdfPair> Vertices;
 
+            /// <summary>
+            /// Distances between all points sampled along this path
+            /// </summary>
             public List<float> Distances;
         }
 
@@ -57,14 +110,14 @@ namespace SeeSharp.Integrators.Bidir {
         public abstract void ProcessPathCache();
 
         public virtual (Emitter, float, float) SelectLight(float primary) {
-            float scaled = scene.Emitters.Count * primary;
-            int idx = Math.Clamp((int)scaled, 0, scene.Emitters.Count - 1);
-            var emitter = scene.Emitters[idx];
-            return (emitter, 1.0f / scene.Emitters.Count, scaled - idx);
+            float scaled = Scene.Emitters.Count * primary;
+            int idx = Math.Clamp((int)scaled, 0, Scene.Emitters.Count - 1);
+            var emitter = Scene.Emitters[idx];
+            return (emitter, 1.0f / Scene.Emitters.Count, scaled - idx);
         }
 
         public virtual float SelectLightPmf(Emitter em) {
-            return 1.0f / scene.Emitters.Count;
+            return 1.0f / Scene.Emitters.Count;
         }
 
         public virtual (Emitter, float, float) SelectLight(SurfacePoint from, float primary)
@@ -81,9 +134,9 @@ namespace SeeSharp.Integrators.Bidir {
         public virtual RgbColor EstimatePixelValue(SurfacePoint cameraPoint, Vector2 filmPosition, Ray primaryRay,
                                                    float pdfFromCamera, RgbColor initialWeight, RNG rng) {
             // The pixel index determines which light path we connect to
-            int row = Math.Min((int)filmPosition.Y, scene.FrameBuffer.Height - 1);
-            int col = Math.Min((int)filmPosition.X, scene.FrameBuffer.Width - 1);
-            int pixelIndex = row * scene.FrameBuffer.Width + col;
+            int row = Math.Min((int)filmPosition.Y, Scene.FrameBuffer.Height - 1);
+            int col = Math.Min((int)filmPosition.X, Scene.FrameBuffer.Width - 1);
+            int pixelIndex = row * Scene.FrameBuffer.Width + col;
             var walk = new CameraRandomWalk(rng, filmPosition, pixelIndex, this);
             return walk.StartFromCamera(filmPosition, cameraPoint, pdfFromCamera, primaryRay, initialWeight);
         }
@@ -92,18 +145,18 @@ namespace SeeSharp.Integrators.Bidir {
         public virtual void PreIteration(uint iteration) { }
 
         protected virtual LightPathCache MakeLightPathCache()
-        => new LightPathCache { MaxDepth = MaxDepth, NumPaths = NumLightPaths, Scene = scene };
+        => new LightPathCache { MaxDepth = MaxDepth, NumPaths = NumLightPaths, Scene = Scene };
 
         public override void Render(Scene scene) {
-            this.scene = scene;
+            this.Scene = scene;
 
             if (NumLightPaths <= 0) {
                 NumLightPaths = scene.FrameBuffer.Width * scene.FrameBuffer.Height;
             }
 
-            lightPaths = MakeLightPathCache();
+            LightPaths = MakeLightPathCache();
 
-            denoiseBuffers = new(scene.FrameBuffer);
+            DenoiseBuffers = new(scene.FrameBuffer);
 
             SeeSharp.Common.ProgressBar progressBar = new(NumIterations);
             RNG camSeedGen = new(BaseSeedCamera);
@@ -113,7 +166,7 @@ namespace SeeSharp.Integrators.Bidir {
                 PreIteration(iter);
 
                 try {
-                    lightPaths.TraceAllPaths(iter,
+                    LightPaths.TraceAllPaths(iter,
                         (origin, primary, nextDirection) => NextEventPdf(primary.Point, origin.Point));
                     ProcessPathCache();
                     TraceAllCameraPaths(camSeedGen);
@@ -123,7 +176,7 @@ namespace SeeSharp.Integrators.Bidir {
                 }
 
                 if (iter == NumIterations - 1)
-                    denoiseBuffers.Denoise();
+                    DenoiseBuffers.Denoise();
 
                 scene.FrameBuffer.EndIteration();
                 PostIteration(iter);
@@ -132,14 +185,14 @@ namespace SeeSharp.Integrators.Bidir {
         }
 
         private void TraceAllCameraPaths(RNG seedGen) {
-            int[] rowSeeds = new int[scene.FrameBuffer.Height];
-            for (int i = 0; i < scene.FrameBuffer.Height; ++i) {
+            int[] rowSeeds = new int[Scene.FrameBuffer.Height];
+            for (int i = 0; i < Scene.FrameBuffer.Height; ++i) {
                 rowSeeds[i] = seedGen.NextInt(int.MinValue, int.MaxValue);
             }
 
-            Parallel.For(0, scene.FrameBuffer.Height, row => {
+            Parallel.For(0, Scene.FrameBuffer.Height, row => {
                 var rng = new RNG((uint)rowSeeds[row]);
-                for (uint col = 0; col < scene.FrameBuffer.Width; ++col) {
+                for (uint col = 0; col < Scene.FrameBuffer.Width; ++col) {
                     RenderPixel((uint)row, col, rng);
                 }
             });
@@ -149,13 +202,13 @@ namespace SeeSharp.Integrators.Bidir {
             // Sample a ray from the camera
             var offset = rng.NextFloat2D();
             var filmSample = new Vector2(col, row) + offset;
-            var cameraRay = scene.Camera.GenerateRay(filmSample, rng);
+            var cameraRay = Scene.Camera.GenerateRay(filmSample, rng);
             var value = EstimatePixelValue(cameraRay.Point, filmSample, cameraRay.Ray,
                                            cameraRay.PdfRay, cameraRay.Weight, rng);
 
             // TODO we do nearest neighbor splatting manually here, to avoid numerical
             //      issues if the primary samples are almost 1 (400 + 0.99999999f = 401)
-            scene.FrameBuffer.Splat((float)col, (float)row, value);
+            Scene.FrameBuffer.Splat((float)col, (float)row, value);
         }
 
         /// <summary>
@@ -187,21 +240,21 @@ namespace SeeSharp.Integrators.Bidir {
                                              float pdfNextEvent, Vector2 pixel, float distToCam);
 
         public void SplatLightVertices() {
-            Parallel.For(0, lightPaths.NumPaths, idx => {
+            Parallel.For(0, LightPaths.NumPaths, idx => {
                 ConnectLightPathToCamera(idx);
             });
         }
 
         public virtual void ConnectLightPathToCamera(int pathIdx) {
-            lightPaths.ForEachVertex(pathIdx, (pathIdx, vertex, ancestor, dirToAncestor) => {
+            LightPaths.ForEachVertex(pathIdx, (pathIdx, vertex, ancestor, dirToAncestor) => {
                 if (vertex.Depth + 1 < MinDepth) return;
 
                 // Compute image plane location
-                var response = scene.Camera.SampleResponse(vertex.Point, null); // TODO get an RNG in there for DOF!
+                var response = Scene.Camera.SampleResponse(vertex.Point, null); // TODO get an RNG in there for DOF!
                 if (!response.IsValid)
                     return;
 
-                if (scene.Raytracer.IsOccluded(vertex.Point, response.Position))
+                if (Scene.Raytracer.IsOccluded(vertex.Point, response.Position))
                     return;
 
                 var dirToCam = response.Position - vertex.Point.Position;
@@ -228,7 +281,7 @@ namespace SeeSharp.Integrators.Bidir {
 
                 // Compute image contribution and splat
                 RgbColor weight = vertex.Weight * bsdfValue * response.Weight / NumLightPaths;
-                scene.FrameBuffer.Splat(response.Pixel.X, response.Pixel.Y, misWeight * weight);
+                Scene.FrameBuffer.Splat(response.Pixel.X, response.Pixel.Y, misWeight * weight);
 
                 // Log the sample
                 RegisterSample(weight, misWeight, response.Pixel, 0, vertex.Depth, vertex.Depth + 1);
@@ -238,7 +291,7 @@ namespace SeeSharp.Integrators.Bidir {
                 if (PathLogger != null && misWeight != 0 && weight != RgbColor.Black) {
                     var logId = PathLogger.StartNew(response.Pixel);
                     for (int i = 0; i < vertex.Depth + 1; ++i) {
-                        PathLogger.Continue(logId, lightPaths.PathCache[pathIdx, i].Point.Position, 1);
+                        PathLogger.Continue(logId, LightPaths.PathCache[pathIdx, i].Point.Position, 1);
                     }
                     PathLogger.SetContrib(logId, misWeight * weight);
                 }
@@ -268,7 +321,7 @@ namespace SeeSharp.Integrators.Bidir {
                 if (depth > MaxDepth || depth < MinDepth) return;
 
                 // Trace shadow ray
-                if (scene.Raytracer.IsOccluded(vertex.Point, cameraPoint))
+                if (Scene.Raytracer.IsOccluded(vertex.Point, cameraPoint))
                     return;
 
                 // Compute connection direction
@@ -317,18 +370,18 @@ namespace SeeSharp.Integrators.Bidir {
                     pdfCameraToLight, pdfLightReverse, pdfLightToCamera, pdfNextEvent);
             }
 
-            if (lightVertIdx > 0 && lightVertIdx < lightPaths.PathCache.Length(lightPathIdx)) {
+            if (lightVertIdx > 0 && lightVertIdx < LightPaths.PathCache.Length(lightPathIdx)) {
                 // specific vertex selected
-                var vertex = lightPaths.PathCache[lightPathIdx, lightVertIdx];
-                var ancestor = lightPaths.PathCache[lightPathIdx, lightVertIdx - 1];
+                var vertex = LightPaths.PathCache[lightPathIdx, lightVertIdx];
+                var ancestor = LightPaths.PathCache[lightPathIdx, lightVertIdx - 1];
                 var dirToAncestor = ancestor.Point.Position - vertex.Point.Position;
                 Connect(vertex, ancestor, dirToAncestor);
             } else if (lightPathIdx >= 0) {
                 // Connect with all vertices along the path
-                int n = lightPaths.PathCache.Length(lightPathIdx);
+                int n = LightPaths.PathCache.Length(lightPathIdx);
                 for (int i = 1; i < n; ++i) {
-                    var ancestor = lightPaths.PathCache[lightPathIdx, i-1];
-                    var vertex = lightPaths.PathCache[lightPathIdx, i];
+                    var ancestor = LightPaths.PathCache[lightPathIdx, i-1];
+                    var vertex = LightPaths.PathCache[lightPathIdx, i];
                     var dirToAncestor = ancestor.Point.Position - vertex.Point.Position;
                     Connect(vertex, ancestor, dirToAncestor);
                 }
@@ -344,9 +397,9 @@ namespace SeeSharp.Integrators.Bidir {
             float backgroundProbability = ComputeNextEventBackgroundProbability(/*hit*/);
             if (to.Mesh == null) { // Background
                 var direction = to.Position - from.Position;
-                return scene.Background.DirectionPdf(direction) * backgroundProbability;
+                return Scene.Background.DirectionPdf(direction) * backgroundProbability;
             } else { // Emissive object
-                var emitter = scene.QueryEmitter(to);
+                var emitter = Scene.QueryEmitter(to);
                 return emitter.PdfArea(to) * SelectLightPmf(from, emitter) * (1 - backgroundProbability);
             }
         }
@@ -359,23 +412,23 @@ namespace SeeSharp.Integrators.Bidir {
         }
 
         public virtual float ComputeNextEventBackgroundProbability(/*SurfacePoint from*/)
-        => scene.Background == null ? 0 : 1 / (1.0f + scene.Emitters.Count);
+        => Scene.Background == null ? 0 : 1 / (1.0f + Scene.Emitters.Count);
 
         public virtual RgbColor PerformNextEventEstimation(Ray ray, SurfacePoint hit, RNG rng, CameraPath path,
                                                            float reversePdfJacobian) {
             float backgroundProbability = ComputeNextEventBackgroundProbability(/*hit*/);
             if (rng.NextFloat() < backgroundProbability) { // Connect to the background
-                if (scene.Background == null)
+                if (Scene.Background == null)
                     return RgbColor.Black; // There is no background
 
-                var sample = scene.Background.SampleDirection(rng.NextFloat2D());
+                var sample = Scene.Background.SampleDirection(rng.NextFloat2D());
                 sample.Pdf *= backgroundProbability;
                 sample.Weight /= backgroundProbability;
 
                 if (sample.Pdf == 0) // Prevent NaN
                     return RgbColor.Black;
 
-                if (scene.Raytracer.LeavesScene(hit, sample.Direction)) {
+                if (Scene.Raytracer.LeavesScene(hit, sample.Direction)) {
                     var bsdfTimesCosine = hit.Material.EvaluateWithCosine(hit, -ray.Direction,
                         sample.Direction, false);
 
@@ -385,7 +438,7 @@ namespace SeeSharp.Integrators.Bidir {
                     bsdfReversePdf *= reversePdfJacobian;
 
                     // Compute emission pdf
-                    float pdfEmit = lightPaths.ComputeBackgroundPdf(hit.Position, -sample.Direction);
+                    float pdfEmit = LightPaths.ComputeBackgroundPdf(hit.Position, -sample.Direction);
 
                     // Compute the mis weight
                     float misWeight = NextEventMis(path, pdfEmit, sample.Pdf, bsdfForwardPdf, bsdfReversePdf);
@@ -400,7 +453,7 @@ namespace SeeSharp.Integrators.Bidir {
                     return misWeight * weight;
                 }
             } else { // Connect to an emissive surface
-                if (scene.Emitters.Count == 0)
+                if (Scene.Emitters.Count == 0)
                     return RgbColor.Black;
 
                 // Sample a point on the light source
@@ -410,7 +463,7 @@ namespace SeeSharp.Integrators.Bidir {
                 if (lightSample.Pdf == 0) // Prevent NaN
                     return RgbColor.Black;
 
-                if (!scene.Raytracer.IsOccluded(hit, lightSample.Point)) {
+                if (!Scene.Raytracer.IsOccluded(hit, lightSample.Point)) {
                     Vector3 lightToSurface = hit.Position - lightSample.Point.Position;
                     var emission = light.EmittedRadiance(lightSample.Point, lightToSurface);
 
@@ -430,7 +483,7 @@ namespace SeeSharp.Integrators.Bidir {
                     bsdfForwardPdf *= SampleWarp.SurfaceAreaToSolidAngle(hit, lightSample.Point);
                     bsdfReversePdf *= reversePdfJacobian;
 
-                    float pdfEmit = lightPaths.ComputeEmitterPdf(light, lightSample.Point, lightToSurface,
+                    float pdfEmit = LightPaths.ComputeEmitterPdf(light, lightSample.Point, lightToSurface,
                         SampleWarp.SurfaceAreaToSolidAngle(lightSample.Point, hit));
 
                     float misWeight =
@@ -455,7 +508,7 @@ namespace SeeSharp.Integrators.Bidir {
             var emission = emitter.EmittedRadiance(hit, -ray.Direction);
 
             // Compute pdf values
-            float pdfEmit = lightPaths.ComputeEmitterPdf(emitter, hit, -ray.Direction, reversePdfJacobian);
+            float pdfEmit = LightPaths.ComputeEmitterPdf(emitter, hit, -ray.Direction, reversePdfJacobian);
             float pdfNextEvent = NextEventPdf(new SurfacePoint(), hit); // TODO get the actual previous point!
 
             float misWeight = EmitterHitMis(path, pdfEmit, pdfNextEvent);
@@ -467,19 +520,19 @@ namespace SeeSharp.Integrators.Bidir {
         }
 
         public virtual RgbColor OnBackgroundHit(Ray ray, CameraPath path) {
-            if (scene.Background == null)
+            if (Scene.Background == null)
                 return RgbColor.Black;
 
             // Compute the pdf of sampling the previous point by emission from the background
-            float pdfEmit = lightPaths.ComputeBackgroundPdf(ray.Origin, -ray.Direction);
+            float pdfEmit = LightPaths.ComputeBackgroundPdf(ray.Origin, -ray.Direction);
 
             // Compute the pdf of sampling the same connection via next event estimation
-            float pdfNextEvent = scene.Background.DirectionPdf(ray.Direction);
+            float pdfNextEvent = Scene.Background.DirectionPdf(ray.Direction);
             float backgroundProbability = ComputeNextEventBackgroundProbability(/*hit*/);
             pdfNextEvent *= backgroundProbability;
 
             float misWeight = EmitterHitMis(path, pdfEmit, pdfNextEvent);
-            var emission = scene.Background.EmittedRadiance(ray.Direction);
+            var emission = Scene.Background.EmittedRadiance(ray.Direction);
             RegisterSample(emission * path.Throughput, misWeight, path.Pixel,
                            path.Vertices.Count, 0, path.Vertices.Count);
             EmitterHitUpdate(emission * path.Throughput, misWeight, path, pdfEmit, pdfNextEvent, null,
@@ -497,7 +550,7 @@ namespace SeeSharp.Integrators.Bidir {
             CameraPath path;
 
             public CameraRandomWalk(RNG rng, Vector2 filmPosition, int pixelIndex, BidirBase integrator)
-                : base(integrator.scene, rng, integrator.MaxDepth + 1) {
+                : base(integrator.Scene, rng, integrator.MaxDepth + 1) {
                 this.pixelIndex = pixelIndex;
                 this.integrator = integrator;
                 path.Vertices = new List<PathPdfPair>(integrator.MaxDepth);
@@ -520,7 +573,7 @@ namespace SeeSharp.Integrators.Bidir {
                                               RgbColor throughput, int depth, float toAncestorJacobian) {
                 if (depth == 1) {
                     var albedo = ((SurfacePoint)hit).Material.GetScatterStrength(hit);
-                    integrator.denoiseBuffers.LogPrimaryHit(path.Pixel, albedo, hit.ShadingNormal);
+                    integrator.DenoiseBuffers.LogPrimaryHit(path.Pixel, albedo, hit.ShadingNormal);
                 }
 
                 path.Vertices.Add(new PathPdfPair {

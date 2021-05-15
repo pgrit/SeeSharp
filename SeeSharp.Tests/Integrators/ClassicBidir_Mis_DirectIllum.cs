@@ -23,8 +23,8 @@ namespace SeeSharp.Tests.Integrators {
 
         float NextEventWeight() {
             var computer = new ClassicBidir();
-            computer.lightPaths = new LightPathCache();
-            computer.lightPaths.PathCache = dummyPath.pathCache;
+            computer.LightPaths = new LightPathCache();
+            computer.LightPaths.PathCache = dummyPath.pathCache;
             computer.NumLightPaths = dummyPath.numLightPaths;
 
             var cameraPath = new CameraPath {
@@ -47,8 +47,8 @@ namespace SeeSharp.Tests.Integrators {
 
         float LightTracerWeight() {
             var computer = new ClassicBidir();
-            computer.lightPaths = new LightPathCache();
-            computer.lightPaths.PathCache = dummyPath.pathCache;
+            computer.LightPaths = new LightPathCache();
+            computer.LightPaths.PathCache = dummyPath.pathCache;
             computer.NumLightPaths = dummyPath.numLightPaths;
 
             return computer.LightTracerMis(dummyPath.pathCache[0, dummyPath.lightEndpointIdx],
@@ -61,8 +61,8 @@ namespace SeeSharp.Tests.Integrators {
 
         float HitWeight() {
             var computer = new ClassicBidir();
-            computer.lightPaths = new LightPathCache();
-            computer.lightPaths.PathCache = dummyPath.pathCache;
+            computer.LightPaths = new LightPathCache();
+            computer.LightPaths.PathCache = dummyPath.pathCache;
             computer.NumLightPaths = dummyPath.numLightPaths;
 
             var cameraPath = new CameraPath {

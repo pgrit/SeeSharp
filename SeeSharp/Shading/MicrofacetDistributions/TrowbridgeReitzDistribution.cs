@@ -7,7 +7,14 @@ namespace SeeSharp.Shading.MicrofacetDistributions {
     /// GGX microfacet distribution. Heavily based on PBRT v3.
     /// </summary>
     public struct TrowbridgeReitzDistribution {
+        /// <summary>
+        /// Squared roughness in one direction
+        /// </summary>
         public float AlphaX;
+
+        /// <summary>
+        /// Squared roughness in the other direction
+        /// </summary>
         public float AlphaY;
 
         /// <summary>

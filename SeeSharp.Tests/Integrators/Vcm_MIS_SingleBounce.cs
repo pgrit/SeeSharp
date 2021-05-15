@@ -29,7 +29,7 @@ namespace SeeSharp.Tests.Integrators {
         }
 
         static VertexConnectionAndMerging dummyVcm = new FixedRadiusVcm {
-            lightPaths = new LightPathCache() { PathCache = dummyPath.pathCache },
+            LightPaths = new LightPathCache() { PathCache = dummyPath.pathCache },
             NumLightPaths = dummyPath.numLightPaths
         };
 

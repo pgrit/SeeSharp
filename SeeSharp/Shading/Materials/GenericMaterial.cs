@@ -12,17 +12,59 @@ using SeeSharp.Sampling;
 namespace SeeSharp.Shading.Materials {
     /// <summary>
     /// Basic uber-shader surface material that should suffice for most integrator experiments.
+    /// Simplified version of the Disney BSDF without sheen and clearcoat and limited texturing capabilities.
     /// </summary>
     public class GenericMaterial : Material {
+        /// <summary>
+        /// Parameters of the generic material
+        /// </summary>
         public class Parameters {
+            /// <summary>
+            /// Textured or constant surface color. Affects diffuse reflections and also specular ones,
+            /// if <see cref="SpecularTintStrength"/> is greater than zero.
+            /// </summary>
             public TextureRgb BaseColor = new(RgbColor.White);
+
+            /// <summary>
+            /// Textured or constant surface roughness. Perfect mirrors would be 0 and purely diffuse 1.
+            /// </summary>
             public TextureMono Roughness = new(0.5f);
+
+            /// <summary>
+            /// Interpolates between conductor and dielectric Fresnel.
+            /// </summary>
             public float Metallic = 0.0f;
+
+            /// <summary>
+            /// How much the base color affects specular reflections. If 0, specular reflections will be white.
+            /// </summary>
             public float SpecularTintStrength = 1.0f;
+
+            /// <summary>
+            /// Amount of anisotropy in the glossy microfacet components
+            /// </summary>
             public float Anisotropic = 0.0f;
+
+            /// <summary>
+            /// If greater than one, the surface transmits with a rough GGX dielectric
+            /// </summary>
             public float SpecularTransmittance = 0.0f;
+
+            /// <summary>
+            /// IOR of the material "below" the surface. Assumes that the exterior is always vacuum (1).
+            /// </summary>
             public float IndexOfRefraction = 1.45f;
+
+            /// <summary>
+            /// If set to true, transmission will also happen diffusely, i.e., this is a translucent
+            /// material like paper.
+            /// </summary>
             public bool Thin = false;
+
+            /// <summary>
+            /// Scaling factor for how much light is diffusely transmitted through the surface. Only
+            /// relvant if <see cref="Thin"/> is true.
+            /// </summary>
             public float DiffuseTransmittance = 0.0f;
         }
 
@@ -32,6 +74,7 @@ namespace SeeSharp.Shading.Materials {
         float microfacetTransmittance;
         float totalReflectance;
 
+        /// <param name="parameters">Properties of the material</param>
         public GenericMaterial(Parameters parameters) {
             this.parameters = parameters;
 
@@ -45,11 +88,17 @@ namespace SeeSharp.Shading.Materials {
             totalReflectance = diffuseReflectance + microfacetReflectance + diffuseTransmittance + microfacetTransmittance;
         }
 
+        /// <returns>The textured roughness value at the hit point </returns>
         public override float GetRoughness(SurfacePoint hit) => GetRoughness(hit.TextureCoordinates);
 
-        public float GetRoughness(Vector2 texCoords)
+        /// <returns>True if the material is "thin" or the specular transmittance is not zero</returns>
+        public override bool IsTransmissive(SurfacePoint hit)
+        => (parameters.Thin && parameters.DiffuseTransmittance > 0) || parameters.SpecularTransmittance > 0;
+
+        float GetRoughness(Vector2 texCoords)
         => parameters.Roughness.Lookup(texCoords);
 
+        /// <returns>Interior IOR or its inverse, assumes outside is vacuum</returns>
         public override float GetIndexOfRefractionRatio(SurfacePoint hit, Vector3 outDir, Vector3 inDir) {
             var normal = hit.ShadingNormal;
             outDir = ShadingSpace.WorldToShading(normal, outDir);
@@ -63,9 +112,11 @@ namespace SeeSharp.Shading.Materials {
             return ShadingSpace.CosTheta(outDir) > 0 ? (insideIOR / outsideIOR) : (outsideIOR / insideIOR);
         }
 
+        /// <returns>The base color, which is a crude approximation of the scattering strength</returns>
         public override RgbColor GetScatterStrength(SurfacePoint hit)
         => parameters.BaseColor.Lookup(hit.TextureCoordinates);
 
+        /// <returns>BSDF value</returns>
         public override RgbColor Evaluate(SurfacePoint hit, Vector3 outDir, Vector3 inDir, bool isOnLightSubpath) {
             bool shouldReflect = ShouldReflect(hit, outDir, inDir);
 
@@ -102,7 +153,7 @@ namespace SeeSharp.Shading.Materials {
             return result;
         }
 
-        public float ComputeMicrofacetTransmittance(int numSamples) {
+        float ComputeMicrofacetTransmittance(int numSamples) {
             if (parameters.SpecularTransmittance <= 0) return 0;
 
             var local = ComputeLocalParams(new(0.5f, 0.5f));
@@ -124,14 +175,14 @@ namespace SeeSharp.Shading.Materials {
                 if (pdf == 0) continue;
 
                 var value = distrib.Evaluate(sampleOut.Direction, sampleIn.Value, false);
-                total += value.Average / pdf / sampleOut.Pdf / numSamples * 
+                total += value.Average / pdf / sampleOut.Pdf / numSamples *
                     sampleOut.Direction.Z * Math.Abs(sampleIn.Value.Z);
             }
 
             return total;
         }
 
-        public float ComputeDiffuseTransmittance(int numSamples) {
+        float ComputeDiffuseTransmittance(int numSamples) {
             if (!parameters.Thin) return 0;
 
             var local = ComputeLocalParams(new(0.5f, 0.5f));
@@ -148,14 +199,14 @@ namespace SeeSharp.Shading.Materials {
 
                 var value = new DiffuseTransmission(local.baseColor * parameters.DiffuseTransmittance)
                     .Evaluate(sampleOut.Direction, sampleIn.Direction, false);
-                total += value.Average / sampleIn.Pdf / sampleOut.Pdf / numSamples * sampleOut.Direction.Z * 
+                total += value.Average / sampleIn.Pdf / sampleOut.Pdf / numSamples * sampleOut.Direction.Z *
                     Math.Abs(sampleIn.Direction.Z);
             }
 
             return total;
         }
 
-        public float ComputeMicrofacetReflectance(int numSamples) {
+        float ComputeMicrofacetReflectance(int numSamples) {
             var local = ComputeLocalParams(new(0.5f, 0.5f));
 
             RNG rng = new();
@@ -164,7 +215,7 @@ namespace SeeSharp.Shading.Materials {
                 var primaryOut = rng.NextFloat2D();
                 var sampleOut = SampleWarp.ToCosHemisphere(primaryOut);
 
-                var distrib = 
+                var distrib =
                     new MicrofacetReflection(local.microfacetDistrib, local.fresnel, local.specularTint);
 
                 var primaryIn = rng.NextFloat2D();
@@ -182,8 +233,7 @@ namespace SeeSharp.Shading.Materials {
             return total;
         }
 
-        public float ComputeDiffuseReflectance(int numSamples) {
-            // TODO create look-up table with n roughness values between minimum and maximum in texture
+        float ComputeDiffuseReflectance(int numSamples) {
             var local = ComputeLocalParams(new(0.5f, 0.5f));
 
             RNG rng = new();
@@ -201,13 +251,14 @@ namespace SeeSharp.Shading.Materials {
                 value += new DisneyRetroReflection(local.retroReflectance, local.roughness)
                     .Evaluate(sampleOut.Direction, sampleIn.Direction, false);
 
-                total += value.Average / sampleIn.Pdf / sampleOut.Pdf / numSamples * sampleOut.Direction.Z * 
+                total += value.Average / sampleIn.Pdf / sampleOut.Pdf / numSamples * sampleOut.Direction.Z *
                     sampleIn.Direction.Z;
             }
 
             return total;
         }
 
+        /// <summary>Crudely importance samples the combined BSDFs</summary>
         public override BsdfSample Sample(SurfacePoint hit, Vector3 outDir, bool isOnLightSubpath,
                                           Vector2 primarySample) {
             // Transform directions to shading space and normalize
@@ -285,6 +336,7 @@ namespace SeeSharp.Shading.Materials {
             };
         }
 
+        /// <returns>PDF used by <see cref="Sample"/></returns>
         public override (float, float) Pdf(SurfacePoint hit, Vector3 outDir, Vector3 inDir,
                                            bool isOnLightSubpath) {
             // Transform directions to shading space and normalize

@@ -8,6 +8,7 @@ using System.Numerics;
 using SimpleImageIO;
 using System.Threading;
 using SeeSharp.Sampling;
+using System.Collections.Generic;
 
 namespace SeeSharp.Shading.Materials {
     /// <summary>
@@ -68,11 +69,17 @@ namespace SeeSharp.Shading.Materials {
             public float DiffuseTransmittance = 0.0f;
         }
 
-        float diffuseReflectance;
-        float diffuseTransmittance;
-        float microfacetReflectance;
-        float microfacetTransmittance;
-        float totalReflectance;
+        struct ScatterWeights {
+            public float diffuseReflectance;
+            public float diffuseTransmittance;
+            public float microfacetReflectance;
+            public float microfacetTransmittance;
+            public float totalReflectance 
+            => diffuseReflectance + diffuseTransmittance + microfacetReflectance + microfacetTransmittance;
+        }
+
+        List<ScatterWeights> lookUpWeights = new();
+        List<float> lookUpAngles = new();
 
         /// <param name="parameters">Properties of the material</param>
         public GenericMaterial(Parameters parameters) {
@@ -80,12 +87,26 @@ namespace SeeSharp.Shading.Materials {
 
             // TODO create look-up table with n roughness values between minimum and maximum in texture
 
-            diffuseReflectance = ComputeDiffuseReflectance(100);
-            diffuseTransmittance = ComputeDiffuseTransmittance(100);
-            microfacetReflectance = ComputeMicrofacetReflectance(100);
-            microfacetTransmittance = ComputeMicrofacetTransmittance(100);
+            int numAngles = 20;
+            for (int i = 0; i < numAngles; ++i) {
+                float minThetaOut = (i + 0.0f) / numAngles * MathF.PI;
+                float maxThetaOut = (i + 1.0f) / numAngles * MathF.PI;
 
-            totalReflectance = diffuseReflectance + microfacetReflectance + diffuseTransmittance + microfacetTransmittance;
+                float reflect = ComputeMicrofacetReflectance(100, minThetaOut, maxThetaOut);
+                float transmit = ComputeMicrofacetTransmittance(100, minThetaOut, maxThetaOut);
+                float diffuseReflectance = ComputeDiffuseReflectance(100, minThetaOut, maxThetaOut);
+                float diffuseTransmittance = ComputeDiffuseTransmittance(100, minThetaOut, maxThetaOut);
+
+                ScatterWeights weights = new() {
+                    diffuseReflectance = diffuseReflectance,
+                    diffuseTransmittance = diffuseTransmittance,
+                    microfacetReflectance = reflect,
+                    microfacetTransmittance = transmit
+                };
+
+                lookUpWeights.Insert(0, weights);
+                lookUpAngles.Insert(0, MathF.Cos(minThetaOut));
+            }
         }
 
         /// <returns>The textured roughness value at the hit point </returns>
@@ -153,36 +174,37 @@ namespace SeeSharp.Shading.Materials {
             return result;
         }
 
-        float ComputeMicrofacetTransmittance(int numSamples) {
-            if (parameters.SpecularTransmittance <= 0) return 0;
-
+        float ComputeDiffuseReflectance(int numSamples, float minThetaOut, float maxThetaOut) {
             var local = ComputeLocalParams(new(0.5f, 0.5f));
 
             RNG rng = new();
             float total = 0;
             for (int i = 0; i < numSamples; ++i) {
-                var primaryOut = rng.NextFloat2D();
-                var sampleOut = SampleWarp.ToCosHemisphere(primaryOut);
-
-                var distrib = new MicrofacetTransmission(local.specularTransmittance,
-                    local.transmissionDistribution, 1, parameters.IndexOfRefraction);
-
                 var primaryIn = rng.NextFloat2D();
-                var sampleIn = distrib.Sample(sampleOut.Direction, false, primaryIn);
-                if (!sampleIn.HasValue) continue;
+                var sampleIn = SampleWarp.ToCosHemisphere(primaryIn);
 
-                (float pdf, _) = distrib.Pdf(sampleOut.Direction, sampleIn.Value, false);
-                if (pdf == 0) continue;
+                float phiOut = rng.NextFloat(0, 2 * MathF.PI);
+                float thetaOut = rng.NextFloat(minThetaOut, maxThetaOut);
+                Vector3 outDir = SampleWarp.SphericalToCartesian(new(phiOut, thetaOut));
+                float invPdfOutDir = 2 * MathF.PI * (maxThetaOut - minThetaOut) * MathF.Sin(thetaOut);
 
-                var value = distrib.Evaluate(sampleOut.Direction, sampleIn.Value, false);
-                total += value.Average / pdf / sampleOut.Pdf / numSamples *
-                    sampleOut.Direction.Z * Math.Abs(sampleIn.Value.Z);
+                // Flip to the same hemisphere
+                if (outDir.Z < 0) sampleIn.Direction.Z *= -1;
+
+                var value = new DisneyDiffuse(local.diffuseReflectance)
+                    .Evaluate(outDir, sampleIn.Direction, false);
+
+                value += new DisneyRetroReflection(local.retroReflectance, local.roughness)
+                    .Evaluate(outDir, sampleIn.Direction, false);
+
+                total += value.Average / sampleIn.Pdf * invPdfOutDir / numSamples * Math.Abs(outDir.Z) *
+                    Math.Abs(sampleIn.Direction.Z);
             }
 
             return total;
         }
 
-        float ComputeDiffuseTransmittance(int numSamples) {
+        float ComputeDiffuseTransmittance(int numSamples, float minThetaOut, float maxThetaOut) {
             if (!parameters.Thin) return 0;
 
             var local = ComputeLocalParams(new(0.5f, 0.5f));
@@ -192,67 +214,80 @@ namespace SeeSharp.Shading.Materials {
             for (int i = 0; i < numSamples; ++i) {
                 var primaryIn = rng.NextFloat2D();
                 var sampleIn = SampleWarp.ToCosHemisphere(primaryIn);
-                sampleIn.Direction.Z *= -1;
 
-                var primaryOut = rng.NextFloat2D();
-                var sampleOut = SampleWarp.ToCosHemisphere(primaryOut);
+                float phiOut = rng.NextFloat(0, 2 * MathF.PI);
+                float thetaOut = rng.NextFloat(minThetaOut, maxThetaOut);
+                Vector3 outDir = SampleWarp.SphericalToCartesian(new(phiOut, thetaOut));
+                float invPdfOutDir = 2 * MathF.PI * (maxThetaOut - minThetaOut) * MathF.Sin(thetaOut);
+
+                // Flip to the other hemisphere
+                if (outDir.Z > 0) sampleIn.Direction.Z *= -1;
 
                 var value = new DiffuseTransmission(local.baseColor * parameters.DiffuseTransmittance)
-                    .Evaluate(sampleOut.Direction, sampleIn.Direction, false);
-                total += value.Average / sampleIn.Pdf / sampleOut.Pdf / numSamples * sampleOut.Direction.Z *
+                    .Evaluate(outDir, sampleIn.Direction, false);
+                total += value.Average / sampleIn.Pdf * invPdfOutDir / numSamples * Math.Abs(outDir.Z) *
                     Math.Abs(sampleIn.Direction.Z);
             }
 
             return total;
         }
 
-        float ComputeMicrofacetReflectance(int numSamples) {
+        float ComputeMicrofacetReflectance(int numSamples, float minThetaOut, float maxThetaOut) {
             var local = ComputeLocalParams(new(0.5f, 0.5f));
 
             RNG rng = new();
             float total = 0;
             for (int i = 0; i < numSamples; ++i) {
-                var primaryOut = rng.NextFloat2D();
-                var sampleOut = SampleWarp.ToCosHemisphere(primaryOut);
+                float phiOut = rng.NextFloat(0, 2 * MathF.PI);
+                float thetaOut = rng.NextFloat(minThetaOut, maxThetaOut);
+                Vector3 outDir = SampleWarp.SphericalToCartesian(new(phiOut, thetaOut));
+                float invPdfOutDir = 2 * MathF.PI * (maxThetaOut - minThetaOut) * MathF.Sin(thetaOut);
 
                 var distrib =
                     new MicrofacetReflection(local.microfacetDistrib, local.fresnel, local.specularTint);
 
                 var primaryIn = rng.NextFloat2D();
-                var sampleIn = distrib.Sample(sampleOut.Direction, false, primaryIn);
+                var sampleIn = distrib.Sample(outDir, false, primaryIn);
                 if (!sampleIn.HasValue) continue;
 
-                (float pdf, _) = distrib.Pdf(sampleOut.Direction, sampleIn.Value, false);
+                (float pdf, _) = distrib.Pdf(outDir, sampleIn.Value, false);
                 if (pdf == 0) continue;
 
-                var value = distrib.Evaluate(sampleOut.Direction, sampleIn.Value, false);
-                total += value.Average / pdf / sampleOut.Pdf / numSamples *
-                    sampleOut.Direction.Z * Math.Abs(sampleIn.Value.Z);
+                var value = distrib.Evaluate(outDir, sampleIn.Value, false);
+                total += value.Average / pdf * invPdfOutDir
+                    * Math.Abs(outDir.Z) * Math.Abs(sampleIn.Value.Z)
+                    / numSamples;
             }
 
             return total;
         }
 
-        float ComputeDiffuseReflectance(int numSamples) {
+        float ComputeMicrofacetTransmittance(int numSamples, float minThetaOut, float maxThetaOut) {
+            if (parameters.SpecularTransmittance <= 0) return 0;
+
             var local = ComputeLocalParams(new(0.5f, 0.5f));
 
             RNG rng = new();
             float total = 0;
             for (int i = 0; i < numSamples; ++i) {
+                float phiOut = rng.NextFloat(0, 2 * MathF.PI);
+                float thetaOut = rng.NextFloat(minThetaOut, maxThetaOut);
+                Vector3 outDir = SampleWarp.SphericalToCartesian(new(phiOut, thetaOut));
+                float invPdfOutDir = 2 * MathF.PI * (maxThetaOut - minThetaOut) * MathF.Sin(thetaOut);
+
+                var distrib = new MicrofacetTransmission(local.specularTransmittance,
+                    local.transmissionDistribution, 1, parameters.IndexOfRefraction);
+
                 var primaryIn = rng.NextFloat2D();
-                var sampleIn = SampleWarp.ToCosHemisphere(primaryIn);
+                var sampleIn = distrib.Sample(outDir, false, primaryIn);
+                if (!sampleIn.HasValue) continue;
 
-                var primaryOut = rng.NextFloat2D();
-                var sampleOut = SampleWarp.ToCosHemisphere(primaryOut);
+                (float pdf, _) = distrib.Pdf(outDir, sampleIn.Value, false);
+                if (pdf == 0) continue;
 
-                var value = new DisneyDiffuse(local.diffuseReflectance)
-                    .Evaluate(sampleOut.Direction, sampleIn.Direction, false);
-
-                value += new DisneyRetroReflection(local.retroReflectance, local.roughness)
-                    .Evaluate(sampleOut.Direction, sampleIn.Direction, false);
-
-                total += value.Average / sampleIn.Pdf / sampleOut.Pdf / numSamples * sampleOut.Direction.Z *
-                    sampleIn.Direction.Z;
+                var value = distrib.Evaluate(outDir, sampleIn.Value, false);
+                total += value.Average / pdf * invPdfOutDir / numSamples 
+                    * Math.Abs(outDir.Z) * Math.Abs(sampleIn.Value.Z);
             }
 
             return total;
@@ -267,7 +302,7 @@ namespace SeeSharp.Shading.Materials {
 
             // Compute parameters
             var local = ComputeLocalParams(hit.TextureCoordinates);
-            var select = ComputeSelectWeights(local, outDir, outDir);
+            var (select, _) = ComputeSelectWeights(local, outDir, outDir);
 
             // Select a component to sample from
             // TODO this can be done in a loop if the selection probs are in an array
@@ -346,7 +381,7 @@ namespace SeeSharp.Shading.Materials {
 
             // Compute parameters
             var local = ComputeLocalParams(hit.TextureCoordinates);
-            var select = ComputeSelectWeights(local, outDir, inDir);
+            var (select, selectRev) = ComputeSelectWeights(local, outDir, inDir);
 
             // Compute the sum of all pdf values
             float pdfFwd = 0, pdfRev = 0;
@@ -354,32 +389,32 @@ namespace SeeSharp.Shading.Materials {
             if (select.Diff > 0) {
                 (fwd, rev) = new DisneyDiffuse(local.diffuseReflectance).Pdf(outDir, inDir, isOnLightSubpath);
                 pdfFwd += fwd * select.Diff;
-                pdfRev += rev * select.Diff;
+                pdfRev += rev * selectRev.Diff;
             }
             if (select.Retro > 0) {
                 (fwd, rev) = new DisneyRetroReflection(local.retroReflectance, local.roughness)
                     .Pdf(outDir, inDir, isOnLightSubpath);
                 pdfFwd += fwd * select.Retro;
-                pdfRev += rev * select.Retro;
+                pdfRev += rev * selectRev.Retro;
             }
             if (select.Trans > 0) {
                 (fwd, rev) = new MicrofacetTransmission(local.specularTransmittance,
                     local.transmissionDistribution, 1, parameters.IndexOfRefraction)
                     .Pdf(outDir, inDir, isOnLightSubpath);
                 pdfFwd += fwd * select.Trans;
-                pdfRev += rev * select.TransRev;
+                pdfRev += rev * selectRev.Trans;
             }
             if (select.DiffTrans > 0) {
                 (fwd, rev) = new DiffuseTransmission(local.baseColor * parameters.DiffuseTransmittance)
                     .Pdf(outDir, inDir, isOnLightSubpath);
                 pdfFwd += fwd * select.DiffTrans;
-                pdfRev += rev * select.DiffTrans;
+                pdfRev += rev * selectRev.DiffTrans;
             }
             if (select.Reflect > 0) {
                 (fwd, rev) = new MicrofacetReflection(local.microfacetDistrib, local.fresnel, local.specularTint)
                     .Pdf(outDir, inDir, isOnLightSubpath);
                 pdfFwd += fwd * select.Reflect;
-                pdfRev += rev * select.ReflectRev;
+                pdfRev += rev * selectRev.Reflect;
             }
             Debug.Assert(float.IsFinite(pdfFwd) && pdfFwd >= 0);
 
@@ -466,20 +501,34 @@ namespace SeeSharp.Shading.Materials {
             public float Diff;
             public float Reflect;
             public float Trans;
-            public float ReflectRev;
-            public float TransRev;
         }
 
-        SelectionWeights ComputeSelectWeights(LocalParams p, Vector3 outDir, Vector3 inDir) {
-            return new() {
-                Diff = diffuseReflectance * 0.5f / totalReflectance,
-                Retro = diffuseReflectance * 0.5f / totalReflectance,
-                Reflect = microfacetReflectance / totalReflectance,
-                Trans = microfacetTransmittance / totalReflectance,
-                DiffTrans = diffuseTransmittance / totalReflectance,
-                ReflectRev = microfacetReflectance / totalReflectance,
-                TransRev = microfacetTransmittance / totalReflectance
-            };
+        (SelectionWeights, SelectionWeights) ComputeSelectWeights(LocalParams p, Vector3 outDir, Vector3 inDir) {
+            // Find the bin of cosines that contain this angle
+            int idx = lookUpAngles.BinarySearch(ShadingSpace.CosTheta(outDir));
+            if (idx < 0) idx = ~idx;
+            if (idx == lookUpAngles.Count) idx = lookUpAngles.Count - 1;
+
+            int idxRev = lookUpAngles.BinarySearch(ShadingSpace.CosTheta(inDir));
+            if (idxRev < 0) idxRev = ~idxRev;
+            if (idxRev == lookUpAngles.Count) idxRev = lookUpAngles.Count - 1;
+
+            var w = lookUpWeights[idx];
+            var wRev = lookUpWeights[idxRev];
+
+            return (new() {
+                Diff = w.diffuseReflectance * 0.5f / w.totalReflectance,
+                Retro = w.diffuseReflectance * 0.5f / w.totalReflectance,
+                Reflect = w.microfacetReflectance / w.totalReflectance,
+                Trans = w.microfacetTransmittance / w.totalReflectance,
+                DiffTrans = w.diffuseTransmittance / w.totalReflectance,
+            }, new() {
+                Diff = wRev.diffuseReflectance * 0.5f / wRev.totalReflectance,
+                Retro = wRev.diffuseReflectance * 0.5f / wRev.totalReflectance,
+                Reflect = wRev.microfacetReflectance / wRev.totalReflectance,
+                Trans = wRev.microfacetTransmittance / wRev.totalReflectance,
+                DiffTrans = wRev.diffuseTransmittance / wRev.totalReflectance,
+            });
         }
 
         Parameters parameters;

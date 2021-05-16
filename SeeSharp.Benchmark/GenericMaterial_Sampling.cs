@@ -2,12 +2,15 @@ using SeeSharp.Cameras;
 using SeeSharp.Geometry;
 using SeeSharp.Image;
 using SeeSharp.Integrators;
+using SeeSharp.Sampling;
 using SeeSharp.Shading.Background;
 using SeeSharp.Shading.Materials;
 using SimpleImageIO;
 using System;
+using System.Diagnostics;
 using System.Numerics;
 using System.Threading;
+using TinyEmbree;
 
 namespace SeeSharp.Benchmark {
     class GenericMaterial_Sampling {
@@ -23,7 +26,9 @@ namespace SeeSharp.Benchmark {
             }, new int[] {
                 0, 1, 2, 0, 2, 3
             }));
+            var stop = Stopwatch.StartNew();
             scene.Meshes[^1].Material = new GenericMaterial(parameters);
+            Console.WriteLine(stop.ElapsedMilliseconds);
 
             // Set white background
             RgbImage whiteImage = new(1, 1);
@@ -35,6 +40,20 @@ namespace SeeSharp.Benchmark {
                 Matrix4x4.CreateLookAt(Vector3.Zero, -Vector3.UnitZ, Vector3.UnitY), 40);
 
             return scene;
+        }
+
+        static SurfacePoint MakeDummyHit() {
+            Raytracer rt = new();
+            rt.AddMesh(new(new Vector3[] {
+                new(-10, -10, -2),
+                new( 10, -10, -2),
+                new( 10,  10, -2),
+                new(-10,  10, -2),
+            }, new int[] {
+                0, 1, 2, 0, 2, 3
+            }));
+            rt.CommitScene();
+            return rt.Trace(new() { Origin = Vector3.Zero, Direction = -Vector3.UnitZ });
         }
 
         static string MakeName(GenericMaterial.Parameters parameters) 
@@ -64,6 +83,75 @@ namespace SeeSharp.Benchmark {
             return error;
         }
 
+        public static void BenchPerformance() {
+            GenericMaterial highIOR = new(new() {
+                Roughness = new(0.3199999928474426f),
+                Anisotropic = 0.0f,
+                DiffuseTransmittance = 0.0f,
+                IndexOfRefraction = 1.4500000476837158f,
+                Metallic = 0.0f,
+                SpecularTintStrength = 0.0f,
+                SpecularTransmittance = 0.0f,
+                Thin = false,
+            });
+            GenericMaterial translucent = new(new() {
+                Roughness = new(0.3f),
+                Anisotropic = 0.0f,
+                DiffuseTransmittance = 0.5f,
+                IndexOfRefraction = 1.6667f,
+                Metallic = 0.0f,
+                SpecularTintStrength = 0.0f,
+                SpecularTransmittance = 0.0f,
+                Thin = true,
+            });
+            GenericMaterial glass = new(new() {
+                Roughness = new(0.003199999928474426f),
+                Anisotropic = 0.0f,
+                DiffuseTransmittance = 0.0f,
+                IndexOfRefraction = 1.4500000476837158f,
+                Metallic = 0.0f,
+                SpecularTintStrength = 0.0f,
+                SpecularTransmittance = 1.0f,
+                Thin = false,
+            });
+
+            RNG rng = new();
+            var dummyHit = MakeDummyHit();
+            int numTrials = 1000000;
+
+            var timer = Stopwatch.StartNew();
+            for (int i = 0; i < numTrials; ++i) {
+                var inDir = Vector3.Normalize(rng.NextFloat3D());
+                var outDir = Vector3.Normalize(rng.NextFloat3D());
+
+                highIOR.Evaluate(dummyHit, outDir, inDir, false);
+                translucent.Evaluate(dummyHit, outDir, inDir, false);
+                glass.Evaluate(dummyHit, outDir, inDir, false);
+            }
+            Console.WriteLine($"Evaluating {numTrials} times took {timer.ElapsedMilliseconds}ms");
+
+            timer.Restart();
+            for (int i = 0; i < numTrials; ++i) {
+                var outDir = Vector3.Normalize(rng.NextFloat3D());
+
+                highIOR.Sample(dummyHit, outDir, false, rng.NextFloat2D());
+                translucent.Sample(dummyHit, outDir, false, rng.NextFloat2D());
+                glass.Sample(dummyHit, outDir, false, rng.NextFloat2D());
+            }
+            Console.WriteLine($"Sampling {numTrials} times took {timer.ElapsedMilliseconds}ms");
+
+            timer.Restart();
+            for (int i = 0; i < numTrials; ++i) {
+                var inDir = Vector3.Normalize(rng.NextFloat3D());
+                var outDir = Vector3.Normalize(rng.NextFloat3D());
+
+                highIOR.Pdf(dummyHit, outDir, inDir, false);
+                translucent.Pdf(dummyHit, outDir, inDir, false);
+                glass.Pdf(dummyHit, outDir, inDir, false);
+            }
+            Console.WriteLine($"Computing PDF {numTrials} times took {timer.ElapsedMilliseconds}ms");
+        }
+
         public static void QuickTest() {
             GenericMaterial.Parameters highIOR = new() {
                 Roughness = new(0.3199999928474426f),
@@ -90,6 +178,19 @@ namespace SeeSharp.Benchmark {
             };
 
             TestRender(lowIOR, "lowIOR");
+
+            GenericMaterial.Parameters translucent = new() {
+                Roughness = new(0.3f),
+                Anisotropic = 0.0f,
+                DiffuseTransmittance = 0.5f,
+                IndexOfRefraction = 1.6667f,
+                Metallic = 0.0f,
+                SpecularTintStrength = 0.0f,
+                SpecularTransmittance = 0.0f,
+                Thin = true,
+            };
+
+            TestRender(translucent, "translucent");
 
             GenericMaterial.Parameters glass = new() {
                 Roughness = new(0.003199999928474426f),

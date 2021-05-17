@@ -33,8 +33,9 @@ namespace SeeSharp.Image {
         public readonly VarianceLayer PixelVariance = new();
 
         /// <summary>
-        /// Associated meta data that will be stored along with the final rendered image. By default only
-        /// contains a single item "RenderTime" which tracks the total time in milliseconds over all iterations.
+        /// Associated meta data that will be stored along with the final rendered image. By default,
+        /// contains an item "RenderTime" which tracks the total time in milliseconds over all iterations,
+        /// and "NumIterations".
         /// </summary>
         public readonly Dictionary<string, dynamic> MetaData = new();
 
@@ -147,6 +148,8 @@ namespace SeeSharp.Image {
                             .ToArray()
                     );
                 }
+
+                MetaData["NumIterations"] = 0;
             }
 
             CurIteration++;
@@ -175,6 +178,7 @@ namespace SeeSharp.Image {
             stopwatch.Stop();
 
             MetaData["RenderTime"] = stopwatch.ElapsedMilliseconds;
+            MetaData["NumIterations"] += 1;
 
             foreach (var (_, layer) in layers)
                 layer.OnEndIteration(CurIteration);

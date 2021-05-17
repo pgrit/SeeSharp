@@ -1,5 +1,6 @@
 ﻿using SeeSharp.Shading.MicrofacetDistributions;
 using System;
+using System.Numerics;
 using Xunit;
 
 namespace SeeSharp.Tests.Core.Sampling {
@@ -26,6 +27,29 @@ namespace SeeSharp.Tests.Core.Sampling {
             float expectedNdf = 0;
 
             Assert.Equal(expectedNdf, ndf, 4);
+        }
+
+        [Fact]
+        public void SampleCornerCases_ShouldBeFinite() {
+            float ax = 0.5f;
+            float ay = 0.3f;
+            var dist = new TrowbridgeReitzDistribution() { AlphaX = ax, AlphaY = ay };
+
+            var dir1 = dist.Sample(Vector3.UnitZ, new(0, 1));
+            var dir2 = dist.Sample(new(MathF.Sqrt(2), 0, MathF.Sqrt(2)), new(1, 0));
+            var dir3 = dist.Sample(Vector3.UnitZ, new(1, 0));
+
+            Assert.True(float.IsFinite(dir1.X));
+            Assert.True(float.IsFinite(dir1.Y));
+            Assert.True(float.IsFinite(dir1.Z));
+
+            Assert.True(float.IsFinite(dir2.X));
+            Assert.True(float.IsFinite(dir2.Y));
+            Assert.True(float.IsFinite(dir2.Z));
+
+            Assert.True(float.IsFinite(dir3.X));
+            Assert.True(float.IsFinite(dir3.Y));
+            Assert.True(float.IsFinite(dir3.Z));
         }
     }
 }

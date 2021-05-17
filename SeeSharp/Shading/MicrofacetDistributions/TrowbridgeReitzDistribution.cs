@@ -91,10 +91,21 @@ namespace SeeSharp.Shading.MicrofacetDistributions {
                                                    out float slope_x, out float slope_y) {
             // special case (normal incidence)
             if (cosTheta > .9999) {
+                if (U1 == 1) {
+                    // Catch NaN/Inf causing corner case and produce a valid number instead
+                    // (from a math point of view, this can never happen anyway)
+                    slope_x = 0;
+                    slope_y = 0;
+                    return;
+                }
+
                 float r = MathF.Sqrt(U1 / (1 - U1));
                 float phi = (float)(6.28318530718 * U2);
                 slope_x = r * MathF.Cos(phi);
                 slope_y = r * MathF.Sin(phi);
+
+                Debug.Assert(float.IsFinite(slope_x));
+                Debug.Assert(float.IsFinite(slope_y));
                 return;
             }
 
@@ -126,8 +137,8 @@ namespace SeeSharp.Shading.MicrofacetDistributions {
                 / (U2 * (U2 * (U2 * 0.093073f + 0.309420f) - 1.000000f) + 0.597999f);
             slope_y = S * z * MathF.Sqrt(1 + slope_x * slope_x);
 
-            Debug.Assert(!float.IsInfinity(slope_y));
-            Debug.Assert(!float.IsNaN(slope_y));
+            Debug.Assert(float.IsFinite(slope_x));
+            Debug.Assert(float.IsFinite(slope_y));
         }
 
         static Vector3 TrowbridgeReitzSample(Vector3 wi, float alpha_x,

@@ -74,7 +74,7 @@ namespace SeeSharp.Shading.Materials {
             public float diffuseTransmittance;
             public float microfacetReflectance;
             public float microfacetTransmittance;
-            public float totalReflectance 
+            public float totalReflectance
             => diffuseReflectance + diffuseTransmittance + microfacetReflectance + microfacetTransmittance;
         }
 
@@ -286,7 +286,7 @@ namespace SeeSharp.Shading.Materials {
                 if (pdf == 0) continue;
 
                 var value = distrib.Evaluate(outDir, sampleIn.Value, false);
-                total += value.Average / pdf * invPdfOutDir / numSamples 
+                total += value.Average / pdf * invPdfOutDir / numSamples
                     * Math.Abs(outDir.Z) * Math.Abs(sampleIn.Value.Z);
             }
 
@@ -345,6 +345,7 @@ namespace SeeSharp.Shading.Materials {
                 remapped.X = Math.Min((primarySample.X - offset) / select.Trans, 1);
                 sample = new MicrofacetTransmission(local.specularTransmittance, local.transmissionDistribution,
                     1, parameters.IndexOfRefraction).Sample(outDir, isOnLightSubpath, remapped);
+                Debug.Assert(!sample.HasValue || float.IsFinite(sample.Value.X));
             }
             offset += select.Trans;
 

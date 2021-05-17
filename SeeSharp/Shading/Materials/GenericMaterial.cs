@@ -119,19 +119,9 @@ namespace SeeSharp.Shading.Materials {
         float GetRoughness(Vector2 texCoords)
         => parameters.Roughness.Lookup(texCoords);
 
-        /// <returns>Interior IOR or its inverse, assumes outside is vacuum</returns>
-        public override float GetIndexOfRefractionRatio(SurfacePoint hit, Vector3 outDir, Vector3 inDir) {
-            var normal = hit.ShadingNormal;
-            outDir = ShadingSpace.WorldToShading(normal, outDir);
-            inDir = ShadingSpace.WorldToShading(normal, inDir);
-
-            if (ShadingSpace.SameHemisphere(outDir, inDir))
-                return 1; // does not change
-
-            float insideIOR = parameters.IndexOfRefraction;
-            float outsideIOR = 1;
-            return ShadingSpace.CosTheta(outDir) > 0 ? (insideIOR / outsideIOR) : (outsideIOR / insideIOR);
-        }
+        /// <returns>Interior IOR, assumes outside is vacuum</returns>
+        public override float GetIndexOfRefractionRatio(SurfacePoint hit) 
+        => parameters.IndexOfRefraction;
 
         /// <returns>The base color, which is a crude approximation of the scattering strength</returns>
         public override RgbColor GetScatterStrength(SurfacePoint hit)

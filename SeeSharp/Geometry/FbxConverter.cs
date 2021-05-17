@@ -18,11 +18,11 @@ namespace SeeSharp.Geometry {
         /// <param name="filename">Path to an existing .fbx mesh</param>
         /// <param name="scene">The scene to which the mesh should be added</param>
         /// <param name="materialOverride">
-        ///     Materials from the .fbx with a name matching one of the keys in this dictionary will be 
+        ///     Materials from the .fbx with a name matching one of the keys in this dictionary will be
         ///     replaced by the corresponding dictionary entry
         /// </param>
         /// <param name="emissionOverride">
-        ///     If a material name is a key in this dictionary, all meshes with that material will be 
+        ///     If a material name is a key in this dictionary, all meshes with that material will be
         ///     converted to diffuse emitters. The value from the dictionary determines their emitted radiance.
         /// </param>
         public static void AddToScene(string filename, Scene scene, Dictionary<string, Material> materialOverride,

@@ -36,7 +36,7 @@ namespace SeeSharp.Shading.Materials {
         public override float GetRoughness(SurfacePoint hit) => 1;
 
         /// <returns>Always 1</returns>
-        public override float GetIndexOfRefractionRatio(SurfacePoint hit, Vector3 outDir, Vector3 inDir) => 1;
+        public override float GetIndexOfRefractionRatio(SurfacePoint hit) => 1;
 
         /// <returns>The base color</returns>
         public override RgbColor GetScatterStrength(SurfacePoint hit)

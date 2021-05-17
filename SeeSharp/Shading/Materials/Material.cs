@@ -17,14 +17,12 @@ namespace SeeSharp.Shading.Materials {
         public abstract float GetRoughness(SurfacePoint hit);
 
         /// <summary>
-        /// Computes the ratio of exterior (hemisphere of the outgoing direction) and interior (hemisphere
-        /// of the incoming direction) index of refraction at a given surface point.
+        /// Computes the ratio of interior and exterior index of refraction. Exterior is defined as the
+        /// hemisphere of the shading normal.
         /// </summary>
         /// <param name="hit">The query point in case the material is spatially varying</param>
-        /// <param name="outDir">The outgoing direction (towards where the path is coming from)</param>
-        /// <param name="inDir">The incoming direction (towards where we continue next)</param>
         /// <returns>(interior IOR / exterior IOR) at the query point</returns>
-        public abstract float GetIndexOfRefractionRatio(SurfacePoint hit, Vector3 outDir, Vector3 inDir);
+        public abstract float GetIndexOfRefractionRatio(SurfacePoint hit);
 
         /// <summary>
         /// Computes the sum of reflectance and transmittance.

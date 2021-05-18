@@ -22,6 +22,7 @@ def map_texture(texture, out_dir):
     path = texture.filepath_raw.replace('//', '')
     if path == '':
         path = texture.name + ".exr"
+        texture.file_format = "OPEN_EXR"
 
     # Make sure the image is loaded to memory, so we can write it out
     if not texture.has_data:

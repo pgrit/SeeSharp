@@ -285,12 +285,15 @@ namespace SeeSharp.Shading.Materials {
 
             result.diffuseWeight = (1 - parameters.Metallic) * (1 - parameters.SpecularTransmittance);
             result.diffuseReflectance = result.baseColor;
-            if (parameters.Thin)
+            if (parameters.Thin) {
                 result.diffuseReflectance *= (1 - parameters.DiffuseTransmittance);
-            else
+                result.specularTransmittance = parameters.SpecularTransmittance * RgbColor.Sqrt(result.baseColor);
+            } else {
                 result.diffuseReflectance *= result.diffuseWeight;
+                result.specularTransmittance = parameters.SpecularTransmittance * result.baseColor;
+            }
             result.retroReflectance = result.baseColor * result.diffuseWeight;
-            result.specularTransmittance = parameters.SpecularTransmittance * RgbColor.Sqrt(result.baseColor);
+            
 
             return result;
         }

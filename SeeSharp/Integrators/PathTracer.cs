@@ -98,7 +98,7 @@ namespace SeeSharp.Integrators {
         /// <summary>
         /// Called after a path has finished tracing and its contribution was added to the corresponding pixel.
         /// </summary>
-        protected virtual void OnFinishedPath(Vector2 pixel, RNG rng, RadianceEstimate estimate) { }
+        protected virtual void OnFinishedPath(RadianceEstimate estimate, PathState state) { }
 
         /// <summary> Called after the scene was submitted, before rendering starts. </summary>
         protected virtual void OnPrepareRender() { }
@@ -249,13 +249,13 @@ namespace SeeSharp.Integrators {
             };
 
             OnStartPath(state);
-            var estimate = EstimateIncidentRadiance(primaryRay, state);
-            OnFinishedPath(pixel, rng, estimate);
+            var estimate = EstimateIncidentRadiance(primaryRay, ref state);
+            OnFinishedPath(estimate, state);
 
             scene.FrameBuffer.Splat(col, row, estimate.Outgoing);
         }
 
-        private RadianceEstimate EstimateIncidentRadiance(Ray ray, PathState state) {
+        private RadianceEstimate EstimateIncidentRadiance(Ray ray, ref PathState state) {
             // Trace the next ray
             if (state.Depth > MaxDepth)
                 return RadianceEstimate.Absorbed;
@@ -319,7 +319,7 @@ namespace SeeSharp.Integrators {
             state.Depth += 1;
             state.PreviousHit = hit;
             state.PreviousPdf = bsdfPdf;
-            var nested = EstimateIncidentRadiance(bsdfRay, state);
+            var nested = EstimateIncidentRadiance(bsdfRay, ref state);
 
             return new RadianceEstimate {
                 Emitted = directHitContrib,

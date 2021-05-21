@@ -25,12 +25,12 @@ namespace SeeSharp.Shading.Materials {
         }
 
         /// <returns>True if we only transmit</returns>
-        public override bool IsTransmissive(SurfacePoint hit) => parameters.Transmitter;
+        public override bool IsTransmissive(SurfacePoint hit) => MaterialParameters.Transmitter;
 
         /// <summary>
         /// Creates a new diffuse material with the given parameters
         /// </summary>
-        public DiffuseMaterial(Parameters parameters) => this.parameters = parameters;
+        public DiffuseMaterial(Parameters parameters) => MaterialParameters = parameters;
 
         /// <returns>Always 1</returns>
         public override float GetRoughness(SurfacePoint hit) => 1;
@@ -40,7 +40,7 @@ namespace SeeSharp.Shading.Materials {
 
         /// <returns>The base color</returns>
         public override RgbColor GetScatterStrength(SurfacePoint hit)
-        => parameters.BaseColor.Lookup(hit.TextureCoordinates);
+        => MaterialParameters.BaseColor.Lookup(hit.TextureCoordinates);
 
         /// <returns>1/pi * baseColor, or zero if the directions are not in the right hemispheres</returns>
         public override RgbColor Evaluate(SurfacePoint hit, Vector3 outDir, Vector3 inDir, bool isOnLightSubpath) {
@@ -51,8 +51,8 @@ namespace SeeSharp.Shading.Materials {
             outDir = ShadingSpace.WorldToShading(normal, outDir);
             inDir = ShadingSpace.WorldToShading(normal, inDir);
 
-            var baseColor = parameters.BaseColor.Lookup(hit.TextureCoordinates);
-            if (parameters.Transmitter && !shouldReflect) {
+            var baseColor = MaterialParameters.BaseColor.Lookup(hit.TextureCoordinates);
+            if (MaterialParameters.Transmitter && !shouldReflect) {
                 return new DiffuseTransmission(baseColor).Evaluate(outDir, inDir, isOnLightSubpath);
             } else if (shouldReflect) {
                 return new DiffuseBsdf(baseColor).Evaluate(outDir, inDir, isOnLightSubpath);
@@ -67,9 +67,9 @@ namespace SeeSharp.Shading.Materials {
             var normal = hit.ShadingNormal;
             outDir = ShadingSpace.WorldToShading(normal, outDir);
 
-            var baseColor = parameters.BaseColor.Lookup(hit.TextureCoordinates);
+            var baseColor = MaterialParameters.BaseColor.Lookup(hit.TextureCoordinates);
             Vector3? sample;
-            if (parameters.Transmitter) {
+            if (MaterialParameters.Transmitter) {
                 sample = new DiffuseTransmission(baseColor).Sample(outDir, isOnLightSubpath, primarySample);
             } else {
                 sample = new DiffuseBsdf(baseColor).Sample(outDir, isOnLightSubpath, primarySample);
@@ -106,14 +106,17 @@ namespace SeeSharp.Shading.Materials {
             outDir = ShadingSpace.WorldToShading(normal, outDir);
             inDir = ShadingSpace.WorldToShading(normal, inDir);
 
-            var baseColor = parameters.BaseColor.Lookup(hit.TextureCoordinates);
-            if (parameters.Transmitter) {
+            var baseColor = MaterialParameters.BaseColor.Lookup(hit.TextureCoordinates);
+            if (MaterialParameters.Transmitter) {
                 return new DiffuseTransmission(baseColor).Pdf(outDir, inDir, isOnLightSubpath);
             } else {
                 return new DiffuseBsdf(baseColor).Pdf(outDir, inDir, isOnLightSubpath);
             }
         }
 
-        Parameters parameters;
+        /// <summary>
+        /// Material parameters
+        /// </summary>
+        public readonly Parameters MaterialParameters;
     }
 }

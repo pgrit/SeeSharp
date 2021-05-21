@@ -14,6 +14,7 @@ namespace SeeSharp.Tests.Core.Camera {
                 new( 1,  1, 0),
                 new(-1,  1, 0)
             }, new[] { 0, 1, 2, 0, 2, 3 }));
+            raytracer.CommitScene();
 
             // Find the center point via ray tracing so we get a good error offset
             Hit hit = raytracer.Trace(new Ray {
@@ -32,7 +33,9 @@ namespace SeeSharp.Tests.Core.Camera {
         public void Position_ShouldBeZero() {
             var camera = MakeCamera();
 
-            Assert.Equal(Vector3.Zero, camera.Position);
+            Assert.Equal(0.0f, camera.Position.X, 2);
+            Assert.Equal(0.0f, camera.Position.Y, 2);
+            Assert.Equal(0.0f, camera.Position.Z, 2);
         }
 
         [Fact]

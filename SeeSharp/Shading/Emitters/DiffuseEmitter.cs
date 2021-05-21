@@ -5,16 +5,22 @@ using System;
 using System.Numerics;
 
 namespace SeeSharp.Shading.Emitters {
+    /// <summary>
+    /// Emits a constant amount of radiance in all directions of the upper hemisphere, defined by the
+    /// shading normal of the emissive mesh surface.
+    /// </summary>
     public class DiffuseEmitter : Emitter {
+        /// <param name="mesh">The emissive mesh</param>
+        /// <param name="radiance">Emitted radiance in all directions</param>
         public DiffuseEmitter(Mesh mesh, RgbColor radiance) {
             Mesh = mesh;
-            this.radiance = radiance;
+            Radiance = radiance;
         }
 
         public override RgbColor EmittedRadiance(SurfacePoint point, Vector3 direction) {
             if (Vector3.Dot(point.ShadingNormal, direction) < 0)
                 return RgbColor.Black;
-            return radiance;
+            return Radiance;
         }
 
         public override float PdfArea(SurfacePoint point) => Mesh.Pdf(point);
@@ -44,7 +50,7 @@ namespace SeeSharp.Shading.Emitters {
                 Point = posSample.Point,
                 Direction = dir,
                 Pdf = local.Pdf * posSample.Pdf,
-                Weight = radiance / posSample.Pdf * MathF.PI // cosine cancels out with the directional pdf
+                Weight = Radiance / posSample.Pdf * MathF.PI // cosine cancels out with the directional pdf
             };
         }
 
@@ -64,8 +70,11 @@ namespace SeeSharp.Shading.Emitters {
         }
 
         public override RgbColor ComputeTotalPower()
-        => radiance * 2.0f * MathF.PI * Mesh.SurfaceArea;
+        => Radiance * 2.0f * MathF.PI * Mesh.SurfaceArea;
 
-        RgbColor radiance;
+        /// <summary>
+        /// The radiance that is emitted in all directions
+        /// </summary>
+        public readonly RgbColor Radiance;
     }
 }

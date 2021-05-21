@@ -22,6 +22,11 @@ namespace SeeSharp.Cameras {
         public int Height { get; private set; }
 
         /// <summary>
+        /// The vertical field of view this camera was created with (readonly) in degrees
+        /// </summary>
+        public float VerticalFieldOfView { get; }
+
+        /// <summary>
         /// Creates a new perspective camera.
         /// </summary>
         /// <param name="worldToCamera">
@@ -35,6 +40,7 @@ namespace SeeSharp.Cameras {
                                  float lensRadius = 0, float focalDistance = 0)
         : base(worldToCamera) {
             fovRadians = verticalFieldOfView * MathF.PI / 180;
+            VerticalFieldOfView = verticalFieldOfView;
         }
 
         /// <summary>
@@ -173,7 +179,7 @@ namespace SeeSharp.Cameras {
         /// </summary>
         /// <param name="pos">A reference point in the scene that the camera is looking at</param>
         /// <returns>
-        ///     Factor by which the differential area on the image plane is larger than the differential solid 
+        ///     Factor by which the differential area on the image plane is larger than the differential solid
         ///     angle corresponding to the given direction
         /// </returns>
         public override float SolidAngleToPixelJacobian(Vector3 pos) {

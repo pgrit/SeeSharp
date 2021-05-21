@@ -71,7 +71,7 @@ namespace SeeSharp.Shading.Materials {
 
         /// <param name="parameters">Properties of the material</param>
         public GenericMaterial(Parameters parameters) {
-            this.parameters = parameters;
+            this.MaterialParameters = parameters;
         }
 
         /// <returns>The textured roughness value at the hit point </returns>
@@ -79,18 +79,18 @@ namespace SeeSharp.Shading.Materials {
 
         /// <returns>True if the material is "thin" or the specular transmittance is not zero</returns>
         public override bool IsTransmissive(SurfacePoint hit)
-        => (parameters.Thin && parameters.DiffuseTransmittance > 0) || parameters.SpecularTransmittance > 0;
+        => (MaterialParameters.Thin && MaterialParameters.DiffuseTransmittance > 0) || MaterialParameters.SpecularTransmittance > 0;
 
         float GetRoughness(Vector2 texCoords)
-        => parameters.Roughness.Lookup(texCoords);
+        => MaterialParameters.Roughness.Lookup(texCoords);
 
         /// <returns>Interior IOR, assumes outside is vacuum</returns>
         public override float GetIndexOfRefractionRatio(SurfacePoint hit)
-        => parameters.IndexOfRefraction;
+        => MaterialParameters.IndexOfRefraction;
 
         /// <returns>The base color, which is a crude approximation of the scattering strength</returns>
         public override RgbColor GetScatterStrength(SurfacePoint hit)
-        => parameters.BaseColor.Lookup(hit.TextureCoordinates);
+        => MaterialParameters.BaseColor.Lookup(hit.TextureCoordinates);
 
         /// <returns>BSDF value</returns>
         public override RgbColor Evaluate(SurfacePoint hit, Vector3 outDir, Vector3 inDir, bool isOnLightSubpath) {
@@ -110,13 +110,13 @@ namespace SeeSharp.Shading.Materials {
                 result += new DisneyRetroReflection(local.retroReflectance, local.roughness)
                     .Evaluate(outDir, inDir, isOnLightSubpath);
             }
-            if (parameters.SpecularTransmittance > 0 && !shouldReflect) {
+            if (MaterialParameters.SpecularTransmittance > 0 && !shouldReflect) {
                 result += new MicrofacetTransmission(local.specularTransmittance,
-                    local.transmissionDistribution, 1, parameters.IndexOfRefraction)
+                    local.transmissionDistribution, 1, MaterialParameters.IndexOfRefraction)
                     .Evaluate(outDir, inDir, isOnLightSubpath);
             }
-            if (parameters.Thin && !shouldReflect) {
-                result += new DiffuseTransmission(local.baseColor * parameters.DiffuseTransmittance)
+            if (MaterialParameters.Thin && !shouldReflect) {
+                result += new DiffuseTransmission(local.baseColor * MaterialParameters.DiffuseTransmittance)
                     .Evaluate(outDir, inDir, isOnLightSubpath);
             }
             if (shouldReflect) {
@@ -147,7 +147,7 @@ namespace SeeSharp.Shading.Materials {
             if (primarySample.X < offset + select.DiffTrans) {
                 var remapped = primarySample;
                 remapped.X = Math.Min((primarySample.X - offset) / select.DiffTrans, 1);
-                sample = new DiffuseTransmission(local.baseColor * parameters.DiffuseTransmittance)
+                sample = new DiffuseTransmission(local.baseColor * MaterialParameters.DiffuseTransmittance)
                     .Sample(outDir, isOnLightSubpath, remapped);
             }
             offset += select.DiffTrans;
@@ -180,7 +180,7 @@ namespace SeeSharp.Shading.Materials {
                 var remapped = primarySample;
                 remapped.X = Math.Min((primarySample.X - offset) / select.Trans, 1);
                 sample = new MicrofacetTransmission(local.specularTransmittance, local.transmissionDistribution,
-                    1, parameters.IndexOfRefraction).Sample(outDir, isOnLightSubpath, remapped);
+                    1, MaterialParameters.IndexOfRefraction).Sample(outDir, isOnLightSubpath, remapped);
                 Debug.Assert(!sample.HasValue || float.IsFinite(sample.Value.X));
             }
             offset += select.Trans;
@@ -236,13 +236,13 @@ namespace SeeSharp.Shading.Materials {
             }
             if (select.Trans > 0) {
                 (fwd, rev) = new MicrofacetTransmission(local.specularTransmittance,
-                    local.transmissionDistribution, 1, parameters.IndexOfRefraction)
+                    local.transmissionDistribution, 1, MaterialParameters.IndexOfRefraction)
                     .Pdf(outDir, inDir, isOnLightSubpath);
                 pdfFwd += fwd * select.Trans;
                 pdfRev += rev * selectRev.Trans;
             }
             if (select.DiffTrans > 0) {
-                (fwd, rev) = new DiffuseTransmission(local.baseColor * parameters.DiffuseTransmittance)
+                (fwd, rev) = new DiffuseTransmission(local.baseColor * MaterialParameters.DiffuseTransmittance)
                     .Pdf(outDir, inDir, isOnLightSubpath);
                 pdfFwd += fwd * select.DiffTrans;
                 pdfRev += rev * selectRev.DiffTrans;
@@ -283,42 +283,42 @@ namespace SeeSharp.Shading.Materials {
             CreateFresnel(result.baseColor, result.specularTint, ((DisneyFresnel)fresnelPrealloc.Value));
             result.fresnel = fresnelPrealloc.Value;
 
-            result.diffuseWeight = (1 - parameters.Metallic) * (1 - parameters.SpecularTransmittance);
+            result.diffuseWeight = (1 - MaterialParameters.Metallic) * (1 - MaterialParameters.SpecularTransmittance);
             result.diffuseReflectance = result.baseColor;
-            if (parameters.Thin) {
-                result.diffuseReflectance *= (1 - parameters.DiffuseTransmittance);
-                result.specularTransmittance = parameters.SpecularTransmittance * RgbColor.Sqrt(result.baseColor);
+            if (MaterialParameters.Thin) {
+                result.diffuseReflectance *= (1 - MaterialParameters.DiffuseTransmittance);
+                result.specularTransmittance = MaterialParameters.SpecularTransmittance * RgbColor.Sqrt(result.baseColor);
             } else {
                 result.diffuseReflectance *= result.diffuseWeight;
-                result.specularTransmittance = parameters.SpecularTransmittance * result.baseColor;
+                result.specularTransmittance = MaterialParameters.SpecularTransmittance * result.baseColor;
             }
             result.retroReflectance = result.baseColor * result.diffuseWeight;
-            
+
 
             return result;
         }
 
         (RgbColor, RgbColor, RgbColor) GetColorAndTints(Vector2 texCoords) {
             // Isolate hue and saturation from the base color
-            var baseColor = parameters.BaseColor.Lookup(texCoords);
+            var baseColor = MaterialParameters.BaseColor.Lookup(texCoords);
             float luminance = baseColor.Luminance;
             var colorTint = luminance > 0 ? (baseColor / luminance) : RgbColor.White;
-            var specularTint = RgbColor.Lerp(parameters.SpecularTintStrength, RgbColor.White, colorTint);
+            var specularTint = RgbColor.Lerp(MaterialParameters.SpecularTintStrength, RgbColor.White, colorTint);
             return (baseColor, colorTint, specularTint);
         }
 
         TrowbridgeReitzDistribution CreateMicrofacetDistribution(float roughness) {
-            float aspect = MathF.Sqrt(1 - parameters.Anisotropic * .9f);
+            float aspect = MathF.Sqrt(1 - MaterialParameters.Anisotropic * .9f);
             float ax = Math.Max(.001f, roughness * roughness / aspect);
             float ay = Math.Max(.001f, roughness * roughness * aspect);
             return new TrowbridgeReitzDistribution { AlphaX = ax, AlphaY = ay };
         }
 
         TrowbridgeReitzDistribution CreateTransmissionDistribution(float roughness) {
-            if (parameters.Thin) {
+            if (MaterialParameters.Thin) {
                 // Scale roughness based on IOR (Burley 2015, Figure 15).
-                float aspect = MathF.Sqrt(1 - parameters.Anisotropic * .9f);
-                float rscaled = (0.65f * parameters.IndexOfRefraction - 0.35f) * roughness;
+                float aspect = MathF.Sqrt(1 - MaterialParameters.Anisotropic * .9f);
+                float rscaled = (0.65f * MaterialParameters.IndexOfRefraction - 0.35f) * roughness;
                 float axT = Math.Max(.001f, rscaled * rscaled / aspect);
                 float ayT = Math.Max(.001f, rscaled * rscaled * aspect);
                 return new TrowbridgeReitzDistribution { AlphaX = axT, AlphaY = ayT };
@@ -327,11 +327,11 @@ namespace SeeSharp.Shading.Materials {
         }
 
         void CreateFresnel(RgbColor baseColor, RgbColor specularTint, DisneyFresnel target) {
-            var specularReflectanceAtNormal = RgbColor.Lerp(parameters.Metallic,
-                FresnelSchlick.SchlickR0FromEta(parameters.IndexOfRefraction) * specularTint,
+            var specularReflectanceAtNormal = RgbColor.Lerp(MaterialParameters.Metallic,
+                FresnelSchlick.SchlickR0FromEta(MaterialParameters.IndexOfRefraction) * specularTint,
                 baseColor);
-            target.IndexOfRefraction = parameters.IndexOfRefraction;
-            target.Metallic = parameters.Metallic;
+            target.IndexOfRefraction = MaterialParameters.IndexOfRefraction;
+            target.Metallic = MaterialParameters.Metallic;
             target.ReflectanceAtNormal = specularReflectanceAtNormal;
         }
 
@@ -349,14 +349,14 @@ namespace SeeSharp.Shading.Materials {
             float f = p.fresnel.Evaluate(ShadingSpace.CosTheta(outDir)).Average;
             float fRev = p.fresnel.Evaluate(ShadingSpace.CosTheta(inDir)).Average;
 
-            float metallicBRDF = parameters.Metallic;
-            float specularBSDF = (1.0f - parameters.Metallic) * parameters.SpecularTransmittance;
-            float dielectricBRDF = (1.0f - parameters.SpecularTransmittance) * (1.0f - parameters.Metallic);
+            float metallicBRDF = MaterialParameters.Metallic;
+            float specularBSDF = (1.0f - MaterialParameters.Metallic) * MaterialParameters.SpecularTransmittance;
+            float dielectricBRDF = (1.0f - MaterialParameters.SpecularTransmittance) * (1.0f - MaterialParameters.Metallic);
 
             float specularWeight = f * (metallicBRDF + dielectricBRDF + specularBSDF);
             float transmissionWeight = (1 - f) * specularBSDF;
-            float diffuseWeight = dielectricBRDF * (parameters.Thin ? 0.5f : 1.0f);
-            float difftransWeight = parameters.Thin ? dielectricBRDF * 0.5f : 0;
+            float diffuseWeight = dielectricBRDF * (MaterialParameters.Thin ? 0.5f : 1.0f);
+            float difftransWeight = MaterialParameters.Thin ? dielectricBRDF * 0.5f : 0;
 
             float norm = 1.0f / (specularWeight + transmissionWeight + diffuseWeight + difftransWeight);
 
@@ -382,6 +382,9 @@ namespace SeeSharp.Shading.Materials {
             );
         }
 
-        Parameters parameters;
+        /// <summary>
+        /// The parameters used to create this material
+        /// </summary>
+        public readonly Parameters MaterialParameters;
     }
 }

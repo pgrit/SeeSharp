@@ -15,15 +15,20 @@ namespace SeeSharp.Image {
         /// Creates a texture from an RGB image
         /// </summary>
         /// <param name="filename">Full path to the RGB image</param>
-        public TextureRgb(string filename) => image = new RgbImage(filename);
+        public TextureRgb(string filename) => Image = new RgbImage(filename);
+
+        /// <summary>
+        /// True if the texture is just a single constant value
+        /// </summary>
+        public bool IsConstant => Image == null;
 
         /// <returns>Color value at the given uv-coordinates</returns>
         public RgbColor Lookup(Vector2 uv) {
-            if (image == null)
+            if (Image == null)
                 return constColor;
 
             (int col, int row) = ComputeTexel(uv);
-            return (image as RgbImage).GetPixel(col, row);
+            return (Image as RgbImage).GetPixel(col, row);
         }
 
         RgbColor constColor;

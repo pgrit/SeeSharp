@@ -14,10 +14,15 @@ namespace SeeSharp.Cameras {
         public Vector3 Position => Vector3.Transform(new Vector3(0, 0, 0), cameraToWorld);
 
         /// <summary>
-        /// The principal view direction of the camera in world space (computed from the 
+        /// The principal view direction of the camera in world space (computed from the
         /// <see cref="WorldToCamera"/> matrix)
         /// </summary>
-        public Vector3 Direction => Vector3.Transform(new Vector3(0, 0, -1), cameraToWorld);
+        public Vector3 Direction {
+            get {
+                var dir = Vector4.Transform(new Vector4(0, 0, -1, 0), cameraToWorld);
+                return new(dir.X, dir.Y, dir.Z);
+            }
+        }
 
         /// <summary>Initializes the common camera parameters based on a world matrix</summary>
         /// <exception cref="System.ArgumentException">
@@ -69,7 +74,7 @@ namespace SeeSharp.Cameras {
         /// </summary>
         /// <param name="pos">A point in the scene that the camera is looking at</param>
         /// <returns>
-        ///     The jacobian. The factor by which the differential area on the image plane is larger than the 
+        ///     The jacobian. The factor by which the differential area on the image plane is larger than the
         ///     differential solid angle corresponding to the given direction.
         /// </returns>
         public abstract float SolidAngleToPixelJacobian(Vector3 pos);

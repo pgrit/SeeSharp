@@ -114,6 +114,10 @@ def map_principled(shader, seesharp):
     seesharp.specularTransmittance = shader.inputs["Transmission"].default_value
     seesharp.specularTint = shader.inputs["Specular Tint"].default_value
 
+    clr = shader.inputs["Emission"].default_value
+    seesharp.emission_color = (clr[0], clr[1], clr[2])
+    seesharp.emission_strength = shader.inputs["Emission Strength"].default_value
+
 def map_diffuse(shader, seesharp):
     node = shader.inputs['Base Color']
     tex = map_texture(node)
@@ -171,11 +175,11 @@ shader_matcher = {
 }
 
 def convert_material(material):
-    try: # try to interpret as a known shader
-        last_shader = material.node_tree.nodes['Material Output'].inputs['Surface'].links[0].from_node
+    last_shader = material.node_tree.nodes['Material Output'].inputs['Surface'].links[0].from_node
+    if last_shader.name in shader_matcher:
         return shader_matcher[last_shader.name](last_shader, material.seesharp)
-    except: # use the view shading settings instead
-        map_view_shader(material, material.seesharp)
+    else:
+        return map_view_shader(material, material.seesharp)
 
 class ConvertOperator(bpy.types.Operator):
     bl_idname = "seesharp.convert_material"

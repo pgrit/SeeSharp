@@ -6,7 +6,7 @@ bl_info = {
     "name": "SeeSharp Renderer",
     "author": "Pascal Grittmann",
     "version": (0, 1),
-    "blender": (2, 80, 0),
+    "blender": (2, 92, 0),
     "category": "Import-Export",
 }
 

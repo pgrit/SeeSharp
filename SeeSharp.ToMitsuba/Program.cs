@@ -9,6 +9,7 @@ using SeeSharp;
 using SeeSharp.Common;
 using SeeSharp.Geometry;
 using SeeSharp.Image;
+using SeeSharp.Shading.Background;
 using SeeSharp.Shading.Emitters;
 using SeeSharp.Shading.Materials;
 
@@ -145,7 +146,7 @@ namespace SeeSharpToMitsuba {
                     );
                 } else {
                     // Plastic BSDF
-                    bsdf = new("bsdf", new XAttribute("type", "roughdielectric"),
+                    bsdf = new("bsdf", new XAttribute("type", "roughplastic"),
                         new XElement("string", MakeNameValue("distribution", "ggx")),
                         MapTextureOrColor(mat.MaterialParameters.Roughness, "alpha"),
                         new XElement("float", MakeNameValue("intIOR",
@@ -175,6 +176,21 @@ namespace SeeSharpToMitsuba {
                 new XAttribute("type", "ply"),
                 new XElement("string", new XAttribute("name", "filename"), new XAttribute("value", filename)),
                 bsdf, emitter
+            );
+        }
+
+        static XElement ConvertBackground(Scene scene) {
+            var map = scene.Background as EnvironmentMap;
+            if (map == null) return null;
+
+            string filename = $"Textures/background.exr";
+            map.Image.WriteToFile(filename);
+
+            return new("emitter", new XAttribute("type", "envmap"),
+                new XElement("string", MakeNameValue("filename", filename)),
+                new XElement("transform", new XAttribute("name", "toWorld"),
+                    new XElement("rotate", new XAttribute("y", "1"), new XAttribute("angle", -90))
+                )
             );
         }
 
@@ -237,6 +253,7 @@ namespace SeeSharpToMitsuba {
 
             XElement sceneElement = new("scene", new XAttribute("version", "0.5.0"),
                 ConvertCamera(sceneData),
+                ConvertBackground(sceneData),
                 from mesh in sceneData.Meshes
                 select ExportMesh(sceneData, mesh)
             );

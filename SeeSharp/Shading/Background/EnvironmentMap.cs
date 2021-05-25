@@ -17,7 +17,7 @@ namespace SeeSharp.Shading.Background {
     /// </summary>
     public class EnvironmentMap : Background {
         public EnvironmentMap(RgbImage image) {
-            this.image = image;
+            this.Image = image;
             directionSampler = BuildSamplingGrid(image);
         }
 
@@ -25,18 +25,18 @@ namespace SeeSharp.Shading.Background {
             var sphericalDir = WorldToSpherical(direction);
             var pixelCoords = SphericalToPixel(sphericalDir);
 
-            var col = pixelCoords.X * image.Width;
-            var row = pixelCoords.Y * image.Height;
-            return image.GetPixel((int)col, (int)row);
+            var col = pixelCoords.X * Image.Width;
+            var row = pixelCoords.Y * Image.Height;
+            return Image.GetPixel((int)col, (int)row);
         }
 
         public override RgbColor ComputeTotalPower() {
             RgbColor totalPower = RgbColor.Black;
-            for (int row = 0; row < image.Height; ++row) {
-                for (int col = 0; col < image.Width; ++col) {
+            for (int row = 0; row < Image.Height; ++row) {
+                for (int col = 0; col < Image.Width; ++col) {
                     // TOOD / FIXME this is not quite correct: the latlong map does not preserve area and we
                     //              are ignoring the jacobian term (sin(y)).
-                    totalPower += image.GetPixel(col, row) * 4 * MathF.PI / (image.Width * image.Height);
+                    totalPower += Image.GetPixel(col, row) * 4 * MathF.PI / (Image.Width * Image.Height);
                 }
             }
             return totalPower;
@@ -65,9 +65,9 @@ namespace SeeSharp.Shading.Background {
             // TODO we could (and should) pre-multiply the pdf by the sine, to avoid oversampling regions that will receive zero weight
 
             // Compute the sample weight
-            var weight = image.GetPixel(
-                (int)(pixelPrimary.X * image.Width),
-                (int)(pixelPrimary.Y * image.Height)
+            var weight = Image.GetPixel(
+                (int)(pixelPrimary.X * Image.Width),
+                (int)(pixelPrimary.Y * Image.Height)
             ) / pdf;
 
             return new BackgroundSample {
@@ -181,7 +181,11 @@ namespace SeeSharp.Shading.Background {
         Vector2 PixelToSpherical(Vector2 pixel)
         => new Vector2(pixel.X * 2 * MathF.PI, pixel.Y * MathF.PI);
 
-        readonly RgbImage image;
+        /// <summary>
+        /// The image that illuminates the scene from all directions
+        /// </summary>
+        public readonly RgbImage Image;
+
         readonly RegularGrid2d directionSampler;
     }
 }

@@ -12,6 +12,7 @@ using SeeSharp.Image;
 using SeeSharp.Shading.Background;
 using SeeSharp.Shading.Emitters;
 using SeeSharp.Shading.Materials;
+using SimpleImageIO;
 
 namespace SeeSharpToMitsuba {
     class Program {
@@ -68,30 +69,36 @@ namespace SeeSharpToMitsuba {
         static XElement MapTextureOrColor(TextureRgb texture, string name) {
             if (texture.IsConstant) {
                 var clr = texture.Lookup(Vector2.Zero);
-                return new XElement("rgb",
-                    new XAttribute("name", name),
-                    new XAttribute("value", $"{clr.R}, {clr.G}, {clr.B}")
-                );
+                return new XElement("rgb", MakeNameValue(name, $"{clr.R}, {clr.G}, {clr.B}"));
             } else {
                 texCounter++;
                 string filename = $"Textures/texture-{texCounter:0000}.exr";
                 texture.Image.WriteToFile(filename);
                 return new("texture", new XAttribute("type", "bitmap"), new XAttribute("name", name),
-                    new XElement("string", new XAttribute("name", "filename"), new XAttribute("value", filename))
+                    new XElement("string", MakeNameValue("filename", filename))
                 );
             }
         }
 
-        static XElement MapTextureOrColor(TextureMono texture, string name) {
+        static XElement MapRoughnessScalarOrTexture(TextureMono texture) {
+            // Alpha is the squared roughness
             if (texture.IsConstant) {
-                var clr = texture.Lookup(Vector2.Zero);
-                return new XElement("float", MakeNameValue("name", clr.ToString()));
+                var roughness = texture.Lookup(Vector2.Zero);
+                roughness *= roughness;
+                return new XElement("float", MakeNameValue("alpha", roughness.ToString()));
             } else {
                 texCounter++;
                 string filename = $"Textures/texture-{texCounter:0000}.exr";
-                texture.Image.WriteToFile(filename);
-                return new("texture", new XAttribute("type", "bitmap"), new XAttribute("name", name),
-                    new XElement("string", new XAttribute("name", "filename"), new XAttribute("value", filename))
+                MonochromeImage img = new(texture.Image.Width, texture.Image.Height);
+                for (int row = 0; row < img.Height; ++row) {
+                    for (int col = 0; col < img.Width; ++col) {
+                        float r = texture.Image.GetPixelChannel(col, row, 0);
+                        img.SetPixel(col, row, r * r);
+                    }
+                }
+                img.WriteToFile(filename);
+                return new("texture", new XAttribute("type", "bitmap"), new XAttribute("name", "alpha"),
+                    new XElement("string", MakeNameValue("filename", filename))
                 );
             }
         }
@@ -133,7 +140,7 @@ namespace SeeSharpToMitsuba {
                     // Rough dielectric BSDF
                     bsdf = new("bsdf", new XAttribute("type", "roughdielectric"),
                         new XElement("string", MakeNameValue("distribution", "ggx")),
-                        MapTextureOrColor(mat.MaterialParameters.Roughness, "alpha"),
+                        MapRoughnessScalarOrTexture(mat.MaterialParameters.Roughness),
                         new XElement("float", MakeNameValue("intIOR",
                             mat.MaterialParameters.IndexOfRefraction.ToString()))
                     );
@@ -141,14 +148,14 @@ namespace SeeSharpToMitsuba {
                     // Rough conductor BSDF (silver-like)
                     bsdf = new("bsdf", new XAttribute("type", "roughconductor"),
                         new XElement("string", MakeNameValue("distribution", "ggx")),
-                        MapTextureOrColor(mat.MaterialParameters.Roughness, "alpha"),
+                        MapRoughnessScalarOrTexture(mat.MaterialParameters.Roughness),
                         new XElement("string", MakeNameValue("material", "Ag"))
                     );
                 } else {
                     // Plastic BSDF
                     bsdf = new("bsdf", new XAttribute("type", "roughplastic"),
                         new XElement("string", MakeNameValue("distribution", "ggx")),
-                        MapTextureOrColor(mat.MaterialParameters.Roughness, "alpha"),
+                        MapRoughnessScalarOrTexture(mat.MaterialParameters.Roughness),
                         new XElement("float", MakeNameValue("intIOR",
                             mat.MaterialParameters.IndexOfRefraction.ToString())),
                         MapTextureOrColor(mat.MaterialParameters.BaseColor, "diffuseReflectance")

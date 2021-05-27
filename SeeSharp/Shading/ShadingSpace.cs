@@ -1,5 +1,4 @@
-﻿using SeeSharp.Sampling;
-using System;
+﻿using System;
 using System.Numerics;
 
 namespace SeeSharp.Shading {
@@ -9,6 +8,23 @@ namespace SeeSharp.Shading {
     /// </summary>
     public static class ShadingSpace {
         /// <summary>
+        /// Computes an orthogonal tangent and binormal for a given normal vector.
+        /// </summary>
+        /// <param name="normal">The surface normal</param>
+        /// <param name="tangent">A computed tangent</param>
+        /// <param name="binormal">A computed binormal</param>
+        public static void ComputeBasisVectors(Vector3 normal, out Vector3 tangent, out Vector3 binormal) {
+            if (Math.Abs(normal.X) > Math.Abs(normal.Y)) {
+                float denom = MathF.Sqrt(normal.X * normal.X + normal.Z * normal.Z);
+                tangent = new Vector3(-normal.Z, 0.0f, normal.X) / denom;
+            } else {
+                float denom = MathF.Sqrt(normal.Y * normal.Y + normal.Z * normal.Z);
+                tangent = new Vector3(0.0f, normal.Z, -normal.Y) / denom;
+            }
+            binormal = Vector3.Cross(normal, tangent);
+        }
+
+        /// <summary>
         /// Trnasforms the given direction into normalized shading space.
         /// Assumes the shading normal is a valid normal (i.e. normalized).
         /// </summary>
@@ -16,7 +32,7 @@ namespace SeeSharp.Shading {
             worldDirection = Vector3.Normalize(worldDirection);
 
             Vector3 tangent, binormal;
-            SampleWarp.ComputeBasisVectors(shadingNormal, out tangent, out binormal);
+            ShadingSpace.ComputeBasisVectors(shadingNormal, out tangent, out binormal);
             float z = Vector3.Dot(shadingNormal, worldDirection);
             float x = Vector3.Dot(tangent, worldDirection);
             float y = Vector3.Dot(binormal, worldDirection);
@@ -32,72 +48,53 @@ namespace SeeSharp.Shading {
             shadingDirection = Vector3.Normalize(shadingDirection);
 
             Vector3 tangent, binormal;
-            SampleWarp.ComputeBasisVectors(shadingNormal, out tangent, out binormal);
+            ShadingSpace.ComputeBasisVectors(shadingNormal, out tangent, out binormal);
             Vector3 dir = shadingDirection.Z * shadingNormal
                         + shadingDirection.X * tangent
                         + shadingDirection.Y * binormal;
             return dir;
         }
 
-        public static float CosTheta(Vector3 direction)
-            => direction.Z;
-        public static float CosThetaSqr(Vector3 direction)
-            => direction.Z * direction.Z;
-        public static float AbsCosTheta(Vector3 direction)
-            => MathF.Abs(direction.Z);
+        /// <param name="direction">A direction in shading space</param>
+        /// <returns>The cosine of the angle to the normal</returns>
+        public static float CosTheta(Vector3 direction) => direction.Z;
 
-        public static float SinThetaSqr(Vector3 direction)
-            => MathF.Max(0, 1 - CosThetaSqr(direction));
-        public static float SinTheta(Vector3 direction)
-            => MathF.Sqrt(SinThetaSqr(direction));
-        public static float TanTheta(Vector3 direction)
-            => SinTheta(direction) / CosTheta(direction);
-        public static float TanThetaSqr(Vector3 direction)
-            => SinThetaSqr(direction) / CosThetaSqr(direction);
+        /// <returns>Square of the cosine of the angle between the direction and the normal</returns>
+        public static float CosThetaSqr(Vector3 direction) => direction.Z * direction.Z;
+
+        /// <returns>Absolute value of the cosine of the angle between the direction and the normal</returns>
+        public static float AbsCosTheta(Vector3 direction) => MathF.Abs(direction.Z);
+
+        public static float SinThetaSqr(Vector3 direction) => MathF.Max(0, 1 - CosThetaSqr(direction));
+        public static float SinTheta(Vector3 direction) => MathF.Sqrt(SinThetaSqr(direction));
+        public static float TanTheta(Vector3 direction) => SinTheta(direction) / CosTheta(direction);
+        public static float TanThetaSqr(Vector3 direction) => SinThetaSqr(direction) / CosThetaSqr(direction);
 
         public static float CosPhi(Vector3 direction) {
             float sinTheta = SinTheta(direction);
             return sinTheta == 0 ? 1 : Math.Clamp(direction.X / sinTheta, -1, 1);
         }
+
         public static float SinPhi(Vector3 direction) {
             float sinTheta = SinTheta(direction);
             return sinTheta == 0 ? 0 : Math.Clamp(direction.Y / sinTheta, -1, 1);
         }
 
-        public static float CosPhiSqr(Vector3 direction)
-            => CosPhi(direction) * CosPhi(direction);
+        public static float CosPhiSqr(Vector3 direction) => CosPhi(direction) * CosPhi(direction);
 
-        public static float SinPhiSqr(Vector3 direction)
-            => SinPhi(direction) * SinPhi(direction);
-
-        /// <summary>
-        /// Projects two directions onto the horizontal shading plane and computes the
-        /// cosine between the two. (i.e., cos(|phiA - phiB|) )
-        /// </summary>
-        /// <param name="dirA">A shading space direction.</param>
-        /// <param name="dirB">A shading space direction.</param>
-        /// <returns>Cosine of the difference in phi between the two directions.</returns>
-        public static float CosDeltaPhi(Vector3 dirA, Vector3 dirB) {
-            float lenSqrA = dirA.X * dirA.X + dirA.Y * dirA.Y;
-            float lenSqrB = dirB.X * dirB.X + dirB.Y * dirB.Y;
-
-            // Prevent NaNs if either vector's 2D projection is the 2D zero vector
-            if (lenSqrA == 0.0 || lenSqrB == 0.0) return 1.0f;
-
-            return Math.Clamp(
-                (dirA.X * dirB.X + dirA.Y * dirB.Y) / MathF.Sqrt(lenSqrA * lenSqrB),
-                -1, 1);
-        }
+        public static float SinPhiSqr(Vector3 direction) => SinPhi(direction) * SinPhi(direction);
 
         /// <returns>The perfect mirror reflection of outDir about the normal</returns>
         public static Vector3 Reflect(Vector3 outDir, Vector3 normal)
-            => -outDir + 2 * Vector3.Dot(outDir, normal) * normal;
+        => -outDir + 2 * Vector3.Dot(outDir, normal) * normal;
 
         /// <summary>
         /// Computes the specular refraction of a direction about a normal in shading space.
         /// </summary>
         /// <param name="inDir">Direction that is refracted</param>
-        /// <param name="normal">The normal about which to refract (can be e.g. a shading or microfacet normal)</param>
+        /// <param name="normal">
+        ///     The normal about which to refract (can be e.g. a shading or microfacet normal)
+        /// </param>
         /// <param name="eta">The ratio of IORs</param>
         /// <returns>Refracted direction, or null in case of total reflection.</returns>
         public static Vector3? Refract(Vector3 inDir, Vector3 normal, float eta) {
@@ -116,10 +113,9 @@ namespace SeeSharp.Shading {
         /// <summary>
         /// Tests if the two directions are in the same hemisphere w.r.t the shading normal.
         /// </summary>
-        /// <param name="dirA"></param>
-        /// <param name="dirB"></param>
+        /// <param name="dirA">A direction in shading space</param>
+        /// <param name="dirB">Another direction in shading space</param>
         /// <returns>True if the sign of the cosine to the normal is the same for both.</returns>
-        public static bool SameHemisphere(Vector3 dirA, Vector3 dirB)
-            => dirA.Z * dirB.Z > 0;
+        public static bool SameHemisphere(Vector3 dirA, Vector3 dirB) => dirA.Z * dirB.Z > 0;
     }
 }

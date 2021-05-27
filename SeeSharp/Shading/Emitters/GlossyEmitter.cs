@@ -41,7 +41,7 @@ namespace SeeSharp.Shading.Emitters {
             // Transform to world space direction
             var normal = posSample.Point.ShadingNormal;
             Vector3 tangent, binormal;
-            SampleWarp.ComputeBasisVectors(normal, out tangent, out binormal);
+            ShadingSpace.ComputeBasisVectors(normal, out tangent, out binormal);
             Vector3 dir = local.Direction.Z * normal
                         + local.Direction.X * tangent
                         + local.Direction.Y * binormal;
@@ -63,7 +63,7 @@ namespace SeeSharp.Shading.Emitters {
             // Transform from world space to sampling space
             var normal = point.ShadingNormal;
             Vector3 tangent, binormal;
-            SampleWarp.ComputeBasisVectors(normal, out tangent, out binormal);
+            ShadingSpace.ComputeBasisVectors(normal, out tangent, out binormal);
             float z = Vector3.Dot(normal, direction);
             float x = Vector3.Dot(tangent, direction);
             float y = Vector3.Dot(binormal, direction);

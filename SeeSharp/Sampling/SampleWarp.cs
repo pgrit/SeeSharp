@@ -3,15 +3,10 @@ using System;
 using System.Numerics;
 
 namespace SeeSharp.Sampling {
+    /// <summary>
+    /// Offers functions to transform uniform samples to other distributions or spaces.
+    /// </summary>
     public static class SampleWarp {
-        public static void ComputeBasisVectors(Vector3 normal, out Vector3 tangent, out Vector3 binormal) {
-            if (Math.Abs(normal.X) > Math.Abs(normal.Y))
-                tangent = new Vector3(-normal.Z, 0.0f, normal.X) / MathF.Sqrt(normal.X * normal.X + normal.Z * normal.Z);
-            else
-                tangent = new Vector3(0.0f, normal.Z, -normal.Y) / MathF.Sqrt(normal.Y * normal.Y + normal.Z * normal.Z);
-            binormal = Vector3.Cross(normal, tangent);
-        }
-
         public static Vector2 ToUniformTriangle(Vector2 primary) {
             float sqrtRnd1 = MathF.Sqrt(primary.X);
             float u = 1.0f - sqrtRnd1;

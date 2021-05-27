@@ -1,4 +1,4 @@
-using SeeSharp.Sampling;
+using SeeSharp.Shading;
 using System;
 using System.Collections.Generic;
 using System.Numerics;
@@ -16,7 +16,7 @@ namespace SeeSharp.Geometry {
         /// <param name="radius">Radius of the cylinder</param>
         /// <param name="numSegments">Number of quads used to build the outer surface</param>
         public static Mesh MakeCylinder(Vector3 from, Vector3 to, float radius, int numSegments) {
-            SampleWarp.ComputeBasisVectors(Vector3.Normalize(to - from), out var tan, out var binorm);
+            ShadingSpace.ComputeBasisVectors(Vector3.Normalize(to - from), out var tan, out var binorm);
 
             List<Vector3> vertices = new();
             List<int> indices = new();
@@ -58,7 +58,7 @@ namespace SeeSharp.Geometry {
         /// <param name="radius">Radius at the base of the cone</param>
         /// <param name="numSegments">Number of triangles used to build the side surface</param>
         public static Mesh MakeCone(Vector3 baseCenter, Vector3 tip, float radius, int numSegments) {
-            SampleWarp.ComputeBasisVectors(Vector3.Normalize(tip - baseCenter), out var tan, out var binorm);
+            ShadingSpace.ComputeBasisVectors(Vector3.Normalize(tip - baseCenter), out var tan, out var binorm);
 
             List<Vector3> vertices = new();
             List<int> indices = new();

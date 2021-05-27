@@ -4,6 +4,7 @@ using SimpleImageIO;
 using SeeSharp.Shading.Emitters;
 using System.Numerics;
 using TinyEmbree;
+using System.Diagnostics;
 
 namespace SeeSharp.Integrators.Common {
     public class RandomWalk {
@@ -142,6 +143,9 @@ namespace SeeSharp.Integrators.Common {
                 // Sample the next direction and convert the reverse pdf
                 var (pdfNext, pdfReverse, weight, direction) = SampleNextDirection(hit, ray, throughput, depth);
                 float pdfToAncestor = pdfReverse * SampleWarp.SurfaceAreaToSolidAngle(hit, previousPoint);
+
+                if (pdfToAncestor == 0) Debug.Assert(pdfNext == 0);
+
                 OnContinue(pdfToAncestor, depth);
 
                 if (pdfNext == 0 || weight == RgbColor.Black) {

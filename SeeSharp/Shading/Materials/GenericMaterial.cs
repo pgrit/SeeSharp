@@ -198,6 +198,7 @@ namespace SeeSharp.Shading.Materials {
             if (pdfFwd == 0) return BsdfSample.Invalid;
 
             Debug.Assert(float.IsFinite(value.Average / pdfFwd) && pdfFwd > 0);
+            Debug.Assert(pdfRev != 0);
 
             // Combine results with balance heuristic MIS
             return new BsdfSample {
@@ -348,6 +349,11 @@ namespace SeeSharp.Shading.Materials {
             // While not perfect, this is a lot better than uniform sampling.
             float f = p.fresnel.Evaluate(ShadingSpace.CosTheta(outDir)).Average;
             float fRev = p.fresnel.Evaluate(ShadingSpace.CosTheta(inDir)).Average;
+
+            // TODO remove once we have a proper solution. This is required because the microfacet half vector
+            //      can have a vastly different Fresnel term (one that is not zero, in particular)
+            f = Math.Clamp(f, 0.2f, 0.8f);
+            fRev = Math.Clamp(fRev, 0.2f, 0.8f);
 
             float metallicBRDF = MaterialParameters.Metallic;
             float specularBSDF = (1.0f - MaterialParameters.Metallic) * MaterialParameters.SpecularTransmittance;

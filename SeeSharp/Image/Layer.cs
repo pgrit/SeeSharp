@@ -21,7 +21,7 @@ namespace SeeSharp.Image {
         /// Called at the beginning of each new rendering iteration. Derived classes should always call
         /// this function to achieve proper normalization
         /// </summary>
-        /// <param name="curIteration">The 0-based index of the iteration that starts now</param>
+        /// <param name="curIteration">The 1-based index of the iteration that starts now</param>
         public virtual void OnStartIteration(int curIteration) {
             if (curIteration > 1)
                 Image.Scale((curIteration - 1.0f) / curIteration);
@@ -31,11 +31,11 @@ namespace SeeSharp.Image {
         /// <summary>
         /// Called at the end of each rendering iteration
         /// </summary>
-        /// <param name="curIteration">The 0-based index of the iteration that just finished</param>
+        /// <param name="curIteration">The 1-based index of the iteration that just finished</param>
         public virtual void OnEndIteration(int curIteration) { }
 
         /// <summary>
-        /// The 0-based index of the iteration that is currently being rendered
+        /// The 1-based index of the iteration that is currently being rendered
         /// </summary>
         protected int curIteration;
     }

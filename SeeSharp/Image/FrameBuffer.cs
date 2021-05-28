@@ -55,9 +55,11 @@ namespace SeeSharp.Image {
         public Layer GetLayer(string name) => layers[name];
 
         /// <summary>
-        /// 1-based index of the current iteration (i.e., the total number of iterations so far)
+        /// 1-based index of the current iteration (i.e., the total number of iterations so far).
+        /// If rendering has not started yet, this will be zero.
         /// </summary>
-        public int CurIteration = 0;
+        public int CurIteration { get => curIter; private set => curIter = value; }
+        int curIter = 0;
 
         /// <summary>
         /// The full path to the final rendered image file, but without the extension. Can be used to
@@ -91,7 +93,7 @@ namespace SeeSharp.Image {
             WriteContinously = 2,
 
             ///<summary> Like WriteContinously, but sends the data via a socket to the tev viewer </summary>
-            SendToTev = 4 
+            SendToTev = 4
         }
 
         /// <param name="width">Width in pixels</param>

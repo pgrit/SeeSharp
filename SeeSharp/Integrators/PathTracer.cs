@@ -75,30 +75,30 @@ namespace SeeSharp.Integrators {
         /// <summary>
         /// Called for every surface hit, before any sampling takes place.
         /// </summary>
-        protected virtual void OnHit(Ray ray, Hit hit, PathState state) { }
+        protected virtual void OnHit(in Ray ray, in Hit hit, in PathState state) { }
 
         /// <summary>
         /// Called whenever direct illumination was estimated via next event estimation
         /// </summary>
-        protected virtual void OnNextEventResult(Ray ray, SurfacePoint point, PathState state,
+        protected virtual void OnNextEventResult(in Ray ray, in SurfacePoint point, in PathState state,
                                                  float misWeight, RgbColor estimate) { }
 
         /// <summary>
         /// Called whenever an emitter was intersected
         /// </summary>
-        protected virtual void OnHitLightResult(Ray ray, PathState state, float misWeight, RgbColor emission,
-                                                bool isBackground) { }
+        protected virtual void OnHitLightResult(in Ray ray, in PathState state, float misWeight,
+                                                RgbColor emission, bool isBackground) { }
 
         /// <summary>
         /// Called before a path is traced, after the initial camera ray was sampled
         /// </summary>
         /// <param name="state">Initial state of the path (only pixel and RNG are set)</param>
-        protected virtual void OnStartPath(PathState state) { }
+        protected virtual void OnStartPath(in PathState state) { }
 
         /// <summary>
         /// Called after a path has finished tracing and its contribution was added to the corresponding pixel.
         /// </summary>
-        protected virtual void OnFinishedPath(RadianceEstimate estimate, PathState state) { }
+        protected virtual void OnFinishedPath(in RadianceEstimate estimate, in PathState state) { }
 
         /// <summary> Called after the scene was submitted, before rendering starts. </summary>
         protected virtual void OnPrepareRender() { }
@@ -247,7 +247,7 @@ namespace SeeSharp.Integrators {
             scene.FrameBuffer.Splat(col, row, estimate.Outgoing);
         }
 
-        private RadianceEstimate EstimateIncidentRadiance(Ray ray, ref PathState state) {
+        private RadianceEstimate EstimateIncidentRadiance(in Ray ray, ref PathState state) {
             // Trace the next ray
             if (state.Depth > MaxDepth)
                 return RadianceEstimate.Absorbed;
@@ -320,7 +320,7 @@ namespace SeeSharp.Integrators {
             };
         }
 
-        private (RgbColor, float) OnBackgroundHit(Ray ray, PathState state) {
+        private (RgbColor, float) OnBackgroundHit(in Ray ray, in PathState state) {
             if (scene.Background == null || !EnableBsdfDI)
                 return (RgbColor.Black, 0);
 
@@ -338,7 +338,8 @@ namespace SeeSharp.Integrators {
             return (misWeight * emission, pdfNextEvent);
         }
 
-        private (RgbColor, float) OnLightHit(Ray ray, SurfacePoint hit, PathState state, Emitter light) {
+        private (RgbColor, float) OnLightHit(in Ray ray, in SurfacePoint hit, in PathState state,
+                                             Emitter light) {
             float misWeight = 1.0f;
             float pdfNextEvt = 0;
             if (state.Depth > 1) { // directly visible emitters are not explicitely connected
@@ -359,7 +360,7 @@ namespace SeeSharp.Integrators {
             return (misWeight * emission, pdfNextEvt);
         }
 
-        private RgbColor PerformBackgroundNextEvent(Ray ray, SurfacePoint hit, PathState state) {
+        private RgbColor PerformBackgroundNextEvent(in Ray ray, in SurfacePoint hit, in PathState state) {
             if (scene.Background == null)
                 return RgbColor.Black; // There is no background
 
@@ -387,7 +388,7 @@ namespace SeeSharp.Integrators {
             return RgbColor.Black;
         }
 
-        private RgbColor PerformNextEventEstimation(Ray ray, SurfacePoint hit, PathState state) {
+        private RgbColor PerformNextEventEstimation(in Ray ray, in SurfacePoint hit, in PathState state) {
             if (scene.Emitters.Count == 0)
                 return RgbColor.Black;
 
@@ -440,7 +441,8 @@ namespace SeeSharp.Integrators {
         /// <param name="sampledDir">Direction that could have been sampled</param>
         /// <param name="state">The current state of the path</param>
         /// <returns>Pdf of sampling "sampledDir" when coming from "outDir".</returns>
-        protected virtual float DirectionPdf(SurfacePoint hit, Vector3 outDir, Vector3 sampledDir, PathState state)
+        protected virtual float DirectionPdf(in SurfacePoint hit, Vector3 outDir, Vector3 sampledDir,
+                                             in PathState state)
         => hit.Material.Pdf(hit, outDir, sampledDir, false).Item1;
 
         /// <summary>
@@ -453,7 +455,8 @@ namespace SeeSharp.Integrators {
         /// The next ray, its pdf, and the contribution (bsdf * cosine / pdf).
         /// If sampling was not successful, the pdf will be zero and the path should be terminated.
         /// </returns>
-        protected virtual (Ray, float, RgbColor) SampleDirection(Ray ray, SurfacePoint hit, PathState state) {
+        protected virtual (Ray, float, RgbColor) SampleDirection(in Ray ray, in SurfacePoint hit,
+                                                                 in PathState state) {
             var primary = state.Rng.NextFloat2D();
             var bsdfSample = hit.Material.Sample(hit, -ray.Direction, false, primary);
             var bsdfRay = Raytracer.SpawnRay(hit, bsdfSample.direction);

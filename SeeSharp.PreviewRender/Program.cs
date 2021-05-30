@@ -58,6 +58,8 @@ namespace SeeSharp.PreviewRender {
             else
                 sc.FrameBuffer.WriteToFile();
 
+            Console.WriteLine($"Done after {sc.FrameBuffer.MetaData["RenderTime"]}ms");
+
             return 0;
         }
     }

@@ -15,16 +15,31 @@ namespace SeeSharp.Integrators.Bidir {
     /// The paths are stored in a <see cref="Common.PathCache"/>
     /// </summary>
     public class LightPathCache {
-        // Parameters
+        /// <summary>
+        /// The number of paths that should be traced in each iteration
+        /// </summary>
         public int NumPaths;
+
+        /// <summary>
+        /// The maximum length of each path
+        /// </summary>
         public int MaxDepth;
+
+        /// <summary>
+        /// Seed that is hashed with the iteration and path index to generate a random number sequence
+        /// for each light path.
+        /// </summary>
         public uint BaseSeed = 0xC030114u;
 
-        // Scene specific data
-        public Scene Scene;
+        /// <summary>
+        /// The scene that is being rendered
+        /// </summary>
+        public Scene Scene { get; init; }
 
-        // Outputs
-        public PathCache PathCache;
+        /// <summary>
+        /// The generated light paths in the current iteration
+        /// </summary>
+        public PathCache PathCache { get; set; }
 
         public virtual (Emitter, float) SelectLight(float primary) {
             if (primary < BackgroundProbability) {
@@ -88,8 +103,7 @@ namespace SeeSharp.Integrators.Bidir {
                 PathCache.Clear();
 
             Parallel.For(0, NumPaths, idx => {
-                var seed = RNG.HashSeed(BaseSeed, (uint)idx, iter);
-                var rng = new RNG(seed);
+                var rng = new RNG(BaseSeed, (uint)idx, iter);
                 TraceLightPath(rng, nextEventPdfCallback, idx);
             });
         }

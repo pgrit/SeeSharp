@@ -3,17 +3,26 @@ using System.Numerics;
 
 namespace SeeSharp.Sampling {
     /// <summary>
-    /// Uniform random number generator. Wrapper around System.Random.
+    /// Uniform random number generator. Uses PCG and FNV hashing to efficiently generate random numbers
+    /// even with highly correlated seeds (e.g., consecutive numbers).
     /// </summary>
     public class RNG {
-        readonly Random rng;
+        uint state;
 
         /// <summary>
-        /// Creates a new random generator with either the given seed or a constant default value
+        /// Creates a new random generator with either the given seed or a constant default value.
         /// </summary>
-        public RNG(ulong seed = 0xAB1200CF8190) {
-            rng = new Random((int)seed);
-        }
+        public RNG(uint seed = 0xAB20F90u) => state = seed;
+
+        /// <summary>
+        /// Computes a new seed by hashing. Hashes each individual component using PCG to reduce correlation
+        /// and then hashes the three resulting PCG hashes using FNV to achieve a single 32 bit value.
+        /// </summary>
+        /// <param name="baseSeed">A global base seed</param>
+        /// <param name="chainIndex">e.g., a pixel index</param>
+        /// <param name="sampleIndex">current sample within the, e.g., pixel</param>
+        public RNG(uint baseSeed, uint chainIndex, uint sampleIndex)
+        : this(HashSeed(baseSeed, chainIndex, sampleIndex)) { }
 
         /// <summary>
         /// Comptues a random floating point value between two numbers
@@ -27,7 +36,7 @@ namespace SeeSharp.Sampling {
 
         /// <returns>A floating point value in [0,1] (inclusive)</returns>
         public float NextFloat() {
-            return (float)rng.NextDouble();
+            return Next() / (float)uint.MaxValue;
         }
 
         /// <returns>A pair of floating point values in [0,1] (inclusive)</returns>
@@ -43,26 +52,38 @@ namespace SeeSharp.Sampling {
             if (max <= min)
                 return min;
 
-            return rng.Next(min, max);
+            int delta = (int)(Next() % Math.Abs(max - min));
+            return min + delta;
         }
 
-        /// <summary> Hashes 4 bytes using FNV </summary>
-        private static uint FnvHash(uint h, uint d) {
-            h = (h * 16777619) ^ (d        & 0xFF);
-            h = (h * 16777619) ^ ((d >>  8) & 0xFF);
-            h = (h * 16777619) ^ ((d >> 16) & 0xFF);
-            h = (h * 16777619) ^ ((d >> 24) & 0xFF);
-            return h;
+        uint Next() {
+            uint word = ((state >> (int)((state >> 28) + 4)) ^ state) * 277803737u;
+            state = state * 747796405u + 2891336453u;
+            return ((word >> 22) ^ word);
         }
 
-        /// <summary> Computes a new seed by hashing. </summary>
-        /// <param name="BaseSeed">A global base seed</param>
-        /// <param name="chainIndex">e.g., a pixel index</param>
-        /// <param name="sampleIndex">current sample within the, e.g., pixel</param>
-        public static uint HashSeed(uint BaseSeed, uint chainIndex, uint sampleIndex) {
-            var h1 = FnvHash(FnvHash(0x811C9DC5, BaseSeed), chainIndex);
-            var h2 = FnvHash(FnvHash(0x811C9DC5, h1), sampleIndex);
-            return h2;
+        const uint FnvOffsetBasis = 2166136261;
+        const uint FnvPrime = 16777619;
+
+        static uint FnvHash(uint hash, uint data) {
+            hash = (hash * FnvPrime) ^ (data & 0xFF);
+            hash = (hash * FnvPrime) ^ ((data >> 8) & 0xFF);
+            hash = (hash * FnvPrime) ^ ((data >> 16) & 0xFF);
+            hash = (hash * FnvPrime) ^ ((data >> 24) & 0xFF);
+            return hash;
+        }
+
+        static uint PcgHash(uint input) {
+            uint state = input * 747796405u + 2891336453u;
+            uint word = ((state >> (int)((state >> 28) + 4)) ^ state) * 277803737u;
+            return (word >> 22) ^ word;
+        }
+
+        static uint HashSeed(uint BaseSeed, uint chainIndex, uint sampleIndex) {
+            var hash = FnvHash(FnvOffsetBasis, PcgHash(BaseSeed));
+            hash = FnvHash(hash, PcgHash(chainIndex));
+            hash = FnvHash(hash, PcgHash(sampleIndex));
+            return PcgHash(hash);
         }
     }
 }

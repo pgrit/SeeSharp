@@ -91,8 +91,7 @@ namespace SeeSharp.Integrators.Bidir {
         private void TraceAllCameraPaths(uint iter) {
             Parallel.For(0, scene.FrameBuffer.Height,
                 row => {
-                    var seed = RNG.HashSeed(BaseSeedCamera, (uint)row, iter);
-                    var rng = new RNG(seed);
+                    var rng = new RNG(BaseSeedCamera, (uint)row, iter);
                     for (uint col = 0; col < scene.FrameBuffer.Width; ++col) {
                         RenderPixel((uint)row, col, rng);
                     }

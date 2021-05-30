@@ -51,8 +51,7 @@ namespace SeeSharp.Integrators {
         private void RenderPixel(Scene scene, uint row, uint col, uint sampleIndex) {
             // Seed the random number generator
             uint pixelIndex = row * (uint)scene.FrameBuffer.Width + col;
-            var seed = RNG.HashSeed(BaseSeed, pixelIndex, sampleIndex);
-            var rng = new RNG(seed);
+            var rng = new RNG(BaseSeed, pixelIndex, sampleIndex);
 
             // Sample a ray from the camera
             var offset = rng.NextFloat2D();

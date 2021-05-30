@@ -42,8 +42,8 @@ namespace SeeSharp.IntegrationTests {
                 framebuffer.StartIteration();
                 Parallel.For(0, 256, row => {
                     for (int col = 0; col < 512; ++col) {
-                        RNG rng = new(RNG.HashSeed(1890481209, (uint)numIter, (uint)(row * 256 * col)));
-                        
+                        RNG rng = new(1890481209, (uint)numIter, (uint)(row * 256 * col));
+
                         var pixel = rng.NextFloat2D();
                         pixel.X += col;
                         pixel.Y += row;

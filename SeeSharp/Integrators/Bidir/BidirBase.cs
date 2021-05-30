@@ -109,22 +109,22 @@ namespace SeeSharp.Integrators.Bidir {
         /// </summary>
         public abstract void ProcessPathCache();
 
-        public virtual (Emitter, float, float) SelectLight(float primary) {
-            float scaled = Scene.Emitters.Count * primary;
-            int idx = Math.Clamp((int)scaled, 0, Scene.Emitters.Count - 1);
-            var emitter = Scene.Emitters[idx];
-            return (emitter, 1.0f / Scene.Emitters.Count, scaled - idx);
+        /// <summary>
+        /// Used by next event estimation to select a light source
+        /// </summary>
+        /// <param name="from">A point on a surface where next event is performed</param>
+        /// <param name="rng">Random number generator</param>
+        /// <returns>The selected light and the discrete probability of selecting that light</returns>
+        public virtual (Emitter, float) SelectLight(SurfacePoint from, RNG rng) {
+            int idx = rng.NextInt(0, Scene.Emitters.Count);
+            return (Scene.Emitters[idx], 1.0f / Scene.Emitters.Count);
         }
 
-        public virtual float SelectLightPmf(Emitter em) {
-            return 1.0f / Scene.Emitters.Count;
-        }
-
-        public virtual (Emitter, float, float) SelectLight(SurfacePoint from, float primary)
-        => SelectLight(primary);
-
-        public virtual float SelectLightPmf(SurfacePoint from, Emitter em)
-        => SelectLightPmf(em);
+        /// <returns>
+        /// The discrete probability of selecting the given light when performing next event at the given
+        /// shading point.
+        /// </returns>
+        public virtual float SelectLightPmf(SurfacePoint from, Emitter em) => 1.0f / Scene.Emitters.Count;
 
         /// <summary>
         /// Called once for each pixel per iteration. Expected to perform some sort of path tracing,
@@ -141,7 +141,16 @@ namespace SeeSharp.Integrators.Bidir {
             return walk.StartFromCamera(filmPosition, cameraPoint, pdfFromCamera, primaryRay, initialWeight);
         }
 
+        /// <summary>
+        /// Called once after the end of each rendering iteration (one sample per pixel)
+        /// </summary>
+        /// <param name="iteration">The 0-based index of the iteration that just finished</param>
         public virtual void PostIteration(uint iteration) { }
+
+        /// <summary>
+        /// Called once before the start of each rendering iteration (one sample per pixel)
+        /// </summary>
+        /// <param name="iteration">The 0-based index of the iteration that will now start</param>
         public virtual void PreIteration(uint iteration) { }
 
         protected virtual LightPathCache MakeLightPathCache()
@@ -169,7 +178,7 @@ namespace SeeSharp.Integrators.Bidir {
                     LightPaths.TraceAllPaths(iter,
                         (origin, primary, nextDirection) => NextEventPdf(primary.Point, origin.Point));
                     ProcessPathCache();
-                    TraceAllCameraPaths(camSeedGen);
+                    TraceAllCameraPaths(iter);
                 } catch {
                     Console.WriteLine($"Exception in iteration {iter} out of {NumIterations}!");
                     throw;
@@ -184,15 +193,11 @@ namespace SeeSharp.Integrators.Bidir {
             }
         }
 
-        private void TraceAllCameraPaths(RNG seedGen) {
-            int[] rowSeeds = new int[Scene.FrameBuffer.Height];
-            for (int i = 0; i < Scene.FrameBuffer.Height; ++i) {
-                rowSeeds[i] = seedGen.NextInt(int.MinValue, int.MaxValue);
-            }
-
+        private void TraceAllCameraPaths(uint iter) {
             Parallel.For(0, Scene.FrameBuffer.Height, row => {
-                var rng = new RNG((uint)rowSeeds[row]);
                 for (uint col = 0; col < Scene.FrameBuffer.Width; ++col) {
+                    uint pixelIndex = (uint)(row * Scene.FrameBuffer.Width + col);
+                    var rng = new RNG(BaseSeedCamera, pixelIndex, iter);
                     RenderPixel((uint)row, col, rng);
                 }
             });
@@ -405,7 +410,7 @@ namespace SeeSharp.Integrators.Bidir {
         }
 
         public virtual (Emitter, SurfaceSample) SampleNextEvent(SurfacePoint from, RNG rng) {
-            var (light, lightProb, _) = SelectLight(from, rng.NextFloat());
+            var (light, lightProb) = SelectLight(from, rng);
             var lightSample = light.SampleArea(rng.NextFloat2D());
             lightSample.Pdf *= lightProb;
             return (light, lightSample);

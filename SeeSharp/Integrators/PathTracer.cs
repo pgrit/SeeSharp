@@ -399,7 +399,7 @@ namespace SeeSharp.Integrators {
 
             // Sample a point on the light source
             var lightSample = light.SampleArea(state.Rng.NextFloat2D());
-            Vector3 lightToSurface = hit.Position - lightSample.Point.Position;
+            Vector3 lightToSurface = Vector3.Normalize(hit.Position - lightSample.Point.Position);
 
             if (!scene.Raytracer.IsOccluded(hit, lightSample.Point)) {
                 var emission = light.EmittedRadiance(lightSample.Point, lightToSurface);

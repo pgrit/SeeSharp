@@ -25,7 +25,7 @@ namespace SeeSharp.Shading.Materials {
         }
 
         /// <returns>True if we only transmit</returns>
-        public override bool IsTransmissive(SurfacePoint hit) => MaterialParameters.Transmitter;
+        public override bool IsTransmissive(in SurfacePoint hit) => MaterialParameters.Transmitter;
 
         /// <summary>
         /// Creates a new diffuse material with the given parameters
@@ -33,17 +33,17 @@ namespace SeeSharp.Shading.Materials {
         public DiffuseMaterial(Parameters parameters) => MaterialParameters = parameters;
 
         /// <returns>Always 1</returns>
-        public override float GetRoughness(SurfacePoint hit) => 1;
+        public override float GetRoughness(in SurfacePoint hit) => 1;
 
         /// <returns>Always 1</returns>
-        public override float GetIndexOfRefractionRatio(SurfacePoint hit) => 1;
+        public override float GetIndexOfRefractionRatio(in SurfacePoint hit) => 1;
 
         /// <returns>The base color</returns>
-        public override RgbColor GetScatterStrength(SurfacePoint hit)
+        public override RgbColor GetScatterStrength(in SurfacePoint hit)
         => MaterialParameters.BaseColor.Lookup(hit.TextureCoordinates);
 
         /// <returns>1/pi * baseColor, or zero if the directions are not in the right hemispheres</returns>
-        public override RgbColor Evaluate(SurfacePoint hit, Vector3 outDir, Vector3 inDir, bool isOnLightSubpath) {
+        public override RgbColor Evaluate(in SurfacePoint hit, Vector3 outDir, Vector3 inDir, bool isOnLightSubpath) {
             bool shouldReflect = ShouldReflect(hit, outDir, inDir);
 
             // Transform directions to shading space and normalize
@@ -63,7 +63,7 @@ namespace SeeSharp.Shading.Materials {
         /// <summary>
         /// Importance samples the cosine hemisphere
         /// </summary>
-        public override BsdfSample Sample(SurfacePoint hit, Vector3 outDir, bool isOnLightSubpath, Vector2 primarySample) {
+        public override BsdfSample Sample(in SurfacePoint hit, Vector3 outDir, bool isOnLightSubpath, Vector2 primarySample) {
             var normal = hit.ShadingNormal;
             outDir = ShadingSpace.WorldToShading(normal, outDir);
 
@@ -100,7 +100,7 @@ namespace SeeSharp.Shading.Materials {
         }
 
         /// <returns>PDF value used by <see cref="Sample"/></returns>
-        public override (float, float) Pdf(SurfacePoint hit, Vector3 outDir, Vector3 inDir, bool isOnLightSubpath) {
+        public override (float, float) Pdf(in SurfacePoint hit, Vector3 outDir, Vector3 inDir, bool isOnLightSubpath) {
             // Transform directions to shading space and normalize
             var normal = hit.ShadingNormal;
             outDir = ShadingSpace.WorldToShading(normal, outDir);

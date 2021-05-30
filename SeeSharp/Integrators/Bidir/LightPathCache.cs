@@ -149,7 +149,15 @@ namespace SeeSharp.Integrators.Bidir {
                 return TraceBackgroundPath(rng, prob, nextEvtCallback, idx);
         }
 
-        public delegate void ProcessVertex(int pathIdx, PathVertex vertex, PathVertex ancestor, Vector3 dirToAncestor);
+        /// <summary>
+        /// Callback that is invoked for each vertex along a path
+        /// </summary>
+        /// <param name="pathIdx">Index of the full path in the cache</param>
+        /// <param name="vertex">Reference to the vertex</param>
+        /// <param name="ancestor">Reference to the vertex's ancestor</param>
+        /// <param name="dirToAncestor">Normalized direction from the vertex to the ancestor</param>
+        public delegate void ProcessVertex(int pathIdx, in PathVertex vertex, in PathVertex ancestor,
+            Vector3 dirToAncestor);
 
         /// <summary>
         /// Utility function that iterates over a light path, starting on the end point, excluding the point on the light itself.
@@ -159,7 +167,7 @@ namespace SeeSharp.Integrators.Bidir {
             for (int i = 1; i < n; ++i) {
                 var ancestor = PathCache[index, i-1];
                 var vertex = PathCache[index, i];
-                var dirToAncestor = ancestor.Point.Position - vertex.Point.Position;
+                var dirToAncestor = Vector3.Normalize(ancestor.Point.Position - vertex.Point.Position);
                 func(index, vertex, ancestor, dirToAncestor);
             }
         }

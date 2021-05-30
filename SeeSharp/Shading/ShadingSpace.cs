@@ -1,4 +1,5 @@
-﻿using System;
+﻿using SeeSharp.Common;
+using System;
 using System.Numerics;
 
 namespace SeeSharp.Shading {
@@ -29,10 +30,9 @@ namespace SeeSharp.Shading {
         /// Assumes the shading normal is a valid normal (i.e. normalized).
         /// </summary>
         public static Vector3 WorldToShading(Vector3 shadingNormal, Vector3 worldDirection) {
-            worldDirection = Vector3.Normalize(worldDirection);
+            SanityChecks.IsNormalized(worldDirection);
 
-            Vector3 tangent, binormal;
-            ShadingSpace.ComputeBasisVectors(shadingNormal, out tangent, out binormal);
+            ComputeBasisVectors(shadingNormal, out var tangent, out var binormal);
             float z = Vector3.Dot(shadingNormal, worldDirection);
             float x = Vector3.Dot(tangent, worldDirection);
             float y = Vector3.Dot(binormal, worldDirection);
@@ -45,10 +45,9 @@ namespace SeeSharp.Shading {
         /// Assumes the shading normal is a valid normal (i.e. normalized).
         /// </summary>
         public static Vector3 ShadingToWorld(Vector3 shadingNormal, Vector3 shadingDirection) {
-            shadingDirection = Vector3.Normalize(shadingDirection);
+            SanityChecks.IsNormalized(shadingDirection);
 
-            Vector3 tangent, binormal;
-            ShadingSpace.ComputeBasisVectors(shadingNormal, out tangent, out binormal);
+            ComputeBasisVectors(shadingNormal, out var tangent, out var binormal);
             Vector3 dir = shadingDirection.Z * shadingNormal
                         + shadingDirection.X * tangent
                         + shadingDirection.Y * binormal;

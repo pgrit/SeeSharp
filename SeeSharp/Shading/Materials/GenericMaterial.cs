@@ -7,8 +7,6 @@ using System.Diagnostics;
 using System.Numerics;
 using SimpleImageIO;
 using System.Threading;
-using SeeSharp.Sampling;
-using System.Collections.Generic;
 
 namespace SeeSharp.Shading.Materials {
     /// <summary>
@@ -75,25 +73,25 @@ namespace SeeSharp.Shading.Materials {
         }
 
         /// <returns>The textured roughness value at the hit point </returns>
-        public override float GetRoughness(SurfacePoint hit) => GetRoughness(hit.TextureCoordinates);
+        public override float GetRoughness(in SurfacePoint hit) => GetRoughness(hit.TextureCoordinates);
 
         /// <returns>True if the material is "thin" or the specular transmittance is not zero</returns>
-        public override bool IsTransmissive(SurfacePoint hit)
+        public override bool IsTransmissive(in SurfacePoint hit)
         => (MaterialParameters.Thin && MaterialParameters.DiffuseTransmittance > 0) || MaterialParameters.SpecularTransmittance > 0;
 
         float GetRoughness(Vector2 texCoords)
         => MaterialParameters.Roughness.Lookup(texCoords);
 
         /// <returns>Interior IOR, assumes outside is vacuum</returns>
-        public override float GetIndexOfRefractionRatio(SurfacePoint hit)
+        public override float GetIndexOfRefractionRatio(in SurfacePoint hit)
         => MaterialParameters.IndexOfRefraction;
 
         /// <returns>The base color, which is a crude approximation of the scattering strength</returns>
-        public override RgbColor GetScatterStrength(SurfacePoint hit)
+        public override RgbColor GetScatterStrength(in SurfacePoint hit)
         => MaterialParameters.BaseColor.Lookup(hit.TextureCoordinates);
 
         /// <returns>BSDF value</returns>
-        public override RgbColor Evaluate(SurfacePoint hit, Vector3 outDir, Vector3 inDir, bool isOnLightSubpath) {
+        public override RgbColor Evaluate(in SurfacePoint hit, Vector3 outDir, Vector3 inDir, bool isOnLightSubpath) {
             bool shouldReflect = ShouldReflect(hit, outDir, inDir);
 
             // Transform directions to shading space and normalize
@@ -130,7 +128,7 @@ namespace SeeSharp.Shading.Materials {
         }
 
         /// <summary>Crudely importance samples the combined BSDFs</summary>
-        public override BsdfSample Sample(SurfacePoint hit, Vector3 outDir, bool isOnLightSubpath,
+        public override BsdfSample Sample(in SurfacePoint hit, Vector3 outDir, bool isOnLightSubpath,
                                           Vector2 primarySample) {
             // Transform directions to shading space and normalize
             var normal = hit.ShadingNormal;
@@ -210,7 +208,7 @@ namespace SeeSharp.Shading.Materials {
         }
 
         /// <returns>PDF used by <see cref="Sample"/></returns>
-        public override (float, float) Pdf(SurfacePoint hit, Vector3 outDir, Vector3 inDir,
+        public override (float, float) Pdf(in SurfacePoint hit, Vector3 outDir, Vector3 inDir,
                                            bool isOnLightSubpath) {
             // Transform directions to shading space and normalize
             var normal = hit.ShadingNormal;

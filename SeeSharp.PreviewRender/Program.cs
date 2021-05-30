@@ -1,5 +1,6 @@
 ﻿using System;
 using System.IO;
+using SeeSharp.Common;
 using SeeSharp.Integrators;
 using SeeSharp.Integrators.Bidir;
 
@@ -29,7 +30,7 @@ namespace SeeSharp.PreviewRender {
             bool denoise = true
         ) {
             if (scene == null) {
-                Console.WriteLine("Please provide a scene filename via --scene [file.json]");
+                Logger.Error("Please provide a scene filename via --scene [file.json]");
                 return -1;
             }
 
@@ -48,7 +49,8 @@ namespace SeeSharp.PreviewRender {
                     NumIterations = samples
                 }.Render(sc);
             } else {
-                Console.WriteLine($"Unknown rendering algorithm: {algo}");
+                Logger.Error($"Unknown rendering algorithm: {algo}. Use PT or VCM");
+                return -1;
             }
 
             if (flatten && denoise)
@@ -58,7 +60,7 @@ namespace SeeSharp.PreviewRender {
             else
                 sc.FrameBuffer.WriteToFile();
 
-            Console.WriteLine($"Done after {sc.FrameBuffer.MetaData["RenderTime"]}ms");
+            Logger.Log($"Done after {sc.FrameBuffer.MetaData["RenderTime"]}ms");
 
             return 0;
         }

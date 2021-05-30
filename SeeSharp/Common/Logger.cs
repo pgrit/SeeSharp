@@ -70,5 +70,15 @@ namespace SeeSharp.Common {
                 Console.ResetColor();
             }
         }
+
+        /// <summary>
+        /// Calls <see cref="Log"/> with verbosity level set to <see cref="Verbosity.Error"/>
+        /// </summary>
+        public static void Error(string message) => Log(message, Verbosity.Error);
+
+        /// <summary>
+        /// Calls <see cref="Log"/> with verbosity level set to <see cref="Verbosity.Warning"/>
+        /// </summary>
+        public static void Warning(string message) => Log(message, Verbosity.Warning);
     }
 }

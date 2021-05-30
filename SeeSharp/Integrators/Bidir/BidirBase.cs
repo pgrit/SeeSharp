@@ -115,7 +115,7 @@ namespace SeeSharp.Integrators.Bidir {
         /// <param name="from">A point on a surface where next event is performed</param>
         /// <param name="rng">Random number generator</param>
         /// <returns>The selected light and the discrete probability of selecting that light</returns>
-        public virtual (Emitter, float) SelectLight(SurfacePoint from, RNG rng) {
+        public virtual (Emitter, float) SelectLight(in SurfacePoint from, RNG rng) {
             int idx = rng.NextInt(0, Scene.Emitters.Count);
             return (Scene.Emitters[idx], 1.0f / Scene.Emitters.Count);
         }
@@ -124,15 +124,16 @@ namespace SeeSharp.Integrators.Bidir {
         /// The discrete probability of selecting the given light when performing next event at the given
         /// shading point.
         /// </returns>
-        public virtual float SelectLightPmf(SurfacePoint from, Emitter em) => 1.0f / Scene.Emitters.Count;
+        public virtual float SelectLightPmf(in SurfacePoint from, Emitter em) => 1.0f / Scene.Emitters.Count;
 
         /// <summary>
         /// Called once for each pixel per iteration. Expected to perform some sort of path tracing,
         /// possibly connecting vertices with those from the light path cache.
         /// </summary>
         /// <returns>The estimated pixel value.</returns>
-        public virtual RgbColor EstimatePixelValue(SurfacePoint cameraPoint, Vector2 filmPosition, Ray primaryRay,
-                                                   float pdfFromCamera, RgbColor initialWeight, RNG rng) {
+        public virtual RgbColor EstimatePixelValue(in SurfacePoint cameraPoint, Vector2 filmPosition,
+                                                   in Ray primaryRay, float pdfFromCamera,
+                                                   RgbColor initialWeight, RNG rng) {
             // The pixel index determines which light path we connect to
             int row = Math.Min((int)filmPosition.Y, Scene.FrameBuffer.Height - 1);
             int col = Math.Min((int)filmPosition.X, Scene.FrameBuffer.Width - 1);
@@ -153,9 +154,17 @@ namespace SeeSharp.Integrators.Bidir {
         /// <param name="iteration">The 0-based index of the iteration that will now start</param>
         public virtual void PreIteration(uint iteration) { }
 
+        /// <summary>
+        /// Generates the light path cache used to sample and store light paths.
+        /// Called at the beginning of the rendering process before the first iteration.
+        /// </summary>
         protected virtual LightPathCache MakeLightPathCache()
         => new LightPathCache { MaxDepth = MaxDepth, NumPaths = NumLightPaths, Scene = Scene };
 
+        /// <summary>
+        /// Renders the scene with the current settings. Not thread-safe: Only one scene can be rendered at a
+        /// time by the same object of this class.
+        /// </summary>
         public override void Render(Scene scene) {
             this.Scene = scene;
 
@@ -221,6 +230,9 @@ namespace SeeSharp.Integrators.Bidir {
         /// This can be used to write out pyramids of sampling technique images / MIS weights.
         /// The default implementation does nothing.
         /// </summary>
+        /// <param name="weight">The sample contribution not yet weighted by MIS</param>
+        /// <param name="misWeight">The MIS weight that will be multiplied on the sample weight</param>
+        /// <param name="pixel">The pixel to which this sample contributes</param>
         /// <param name="cameraPathLength">Number of edges in the camera sub-path (0 if light tracer).</param>
         /// <param name="lightPathLength">Number of edges in the light sub-path (0 when hitting the light).</param>
         /// <param name="fullLength">Number of edges forming the full path. Used to disambiguate techniques.</param>
@@ -240,18 +252,25 @@ namespace SeeSharp.Integrators.Bidir {
                                                float pdfCameraToLight, float pdfLightReverse,
                                                float pdfLightToCamera, float pdfNextEvent) {}
 
-
         public abstract float LightTracerMis(PathVertex lightVertex, float pdfCamToPrimary, float pdfReverse,
                                              float pdfNextEvent, Vector2 pixel, float distToCam);
 
+        /// <summary>
+        /// Connects all vertices along all light paths to the camera via shadow rays ("light tracing").
+        /// </summary>
         public void SplatLightVertices() {
             Parallel.For(0, LightPaths.NumPaths, idx => {
                 ConnectLightPathToCamera(idx);
             });
         }
 
-        public virtual void ConnectLightPathToCamera(int pathIdx) {
-            LightPaths.ForEachVertex(pathIdx, (pathIdx, vertex, ancestor, dirToAncestor) => {
+        /// <summary>
+        /// Connects the vertices of the i-th path to the camera ("light tracing")
+        /// </summary>
+        /// <param name="pathIdx">Index of the path in the cache</param>
+        protected virtual void ConnectLightPathToCamera(int pathIdx) {
+            LightPaths.ForEachVertex(pathIdx, 
+            (int pathIdx, in PathVertex vertex, in PathVertex ancestor, Vector3 dirToAncestor) => {
                 if (vertex.Depth + 1 < MinDepth) return;
 
                 // Compute image plane location
@@ -264,6 +283,7 @@ namespace SeeSharp.Integrators.Bidir {
 
                 var dirToCam = response.Position - vertex.Point.Position;
                 float distToCam = dirToCam.Length();
+                dirToCam /= distToCam;
 
                 var bsdfValue = vertex.Point.Material.Evaluate(vertex.Point, dirToAncestor, dirToCam, true);
                 if (bsdfValue == RgbColor.Black)
@@ -330,7 +350,7 @@ namespace SeeSharp.Integrators.Bidir {
                     return;
 
                 // Compute connection direction
-                var dirFromCamToLight = vertex.Point.Position - cameraPoint.Position;
+                var dirFromCamToLight = Vector3.Normalize(vertex.Point.Position - cameraPoint.Position);
 
                 var bsdfWeightLight = vertex.Point.Material.EvaluateWithCosine(vertex.Point, dirToAncestor,
                     -dirFromCamToLight, true);
@@ -379,7 +399,7 @@ namespace SeeSharp.Integrators.Bidir {
                 // specific vertex selected
                 var vertex = LightPaths.PathCache[lightPathIdx, lightVertIdx];
                 var ancestor = LightPaths.PathCache[lightPathIdx, lightVertIdx - 1];
-                var dirToAncestor = ancestor.Point.Position - vertex.Point.Position;
+                var dirToAncestor = Vector3.Normalize(ancestor.Point.Position - vertex.Point.Position);
                 Connect(vertex, ancestor, dirToAncestor);
             } else if (lightPathIdx >= 0) {
                 // Connect with all vertices along the path
@@ -387,7 +407,7 @@ namespace SeeSharp.Integrators.Bidir {
                 for (int i = 1; i < n; ++i) {
                     var ancestor = LightPaths.PathCache[lightPathIdx, i-1];
                     var vertex = LightPaths.PathCache[lightPathIdx, i];
-                    var dirToAncestor = ancestor.Point.Position - vertex.Point.Position;
+                    var dirToAncestor = Vector3.Normalize(ancestor.Point.Position - vertex.Point.Position);
                     Connect(vertex, ancestor, dirToAncestor);
                 }
             }
@@ -469,7 +489,7 @@ namespace SeeSharp.Integrators.Bidir {
                     return RgbColor.Black;
 
                 if (!Scene.Raytracer.IsOccluded(hit, lightSample.Point)) {
-                    Vector3 lightToSurface = hit.Position - lightSample.Point.Position;
+                    Vector3 lightToSurface = Vector3.Normalize(hit.Position - lightSample.Point.Position);
                     var emission = light.EmittedRadiance(lightSample.Point, lightToSurface);
 
                     var bsdfTimesCosine =

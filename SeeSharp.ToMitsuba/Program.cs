@@ -236,7 +236,7 @@ namespace SeeSharpToMitsuba {
         /// <summary>
         /// Converts a SeeSharp .json scene to Mitsuba's xml format (roughly matching materials along the way).
         /// Meshes are exported as .ply into a directory called "Meshes" and textures are exported into a
-        /// directory called "Textures" next to the outpuf file name.
+        /// directory called "Textures" next to the output file name.
         /// </summary>
         /// <param name="scene">Path to a SeeSharp scene in .json format</param>
         /// <param name="output">Filename of the Mitsuba scene after conversion</param>

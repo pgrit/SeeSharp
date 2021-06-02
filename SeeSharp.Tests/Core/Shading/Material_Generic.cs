@@ -34,7 +34,7 @@ namespace SeeSharp.Tests.Core.Shading {
             };
 
             var outDir = new Vector3(0, 0, 1);
-            var inDir = new Vector3(0, 1, 1);
+            var inDir = Vector3.Normalize(new Vector3(0, 1, 1));
 
             var (fwd1, rev1) = mtl.Pdf(hit, outDir, inDir, false);
             var (rev2, fwd2) = mtl.Pdf(hit, inDir, outDir, false);

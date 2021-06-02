@@ -269,7 +269,7 @@ namespace SeeSharp.Integrators.Bidir {
         /// </summary>
         /// <param name="pathIdx">Index of the path in the cache</param>
         protected virtual void ConnectLightPathToCamera(int pathIdx) {
-            LightPaths.ForEachVertex(pathIdx, 
+            LightPaths.ForEachVertex(pathIdx,
             (int pathIdx, in PathVertex vertex, in PathVertex ancestor, Vector3 dirToAncestor) => {
                 if (vertex.Depth + 1 < MinDepth) return;
 

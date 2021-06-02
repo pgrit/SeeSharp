@@ -27,7 +27,7 @@ namespace SeeSharp.Shading {
 
         /// <summary>
         /// Trnasforms the given direction into normalized shading space.
-        /// Assumes the shading normal is a valid normal (i.e. normalized).
+        /// Assumes that both the direction and the shading normal are normalized.
         /// </summary>
         public static Vector3 WorldToShading(Vector3 shadingNormal, Vector3 worldDirection) {
             SanityChecks.IsNormalized(worldDirection);

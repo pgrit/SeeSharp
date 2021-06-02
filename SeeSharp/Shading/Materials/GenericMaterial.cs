@@ -293,7 +293,6 @@ namespace SeeSharp.Shading.Materials {
             }
             result.retroReflectance = result.baseColor * result.diffuseWeight;
 
-
             return result;
         }
 

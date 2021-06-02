@@ -6,9 +6,9 @@ namespace SeeSharp.Tests.Core.Shading {
     public class ShadingSpace_Setup_Transform {
         [Fact]
         public void WorldToShade_ShouldBeZAxis() {
-            var normal = new Vector3(1, 1, 0);
-            var worldDir = new Vector3(-1, -1, 0);
-            var shadeDir = ShadingSpace.WorldToShading(Vector3.Normalize(normal), worldDir);
+            var normal = Vector3.Normalize(new Vector3(1, 1, 0));
+            var worldDir = Vector3.Normalize(new Vector3(-1, -1, 0));
+            var shadeDir = ShadingSpace.WorldToShading(normal, worldDir);
 
             Assert.Equal(0.0f, shadeDir.X);
             Assert.Equal(0.0f, shadeDir.Y);
@@ -26,10 +26,10 @@ namespace SeeSharp.Tests.Core.Shading {
 
         [Fact]
         public void WorldToShade_AndBack_ShouldBeOriginalNormalized() {
-            var normal = new Vector3(1, 5, 0);
-            var worldDir = new Vector3(1, 6, 2);
-            var shadeDir = ShadingSpace.WorldToShading(Vector3.Normalize(normal), worldDir);
-            var worldDir2 = ShadingSpace.ShadingToWorld(Vector3.Normalize(normal), shadeDir);
+            var normal = Vector3.Normalize(new Vector3(1, 5, 0));
+            var worldDir = Vector3.Normalize(new Vector3(1, 6, 2));
+            var shadeDir = ShadingSpace.WorldToShading(normal, worldDir);
+            var worldDir2 = ShadingSpace.ShadingToWorld(normal, shadeDir);
 
             Assert.Equal(worldDir.X / worldDir.Length(), worldDir2.X, 4);
             Assert.Equal(worldDir.Y / worldDir.Length(), worldDir2.Y, 4);

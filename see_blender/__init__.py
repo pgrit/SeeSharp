@@ -7,7 +7,7 @@ bl_info = {
     "author": "Pascal Grittmann",
     "version": (0, 1),
     "blender": (2, 92, 0),
-    "category": "Import-Export",
+    "category": "Render",
 }
 
 def register():

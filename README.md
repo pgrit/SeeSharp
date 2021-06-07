@@ -75,10 +75,12 @@ rely on some scene files stored in the `Data` directory.
 
 SeeSharp comes with a very basic Blender add-on. The `see_blender.zip` file is automatically [built for each release](https://github.com/pgrit/SeeSharp/releases). You can install it in Blender via `Edit -> Preferences -> Add-ons -> Install...`. Check [the docs](https://docs.blender.org/manual/en/latest/editors/preferences/addons.html) for more details.
 
+When building locally, you can run `build_blender.bat` or `build_blender.sh` to generate the Blender add-on.
+
 The add-on currently handles two things: exporting a scene to our `.json` format and rendering a preview when hitting F12 (final render only, viewport rendering not yet supported). These are very rudimentary and might not work for all possible Blender features and scene configurations.
 Also, the add-on offers some basic GUI support to configure material parameters and add an HDR background.
 
-Some simple Cycles materials can converted to a SeeSharp material. Currently, there is a coarse mapping from:
+Some simple Cycles materials can be converted to a SeeSharp material. Currently, there is a coarse mapping from:
 
 - DiffuseBSDF: either with a constant color or a texture, roughness is ignored
 - PrincipledBSDF: roughly mapped to our GenericMaterial, which currently ignores SSS, sheen, and clearcoat. Also,
@@ -86,11 +88,11 @@ only the BaseColor can be textured at the moment
 - Emission: mapped to a diffuse black body emitter
 - The viewport preview color and roughness, if all else fails
 
-All materials in the entire scene can be converted via `File -> Import -> Convert all materials to SeeSharp`.
-Converting an individual material is also possible, via a button in that materials parameter settings.
-That is, for most existing scenes, you will need to manually simplify the usually complex shader graphs to
+For most existing scenes, you will need to manually simplify the usually complex shader graphs to
 one of the above, else only the viewport settings will be used.
 
+All materials in the entire scene can be converted via `File -> Import -> Convert all materials to SeeSharp`.
+Converting an individual material is also possible, via a button in that material's parameter settings.
 
 ### Conducting an experiment
 

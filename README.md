@@ -84,7 +84,7 @@ Some simple Cycles materials can be converted to a SeeSharp material. Currently,
 
 - DiffuseBSDF: either with a constant color or a texture, roughness is ignored
 - PrincipledBSDF: roughly mapped to our GenericMaterial, which currently ignores SSS, sheen, and clearcoat. Also,
-only the BaseColor can be textured at the moment
+only BaseColor and roughness can be textured at the moment
 - Emission: mapped to a diffuse black body emitter
 - The viewport preview color and roughness, if all else fails
 

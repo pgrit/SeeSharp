@@ -119,7 +119,7 @@ def map_principled(shader, seesharp):
     seesharp.emission_strength = shader.inputs["Emission Strength"].default_value
 
 def map_diffuse(shader, seesharp):
-    node = shader.inputs['Base Color']
+    node = shader.inputs['Color']
     tex = map_texture(node)
     if tex:
         seesharp.base_texture = tex
@@ -128,8 +128,18 @@ def map_diffuse(shader, seesharp):
 
     seesharp.roughness = 1
 
+def map_glossy(shader, seesharp):
+    node = shader.inputs['Color']
+    tex = map_texture(node)
+    if tex:
+        seesharp.base_texture = tex
+    else:
+        seesharp.base_color = (node.default_value[0], node.default_value[1], node.default_value[2])
+
+    seesharp.roughness = shader.inputs["Roughness"].default_value
+
 def map_translucent(shader, seesharp):
-    tex, clr = map_texture(shader.inputs['Base Color']),
+    tex, clr = map_texture(shader.inputs['Color']),
     if clr:
         seesharp.base_color = clr
     if tex:
@@ -169,6 +179,7 @@ def map_glass(shader, seesharp):
 shader_matcher = {
     "Principled BSDF": map_principled,
     "Diffuse BSDF": map_diffuse,
+    "Glossy BSDF": map_glossy,
     "Translucent BSDF": map_translucent,
     "Emission": map_emission,
     "Glass BSDF": map_glass

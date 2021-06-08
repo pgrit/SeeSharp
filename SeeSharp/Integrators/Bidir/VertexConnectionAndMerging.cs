@@ -137,7 +137,7 @@ namespace SeeSharp.Integrators.Bidir {
 
             // Compute the contribution of the photon
             var ancestor = LightPaths.PathCache[pathIdx, photon.AncestorId];
-            var dirToAncestor = ancestor.Point.Position - photon.Point.Position;
+            var dirToAncestor = Vector3.Normalize(ancestor.Point.Position - photon.Point.Position);
             var bsdfValue = hit.Material.Evaluate(hit, outDir, dirToAncestor, false);
             var photonContrib = photon.Weight * bsdfValue / NumLightPaths;
 

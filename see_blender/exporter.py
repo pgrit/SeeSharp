@@ -69,7 +69,8 @@ def export_materials(result, out_dir):
     result["materials"] = []
     for material in list(bpy.data.materials):
         result["materials"].append(material_to_json(material.seesharp, out_dir))
-        result["materials"][-1]["name"] = material.name.replace(" ", "_")
+        # TODO If .obj export is used, spaces need to be replaced to match the name in the output file
+        # result["materials"][-1]["name"] = material.name.replace(" ", "_")
 
 def export_background(result, out_dir, scene):
     if scene.world.seesharp.hdr:

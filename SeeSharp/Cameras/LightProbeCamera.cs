@@ -25,7 +25,7 @@ namespace SeeSharp.Cameras {
         /// to avoid self intersection problems with shadow rays</param>
         /// <param name="errorOffset">How far to move rays from the surface to avoid self-intersection</param>
         /// <param name="upVector">Defines the up direction of the probe in world space</param>
-        public LightProbeCamera(Vector3 position, Vector3 normal, float errorOffset, Vector3 upVector) 
+        public LightProbeCamera(Vector3 position, Vector3 normal, float errorOffset, Vector3 upVector)
         : base(Matrix4x4.Identity) {
             this.upVector = upVector;
             this.position = position;
@@ -97,11 +97,11 @@ namespace SeeSharp.Cameras {
         /// </summary>
         /// <param name="pos">Position in world space of a point towards which the direction points</param>
         /// <returns>
-        ///     Jacobian determinant that describes how much larger an area on the image plane is than 
+        ///     Jacobian determinant that describes how much larger an area on the image plane is than
         ///     the corresponding solid angle.
         /// </returns>
         public override float SolidAngleToPixelJacobian(Vector3 pos) {
-            var dir = pos - position;
+            var dir = Vector3.Normalize(pos - position);
             dir = Shading.ShadingSpace.WorldToShading(upVector, dir);
             float theta = SampleWarp.CartesianToSpherical(dir).Y;
             return 1 / (2 * MathF.PI * MathF.PI * MathF.Sin(theta)) * width * height;
@@ -121,7 +121,7 @@ namespace SeeSharp.Cameras {
 
             var dir = pos - position;
             float distance = dir.Length();
-            dir = Shading.ShadingSpace.WorldToShading(upVector, dir);
+            dir = Shading.ShadingSpace.WorldToShading(upVector, dir / distance);
             var spherical = SampleWarp.CartesianToSpherical(dir);
             return new(
                 width * spherical.X / (2 * MathF.PI),

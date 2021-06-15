@@ -1,3 +1,4 @@
+import math
 import bpy
 from bpy.props import *
 from math import sqrt
@@ -107,12 +108,20 @@ def map_principled(shader, seesharp):
 
     seesharp.roughness = shader.inputs["Roughness"].default_value
     seesharp.anisotropic = shader.inputs["Anisotropic"].default_value
-    seesharp.indexOfRefraction = shader.inputs["IOR"].default_value
     seesharp.metallic = shader.inputs["Metallic"].default_value
     # diffuse transmittance not directly matched: instead, Blender has a separate
     # roughenss value for the transmission
     seesharp.specularTransmittance = shader.inputs["Transmission"].default_value
     seesharp.specularTint = shader.inputs["Specular Tint"].default_value
+
+    if seesharp.specularTransmittance == 0:
+        # match the IOR to the specular term
+        specular = shader.inputs["Specular"].default_value
+        s = math.sqrt(0.08 * specular)
+        seesharp.indexOfRefraction = (1 + s) / (1 - s)
+    else:
+        # set the IOR directly and use the same for BRDF and BTDF components
+        seesharp.indexOfRefraction = shader.inputs["IOR"].default_value
 
     clr = shader.inputs["Emission"].default_value
     seesharp.emission_color = (clr[0], clr[1], clr[2])
@@ -127,6 +136,7 @@ def map_diffuse(shader, seesharp):
         seesharp.base_color = (node.default_value[0], node.default_value[1], node.default_value[2])
 
     seesharp.roughness = 1
+    seesharp.indexOfRefraction = 1
 
 def map_glossy(shader, seesharp):
     node = shader.inputs['Color']
@@ -137,6 +147,8 @@ def map_glossy(shader, seesharp):
         seesharp.base_color = (node.default_value[0], node.default_value[1], node.default_value[2])
 
     seesharp.roughness = shader.inputs["Roughness"].default_value
+    seesharp.indexOfRefraction = 1
+    seesharp.metallic = 1
 
 def map_translucent(shader, seesharp):
     tex, clr = map_texture(shader.inputs['Color']),
@@ -148,12 +160,14 @@ def map_translucent(shader, seesharp):
     seesharp.roughness = 1
     seesharp.thin = 1
     seesharp.diffuseTransmittance = 1
+    seesharp.indexOfRefraction = 1
 
 def map_view_shader(material, seesharp):
     clr = material.diffuse_color
     seesharp.base_color = (clr[0], clr[1], clr[2])
     seesharp.roughness = material.roughness
     seesharp.metallic = material.metallic
+    seesharp.indexOfRefraction = 1
 
 def map_emission(shader, seesharp):
     strength = shader.inputs['Strength'].default_value
@@ -162,6 +176,7 @@ def map_emission(shader, seesharp):
     seesharp.emission_color = (color[0], color[1], color[2])
     seesharp.emission_strength = strength
     seesharp.base_color = (0, 0, 0)
+    seesharp.indexOfRefraction = 1
 
 def map_glass(shader, seesharp):
     clr_node = shader.inputs['Color']

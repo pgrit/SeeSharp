@@ -146,7 +146,7 @@ def map_glossy(shader, seesharp):
     else:
         seesharp.base_color = (node.default_value[0], node.default_value[1], node.default_value[2])
 
-    seesharp.roughness = shader.inputs["Roughness"].default_value
+    seesharp.roughness = math.sqrt(shader.inputs["Roughness"].default_value)
     seesharp.indexOfRefraction = 1
     seesharp.metallic = 1
 

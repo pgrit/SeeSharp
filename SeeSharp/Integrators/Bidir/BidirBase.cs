@@ -59,6 +59,11 @@ namespace SeeSharp.Integrators.Bidir {
         public LightPathCache LightPaths;
 
         /// <summary>
+        /// If set to true (default) runs Intel Open Image Denoise after the end of the last rendering iteration
+        /// </summary>
+        public bool EnableDenoiser = true;
+
+        /// <summary>
         /// Logs denoiser-related features at the primary hit points of all camera paths
         /// </summary>
         protected Util.DenoiseBuffers DenoiseBuffers;
@@ -174,7 +179,7 @@ namespace SeeSharp.Integrators.Bidir {
 
             LightPaths = MakeLightPathCache();
 
-            DenoiseBuffers = new(scene.FrameBuffer);
+            if (EnableDenoiser) DenoiseBuffers = new(scene.FrameBuffer);
 
             SeeSharp.Common.ProgressBar progressBar = new(NumIterations);
             RNG camSeedGen = new(BaseSeedCamera);
@@ -193,7 +198,7 @@ namespace SeeSharp.Integrators.Bidir {
                     throw;
                 }
 
-                if (iter == NumIterations - 1)
+                if (iter == NumIterations - 1 && EnableDenoiser)
                     DenoiseBuffers.Denoise();
 
                 scene.FrameBuffer.EndIteration();
@@ -596,7 +601,7 @@ namespace SeeSharp.Integrators.Bidir {
 
             protected override RgbColor OnHit(Ray ray, SurfacePoint hit, float pdfFromAncestor,
                                               RgbColor throughput, int depth, float toAncestorJacobian) {
-                if (depth == 1) {
+                if (depth == 1 && integrator.EnableDenoiser) {
                     var albedo = ((SurfacePoint)hit).Material.GetScatterStrength(hit);
                     integrator.DenoiseBuffers.LogPrimaryHit(path.Pixel, albedo, hit.ShadingNormal);
                 }

@@ -48,6 +48,11 @@ namespace SeeSharp.Integrators {
         /// </summary>
         public bool RenderTechniquePyramid = false;
 
+        /// <summary>
+        /// If set to true (default) runs Intel Open Image Denoise after the end of the last rendering iteration
+        /// </summary>
+        public bool EnableDenoiser = true;
+
         TechPyramid techPyramidRaw;
         TechPyramid techPyramidWeighted;
 
@@ -194,7 +199,8 @@ namespace SeeSharp.Integrators {
             }
 
             // Add custom frame buffer layers
-            denoiseBuffers = new(scene.FrameBuffer);
+            if (EnableDenoiser)
+                denoiseBuffers = new(scene.FrameBuffer);
 
             ProgressBar progressBar = new(TotalSpp);
             for (uint sampleIndex = 0; sampleIndex < TotalSpp; ++sampleIndex) {
@@ -212,7 +218,7 @@ namespace SeeSharp.Integrators {
 
                 OnPostIteration(sampleIndex);
 
-                if (sampleIndex == TotalSpp - 1)
+                if (sampleIndex == TotalSpp - 1 && EnableDenoiser)
                     denoiseBuffers.Denoise();
 
                 scene.FrameBuffer.EndIteration();
@@ -268,7 +274,7 @@ namespace SeeSharp.Integrators {
 
             OnHit(ray, hit, state);
 
-            if (state.Depth == 1) {
+            if (state.Depth == 1 && EnableDenoiser) {
                 var albedo = ((SurfacePoint)hit).Material.GetScatterStrength(hit);
                 denoiseBuffers.LogPrimaryHit(state.Pixel, albedo, hit.ShadingNormal);
             }

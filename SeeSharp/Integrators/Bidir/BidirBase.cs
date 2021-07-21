@@ -9,6 +9,7 @@ using System.Numerics;
 using System.Threading.Tasks;
 using TinyEmbree;
 using System.Diagnostics;
+using SeeSharp.Common;
 
 namespace SeeSharp.Integrators.Bidir {
     /// <summary>
@@ -21,6 +22,12 @@ namespace SeeSharp.Integrators.Bidir {
         /// Number of iterations (batches of one sample per pixel) to render
         /// </summary>
         public int NumIterations = 2;
+
+        /// <summary>
+        /// The maximum time in milliseconds that should be spent rendering.
+        /// Excludes framebuffer overhead and other operations that are not part of the core rendering logic.
+        /// </summary>
+        public long? MaximumRenderTimeMs;
 
         /// <summary>
         /// Number of light paths per iteration, or zero (default) to trace one per pixel.
@@ -183,27 +190,49 @@ namespace SeeSharp.Integrators.Bidir {
 
             SeeSharp.Common.ProgressBar progressBar = new(NumIterations);
             RNG camSeedGen = new(BaseSeedCamera);
+            long frameBufferTime = 0;
+            long renderTime = 0;
+            long perIterCost = 0;
             for (uint iter = 0; iter < NumIterations; ++iter) {
-                var stop = Stopwatch.StartNew();
-                scene.FrameBuffer.StartIteration();
-                PreIteration(iter);
+                if (MaximumRenderTimeMs.HasValue && renderTime + perIterCost > MaximumRenderTimeMs.Value) {
+                    Logger.Log("Maximum render time exhausted.");
+                    if (EnableDenoiser) DenoiseBuffers.Denoise();
+                    break;
+                }
 
+                var timer = Stopwatch.StartNew();
+                double iterationTimeSeconds = 0;
+
+                scene.FrameBuffer.StartIteration();
+                frameBufferTime += timer.ElapsedMilliseconds;
+                iterationTimeSeconds += timer.Elapsed.TotalSeconds;
+
+                timer.Restart();
+                PreIteration(iter);
                 try {
                     LightPaths.TraceAllPaths(iter,
                         (origin, primary, nextDirection) => NextEventPdf(primary.Point, origin.Point));
                     ProcessPathCache();
                     TraceAllCameraPaths(iter);
                 } catch {
-                    Console.WriteLine($"Exception in iteration {iter} out of {NumIterations}!");
+                    Logger.Log($"Exception in iteration {iter} out of {NumIterations}.", Verbosity.Error);
                     throw;
                 }
+                PostIteration(iter);
+                renderTime += timer.ElapsedMilliseconds;
+                iterationTimeSeconds += timer.Elapsed.TotalSeconds;
 
+                timer.Restart();
                 if (iter == NumIterations - 1 && EnableDenoiser)
                     DenoiseBuffers.Denoise();
-
                 scene.FrameBuffer.EndIteration();
-                PostIteration(iter);
-                progressBar.ReportDone(1, stop.Elapsed.TotalSeconds);
+                frameBufferTime += timer.ElapsedMilliseconds;
+                iterationTimeSeconds += timer.Elapsed.TotalSeconds;
+
+                progressBar.ReportDone(1, iterationTimeSeconds);
+
+                // Estimate the cost of each iteration, excluding frame buffer overhead
+                perIterCost = renderTime / (iter + 1);
             }
         }
 

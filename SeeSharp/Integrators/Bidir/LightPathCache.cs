@@ -99,8 +99,12 @@ namespace SeeSharp.Integrators.Bidir {
         public void TraceAllPaths(uint iter, NextEventPdfCallback nextEventPdfCallback) {
             if (PathCache == null)
                 PathCache = new PathCache(NumPaths, MaxDepth);
-            else
+            else if (NumPaths != PathCache.NumPaths) {
+                // The size of the path cache needs to change -> simply create a new one
+                PathCache = new PathCache(NumPaths, MaxDepth);
+            } else {
                 PathCache.Clear();
+            }
 
             Parallel.For(0, NumPaths, idx => {
                 var rng = new RNG(BaseSeed, (uint)idx, iter);

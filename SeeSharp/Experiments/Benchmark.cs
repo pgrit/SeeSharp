@@ -43,6 +43,7 @@ namespace SeeSharp.Experiments {
 
         void RunScene(SceneConfig sceneConfig, string format, bool skipReference) {
             string dir = Path.Join(workingDirectory, sceneConfig.Name);
+            Logger.Log($"Running scene '{sceneConfig.Name}'", Verbosity.Info);
 
             if (!skipReference) {
                 string refFilename = Path.Join(dir, "Reference" + format);

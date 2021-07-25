@@ -72,15 +72,14 @@ namespace SeeSharp.Integrators.Bidir {
             Radius = MathF.Sqrt(averageArea) * 1.5f / 2.0f;
         }
 
-        public virtual void ShrinkRadius() {
-        }
+        public virtual void ShrinkRadius() { }
 
         public override void PostIteration(uint iteration) {
             ShrinkRadius();
         }
 
-        public override void RegisterSample(RgbColor weight, float misWeight, Vector2 pixel,
-                                            int cameraPathLength, int lightPathLength, int fullLength) {
+        protected override void RegisterSample(RgbColor weight, float misWeight, Vector2 pixel,
+                                               int cameraPathLength, int lightPathLength, int fullLength) {
             if (!RenderTechniquePyramid)
                 return;
             weight /= NumIterations;

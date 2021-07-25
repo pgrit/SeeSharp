@@ -167,7 +167,7 @@ namespace SeeSharp.Integrators.Bidir {
         /// Utility function that iterates over a light path, starting on the end point, excluding the point on the light itself.
         /// </summary>
         public void ForEachVertex(int index, ProcessVertex func) {
-            int n = PathCache.Length(index);
+            int n = PathCache?.Length(index) ?? 0;
             for (int i = 1; i < n; ++i) {
                 var ancestor = PathCache[index, i-1];
                 var vertex = PathCache[index, i];

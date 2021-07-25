@@ -27,8 +27,8 @@ namespace SeeSharp.Integrators.Bidir {
             return (light, sample);
         }
 
-        public override void RegisterSample(RgbColor weight, float misWeight, Vector2 pixel,
-                                            int cameraPathLength, int lightPathLength, int fullLength) {
+        protected override void RegisterSample(RgbColor weight, float misWeight, Vector2 pixel,
+                                               int cameraPathLength, int lightPathLength, int fullLength) {
             if (!RenderTechniquePyramid)
                 return;
             weight /= NumIterations;

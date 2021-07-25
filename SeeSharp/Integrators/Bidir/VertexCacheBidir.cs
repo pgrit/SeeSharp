@@ -38,8 +38,8 @@ namespace SeeSharp.Integrators.Bidir {
             return (light, sample);
         }
 
-        public override (int, int, float) SelectBidirPath(SurfacePoint cameraPoint, Vector3 outDir,
-                                                          int pixelIndex, RNG rng) {
+        protected override (int, int, float) SelectBidirPath(SurfacePoint cameraPoint, Vector3 outDir,
+                                                             int pixelIndex, RNG rng) {
             // Select a single vertex from the entire cache at random
             var (path, vertex) = vertexSelector.Select(rng);
             return (path, vertex, BidirSelectDensity());
@@ -51,6 +51,8 @@ namespace SeeSharp.Integrators.Bidir {
         /// </summary>
         /// <returns>Effective density</returns>
         public virtual float BidirSelectDensity() {
+            if (vertexSelector.Count == 0) return 0;
+
             // We select light path vertices uniformly
             float selectProb = 1.0f / vertexSelector.Count;
 
@@ -61,8 +63,8 @@ namespace SeeSharp.Integrators.Bidir {
             return selectProb * numSamples;
         }
 
-        public override void RegisterSample(RgbColor weight, float misWeight, Vector2 pixel,
-                                            int cameraPathLength, int lightPathLength, int fullLength) {
+        protected override void RegisterSample(RgbColor weight, float misWeight, Vector2 pixel,
+                                               int cameraPathLength, int lightPathLength, int fullLength) {
             if (!RenderTechniquePyramid)
                 return;
 

@@ -8,7 +8,9 @@
             //ConsoleUtils.TestLogger();
 
             //LightProbeTest.WhiteImage();
-            LightProbeTest.CornellProbe();
+            // LightProbeTest.CornellProbe();
+
+            BidirZeroLightPaths.Run();
         }
     }
 }

@@ -74,7 +74,7 @@ namespace SeeSharp.Integrators.Bidir {
 
         public virtual void ShrinkRadius() { }
 
-        public override void PostIteration(uint iteration) {
+        protected override void PostIteration(uint iteration) {
             ShrinkRadius();
         }
 

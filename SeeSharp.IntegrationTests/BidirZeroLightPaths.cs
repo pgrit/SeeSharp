@@ -7,7 +7,7 @@ using System.Numerics;
 
 namespace SeeSharp.IntegrationTests {
     class Dummy : VertexConnectionAndMerging {
-        public override void PreIteration(uint iteration) {
+        protected override void PreIteration(uint iteration) {
             NumLightPaths = 0;
             LightPaths.NumPaths = 0;
         }

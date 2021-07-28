@@ -158,13 +158,18 @@ namespace SeeSharp.Integrators.Bidir {
         /// Called once after the end of each rendering iteration (one sample per pixel)
         /// </summary>
         /// <param name="iteration">The 0-based index of the iteration that just finished</param>
-        public virtual void PostIteration(uint iteration) { }
+        protected virtual void PostIteration(uint iteration) { }
 
         /// <summary>
         /// Called once before the start of each rendering iteration (one sample per pixel)
         /// </summary>
         /// <param name="iteration">The 0-based index of the iteration that will now start</param>
-        public virtual void PreIteration(uint iteration) { }
+        protected virtual void PreIteration(uint iteration) { }
+
+        /// <summary>
+        /// Called after all rendering iterations are finished, or the time budget has been exhausted
+        /// </summary>
+        protected virtual void OnAfterRender() { }
 
         /// <summary>
         /// Generates the light path cache used to sample and store light paths.
@@ -228,6 +233,8 @@ namespace SeeSharp.Integrators.Bidir {
 
             scene.FrameBuffer.MetaData["RenderTime"] = timer.RenderTime;
             scene.FrameBuffer.MetaData["FrameBufferTime"] = timer.FrameBufferTime;
+
+            OnAfterRender();
         }
 
         private void TraceAllCameraPaths(uint iter) {
@@ -600,6 +607,9 @@ namespace SeeSharp.Integrators.Bidir {
                         sample.Direction, false);
                     bsdfReversePdf *= reversePdfJacobian;
 
+                    if (bsdfForwardPdf == 0 || bsdfReversePdf == 0 || bsdfTimesCosine == RgbColor.Black)
+                        return RgbColor.Black;
+
                     // Compute emission pdf
                     float pdfEmit = LightPaths.ComputeBackgroundPdf(hit.Position, -sample.Direction);
 
@@ -645,6 +655,9 @@ namespace SeeSharp.Integrators.Bidir {
                         hit.Material.Pdf(hit, -ray.Direction, -lightToSurface, false);
                     bsdfForwardPdf *= SampleWarp.SurfaceAreaToSolidAngle(hit, lightSample.Point);
                     bsdfReversePdf *= reversePdfJacobian;
+
+                    if (bsdfForwardPdf == 0 || bsdfReversePdf == 0 || bsdfTimesCosine == RgbColor.Black)
+                        return RgbColor.Black;
 
                     float pdfEmit = LightPaths.ComputeEmitterPdf(light, lightSample.Point, lightToSurface,
                         SampleWarp.SurfaceAreaToSolidAngle(lightSample.Point, hit));

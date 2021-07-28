@@ -9,6 +9,7 @@ using SeeSharp.Geometry;
 using SeeSharp.Sampling;
 using SeeSharp.Shading.Emitters;
 using SeeSharp.Integrators.Bidir;
+using SeeSharp.Integrators.Util;
 
 namespace SeeSharp.Integrators {
     /// <summary>
@@ -24,6 +25,12 @@ namespace SeeSharp.Integrators {
         /// Number of samples per pixel to render
         /// </summary>
         public int TotalSpp = 20;
+
+        /// <summary>
+        /// The maximum time in milliseconds that should be spent rendering.
+        /// Excludes framebuffer overhead and other operations that are not part of the core rendering logic.
+        /// </summary>
+        public long? MaximumRenderTimeMs;
 
         /// <summary>
         /// Minimum length of a path that is allowed to contribute to the image. If greater than 1, directly
@@ -203,11 +210,20 @@ namespace SeeSharp.Integrators {
                 denoiseBuffers = new(scene.FrameBuffer);
 
             ProgressBar progressBar = new(TotalSpp);
+            RenderTimer timer = new();
             for (uint sampleIndex = 0; sampleIndex < TotalSpp; ++sampleIndex) {
-                var stop = Stopwatch.StartNew();
-                scene.FrameBuffer.StartIteration();
-                OnPreIteration(sampleIndex);
+                long nextIterTime = timer.RenderTime + timer.PerIterationCost;
+                if (MaximumRenderTimeMs.HasValue && nextIterTime > MaximumRenderTimeMs.Value) {
+                    Logger.Log("Maximum render time exhausted.");
+                    if (EnableDenoiser) denoiseBuffers.Denoise();
+                    break;
+                }
+                timer.StartIteration();
 
+                scene.FrameBuffer.StartIteration();
+                timer.EndFrameBuffer();
+
+                OnPreIteration(sampleIndex);
                 Parallel.For(0, scene.FrameBuffer.Height, row => {
                     for (uint col = 0; col < scene.FrameBuffer.Width; ++col) {
                         uint pixelIndex = (uint)(row * scene.FrameBuffer.Width + col);
@@ -215,15 +231,20 @@ namespace SeeSharp.Integrators {
                         RenderPixel((uint)row, col, rng);
                     }
                 });
-
                 OnPostIteration(sampleIndex);
+                timer.EndRender();
 
                 if (sampleIndex == TotalSpp - 1 && EnableDenoiser)
                     denoiseBuffers.Denoise();
-
                 scene.FrameBuffer.EndIteration();
-                progressBar.ReportDone(1, stop.Elapsed.TotalSeconds);
+                timer.EndFrameBuffer();
+
+                progressBar.ReportDone(1, timer.CurrentIterationSeconds);
+                timer.EndIteration();
             }
+
+            scene.FrameBuffer.MetaData["RenderTime"] = timer.RenderTime;
+            scene.FrameBuffer.MetaData["FrameBufferTime"] = timer.FrameBufferTime;
 
             if (RenderTechniquePyramid) {
                 string pathRaw = System.IO.Path.Join(scene.FrameBuffer.Basename, "techs-raw");

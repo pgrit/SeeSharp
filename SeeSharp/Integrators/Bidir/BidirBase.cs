@@ -8,8 +8,8 @@ using System.Collections.Generic;
 using System.Numerics;
 using System.Threading.Tasks;
 using TinyEmbree;
-using System.Diagnostics;
 using SeeSharp.Common;
+using SeeSharp.Integrators.Util;
 
 namespace SeeSharp.Integrators.Bidir {
     /// <summary>
@@ -190,24 +190,20 @@ namespace SeeSharp.Integrators.Bidir {
 
             SeeSharp.Common.ProgressBar progressBar = new(NumIterations);
             RNG camSeedGen = new(BaseSeedCamera);
-            long frameBufferTime = 0;
-            long renderTime = 0;
-            long perIterCost = 0;
+            RenderTimer timer = new();
             for (uint iter = 0; iter < NumIterations; ++iter) {
-                if (MaximumRenderTimeMs.HasValue && renderTime + perIterCost > MaximumRenderTimeMs.Value) {
+                long nextIterTime = timer.RenderTime + timer.PerIterationCost;
+                if (MaximumRenderTimeMs.HasValue && nextIterTime > MaximumRenderTimeMs.Value) {
                     Logger.Log("Maximum render time exhausted.");
                     if (EnableDenoiser) DenoiseBuffers.Denoise();
                     break;
                 }
 
-                var timer = Stopwatch.StartNew();
-                double iterationTimeSeconds = 0;
+                timer.StartIteration();
 
                 scene.FrameBuffer.StartIteration();
-                frameBufferTime += timer.ElapsedMilliseconds;
-                iterationTimeSeconds += timer.Elapsed.TotalSeconds;
+                timer.EndFrameBuffer();
 
-                timer.Restart();
                 PreIteration(iter);
                 try {
                     LightPaths.TraceAllPaths(iter,
@@ -219,21 +215,19 @@ namespace SeeSharp.Integrators.Bidir {
                     throw;
                 }
                 PostIteration(iter);
-                renderTime += timer.ElapsedMilliseconds;
-                iterationTimeSeconds += timer.Elapsed.TotalSeconds;
+                timer.EndRender();
 
-                timer.Restart();
                 if (iter == NumIterations - 1 && EnableDenoiser)
                     DenoiseBuffers.Denoise();
                 scene.FrameBuffer.EndIteration();
-                frameBufferTime += timer.ElapsedMilliseconds;
-                iterationTimeSeconds += timer.Elapsed.TotalSeconds;
+                timer.EndFrameBuffer();
 
-                progressBar.ReportDone(1, iterationTimeSeconds);
-
-                // Estimate the cost of each iteration, excluding frame buffer overhead
-                perIterCost = renderTime / (iter + 1);
+                progressBar.ReportDone(1, timer.CurrentIterationSeconds);
+                timer.EndIteration();
             }
+
+            scene.FrameBuffer.MetaData["RenderTime"] = timer.RenderTime;
+            scene.FrameBuffer.MetaData["FrameBufferTime"] = timer.FrameBufferTime;
         }
 
         private void TraceAllCameraPaths(uint iter) {

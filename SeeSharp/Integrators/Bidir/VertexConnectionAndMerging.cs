@@ -119,7 +119,7 @@ namespace SeeSharp.Integrators.Bidir {
             if (EnableMerging) photonMap.Build(LightPaths, Radius);
         }
 
-        public virtual void OnMergeSample(RgbColor weight, float misWeight, CameraPath cameraPath,
+        protected virtual void OnMergeSample(RgbColor weight, float misWeight, CameraPath cameraPath,
                                         PathVertex lightVertex, float pdfCameraReverse,
                                         float pdfLightReverse, float pdfNextEvent) {}
 

@@ -202,8 +202,7 @@ namespace SeeSharp {
             }
 
             Matrix4x4 ReadMatrix(JsonElement json) {
-                if(json.GetArrayLength() != 9 && json.GetArrayLength() != 12 && json.GetArrayLength() != 16)
-                {
+                if(json.GetArrayLength() != 9 && json.GetArrayLength() != 12 && json.GetArrayLength() != 16) {
                     Logger.Log($"Invalid matrix: Number of entries {json.GetArrayLength()} is not allowed", Verbosity.Error);
                     return Matrix4x4.Identity;
                 }
@@ -224,16 +223,14 @@ namespace SeeSharp {
                 m.M33 = json[10].GetSingle();
 
                 // 3x4
-                if(json.GetArrayLength() >= 12) 
-                {
+                if(json.GetArrayLength() >= 12) {
                     m.M14 = json[3].GetSingle();
                     m.M24 = json[7].GetSingle();
                     m.M34 = json[11].GetSingle();
                 } 
 
                 // 4x4
-                if(json.GetArrayLength() == 16)
-                {
+                if(json.GetArrayLength() == 16) {
                     m.M41 = json[12].GetSingle();
                     m.M42 = json[13].GetSingle();
                     m.M43 = json[14].GetSingle();

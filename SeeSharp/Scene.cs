@@ -276,26 +276,31 @@ namespace SeeSharp {
 
                     Matrix4x4 result = Matrix4x4.Identity;
 
+                    bool trs = false;
                     if (t.TryGetProperty("scale", out var scale)) {
                         var sc = ReadVector(scale);
                         result *= Matrix4x4.CreateScale(sc);
+                        trs = true;
                     }
 
                     if (t.TryGetProperty("rotation", out var rotation)) {
                         var rot = ReadVector(rotation);
                         rot *= MathF.PI / 180.0f;
                         result *= Matrix4x4.CreateFromYawPitchRoll(rot.Y, rot.X, rot.Z);
+                        trs = true;
                     }
 
                     if (t.TryGetProperty("position", out var position)) {
                         var pos = ReadVector(position);
                         result *= Matrix4x4.CreateTranslation(pos);
+                        trs = true;
                     }
 
-                    // Could be mutually exclusive, but lets keep it this way
                     if (t.TryGetProperty("matrix", out var matrix)) {
                         var mat = ReadMatrix(position);
-                        result *= mat;
+                        result = mat;
+
+                        if(trs) Logger.Log("Matrix is replacing previous definitions of transform", Verbosity.Warning);
                     }
 
                     namedTransforms[name] = result;

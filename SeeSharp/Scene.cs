@@ -300,7 +300,7 @@ namespace SeeSharp {
                         var mat = ReadMatrix(position);
                         result = mat;
 
-                        if(trs) Logger.Log("Matrix is replacing previous definitions of transform", Verbosity.Warning);
+                        if(trs) Logger.Log($"Matrix is replacing previous definitions of transform '{name}'", Verbosity.Warning);
                     }
 
                     namedTransforms[name] = result;

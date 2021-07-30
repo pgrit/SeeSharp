@@ -202,7 +202,7 @@ namespace SeeSharp {
             }
 
             Matrix4x4 ReadMatrix(JsonElement json) {
-                if(json.GetArrayLength() != 9 && json.GetArrayLength() != 12 && json.GetArrayLength() != 16) {
+                if (json.GetArrayLength() != 9 && json.GetArrayLength() != 12 && json.GetArrayLength() != 16) {
                     Logger.Log($"Invalid matrix: Number of entries {json.GetArrayLength()} is not allowed", Verbosity.Error);
                     return Matrix4x4.Identity;
                 }
@@ -223,14 +223,14 @@ namespace SeeSharp {
                 m.M33 = json[10].GetSingle();
 
                 // 3x4
-                if(json.GetArrayLength() >= 12) {
+                if (json.GetArrayLength() >= 12) {
                     m.M14 = json[3].GetSingle();
                     m.M24 = json[7].GetSingle();
                     m.M34 = json[11].GetSingle();
-                } 
+                }
 
                 // 4x4
-                if(json.GetArrayLength() == 16) {
+                if (json.GetArrayLength() == 16) {
                     m.M41 = json[12].GetSingle();
                     m.M42 = json[13].GetSingle();
                     m.M43 = json[14].GetSingle();
@@ -300,7 +300,7 @@ namespace SeeSharp {
                         var mat = ReadMatrix(position);
                         result = mat;
 
-                        if(trs) Logger.Log($"Matrix is replacing previous definitions of transform '{name}'", Verbosity.Warning);
+                        if (trs) Logger.Log($"Matrix is replacing previous definitions of transform '{name}'", Verbosity.Warning);
                     }
 
                     namedTransforms[name] = result;
@@ -472,6 +472,34 @@ namespace SeeSharp {
                         // Load the mesh and add it to the scene. We pass all materials defined in the .json along
                         // they will replace any equally named materials from the .fbx file
                         FbxConverter.AddToScene(filename, resultScene, namedMaterials, emissiveMaterials);
+                    } else if (type == "ply") {
+                        // The path is relative to this .json, we need to make it absolute / relative to the CWD
+                        string relpath = m.GetProperty("relativePath").GetString();
+                        string dir = Path.GetDirectoryName(path);
+                        string filename = Path.Join(dir, relpath);
+
+                        // In contary to obj and fbs, ply files only have one material assigned
+                        string materialName = m.GetProperty("material").GetString();
+                        var material = namedMaterials[materialName];
+
+                        // Load the mesh and add it to the scene. 
+                        PlyFile plyFile = new();
+                        var errors = plyFile.ParseFile(filename);
+                        foreach (string error in errors)
+                            Logger.Log(error, Verbosity.Error);
+
+                        var mesh = plyFile.ToMesh();
+                        mesh.Material = material;
+
+                        Emitter emitter;
+                        if (m.TryGetProperty("emission", out var emissionJson)) { // The object is an emitter
+                            // TODO update schema to allow different types of emitters here
+                            var emission = ReadRgbColor(emissionJson);
+                            emitter = new DiffuseEmitter(mesh, emission);
+                            resultScene.Emitters.Add(emitter);
+                        }
+                        namedMeshes[name] = mesh;
+                        resultScene.Meshes.Add(mesh);
                     }
                 }
             }

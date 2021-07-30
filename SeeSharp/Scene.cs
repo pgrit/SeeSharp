@@ -201,6 +201,45 @@ namespace SeeSharp {
                     json[2].GetSingle());
             }
 
+            Matrix4x4 ReadMatrix(JsonElement json) {
+                if(json.GetArrayLength() != 9 && json.GetArrayLength() != 12 && json.GetArrayLength() != 16) {
+                    Logger.Log($"Invalid matrix: Number of entries {json.GetArrayLength()} is not allowed", Verbosity.Error);
+                    return Matrix4x4.Identity;
+                }
+
+                Matrix4x4 m = Matrix4x4.Identity;
+
+                // 3x3
+                m.M11 = json[0].GetSingle();
+                m.M12 = json[1].GetSingle();
+                m.M13 = json[2].GetSingle();
+
+                m.M21 = json[4].GetSingle();
+                m.M22 = json[5].GetSingle();
+                m.M23 = json[6].GetSingle();
+
+                m.M31 = json[8].GetSingle();
+                m.M32 = json[9].GetSingle();
+                m.M33 = json[10].GetSingle();
+
+                // 3x4
+                if(json.GetArrayLength() >= 12) {
+                    m.M14 = json[3].GetSingle();
+                    m.M24 = json[7].GetSingle();
+                    m.M34 = json[11].GetSingle();
+                } 
+
+                // 4x4
+                if(json.GetArrayLength() == 16) {
+                    m.M41 = json[12].GetSingle();
+                    m.M42 = json[13].GetSingle();
+                    m.M43 = json[14].GetSingle();
+                    m.M44 = json[15].GetSingle();
+                }
+
+                return m;
+            }
+
             RgbColor ReadRgbColor(JsonElement json) {
                 var vec = ReadVector(json.GetProperty("value"));
                 return new RgbColor(vec.X, vec.Y, vec.Z);
@@ -237,20 +276,31 @@ namespace SeeSharp {
 
                     Matrix4x4 result = Matrix4x4.Identity;
 
+                    bool trs = false;
                     if (t.TryGetProperty("scale", out var scale)) {
                         var sc = ReadVector(scale);
                         result *= Matrix4x4.CreateScale(sc);
+                        trs = true;
                     }
 
                     if (t.TryGetProperty("rotation", out var rotation)) {
                         var rot = ReadVector(rotation);
                         rot *= MathF.PI / 180.0f;
                         result *= Matrix4x4.CreateFromYawPitchRoll(rot.Y, rot.X, rot.Z);
+                        trs = true;
                     }
 
                     if (t.TryGetProperty("position", out var position)) {
                         var pos = ReadVector(position);
                         result *= Matrix4x4.CreateTranslation(pos);
+                        trs = true;
+                    }
+
+                    if (t.TryGetProperty("matrix", out var matrix)) {
+                        var mat = ReadMatrix(position);
+                        result = mat;
+
+                        if(trs) Logger.Log($"Matrix is replacing previous definitions of transform '{name}'", Verbosity.Warning);
                     }
 
                     namedTransforms[name] = result;

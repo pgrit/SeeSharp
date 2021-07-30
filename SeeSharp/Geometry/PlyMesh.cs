@@ -8,34 +8,34 @@ using System.Text;
 
 namespace SeeSharp.Geometry {
     /// <summary>
-    /// Simple class allowing to mix text and binary data reading
+    /// Simple class allowing to mix ascii text and binary data reading
     /// </summary>
     internal class MixReader : BinaryReader {
-        public MixReader(string path) : base(new FileStream(path, FileMode.Open)) {
+        public MixReader(string path, Encoding encoding) : base(new FileStream(path, FileMode.Open, FileAccess.Read), encoding) {
         }
 
         public string ReadLineAsString(ref bool eos) {
-            char[] buf = new char[2];
             StringBuilder stringBuffer = new(1024);
 
-            eos = true;
-            while (base.Read(buf, 0, 2) > 0) {
-                if (buf[1] == '\r') {
-                    stringBuffer.Append(buf[0]);
-
+            eos = false;
+            try {
+                while (true) {
                     char ch = base.ReadChar();
-                    if (ch == '\n') {
-                        eos = false;
+                    if (ch == '\r') { // Windows style
+                        ch = base.ReadChar();
+                        if (ch == '\n') {
+                            break;
+                        } else {
+                            stringBuffer.Append(ch);
+                        }
+                    } else if (ch == '\n') { // Unix style
                         break;
                     } else {
                         stringBuffer.Append(ch);
                     }
-                } else if (buf[0] == '\r' && buf[1] == '\n') {
-                    eos = false;
-                    break;
-                } else {
-                    stringBuffer.Append(buf);
                 }
+            } catch (EndOfStreamException) {
+                eos = true;
             }
 
             if (stringBuffer.Length == 0)
@@ -91,7 +91,7 @@ namespace SeeSharp.Geometry {
             Logger.Log($"Parsing {filename}...", Verbosity.Debug);
 
             // Parse the .ply itself
-            using (var file = new MixReader(filename))
+            using (var file = new MixReader(filename, Encoding.ASCII))
                 errors = ParsePlyFile(file);
             watch.Stop();
             Logger.Log($"Done parsing .ply after {watch.ElapsedMilliseconds}ms.", Verbosity.Info);

@@ -63,18 +63,18 @@ namespace SeeSharp.Tests.Core.Geometry {
         }
 
         static void CreateTestAsciiPly() {
-            string plyCode = @"ply
-format ascii 1.0                       
-comment made by me, myself and I 
+string plyCode = @"ply
+format ascii 1.0
+comment made by me, myself and I
 comment this file is a cube I suppose
-element vertex 8                        
-property float x                        
-property float y                       
-property float z                      
-element face 6                          
-property list uchar int vertex_indices 
-end_header                            
-0 0 0                            
+element vertex 8
+property float x
+property float y
+property float z
+element face 6
+property list uchar int vertex_indices
+end_header
+0 0 0
 0 0 1
 0 1 1
 0 1 0
@@ -96,15 +96,15 @@ end_header
         static void CreateTestBinaryPly() {
             string format = BitConverter.IsLittleEndian ? "binary_little_endian" : "binary_big_endian";
             string plyHeader = $@"ply
-format {format} 1.0                       
-comment made by me, myself and I 
+format {format} 1.0
+comment made by me, myself and I
 comment this file is a cube I suppose
-element vertex 8                        
-property float x                        
-property float y                       
-property float z                      
-element face 6                          
-property list uchar int vertex_indices 
+element vertex 8
+property float x
+property float y
+property float z
+element face 6
+property list uchar int vertex_indices
 end_header
 ";
 

@@ -84,7 +84,6 @@ namespace SeeSharp.Geometry {
         /// </summary>
         /// <param name="filename"></param>
         /// <returns>List of errors (and warnings)</returns>
-
         public List<string> ParseFile(string filename) {
             List<string> errors = null;
             var watch = System.Diagnostics.Stopwatch.StartNew();
@@ -114,11 +113,12 @@ namespace SeeSharp.Geometry {
         /// </summary>
         private List<int> ToTriangleList() {
             List<int> list = new();
+            bool warn_face = false;
             foreach (Face f in Faces) {
                 if (f.Indices.Count == 3) {
                     list.AddRange(f.Indices);
                 } else if (f.Indices.Count < 3) {
-                    // TODO: Print warning?
+                    warn_face = true;
                 } else { // Fan triangulation, only works for convex polygons
                     int pin = f.Indices[0];
                     for (int i = 2; i < f.Indices.Count; ++i) {
@@ -126,6 +126,8 @@ namespace SeeSharp.Geometry {
                     }
                 }
             }
+
+            if (warn_face) Logger.Log("Mesh contains invalid faces. Skipping them", Verbosity.Warning);
 
             return list;
         }
@@ -443,9 +445,9 @@ namespace SeeSharp.Geometry {
                 errors.Add("No support for multiple face properties. Assuming first entry to be the list of indices");
             }
 
+            // Load faces. Will be triangulated later
             for (int i = 0; i < header.FaceCount; ++i) {
                 Faces.Add(reader.ReadFaceLine());
-                // TODO: Maybe enforce triangle (or quads) only?
             }
 
             return errors;

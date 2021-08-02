@@ -478,7 +478,7 @@ namespace SeeSharp {
                         string dir = Path.GetDirectoryName(path);
                         string filename = Path.Join(dir, relpath);
 
-                        // In contary to obj and fbs, ply files only have one material assigned
+                        // In contrast to obj and fbx, ply files only have one material assigned
                         string materialName = m.GetProperty("material").GetString();
                         var material = namedMaterials[materialName];
 

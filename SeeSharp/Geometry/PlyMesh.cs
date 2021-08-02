@@ -94,7 +94,7 @@ namespace SeeSharp.Geometry {
             using (var file = new MixReader(filename, Encoding.ASCII))
                 errors = ParsePlyFile(file);
             watch.Stop();
-            Logger.Log($"Done parsing .ply after {watch.ElapsedMilliseconds}ms.", Verbosity.Info);
+            Logger.Log($"Done parsing .ply after {watch.ElapsedMilliseconds}ms.", Verbosity.Debug);
 
             return errors;
         }

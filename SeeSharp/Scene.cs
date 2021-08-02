@@ -297,7 +297,7 @@ namespace SeeSharp {
                     }
 
                     if (t.TryGetProperty("matrix", out var matrix)) {
-                        var mat = ReadMatrix(position);
+                        var mat = ReadMatrix(matrix);
                         result = mat;
 
                         if (trs) Logger.Log($"Matrix is replacing previous definitions of transform '{name}'", Verbosity.Warning);

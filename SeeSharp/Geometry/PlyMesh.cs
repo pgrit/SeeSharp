@@ -12,6 +12,7 @@ namespace SeeSharp.Geometry {
     /// </summary>
     internal class MixReader : BinaryReader {
         public MixReader(string path, Encoding encoding) : base(new FileStream(path, FileMode.Open, FileAccess.Read), encoding) {
+            Path = path;
         }
 
         public string ReadLineAsString(ref bool eos) {
@@ -43,6 +44,8 @@ namespace SeeSharp.Geometry {
             else
                 return stringBuffer.ToString();
         }
+
+        public string Path { get; }
     }
 
     /// <summary>
@@ -83,19 +86,19 @@ namespace SeeSharp.Geometry {
         /// Loads .ply file and returns list of errors
         /// </summary>
         /// <param name="filename"></param>
-        /// <returns>List of errors (and warnings)</returns>
-        public List<string> ParseFile(string filename) {
-            List<string> errors = null;
+        /// <returns>True if successful</returns>
+        public bool ParseFile(string filename) {
             var watch = System.Diagnostics.Stopwatch.StartNew();
             Logger.Log($"Parsing {filename}...", Verbosity.Debug);
 
+            bool success = false;
             // Parse the .ply itself
             using (var file = new MixReader(filename, Encoding.ASCII))
-                errors = ParsePlyFile(file);
+                success = ParsePlyFile(file);
             watch.Stop();
             Logger.Log($"Done parsing .ply after {watch.ElapsedMilliseconds}ms.", Verbosity.Debug);
 
-            return errors;
+            return success;
         }
 
         /// <summary>
@@ -306,21 +309,20 @@ namespace SeeSharp.Geometry {
         /// Will parse the header and populate the PlyHeader structure
         /// </summary>
         /// <param name="stream"></param>
-        /// <param name="header"></param>
-        /// <returns>List of errors</returns>
-        private static List<string> ParsePlyHeader(MixReader stream, ref PlyHeader header) {
-            List<string> errors = new();
+        /// <returns>PlyHeader or null if error</returns>
+        private static PlyHeader ParsePlyHeader(MixReader stream) {
+            PlyHeader header = new();
 
             bool eos = false;
             string magic = stream.ReadLineAsString(ref eos);
             if (magic != "ply") {
-                errors.Add("Trying to load invalid .ply file");
-                return errors;
+                Logger.Log($"Trying to load invalid .ply file '{stream.Path}'", Verbosity.Error);
+                return null;
             }
 
             if (eos) {
-                errors.Add("Trying to load empty .ply file");
-                return errors;
+                Logger.Log($"Trying to load empty .ply file '{stream.Path}'", Verbosity.Error);
+                return null;
             }
 
             int facePropCounter = 0;
@@ -335,7 +337,7 @@ namespace SeeSharp.Geometry {
                     continue;
                 } else if (action == "format") {
                     if (!IsAllowedMethod(parts[1])) {
-                        errors.Add($"Unknown format {parts[1]} given. Ignoring it");
+                        Logger.Log($"In '{stream.Path}' unknown format '{parts[1]}' given. Ignoring it", Verbosity.Warning);
                         continue;
                     }
 
@@ -347,7 +349,7 @@ namespace SeeSharp.Geometry {
                     else if (type == "face")
                         header.FaceCount = int.Parse(parts[2]);
                     else
-                        errors.Add($"Unknown element type {type}");
+                        Logger.Log($"In '{stream.Path}' unknown element type '{type}' given. Ignoring it", Verbosity.Warning);
                 } else if (action == "property") {
                     string type = parts[1];
                     if (type == "float") {
@@ -377,45 +379,47 @@ namespace SeeSharp.Geometry {
                         string name = parts[4];
 
                         if (!IsAllowedVertCountType(countType)) {
-                            errors.Add($"Only 'property list uchar int' is supported. Ignoring {countType}");
+                            Logger.Log($"In '{stream.Path}' only 'property list uchar int' is supported. Ignoring '{countType}'", Verbosity.Warning);
                             continue;
                         }
 
                         if (!IsAllowedVertIndType(indType)) {
-                            errors.Add($"Only 'property list uchar int' is supported. Ignoring {indType}");
+                            Logger.Log($"In '{stream.Path}' only 'property list uchar int' is supported. Ignoring '{indType}'", Verbosity.Warning);
                             continue;
                         }
 
                         if (name == "vertex_indices")
                             header.IndElem = facePropCounter - 1;
                     } else {
-                        errors.Add($"Only float or list properties allowed. Ignoring {type}");
+                        Logger.Log($"In '{stream.Path}' only float or list properties allowed. Ignoring '{type}'", Verbosity.Warning);
                         ++header.VertexPropCount;
                     }
                 } else if (action == "end_header") {
                     break;
                 } else {
-                    errors.Add($"Unknown header entry {action}");
+                    Logger.Log($"In '{stream.Path}' unknown header entry '{action}'", Verbosity.Warning);
                 }
             }
 
-            return errors;
+            return header;
         }
 
         /// <summary>
         /// Will parse the whole file, starting with the header and following up with the data region
         /// </summary>
         /// <param name="stream"></param>
-        /// <returns>List of errors</returns>
-        private List<string> ParsePlyFile(MixReader stream) {
-            List<string> errors = new();
+        /// <returns>True if successful</returns>
+        private bool ParsePlyFile(MixReader stream) {
 
-            PlyHeader header = new();
-            errors.AddRange(ParsePlyHeader(stream, ref header));
+            PlyHeader header = ParsePlyHeader(stream);
+
+            // Error in header, return false
+            if (header == null)
+                return false;
 
             if (!header.HasVertices || !header.HasIndices) {
-                errors.Add("Reached end of stream without data");
-                return errors;
+                Logger.Log($"File '{stream.Path}' has no data", Verbosity.Error);
+                return false;
             }
 
             // Setup reader
@@ -442,7 +446,7 @@ namespace SeeSharp.Geometry {
 
             // Read per face indices
             if (header.IndElem != 0) {
-                errors.Add("No support for multiple face properties. Assuming first entry to be the list of indices");
+                Logger.Log($"In '{stream.Path}' no support for multiple face properties. Assuming first entry to be the list of indices", Verbosity.Warning);
             }
 
             // Load faces. Will be triangulated later
@@ -450,7 +454,7 @@ namespace SeeSharp.Geometry {
                 Faces.Add(reader.ReadFaceLine());
             }
 
-            return errors;
+            return true;
         }
     }
 }

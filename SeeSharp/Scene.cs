@@ -484,9 +484,8 @@ namespace SeeSharp {
 
                         // Load the mesh and add it to the scene. 
                         PlyFile plyFile = new();
-                        var errors = plyFile.ParseFile(filename);
-                        foreach (string error in errors)
-                            Logger.Log(error, Verbosity.Error);
+                        if (!plyFile.ParseFile(filename))
+                            continue;
 
                         var mesh = plyFile.ToMesh();
                         mesh.Material = material;

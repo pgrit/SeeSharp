@@ -10,8 +10,8 @@ namespace SeeSharp.Tests.Core.Geometry {
         public void SimplePly_ShouldBeReadAscii() {
             CreateTestAsciiPly();
             PlyFile file = new();
-            var errors = file.ParseFile("test.ply");
-            Assert.Empty(errors);
+            bool success = file.ParseFile("test.ply");
+            Assert.True(success);
 
             var mesh = file.ToMesh();
 
@@ -23,8 +23,8 @@ namespace SeeSharp.Tests.Core.Geometry {
         public void SimplePly_ShouldBeReadBinary() {
             CreateTestBinaryPly();
             PlyFile file = new();
-            var errors = file.ParseFile("test.ply");
-            Assert.Empty(errors);
+            bool success = file.ParseFile("test.ply");
+            Assert.True(success);
 
             var mesh = file.ToMesh();
 
@@ -36,8 +36,8 @@ namespace SeeSharp.Tests.Core.Geometry {
         public void SimplePly_TriangulationAscii() {
             CreateTestAsciiPly();
             PlyFile file = new();
-            var errors = file.ParseFile("test.ply");
-            Assert.Empty(errors);
+            bool success = file.ParseFile("test.ply");
+            Assert.True(success);
 
             var mesh = file.ToMesh();
 
@@ -51,8 +51,8 @@ namespace SeeSharp.Tests.Core.Geometry {
         public void SimplePly_TriangulationBinary() {
             CreateTestBinaryPly();
             PlyFile file = new();
-            var errors = file.ParseFile("test.ply");
-            Assert.Empty(errors);
+            bool success = file.ParseFile("test.ply");
+            Assert.True(success);
 
             var mesh = file.ToMesh();
 

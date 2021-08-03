@@ -7,6 +7,7 @@ using System.Numerics;
 using System.Text;
 
 namespace SeeSharp.Geometry {
+
     /// <summary>
     /// Simple class allowing to mix ascii text and binary data reading
     /// </summary>
@@ -130,7 +131,7 @@ namespace SeeSharp.Geometry {
                 }
             }
 
-            if (warn_face) Logger.Log("Mesh contains invalid faces. Skipping them", Verbosity.Warning);
+            if (warn_face) Logger.Log("Mesh contains invalid faces. Skipping them.", Verbosity.Warning);
 
             return list;
         }
@@ -316,11 +317,11 @@ namespace SeeSharp.Geometry {
             bool eos = false;
             string magic = stream.ReadLineAsString(ref eos);
             if (magic != "ply") {
-                throw new FileLoadException("Trying to load invalid .ply file", stream.Path);
+                throw new MeshLoadException("Trying to load invalid .ply file.", stream.Path);
             }
 
             if (eos) {
-                throw new FileLoadException("Trying to load empty header .ply file", stream.Path);
+                throw new MeshLoadException("Trying to load empty header .ply file.", stream.Path);
             }
 
             int facePropCounter = 0;
@@ -335,7 +336,7 @@ namespace SeeSharp.Geometry {
                     continue;
                 } else if (action == "format") {
                     if (!IsAllowedMethod(parts[1])) {
-                        Logger.Log($"In '{stream.Path}' unknown format '{parts[1]}' given. Ignoring it", Verbosity.Warning);
+                        Logger.Log($"In '{stream.Path}' unknown format '{parts[1]}' given. Ignoring it.", Verbosity.Warning);
                         continue;
                     }
 
@@ -347,7 +348,7 @@ namespace SeeSharp.Geometry {
                     else if (type == "face")
                         header.FaceCount = int.Parse(parts[2]);
                     else
-                        Logger.Log($"In '{stream.Path}' unknown element type '{type}' given. Ignoring it", Verbosity.Warning);
+                        Logger.Log($"In '{stream.Path}' unknown element type '{type}' given. Ignoring it.", Verbosity.Warning);
                 } else if (action == "property") {
                     string type = parts[1];
                     if (type == "float") {
@@ -377,25 +378,25 @@ namespace SeeSharp.Geometry {
                         string name = parts[4];
 
                         if (!IsAllowedVertCountType(countType)) {
-                            Logger.Log($"In '{stream.Path}' only 'property list uchar int' is supported. Ignoring '{countType}'", Verbosity.Warning);
+                            Logger.Log($"In '{stream.Path}' only 'property list uchar int' is supported. Ignoring '{countType}'.", Verbosity.Warning);
                             continue;
                         }
 
                         if (!IsAllowedVertIndType(indType)) {
-                            Logger.Log($"In '{stream.Path}' only 'property list uchar int' is supported. Ignoring '{indType}'", Verbosity.Warning);
+                            Logger.Log($"In '{stream.Path}' only 'property list uchar int' is supported. Ignoring '{indType}'.", Verbosity.Warning);
                             continue;
                         }
 
                         if (name == "vertex_indices")
                             header.IndElem = facePropCounter - 1;
                     } else {
-                        Logger.Log($"In '{stream.Path}' only float or list properties allowed. Ignoring '{type}'", Verbosity.Warning);
+                        Logger.Log($"In '{stream.Path}' only float or list properties allowed. Ignoring '{type}'.", Verbosity.Warning);
                         ++header.VertexPropCount;
                     }
                 } else if (action == "end_header") {
                     break;
                 } else {
-                    Logger.Log($"In '{stream.Path}' unknown header entry '{action}'", Verbosity.Warning);
+                    Logger.Log($"In '{stream.Path}' unknown header entry '{action}'.", Verbosity.Warning);
                 }
             }
 
@@ -416,7 +417,7 @@ namespace SeeSharp.Geometry {
                 return false;
 
             if (!header.HasVertices || !header.HasIndices) {
-                throw new FileLoadException("Ply file has no data", stream.Path);
+                throw new MeshLoadException("Ply file has no data.", stream.Path);
             }
 
             // Setup reader
@@ -443,7 +444,7 @@ namespace SeeSharp.Geometry {
 
             // Read per face indices
             if (header.IndElem != 0) {
-                Logger.Log($"In '{stream.Path}' no support for multiple face properties. Assuming first entry to be the list of indices", Verbosity.Warning);
+                Logger.Log($"In '{stream.Path}' no support for multiple face properties. Assuming first entry to be the list of indices.", Verbosity.Warning);
             }
 
             // Load faces. Will be triangulated later

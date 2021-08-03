@@ -316,13 +316,11 @@ namespace SeeSharp.Geometry {
             bool eos = false;
             string magic = stream.ReadLineAsString(ref eos);
             if (magic != "ply") {
-                Logger.Log($"Trying to load invalid .ply file '{stream.Path}'", Verbosity.Error);
-                return null;
+                throw new FileLoadException("Trying to load invalid .ply file", stream.Path);
             }
 
             if (eos) {
-                Logger.Log($"Trying to load empty .ply file '{stream.Path}'", Verbosity.Error);
-                return null;
+                throw new FileLoadException("Trying to load empty header .ply file", stream.Path);
             }
 
             int facePropCounter = 0;
@@ -418,8 +416,7 @@ namespace SeeSharp.Geometry {
                 return false;
 
             if (!header.HasVertices || !header.HasIndices) {
-                Logger.Log($"File '{stream.Path}' has no data", Verbosity.Error);
-                return false;
+                throw new FileLoadException("Ply file has no data", stream.Path);
             }
 
             // Setup reader

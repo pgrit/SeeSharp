@@ -35,12 +35,6 @@ namespace SeeSharp.Integrators.Bidir {
         public int NumLightPaths = 0;
 
         /// <summary>
-        /// Minimum length (in edges) of a path that can contribute to the image. If set to 2, e.g., directly
-        /// visible lights are not rendered.
-        /// </summary>
-        public int MinDepth = 1;
-
-        /// <summary>
         /// The base seed to generate camera paths.
         /// </summary>
         public uint BaseSeedCamera = 0xC030114u;

@@ -72,6 +72,7 @@ namespace SeeSharp.Experiments {
                 Logger.Log($"Rendering {sceneConfig.Name} with {method.Name}");
                 scene.FrameBuffer = MakeFrameBuffer(Path.Join(path, "Render" + format));
                 method.Integrator.MaxDepth = sceneConfig.MaxDepth;
+                method.Integrator.MinDepth = sceneConfig.MinDepth;
                 method.Integrator.Render(scene);
                 scene.FrameBuffer.WriteToFile();
             }

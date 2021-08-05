@@ -12,17 +12,17 @@ namespace SeeSharp.Experiments {
     public class SceneFromFile : SceneConfig {
         readonly FileInfo file;
         readonly int maxDepth;
+        readonly int minDepth;
         readonly Scene scene;
         string name;
 
-        /// <summary>
-        /// Maximum depth used to render the scene
-        /// </summary>
+        /// <inheritdoc />
         public override int MaxDepth => maxDepth;
 
-        /// <summary>
-        /// Name of the scene
-        /// </summary>
+        /// <inheritdoc />
+        public override int MinDepth => minDepth;
+
+        /// <inheritdoc />
         public override string Name => name;
 
         /// <summary>
@@ -45,7 +45,7 @@ namespace SeeSharp.Experiments {
         /// <summary>
         /// Retrieves a cached reference image with the right resolution and maximum path length. If not
         /// available, a new reference is rendered and added to the cache.
-        /// 
+        ///
         /// The reference cache is a directory called "References" next to the .json file that defines
         /// the scene.
         /// </summary>
@@ -56,7 +56,8 @@ namespace SeeSharp.Experiments {
             string refDir = Path.Join(file.DirectoryName, "References");
             Directory.CreateDirectory(refDir);
 
-            string filename = Path.Join(refDir, $"MaxDepth{MaxDepth}-Width{width}-Height{height}.exr");
+            string minDepthString = MinDepth > 1 ? $"MinDepth{MinDepth}-" : "";
+            string filename = Path.Join(refDir, $"{minDepthString}MaxDepth{MaxDepth}-Width{width}-Height{height}.exr");
 
             if (File.Exists(filename)) {
                 return new RgbImage(filename);
@@ -97,6 +98,7 @@ namespace SeeSharp.Experiments {
             }
 
             refIntegrator.MaxDepth = MaxDepth;
+            refIntegrator.MinDepth = MinDepth;
 
             Scene scn = MakeScene();
             scn.FrameBuffer = new(width, height, filename);
@@ -111,12 +113,14 @@ namespace SeeSharp.Experiments {
         /// Loads a new scene from file
         /// </summary>
         /// <param name="filename">Path to an existing scene's json file</param>
+        /// <param name="minDepth">Minimum path length to use when rendering</param>
         /// <param name="maxDepth">Maximum path length to use when rendering</param>
         /// <param name="name">If a name different from the file basename is desired, specify it here.</param>
-        public SceneFromFile(string filename, int maxDepth, string name = null) {
+        public SceneFromFile(string filename, int minDepth, int maxDepth, string name = null) {
             file = new(filename);
             scene = Scene.LoadFromFile(filename);
             this.maxDepth = maxDepth;
+            this.minDepth = minDepth;
             this.name = name ?? Path.GetFileNameWithoutExtension(filename);
         }
 
@@ -126,8 +130,7 @@ namespace SeeSharp.Experiments {
         public virtual Integrators.Integrator DefaultReferenceIntegrator
         => new Integrators.PathTracer() {
             BaseSeed = 571298512u,
-            TotalSpp = 512,
-            MaxDepth = MaxDepth
+            TotalSpp = 512
         };
 
         /// <summary>

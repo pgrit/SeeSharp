@@ -33,12 +33,6 @@ namespace SeeSharp.Integrators {
         public long? MaximumRenderTimeMs;
 
         /// <summary>
-        /// Minimum length of a path that is allowed to contribute to the image. If greater than 1, directly
-        /// visible light sources will not be rendered.
-        /// </summary>
-        public uint MinDepth = 1;
-
-        /// <summary>
         /// Number of shadow rays to use for next event estimation at each vertex
         /// </summary>
         public int NumShadowRays = 1;

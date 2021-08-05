@@ -178,7 +178,7 @@ namespace SeeSharp.Integrators.Bidir {
 
             // Was a light hit?
             Emitter light = Scene.QueryEmitter(hit);
-            if (light != null && EnableBsdfLightHit && depth >= MinDepth) {
+            if (light != null && (EnableBsdfLightHit || depth == 1) && depth >= MinDepth) {
                 value += throughput * OnEmitterHit(light, hit, ray, path, toAncestorJacobian);
             }
 

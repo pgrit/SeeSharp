@@ -112,11 +112,13 @@ namespace SeeSharp.Integrators {
         /// <summary>
         /// Called before each iteration (one sample per pixel), after the frame buffer was updated.
         /// </summary>
+        /// <param name="iterIdx">0-based index of the iteration that is about to start</param>
         protected virtual void OnPreIteration(uint iterIdx) { }
 
         /// <summary>
         /// Called at the end of each iteration (one sample per pixel), before the frame buffer is updated.
         /// </summary>
+        /// <param name="iterIdx">0-based index of the iteration that just ended</param>
         protected virtual void OnPostIteration(uint iterIdx) { }
 
         /// <summary>

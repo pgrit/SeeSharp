@@ -71,6 +71,7 @@ def export_materials(result, out_dir):
         result["materials"].append(material_to_json(material.seesharp, out_dir))
         # TODO If .obj export is used, spaces need to be replaced to match the name in the output file
         # result["materials"][-1]["name"] = material.name.replace(" ", "_")
+        result["materials"][-1]["name"] = material.name
 
 def export_background(result, out_dir, scene):
     if scene.world.seesharp.hdr:

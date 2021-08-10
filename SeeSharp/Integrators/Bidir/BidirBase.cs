@@ -113,7 +113,7 @@ namespace SeeSharp.Integrators.Bidir {
         /// Called once per iteration after the light paths have been traced.
         /// Use this to create acceleration structures etc.
         /// </summary>
-        public abstract void ProcessPathCache();
+        protected abstract void ProcessPathCache();
 
         /// <summary>
         /// Used by next event estimation to select a light source
@@ -121,7 +121,7 @@ namespace SeeSharp.Integrators.Bidir {
         /// <param name="from">A point on a surface where next event is performed</param>
         /// <param name="rng">Random number generator</param>
         /// <returns>The selected light and the discrete probability of selecting that light</returns>
-        public virtual (Emitter, float) SelectLight(in SurfacePoint from, RNG rng) {
+        protected virtual (Emitter, float) SelectLight(in SurfacePoint from, RNG rng) {
             int idx = rng.NextInt(0, Scene.Emitters.Count);
             return (Scene.Emitters[idx], 1.0f / Scene.Emitters.Count);
         }
@@ -130,21 +130,17 @@ namespace SeeSharp.Integrators.Bidir {
         /// The discrete probability of selecting the given light when performing next event at the given
         /// shading point.
         /// </returns>
-        public virtual float SelectLightPmf(in SurfacePoint from, Emitter em) => 1.0f / Scene.Emitters.Count;
+        protected virtual float SelectLightPmf(in SurfacePoint from, Emitter em) => 1.0f / Scene.Emitters.Count;
 
         /// <summary>
         /// Called once for each pixel per iteration. Expected to perform some sort of path tracing,
         /// possibly connecting vertices with those from the light path cache.
         /// </summary>
         /// <returns>The estimated pixel value.</returns>
-        public virtual RgbColor EstimatePixelValue(in SurfacePoint cameraPoint, Vector2 filmPosition,
-                                                   in Ray primaryRay, float pdfFromCamera,
-                                                   RgbColor initialWeight, RNG rng) {
-            // The pixel index determines which light path we connect to
-            int row = Math.Min((int)filmPosition.Y, Scene.FrameBuffer.Height - 1);
-            int col = Math.Min((int)filmPosition.X, Scene.FrameBuffer.Width - 1);
-            int pixelIndex = row * Scene.FrameBuffer.Width + col;
-            var walk = new CameraRandomWalk(rng, filmPosition, pixelIndex, this);
+        protected virtual RgbColor EstimatePixelValue(in SurfacePoint cameraPoint, Vector2 filmPosition,
+                                                      in Ray primaryRay, float pdfFromCamera,
+                                                      RgbColor initialWeight, RNG rng) {
+            var walk = new CameraRandomWalk(rng, filmPosition, this);
             return walk.StartFromCamera(filmPosition, cameraPoint, pdfFromCamera, primaryRay, initialWeight);
         }
 
@@ -248,9 +244,6 @@ namespace SeeSharp.Integrators.Bidir {
             var cameraRay = Scene.Camera.GenerateRay(filmSample, rng);
             var value = EstimatePixelValue(cameraRay.Point, filmSample, cameraRay.Ray,
                                            cameraRay.PdfRay, cameraRay.Weight, rng);
-
-            // TODO we do nearest neighbor splatting manually here, to avoid numerical
-            //      issues if the primary samples are almost 1 (400 + 0.99999999f = 401)
             Scene.FrameBuffer.Splat((float)col, (float)row, value);
         }
 
@@ -396,7 +389,7 @@ namespace SeeSharp.Integrators.Bidir {
         /// <summary>
         /// Connects all vertices along all light paths to the camera via shadow rays ("light tracing").
         /// </summary>
-        public void SplatLightVertices() {
+        protected void SplatLightVertices() {
             Parallel.For(0, LightPaths.NumPaths, idx => {
                 ConnectLightPathToCamera(idx);
             });
@@ -461,21 +454,71 @@ namespace SeeSharp.Integrators.Bidir {
             });
         }
 
+        /// <summary>
+        /// Computes the MIS weight of a bidirectional connection.
+        /// </summary>
+        /// <param name="cameraPath">The camera path that was connected to a light vertex</param>
+        /// <param name="lightVertex">The light vertex that was connected to</param>
+        /// <param name="pdfCameraReverse">
+        /// Surface area pdf of sampling the previous vertex along the camera path when coming from the light.
+        /// </param>
+        /// <param name="pdfCameraToLight">
+        /// Surface area pdf of sampling the light vertex by continuing the camera path instead.
+        /// </param>
+        /// <param name="pdfLightReverse">
+        /// Surface area pdf of sampling the previous vertex along the light path when coming from the camera
+        /// </param>
+        /// <param name="pdfLightToCamera">
+        /// Surface area pdf of sampling the last camera vertex by continuing the light path instead
+        /// </param>
+        /// <param name="pdfNextEvent">
+        /// If the light path consists of a single edge, this is the surface area pdf of sampling the same
+        /// edge via next event estimation at the last light path vertex. Otherwise zero.
+        /// </param>
+        /// <returns>MIS weight for the connection</returns>
         public abstract float BidirConnectMis(CameraPath cameraPath, PathVertex lightVertex,
                                               float pdfCameraReverse, float pdfCameraToLight,
                                               float pdfLightReverse, float pdfLightToCamera,
                                               float pdfNextEvent);
 
+        /// <summary>
+        /// Called to importance sample a light path vertex to connect to. Can either select an entire light
+        /// path, or an individual vertex. By default yields a deterministic mapping of each camera path to
+        /// all vertices of a light path, like classic bidirectional path tracing.
+        /// </summary>
+        /// <param name="cameraPoint">The camera vertex where a connection is to be made</param>
+        /// <param name="outDir">Direction from the camera vertex towards its ancestor</param>
+        /// <param name="pixelIndex">Index of the pixel that the camera path originated in</param>
+        /// <param name="rng">Random number generator for sampling a vertex</param>
+        /// <returns>
+        /// Index of the selected light path, index of the vertex within or -1 for all, and the probability
+        /// of sampling that vertex.
+        /// </returns>
         protected virtual (int, int, float) SelectBidirPath(SurfacePoint cameraPoint, Vector3 outDir,
                                                             int pixelIndex, RNG rng)
         => (pixelIndex, -1, 1.0f);
 
-        public virtual RgbColor BidirConnections(int pixelIndex, SurfacePoint cameraPoint, Vector3 outDir,
-                                                 RNG rng, CameraPath path, float reversePdfJacobian) {
+        /// <summary>
+        /// Computes the contribution of inner path connections at the given camera path vertex
+        /// </summary>
+        /// <param name="cameraPoint">The last vertex of the camera path</param>
+        /// <param name="outDir">Direction from the camera vertex towards its ancestor</param>
+        /// <param name="rng">Random number generator</param>
+        /// <param name="path">The camera path</param>
+        /// <param name="reversePdfJacobian">
+        /// Jacobian to convert a solid angle density at the camera vertex to a surface area density at its
+        /// ancestor vertex.
+        /// </param>
+        /// <returns>The sum of all MIS weighted contributions for inner path connections</returns>
+        protected virtual RgbColor BidirConnections(SurfacePoint cameraPoint, Vector3 outDir, RNG rng,
+                                                    CameraPath path, float reversePdfJacobian) {
             RgbColor result = RgbColor.Black;
             if (NumLightPaths == 0) return result;
 
             // Select a path to connect to (based on pixel index)
+            int row = Math.Min((int)path.Pixel.Y, Scene.FrameBuffer.Height - 1);
+            int col = Math.Min((int)path.Pixel.X, Scene.FrameBuffer.Width - 1);
+            int pixelIndex = row * Scene.FrameBuffer.Width + col;
             (int lightPathIdx, int lightVertIdx, float lightVertexProb) =
                 SelectBidirPath(cameraPoint, outDir, pixelIndex, rng);
 
@@ -554,10 +597,45 @@ namespace SeeSharp.Integrators.Bidir {
             return result;
         }
 
+        /// <summary>
+        /// Computes the MIS weight for next event estimation along a camera path
+        /// </summary>
+        /// <param name="cameraPath">The camera path</param>
+        /// <param name="pdfEmit">
+        /// Product surface area density of sampling the next event edge (vertex on the light and last camera
+        /// path vertex) when emitting a light path.
+        /// </param>
+        /// <param name="pdfNextEvent">Surface area pdf of sampling the light vertex via next event</param>
+        /// <param name="pdfHit">
+        /// Surface area pdf of sampling the light vertex by continuing the camera path instead
+        /// </param>
+        /// <param name="pdfReverse">
+        /// Surface area pdf of sampling the second-to-last camera path vertex when tracing a light path
+        /// </param>
+        /// <returns>MIS weight</returns>
         public abstract float NextEventMis(CameraPath cameraPath, float pdfEmit, float pdfNextEvent,
                                            float pdfHit, float pdfReverse);
 
-        public virtual float NextEventPdf(SurfacePoint from, SurfacePoint to) {
+        /// <summary>
+        /// Samples an emitter and a point on its surface for next event estimation
+        /// </summary>
+        /// <param name="from">The shading point</param>
+        /// <param name="rng">Random number generator</param>
+        /// <returns>The sampled emitter and point on the emitter</returns>
+        protected virtual (Emitter, SurfaceSample) SampleNextEvent(SurfacePoint from, RNG rng) {
+            var (light, lightProb) = SelectLight(from, rng);
+            var lightSample = light.SampleArea(rng.NextFloat2D());
+            lightSample.Pdf *= lightProb;
+            return (light, lightSample);
+        }
+
+        /// <summary>
+        /// Computes the pdf used by <see cref="SampleNextEvent" />
+        /// </summary>
+        /// <param name="from">The shading point</param>
+        /// <param name="to">The point on the light source</param>
+        /// <returns>PDF of next event estimation</returns>
+        protected virtual float NextEventPdf(SurfacePoint from, SurfacePoint to) {
             float backgroundProbability = ComputeNextEventBackgroundProbability(/*hit*/);
             if (to.Mesh == null) { // Background
                 var direction = to.Position - from.Position;
@@ -568,18 +646,28 @@ namespace SeeSharp.Integrators.Bidir {
             }
         }
 
-        public virtual (Emitter, SurfaceSample) SampleNextEvent(SurfacePoint from, RNG rng) {
-            var (light, lightProb) = SelectLight(from, rng);
-            var lightSample = light.SampleArea(rng.NextFloat2D());
-            lightSample.Pdf *= lightProb;
-            return (light, lightSample);
-        }
-
-        public virtual float ComputeNextEventBackgroundProbability(/*SurfacePoint from*/)
+        /// <summary>
+        /// The probability of selecting the background for next event estimation, instead of an emissive
+        /// surface.
+        /// </summary>
+        /// <returns>The background selection probability, by default uniform</returns>
+        protected virtual float ComputeNextEventBackgroundProbability(/*SurfacePoint from*/)
         => Scene.Background == null ? 0 : 1 / (1.0f + Scene.Emitters.Count);
 
-        public virtual RgbColor PerformNextEventEstimation(Ray ray, SurfacePoint hit, RNG rng, CameraPath path,
-                                                           float reversePdfJacobian) {
+        /// <summary>
+        /// Performs next event estimation at the end point of a camera path
+        /// </summary>
+        /// <param name="ray">The last ray that was traced</param>
+        /// <param name="hit">The hit point of that ray, i.e., the position where NEE should be done</param>
+        /// <param name="rng">Random number generator</param>
+        /// <param name="path">The camera path</param>
+        /// <param name="reversePdfJacobian">
+        /// Jacobian to convert the reverse sampling pdf from the last camera vertex to its ancestor from
+        /// solid angle to surface area.
+        /// </param>
+        /// <returns>MIS weighted next event contribution</returns>
+        protected virtual RgbColor PerformNextEventEstimation(Ray ray, SurfacePoint hit, RNG rng,
+                                                              CameraPath path, float reversePdfJacobian) {
             float backgroundProbability = ComputeNextEventBackgroundProbability(/*hit*/);
             if (rng.NextFloat() < backgroundProbability) { // Connect to the background
                 if (Scene.Background == null)
@@ -671,10 +759,32 @@ namespace SeeSharp.Integrators.Bidir {
             return RgbColor.Black;
         }
 
+        /// <summary>
+        /// Computes the MIS weight of randomly hitting an emitter
+        /// </summary>
+        /// <param name="cameraPath">The camera path that hit an emitter</param>
+        /// <param name="pdfEmit">
+        /// Product surface area pdf of sampling the last two vertices of the camera path via emitting a light
+        /// path instead.
+        /// </param>
+        /// <param name="pdfNextEvent">Surface area pdf of sampling the point on the emitter via next event</param>
+        /// <returns>MIS weight</returns>
         public abstract float EmitterHitMis(CameraPath cameraPath, float pdfEmit, float pdfNextEvent);
 
-        public virtual RgbColor OnEmitterHit(Emitter emitter, SurfacePoint hit, Ray ray,
-                                             CameraPath path, float reversePdfJacobian) {
+        /// <summary>
+        /// Called when a camera path directly intersected an emitter
+        /// </summary>
+        /// <param name="emitter">The emitter that was hit</param>
+        /// <param name="hit">The hit point on the emitter</param>
+        /// <param name="ray">The last ray of the camera path</param>
+        /// <param name="path">The camera path</param>
+        /// <param name="reversePdfJacobian">
+        /// Geometry term to convert a solid angle density on the emitter to a surface area density for
+        /// sampling the previous point along the camera path
+        /// </param>
+        /// <returns>MIS weighted contribution of the emitter</returns>
+        protected virtual RgbColor OnEmitterHit(Emitter emitter, SurfacePoint hit, Ray ray,
+                                                CameraPath path, float reversePdfJacobian) {
             var emission = emitter.EmittedRadiance(hit, -ray.Direction);
 
             // Compute pdf values
@@ -689,7 +799,13 @@ namespace SeeSharp.Integrators.Bidir {
             return misWeight * emission;
         }
 
-        public virtual RgbColor OnBackgroundHit(Ray ray, CameraPath path) {
+        /// <summary>
+        /// Called when a camera path left the scene
+        /// </summary>
+        /// <param name="ray">The last ray of the camera path that intersected nothing</param>
+        /// <param name="path">The camera path</param>
+        /// <returns>MIS weighted contribution from the background</returns>
+        protected virtual RgbColor OnBackgroundHit(Ray ray, CameraPath path) {
             if (Scene.Background == null)
                 return RgbColor.Black;
 
@@ -710,18 +826,33 @@ namespace SeeSharp.Integrators.Bidir {
             return misWeight * emission * path.Throughput;
         }
 
-        public abstract RgbColor OnCameraHit(CameraPath path, RNG rng, int pixelIndex, Ray ray,
-                                             SurfacePoint hit, float pdfFromAncestor, RgbColor throughput,
-                                             int depth, float toAncestorJacobian);
+        /// <summary>
+        /// Called for each surface intersection along a camera path
+        /// </summary>
+        /// <param name="path">The camera path</param>
+        /// <param name="rng">Random number generator</param>
+        /// <param name="ray">The last ray of the camera path</param>
+        /// <param name="hit">The next surface hit point</param>
+        /// <param name="pdfFromAncestor">Solid angle pdf at the previous vertex to sample this ray</param>
+        /// <param name="throughput">
+        /// Product of geometry terms and BSDFs along the path, divided by sampling pdfs.
+        /// </param>
+        /// <param name="depth">The number of edges along the path, 1 for the first intersection</param>
+        /// <param name="toAncestorJacobian">
+        /// Geometry term to convert a solid angle density at this hit point to a surface area density for
+        /// sampling its ancestor.
+        /// </param>
+        /// <returns>Sum of MIS weighted contributions for all sampling techniques performed here</returns>
+        protected abstract RgbColor OnCameraHit(CameraPath path, RNG rng, Ray ray, SurfacePoint hit,
+                                                float pdfFromAncestor, RgbColor throughput, int depth,
+                                                float toAncestorJacobian);
 
         class CameraRandomWalk : RandomWalk {
-            int pixelIndex;
             BidirBase integrator;
             CameraPath path;
 
-            public CameraRandomWalk(RNG rng, Vector2 filmPosition, int pixelIndex, BidirBase integrator)
+            public CameraRandomWalk(RNG rng, Vector2 filmPosition, BidirBase integrator)
                 : base(integrator.Scene, rng, integrator.MaxDepth + 1) {
-                this.pixelIndex = pixelIndex;
                 this.integrator = integrator;
                 path.Vertices = new List<PathPdfPair>(integrator.MaxDepth);
                 path.Distances = new List<float>(integrator.MaxDepth);
@@ -752,8 +883,8 @@ namespace SeeSharp.Integrators.Bidir {
                 });
                 path.Throughput = throughput;
                 path.Distances.Add(hit.Distance);
-                return integrator.OnCameraHit(path, rng, pixelIndex, ray, hit, pdfFromAncestor, throughput,
-                    depth, toAncestorJacobian);
+                return integrator.OnCameraHit(path, rng, ray, hit, pdfFromAncestor, throughput, depth,
+                    toAncestorJacobian);
             }
 
             protected override void OnContinue(float pdfToAncestor, int depth) {

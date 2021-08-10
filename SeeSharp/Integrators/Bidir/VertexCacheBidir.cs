@@ -28,11 +28,11 @@ namespace SeeSharp.Integrators.Bidir {
 
         VertexSelector vertexSelector;
 
-        public override float NextEventPdf(SurfacePoint from, SurfacePoint to) {
+        protected override float NextEventPdf(SurfacePoint from, SurfacePoint to) {
             return base.NextEventPdf(from, to) * NumShadowRays;
         }
 
-        public override (Emitter, SurfaceSample) SampleNextEvent(SurfacePoint from, RNG rng) {
+        protected override (Emitter, SurfaceSample) SampleNextEvent(SurfacePoint from, RNG rng) {
             var (light, sample) = base.SampleNextEvent(from, rng);
             sample.Pdf *= NumShadowRays;
             return (light, sample);
@@ -91,16 +91,16 @@ namespace SeeSharp.Integrators.Bidir {
             }
         }
 
-        public override void ProcessPathCache() {
+        protected override void ProcessPathCache() {
             vertexSelector = new VertexSelector(LightPaths.PathCache);
 
             if (EnableLightTracer)
                 SplatLightVertices();
         }
 
-        public override RgbColor OnCameraHit(CameraPath path, RNG rng, int pixelIndex, Ray ray,
-                                             SurfacePoint hit, float pdfFromAncestor, RgbColor throughput,
-                                             int depth, float toAncestorJacobian) {
+        protected override RgbColor OnCameraHit(CameraPath path, RNG rng, Ray ray, SurfacePoint hit,
+                                                float pdfFromAncestor, RgbColor throughput, int depth,
+                                                float toAncestorJacobian) {
             RgbColor value = RgbColor.Black;
 
             // Was a light hit?
@@ -113,7 +113,7 @@ namespace SeeSharp.Integrators.Bidir {
             if (depth < MaxDepth) {
                 for (int i = 0; i < NumConnections && EnableConnections; ++i) {
                     var weight = throughput *
-                        BidirConnections(pixelIndex, hit, -ray.Direction, rng, path, toAncestorJacobian);
+                        BidirConnections(hit, -ray.Direction, rng, path, toAncestorJacobian);
                     value += weight;
                 }
             }

@@ -114,7 +114,7 @@ namespace SeeSharp.Integrators.Bidir {
             }
         }
 
-        public override void ProcessPathCache() {
+        protected override void ProcessPathCache() {
             if (EnableLightTracing) SplatLightVertices();
             if (EnableMerging) photonMap.Build(LightPaths, Radius);
         }
@@ -171,9 +171,9 @@ namespace SeeSharp.Integrators.Bidir {
             return photonMap.Accumulate((path, cameraJacobian), hit, -ray.Direction, Merge, Radius);
         }
 
-        public override RgbColor OnCameraHit(CameraPath path, RNG rng, int pixelIndex, Ray ray,
-                                             SurfacePoint hit, float pdfFromAncestor, RgbColor throughput,
-                                             int depth, float toAncestorJacobian) {
+        protected override RgbColor OnCameraHit(CameraPath path, RNG rng, Ray ray, SurfacePoint hit,
+                                                float pdfFromAncestor, RgbColor throughput, int depth,
+                                                float toAncestorJacobian) {
             RgbColor value = RgbColor.Black;
 
             // Was a light hit?
@@ -186,7 +186,7 @@ namespace SeeSharp.Integrators.Bidir {
             if (depth < MaxDepth) {
                 if (EnableConnections)
                     value += throughput *
-                        BidirConnections(pixelIndex, hit, -ray.Direction, rng, path, toAncestorJacobian);
+                        BidirConnections(hit, -ray.Direction, rng, path, toAncestorJacobian);
 
                 value += throughput * PerformMerging(ray, hit, path, toAncestorJacobian);
             }

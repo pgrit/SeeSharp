@@ -5,7 +5,7 @@
     <Title>SeeSharp</Title>
     <Description>A flexibility-first framework for rapid prototyping of rendering algorithms.</Description>
     <PackageId>SeeSharp</PackageId>
-    <Version>1.5.1</Version>
+    <Version>1.6.0</Version>
     <Copyright>(c) Pascal Grittmann</Copyright>
     <RepositoryUrl>https://github.com/pgrit/SeeSharp</RepositoryUrl>
 

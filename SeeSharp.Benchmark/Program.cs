@@ -8,9 +8,6 @@ namespace SeeSharp.Benchmark {
             GenericMaterial_Sampling.BenchPerformance();
             GenericMaterial_Sampling.Benchmark();
 
-            // Make sure tev has time to receive the last image
-            Thread.Sleep(200);
-
             //VectorBench.BenchComputeBasisVectors(10000000);
         }
     }

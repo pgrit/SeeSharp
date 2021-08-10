@@ -52,7 +52,7 @@ namespace SeeSharp.Experiments {
             }
 
             // Prepare a scene for rendering. We do it once to reduce overhead.
-            Scene scene = sceneConfig.MakeScene();
+            using Scene scene = sceneConfig.MakeScene();
             scene.FrameBuffer = MakeFrameBuffer("dummy");
             scene.Prepare();
 

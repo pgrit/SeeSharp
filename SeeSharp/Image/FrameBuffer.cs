@@ -9,9 +9,10 @@ using System.Linq;
 namespace SeeSharp.Image {
     /// <summary>
     /// Provides an image buffer to receive pixel estimates during rendering. Additional named layers can
-    /// be attached to store AOVs.
+    /// be attached to store AOVs. If tev sync is used, this needs to be disposed of correctly, e.g., via
+    /// a "using" block.
     /// </summary>
-    public class FrameBuffer {
+    public class FrameBuffer : IDisposable {
         /// <summary>
         /// Width of the frame buffer in pixels
         /// </summary>
@@ -238,6 +239,14 @@ namespace SeeSharp.Image {
                 WriteIndented = true
             });
             File.WriteAllText(basename + ".json", json);
+        }
+
+        /// <summary>
+        /// Closes the tev TCP connection, if it was set up.
+        /// </summary>
+        public void Dispose() {
+            tevIpc?.Dispose();
+            tevIpc = null;
         }
     }
 }

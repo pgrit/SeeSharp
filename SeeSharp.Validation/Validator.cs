@@ -57,7 +57,7 @@ namespace SeeSharp.Validation {
 
         public static List<long> Validate(ValidationSceneFactory sceneFactory) {
             var stopwatch  = System.Diagnostics.Stopwatch.StartNew();
-            var scene = sceneFactory.MakeScene();
+            using var scene = sceneFactory.MakeScene();
             stopwatch.Stop();
             var sceneLoadTime = stopwatch.ElapsedMilliseconds;
 

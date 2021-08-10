@@ -18,11 +18,20 @@ namespace SeeSharp {
     /// Manages all information required to render a scene. Each object is meant to be used to render one
     /// image. But shallow copies can be made (with replaced frame buffers) to re-render the same scene.
     /// </summary>
-    public class Scene {
+    public class Scene : IDisposable {
         /// <summary>
-        /// The frame buffer that will receive the rendered image
+        /// The frame buffer that will receive the rendered image. Ownership of the framebuffer is
+        /// transferred to this object, i.e., the framebuffer will be disposed along with this scene or
+        /// when it is replaced.
         /// </summary>
-        public FrameBuffer FrameBuffer;
+        public FrameBuffer FrameBuffer {
+            get => frameBuffer;
+            set {
+                frameBuffer?.Dispose();
+                frameBuffer = value;
+            }
+        }
+        FrameBuffer frameBuffer;
 
         /// <summary>
         /// The camera, which models how the frame buffer receives light from the scene
@@ -72,6 +81,8 @@ namespace SeeSharp {
         /// <summary>
         /// Creates a semi-deep copy of the scene. That is, a shallow copy except that all lists of references
         /// are copied into new lists of references. So meshes in the new scene can be removed or added.
+        /// The <see cref="FrameBuffer" /> and <see cref="Raytracer" /> are not copied and set to null, to
+        /// avoid any conflicts. The scene is in an invalid state untill <see cref="Prepare" /> is called.
         /// </summary>
         /// <returns>A copy of the scene</returns>
         public Scene Copy() {
@@ -79,6 +90,8 @@ namespace SeeSharp {
             cpy.Meshes = new(Meshes);
             cpy.Emitters = new(Emitters);
             cpy.ValidationErrorMessages = new(ValidationErrorMessages);
+            FrameBuffer = null;
+            Raytracer = null;
             return cpy;
         }
 
@@ -482,7 +495,7 @@ namespace SeeSharp {
                         string materialName = m.GetProperty("material").GetString();
                         var material = namedMaterials[materialName];
 
-                        // Load the mesh and add it to the scene. 
+                        // Load the mesh and add it to the scene.
                         PlyFile plyFile = new();
                         if (!plyFile.ParseFile(filename))
                             continue;
@@ -504,6 +517,16 @@ namespace SeeSharp {
             }
 
             return resultScene;
+        }
+
+        /// <summary>
+        /// Frees all unmanaged resources in the `FrameBuffer` and `Raytracer`
+        /// </summary>
+        public void Dispose() {
+            FrameBuffer?.Dispose();
+            FrameBuffer = null;
+            Raytracer?.Dispose();
+            Raytracer = null;
         }
 
         readonly Dictionary<Mesh, Emitter> meshToEmitter = new();

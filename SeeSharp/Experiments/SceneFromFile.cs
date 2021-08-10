@@ -100,7 +100,7 @@ namespace SeeSharp.Experiments {
             refIntegrator.MaxDepth = MaxDepth;
             refIntegrator.MinDepth = MinDepth;
 
-            Scene scn = MakeScene();
+            using Scene scn = MakeScene();
             scn.FrameBuffer = new(width, height, filename);
             scn.Prepare();
             refIntegrator.Render(scn);

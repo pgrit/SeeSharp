@@ -56,7 +56,7 @@ namespace SeeSharp.Benchmark {
             return rt.Trace(new() { Origin = Vector3.Zero, Direction = -Vector3.UnitZ });
         }
 
-        static string MakeName(GenericMaterial.Parameters parameters) 
+        static string MakeName(GenericMaterial.Parameters parameters)
         => $"Results/r{parameters.Roughness.Lookup(new(0.5f, 0.5f))}-" +
             $"m{parameters.Metallic}-" +
             $"s{parameters.SpecularTransmittance}-" +
@@ -65,7 +65,7 @@ namespace SeeSharp.Benchmark {
             $"thin{parameters.Thin}.exr";
 
         static float TestRender(GenericMaterial.Parameters parameters, string name) {
-            var scene = MakeScene(parameters);
+            using var scene = MakeScene(parameters);
             scene.FrameBuffer = new(512, 512, name, FrameBuffer.Flags.SendToTev);
             scene.Prepare();
 

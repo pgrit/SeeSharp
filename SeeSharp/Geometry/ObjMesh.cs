@@ -195,7 +195,7 @@ namespace SeeSharp.Geometry {
             using (var file = new System.IO.StreamReader(filename))
                 mesh.Errors.AddRange(mesh.ParseObjFile(file));
             watch.Stop();
-            Logger.Log($"Done parsing .obj after {watch.ElapsedMilliseconds}ms.", Verbosity.Info);
+            Logger.Log($"Done parsing .obj after {watch.ElapsedMilliseconds}ms.", Verbosity.Debug);
 
             // Parse all linked .mtl files
             foreach (string mtlFilename in mesh.Contents.MtlFiles) {

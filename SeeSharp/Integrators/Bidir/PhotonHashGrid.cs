@@ -3,7 +3,6 @@ using SimpleImageIO;
 using SeeSharp.Integrators.Common;
 using System.Diagnostics;
 using System.Numerics;
-using System;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -78,11 +77,11 @@ namespace SeeSharp.Integrators.Bidir {
             });
         }
 
-        public delegate RgbColor Callback<in T>(T userData, SurfacePoint hit, Vector3 outDir, 
+        public delegate RgbColor Callback<in T>(T userData, SurfacePoint hit, Vector3 outDir,
                                                 int pathIdx, int vertIdx, float distanceSquared);
 
         public RgbColor Accumulate<T>(T userData, SurfacePoint hit, Vector3 outDir, Callback<T> callback, float radius) {
-            if (!bounds.IsInside(hit.Position)) 
+            if (!bounds.IsInside(hit.Position))
                 return RgbColor.Black;
 
             var p = (hit.Position - bounds.Min) * inverseBinSize;

@@ -41,7 +41,12 @@ namespace SeeSharp.Integrators.Bidir {
         /// </summary>
         public PathCache PathCache { get; set; }
 
-        public virtual (Emitter, float) SelectLight(float primary) {
+        /// <summary>
+        /// Maps a primary space random number to an importance sampled emitter in the scene
+        /// </summary>
+        /// <param name="primary">Primary space random number in [0,1]</param>
+        /// <returns>The emitter and its selection probability</returns>
+        protected virtual (Emitter, float) SelectLight(float primary) {
             if (primary < BackgroundProbability) {
                 return (null, BackgroundProbability);
             } else {
@@ -54,7 +59,12 @@ namespace SeeSharp.Integrators.Bidir {
             }
         }
 
-        public virtual float SelectLightPmf(Emitter em) {
+        /// <summary>
+        /// Computes the sampling probability used by <see cref="SelectLight"/>
+        /// </summary>
+        /// <param name="em">An emitter in the scene</param>
+        /// <returns>The selection probability</returns>
+        protected virtual float SelectLightPmf(Emitter em) {
             if (em == null) { // background
                 return BackgroundProbability;
             } else {
@@ -62,15 +72,37 @@ namespace SeeSharp.Integrators.Bidir {
             }
         }
 
-        public virtual float BackgroundProbability
+        /// <summary>
+        /// Probability of selecting the background instead of a surface emitter
+        /// </summary>
+        protected virtual float BackgroundProbability
         => Scene.Background != null ? 1 / (1.0f + Scene.Emitters.Count) : 0;
 
+        /// <summary>
+        /// Samples a ray from an emitter in the scene
+        /// </summary>
+        /// <param name="rng">Random number generator</param>
+        /// <param name="emitter">The emitter to sample from</param>
+        /// <returns>Sampled ray, weights, and probabilities</returns>
         public virtual EmitterSample SampleEmitter(RNG rng, Emitter emitter) {
             var primaryPos = rng.NextFloat2D();
             var primaryDir = rng.NextFloat2D();
             return emitter.SampleRay(primaryPos, primaryDir);
         }
 
+        /// <summary>
+        /// Computes the importance sampling pdf to generate an edge from a point on an emitter to a point
+        /// in the scene. Result is the product of two surface area densities and a discrete selection
+        /// probability.
+        /// </summary>
+        /// <param name="emitter">An emitter in the scene</param>
+        /// <param name="point">Point on the emitter's surface</param>
+        /// <param name="lightToSurface">Direction from the emitter to the illuminated surface</param>
+        /// <param name="reversePdfJacobian">
+        /// Geometry term to convert the solid angle density on the emitter's surface to a surface area
+        /// density at the illuminated point.
+        /// </param>
+        /// <returns>The full, product surface area density of sampling this ray from the emitter</returns>
         public virtual float ComputeEmitterPdf(Emitter emitter, SurfacePoint point, Vector3 lightToSurface,
                                                float reversePdfJacobian) {
             float pdfEmit = emitter.PdfRay(point, lightToSurface);
@@ -79,12 +111,23 @@ namespace SeeSharp.Integrators.Bidir {
             return pdfEmit;
         }
 
+        /// <summary>
+        /// Computes the pdf of sampling a ray from the background that illuminates a point.
+        /// </summary>
+        /// <param name="from">The illuminated point</param>
+        /// <param name="lightToSurface">Direction from the background to the illuminated point</param>
+        /// <returns>Sampling density (solid angle times discrete)</returns>
         public virtual float ComputeBackgroundPdf(Vector3 from, Vector3 lightToSurface) {
             float pdfEmit = Scene.Background.RayPdf(from, lightToSurface);
             pdfEmit *= SelectLightPmf(null);
             return pdfEmit;
         }
 
+        /// <summary>
+        /// Samples a ray from the background into the scene.
+        /// </summary>
+        /// <param name="rng">Random number generator</param>
+        /// <returns>The sampled ray, its weight, and the sampling pdf</returns>
         public virtual (Ray, RgbColor, float) SampleBackground(RNG rng) {
             // Sample a ray from the background towards the scene
             var primaryPos = rng.NextFloat2D();
@@ -96,6 +139,9 @@ namespace SeeSharp.Integrators.Bidir {
         /// Resets the path cache and populates it with a new set of light paths.
         /// </summary>
         /// <param name="iter">Index of the current iteration, used to seed the random number generator.</param>
+        /// <param name="nextEventPdfCallback">
+        /// Delegate that is invoked to compute the next event sampling density
+        /// </param>
         public void TraceAllPaths(uint iter, NextEventPdfCallback nextEventPdfCallback) {
             if (PathCache == null)
                 PathCache = new PathCache(NumPaths, MaxDepth);
@@ -112,6 +158,13 @@ namespace SeeSharp.Integrators.Bidir {
             });
         }
 
+        /// <summary>
+        /// Computes the next event sampling pdf
+        /// </summary>
+        /// <param name="origin">Initial vertex on the light source or background</param>
+        /// <param name="primary">First vertex intersected in the scene</param>
+        /// <param name="nextDirection">Direction towards the next vertex</param>
+        /// <returns>Next event pdf to sample the same edge</returns>
         public delegate float NextEventPdfCallback(PathVertex origin, PathVertex primary, Vector3 nextDirection);
 
         class NotifyingCachedWalk : CachedRandomWalk {
@@ -184,8 +237,9 @@ namespace SeeSharp.Integrators.Bidir {
             emitterSample.Pdf *= selectProb;
 
             // Perform a random walk through the scene, storing all vertices along the path
-            var walker = new NotifyingCachedWalk(Scene, rng, MaxDepth, PathCache, idx);
-            walker.callback = nextEventPdfCallback;
+            var walker = new NotifyingCachedWalk(Scene, rng, MaxDepth, PathCache, idx) {
+                callback = nextEventPdfCallback
+            };
             walker.StartFromEmitter(emitterSample, emitterSample.Weight / selectProb);
             return walker.lastId;
         }

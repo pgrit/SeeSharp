@@ -206,7 +206,7 @@ namespace SeeSharp.Integrators.Bidir {
 
             var pathPdfs = new BidirPathPdfs(LightPaths.PathCache, lightToCam, camToLight);
             pathPdfs.GatherCameraPdfs(cameraPath, lastCameraVertexIdx);
-            pathPdfs.GatherLightPdfs(lightVertex, lastCameraVertexIdx - 1, numPdfs);
+            pathPdfs.GatherLightPdfs(lightVertex, lastCameraVertexIdx - 1);
 
             // Set the pdf values that are unique to this combination of paths
             if (lastCameraVertexIdx > 0) // only if this is not the primary hit point
@@ -272,7 +272,7 @@ namespace SeeSharp.Integrators.Bidir {
 
             var pathPdfs = new BidirPathPdfs(LightPaths.PathCache, lightToCam, camToLight);
 
-            pathPdfs.GatherLightPdfs(lightVertex, lastCameraVertexIdx, numPdfs);
+            pathPdfs.GatherLightPdfs(lightVertex, lastCameraVertexIdx);
 
             pathPdfs.PdfsCameraToLight[0] = pdfCamToPrimary;
             pathPdfs.PdfsCameraToLight[1] = pdfReverse + pdfNextEvent;
@@ -296,7 +296,7 @@ namespace SeeSharp.Integrators.Bidir {
 
             var pathPdfs = new BidirPathPdfs(LightPaths.PathCache, lightToCam, camToLight);
             pathPdfs.GatherCameraPdfs(cameraPath, lastCameraVertexIdx);
-            pathPdfs.GatherLightPdfs(lightVertex, lastCameraVertexIdx, numPdfs);
+            pathPdfs.GatherLightPdfs(lightVertex, lastCameraVertexIdx);
 
             // Set the pdf values that are unique to this combination of paths
             if (lastCameraVertexIdx > 0) // only if this is not the primary hit point

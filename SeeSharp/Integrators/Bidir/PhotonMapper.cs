@@ -7,17 +7,44 @@ using System.Threading.Tasks;
 using TinyEmbree;
 
 namespace SeeSharp.Integrators.Bidir {
+    /// <summary>
+    /// A pure photon mapper in its most naive form: merging at the first camera vertex with a fixed radius
+    /// computed from a fraction of the scene size.
+    /// </summary>
     public class PhotonMapper : Integrator {
+        /// <summary>
+        /// Number of iterations to render.
+        /// </summary>
         public int NumIterations = 2;
+
+        /// <summary>
+        /// Number of light paths in each iteration.
+        /// </summary>
         public int NumLightPaths = 0;
+
+        /// <summary>
+        /// Seed for the random samples used to generate the photons
+        /// </summary>
         public uint BaseSeedLight = 0xC030114u;
+
+        /// <summary>
+        /// Seed for the random samples used to generate the camera rays
+        /// </summary>
         public uint BaseSeedCamera = 0x13C0FEFEu;
 
+        /// <summary>
+        /// The scene that is currently rendered
+        /// </summary>
         protected Scene scene;
+
+        /// <summary>
+        /// Generates and stores the light paths / photons
+        /// </summary>
         protected LightPathCache lightPaths;
 
-        PhotonHashGrid photonMap = new PhotonHashGrid();
+        readonly PhotonHashGrid photonMap = new();
 
+        /// <inheritdoc />
         public override void Render(Scene scene) {
             this.scene = scene;
 
@@ -25,7 +52,12 @@ namespace SeeSharp.Integrators.Bidir {
                 NumLightPaths = scene.FrameBuffer.Width * scene.FrameBuffer.Height;
             }
 
-            lightPaths = new LightPathCache { MaxDepth = MaxDepth, NumPaths = NumLightPaths, Scene = scene };
+            lightPaths = new LightPathCache {
+                MaxDepth = MaxDepth,
+                NumPaths = NumLightPaths,
+                Scene = scene,
+                BaseSeed = BaseSeedLight
+            };
 
             for (uint iter = 0; iter < NumIterations; ++iter) {
                 scene.FrameBuffer.StartIteration();
@@ -36,7 +68,10 @@ namespace SeeSharp.Integrators.Bidir {
             }
         }
 
-        public virtual void ProcessPathCache() {
+        /// <summary>
+        /// Builds the photon map from the cached light paths
+        /// </summary>
+        protected virtual void ProcessPathCache() {
             photonMap.Build(lightPaths, scene.Radius / 100);
         }
 
@@ -55,21 +90,28 @@ namespace SeeSharp.Integrators.Bidir {
             return photonContrib;
         }
 
-        public virtual RgbColor EstimatePixelValue(SurfacePoint cameraPoint, Vector2 filmPosition, Ray primaryRay,
-                                                   float pdfFromCamera, RgbColor initialWeight, RNG rng) {
+        /// <summary>
+        /// Computes the estimated radiance travelling along a sampled camera ray
+        /// </summary>
+        /// <param name="pixel">Position on the image plane</param>
+        /// <param name="ray">Ray sampled from the camera</param>
+        /// <param name="weight">Contribution of the ray to the image, multiplied with the radiance</param>
+        /// <param name="rng">Random number generator</param>
+        /// <returns>Pixel value estimate</returns>
+        protected virtual RgbColor EstimatePixelValue(Vector2 pixel, Ray ray, RgbColor weight, RNG rng) {
             // Trace the primary ray into the scene
-            var hit = scene.Raytracer.Trace(primaryRay);
+            var hit = scene.Raytracer.Trace(ray);
             if (!hit)
-                return scene.Background?.EmittedRadiance(primaryRay.Direction) ?? RgbColor.Black;
+                return scene.Background?.EmittedRadiance(ray.Direction) ?? RgbColor.Black;
 
             // Gather nearby photons
             float radius = scene.Radius / 100.0f;
-            RgbColor estimate = photonMap.Accumulate(radius, hit, -primaryRay.Direction, Merge, radius);
+            RgbColor estimate = photonMap.Accumulate(radius, hit, -ray.Direction, Merge, radius);
 
             // Add contribution from directly visible light sources
             var light = scene.QueryEmitter(hit);
             if (light != null) {
-                estimate += light.EmittedRadiance(hit, -primaryRay.Direction);
+                estimate += light.EmittedRadiance(hit, -ray.Direction);
             }
 
             return estimate;
@@ -80,12 +122,8 @@ namespace SeeSharp.Integrators.Bidir {
             var offset = rng.NextFloat2D();
             var filmSample = new Vector2(col, row) + offset;
             var cameraRay = scene.Camera.GenerateRay(filmSample, rng);
-            var value = EstimatePixelValue(cameraRay.Point, filmSample, cameraRay.Ray,
-                                           cameraRay.PdfRay, cameraRay.Weight, rng);
-
-            // TODO we do nearest neighbor splatting manually here, to avoid numerical
-            //      issues if the primary samples are almost 1 (400 + 0.99999999f = 401)
-            scene.FrameBuffer.Splat((float)col, (float)row, value);
+            var value = EstimatePixelValue(filmSample, cameraRay.Ray, cameraRay.Weight, rng);
+            scene.FrameBuffer.Splat(col, row, value);
         }
 
         private void TraceAllCameraPaths(uint iter) {

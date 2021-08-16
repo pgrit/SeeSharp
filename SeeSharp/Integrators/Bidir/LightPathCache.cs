@@ -46,7 +46,7 @@ namespace SeeSharp.Integrators.Bidir {
         /// </summary>
         /// <param name="primary">Primary space random number in [0,1]</param>
         /// <returns>The emitter and its selection probability</returns>
-        protected virtual (Emitter, float) SelectLight(float primary) {
+        public virtual (Emitter, float) SelectLight(float primary) {
             if (primary < BackgroundProbability) {
                 return (null, BackgroundProbability);
             } else {
@@ -64,7 +64,7 @@ namespace SeeSharp.Integrators.Bidir {
         /// </summary>
         /// <param name="em">An emitter in the scene</param>
         /// <returns>The selection probability</returns>
-        protected virtual float SelectLightPmf(Emitter em) {
+        public virtual float SelectLightPmf(Emitter em) {
             if (em == null) { // background
                 return BackgroundProbability;
             } else {
@@ -75,7 +75,7 @@ namespace SeeSharp.Integrators.Bidir {
         /// <summary>
         /// Probability of selecting the background instead of a surface emitter
         /// </summary>
-        protected virtual float BackgroundProbability
+        public virtual float BackgroundProbability
         => Scene.Background != null ? 1 / (1.0f + Scene.Emitters.Count) : 0;
 
         /// <summary>

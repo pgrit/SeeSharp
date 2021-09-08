@@ -14,21 +14,24 @@ namespace SeeSharp.Integrators.Bidir {
         }
 
         public (int, int) Select(RNG rng) {
-            int pathIdx = rng.NextInt(0, cache.NumPaths);
-            int vertIdx = rng.NextInt(1, cache.Length(pathIdx));
+            int idx = rng.NextInt(0, Count);
+            var (pathIdx, vertIdx) = vertices[idx];
             return (pathIdx, vertIdx);
         }
 
-        public int Count => numVertices;
+        public int Count => vertices.Count;
 
         void Prepare() {
-            // Count the number of vertices we allow connecting to (aka the ones not on the emitter)
-            for (int i = 0; i < cache.NumPaths; ++i) {
-                numVertices += cache.Length(i) - 1;
+            vertices.Clear();
+            for (int pathIdx = 0; pathIdx < cache.NumPaths; ++pathIdx) {
+                int num = cache.Length(pathIdx);
+                for (int vertIdx = 1; vertIdx < num; ++vertIdx) {
+                    vertices.Add((pathIdx, vertIdx));
+                }
             }
         }
 
         PathCache cache;
-        int numVertices;
+        List<(int, int)> vertices = new();
     }
 }

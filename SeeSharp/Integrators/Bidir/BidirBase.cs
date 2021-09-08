@@ -548,6 +548,8 @@ namespace SeeSharp.Integrators.Bidir {
                 pdfCameraReverse *= reversePdfJacobian;
                 pdfCameraToLight *= SampleWarp.SurfaceAreaToSolidAngle(cameraPoint, vertex.Point);
 
+                if (pdfCameraToLight == 0) return; // TODO figure out how this can happen!
+
                 var (pdfLightToCamera, pdfLightReverse) =
                     vertex.Point.Material.Pdf(vertex.Point, dirToAncestor, -dirFromCamToLight, true);
                 if (ancestor.Point.Mesh != null) // not when from background
@@ -577,7 +579,12 @@ namespace SeeSharp.Integrators.Bidir {
                     pdfCameraToLight, pdfLightReverse, pdfLightToCamera, pdfNextEvent);
             }
 
-            if (lightVertIdx > 0 && lightVertIdx < LightPaths.PathCache.Length(lightPathIdx)) {
+            if (lightVertIdx > 0) {
+                if (lightVertIdx >= LightPaths.PathCache.Length(lightPathIdx)) {
+                    // Path of length 0 selected
+                    return result;
+                }
+
                 // specific vertex selected
                 var vertex = LightPaths.PathCache[lightPathIdx, lightVertIdx];
                 var ancestor = LightPaths.PathCache[lightPathIdx, lightVertIdx - 1];

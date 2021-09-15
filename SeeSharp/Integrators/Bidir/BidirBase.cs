@@ -162,6 +162,11 @@ namespace SeeSharp.Integrators.Bidir {
         protected virtual void OnAfterRender() { }
 
         /// <summary>
+        /// Called just before the main render loop starts
+        /// </summary>
+        protected virtual void OnBeforeRender() { }
+
+        /// <summary>
         /// Generates the light path cache used to sample and store light paths.
         /// Called at the beginning of the rendering process before the first iteration.
         /// </summary>
@@ -182,6 +187,7 @@ namespace SeeSharp.Integrators.Bidir {
             LightPaths = MakeLightPathCache();
 
             if (EnableDenoiser) DenoiseBuffers = new(scene.FrameBuffer);
+            OnBeforeRender();
 
             SeeSharp.Common.ProgressBar progressBar = new(NumIterations);
             RNG camSeedGen = new(BaseSeedCamera);

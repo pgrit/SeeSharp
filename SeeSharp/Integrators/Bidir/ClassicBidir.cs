@@ -140,7 +140,8 @@ namespace SeeSharp.Integrators.Bidir {
             sumReciprocals += pdfNextEvent / pdfThis;
 
             // All connections along the camera path
-            sumReciprocals += CameraPathReciprocals(lastCameraVertexIdx - 1, pathPdfs) / pdfThis;
+            sumReciprocals +=
+                CameraPathReciprocals(lastCameraVertexIdx - 1, pathPdfs, cameraPath.Pixel) / pdfThis;
 
             return 1 / sumReciprocals;
         }
@@ -161,7 +162,7 @@ namespace SeeSharp.Integrators.Bidir {
             pathPdfs.PdfsCameraToLight[1] = pdfReverse + pdfNextEvent;
 
             // Compute the actual weight
-            float sumReciprocals = LightPathReciprocals(lastCameraVertexIdx, pathPdfs);
+            float sumReciprocals = LightPathReciprocals(lastCameraVertexIdx, pathPdfs, pixel);
             sumReciprocals /= NumLightPaths;
             sumReciprocals += 1;
 
@@ -192,8 +193,8 @@ namespace SeeSharp.Integrators.Bidir {
 
             // Compute reciprocals for hypothetical connections along the camera sub-path
             float sumReciprocals = 1.0f;
-            sumReciprocals += CameraPathReciprocals(lastCameraVertexIdx, pathPdfs);
-            sumReciprocals += LightPathReciprocals(lastCameraVertexIdx, pathPdfs);
+            sumReciprocals += CameraPathReciprocals(lastCameraVertexIdx, pathPdfs, cameraPath.Pixel);
+            sumReciprocals += LightPathReciprocals(lastCameraVertexIdx, pathPdfs, cameraPath.Pixel);
 
             return 1 / sumReciprocals;
         }
@@ -222,7 +223,8 @@ namespace SeeSharp.Integrators.Bidir {
             sumReciprocals += pdfHit / pdfNextEvent;
 
             // All bidirectional connections
-            sumReciprocals += CameraPathReciprocals(lastCameraVertexIdx, pathPdfs) / pdfNextEvent;
+            sumReciprocals +=
+                CameraPathReciprocals(lastCameraVertexIdx, pathPdfs, cameraPath.Pixel) / pdfNextEvent;
 
             return 1 / sumReciprocals;
         }
@@ -234,8 +236,9 @@ namespace SeeSharp.Integrators.Bidir {
         /// Index of the last vertex that was sampled from the camera, identifies the current technique.
         /// </param>
         /// <param name="pdfs">The sampling pdfs along the path</param>
+        /// <param name="pixel">The pixel that this sample contributes to</param>
         /// <returns>Sum of the pdfs of all other techniques divided by the current technique.</returns>
-        protected virtual float CameraPathReciprocals(int lastCameraVertexIdx, BidirPathPdfs pdfs) {
+        protected virtual float CameraPathReciprocals(int lastCameraVertexIdx, BidirPathPdfs pdfs, Vector2 pixel) {
             float sumReciprocals = 0.0f;
             float nextReciprocal = 1.0f;
             for (int i = lastCameraVertexIdx; i > 0; --i) { // all bidir connections
@@ -256,8 +259,9 @@ namespace SeeSharp.Integrators.Bidir {
         /// Index of the last vertex that was sampled from the camera, identifies the current technique.
         /// </param>
         /// <param name="pdfs">The sampling pdfs along the path</param>
+        /// <param name="pixel">The pixel that this sample contributes to</param>
         /// <returns>Sum of the pdfs of all other techniques divided by the current technique.</returns>
-        protected virtual float LightPathReciprocals(int lastCameraVertexIdx, BidirPathPdfs pdfs) {
+        protected virtual float LightPathReciprocals(int lastCameraVertexIdx, BidirPathPdfs pdfs, Vector2 pixel) {
             float sumReciprocals = 0.0f;
             float nextReciprocal = 1.0f;
             for (int i = lastCameraVertexIdx + 1; i < pdfs.NumPdfs; ++i) {

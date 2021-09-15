@@ -5,10 +5,19 @@ namespace SeeSharp.Image {
     /// A layer in the frame buffer, an image to hold AOVs
     /// </summary>
     public abstract class Layer {
+        bool frozen = false;
+
         /// <summary>
         /// The image buffer
         /// </summary>
         public ImageBase Image { get; set; }
+
+        /// <summary>
+        /// Stops normalizing the image data. Useful if an AOV is only written during some initial iterations.
+        /// </summary>
+        public virtual void Freeze() {
+            frozen = true;
+        }
 
         /// <summary>
         /// Called once before the first rendering iteration
@@ -23,7 +32,7 @@ namespace SeeSharp.Image {
         /// </summary>
         /// <param name="curIteration">The 1-based index of the iteration that starts now</param>
         public virtual void OnStartIteration(int curIteration) {
-            if (curIteration > 1)
+            if (curIteration > 1 && !frozen)
                 Image.Scale((curIteration - 1.0f) / curIteration);
             this.curIteration = curIteration;
         }

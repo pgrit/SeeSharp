@@ -142,14 +142,20 @@ namespace SeeSharp.Image {
                     layer.Init(Width, Height);
 
                 if (flags.HasFlag(Flags.SendToTev)) {
-                    tevIpc = new TevIpc();
-                    // If a file with the same name is open, close it to avoid conflicts
-                    tevIpc.CloseImage(filename);
-                    tevIpc.CreateImageSync(filename, Width, Height,
-                        layers.Select(kv => (kv.Key, kv.Value.Image))
-                            .Append(("default", Image))
-                            .ToArray()
-                    );
+                    try {
+                        tevIpc = new TevIpc();
+                        // If a file with the same name is open, close it to avoid conflicts
+                        tevIpc.CloseImage(filename);
+                        tevIpc.CreateImageSync(filename, Width, Height,
+                            layers.Select(kv => (kv.Key, kv.Value.Image))
+                                .Append(("default", Image))
+                                .ToArray()
+                        );
+                    } catch(Exception exc) {
+                        Logger.Warning(exc.ToString());
+                        Logger.Warning("Could not connect to tev. Make sure it is running with the correct IP and port.");
+                        tevIpc = null;
+                    }
                 }
 
                 MetaData["NumIterations"] = 0;
@@ -195,8 +201,7 @@ namespace SeeSharp.Image {
             if (flags.HasFlag(Flags.WriteContinously))
                 WriteToFile();
 
-            if (flags.HasFlag(Flags.SendToTev))
-                tevIpc.UpdateImage(filename);
+            tevIpc?.UpdateImage(filename);
         }
 
         /// <summary>

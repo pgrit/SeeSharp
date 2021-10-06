@@ -10,6 +10,7 @@ using System.Threading.Tasks;
 using TinyEmbree;
 using SeeSharp.Common;
 using SeeSharp.Integrators.Util;
+using System.Diagnostics;
 
 namespace SeeSharp.Integrators.Bidir {
     /// <summary>
@@ -192,6 +193,8 @@ namespace SeeSharp.Integrators.Bidir {
             SeeSharp.Common.ProgressBar progressBar = new(NumIterations);
             RNG camSeedGen = new(BaseSeedCamera);
             RenderTimer timer = new();
+            Stopwatch lightTracerTimer = new();
+            Stopwatch pathTracerTimer = new();
             for (uint iter = 0; iter < NumIterations; ++iter) {
                 long nextIterTime = timer.RenderTime + timer.PerIterationCost;
                 if (MaximumRenderTimeMs.HasValue && nextIterTime > MaximumRenderTimeMs.Value) {
@@ -207,10 +210,14 @@ namespace SeeSharp.Integrators.Bidir {
 
                 PreIteration(iter);
                 try {
+                    lightTracerTimer.Start();
                     LightPaths.TraceAllPaths(iter,
                         (origin, primary, nextDirection) => NextEventPdf(primary.Point, origin.Point));
                     ProcessPathCache();
+                    lightTracerTimer.Stop();
+                    pathTracerTimer.Start();
                     TraceAllCameraPaths(iter);
+                    pathTracerTimer.Stop();
                 } catch {
                     Logger.Log($"Exception in iteration {iter} out of {NumIterations}.", Verbosity.Error);
                     throw;
@@ -229,6 +236,8 @@ namespace SeeSharp.Integrators.Bidir {
 
             scene.FrameBuffer.MetaData["RenderTime"] = timer.RenderTime;
             scene.FrameBuffer.MetaData["FrameBufferTime"] = timer.FrameBufferTime;
+            scene.FrameBuffer.MetaData["PathTracerTime"] = pathTracerTimer.ElapsedMilliseconds;
+            scene.FrameBuffer.MetaData["LightTracerTime"] = lightTracerTimer.ElapsedMilliseconds;
 
             OnAfterRender();
         }

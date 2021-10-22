@@ -130,6 +130,12 @@ namespace SeeSharp.Integrators.Common {
             RgbColor estimate = OnHit(ray, hit, pdfFromAncestor, throughput, depth,
                                       SampleWarp.SurfaceAreaToSolidAngle(hit, previousPoint));
 
+            // Don't sample continuations if we are going to terminate anyway
+            if (depth + 1 >= maxDepth) {
+                OnTerminate();
+                return RgbColor.Black;
+            }
+
             // Terminate with Russian roulette
             float survivalProb = ComputeSurvivalProbability(hit, ray, throughput, depth);
             if (rng.NextFloat() > survivalProb) {

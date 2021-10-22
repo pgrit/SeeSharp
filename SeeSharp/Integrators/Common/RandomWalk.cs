@@ -133,7 +133,7 @@ namespace SeeSharp.Integrators.Common {
             // Don't sample continuations if we are going to terminate anyway
             if (depth + 1 >= maxDepth) {
                 OnTerminate();
-                return RgbColor.Black;
+                return estimate;
             }
 
             // Terminate with Russian roulette

@@ -92,10 +92,8 @@ namespace SeeSharp.Integrators.Bidir {
         }
 
         protected override void ProcessPathCache() {
-            vertexSelector = new VertexSelector(LightPaths.PathCache);
-
-            if (EnableLightTracer)
-                SplatLightVertices();
+            if (EnableConnections) vertexSelector = new VertexSelector(LightPaths.PathCache);
+            if (EnableLightTracer) SplatLightVertices();
         }
 
         protected override RgbColor OnCameraHit(CameraPath path, RNG rng, Ray ray, SurfacePoint hit,
@@ -112,9 +110,7 @@ namespace SeeSharp.Integrators.Bidir {
             // Perform connections if the maximum depth has not yet been reached
             if (depth < MaxDepth) {
                 for (int i = 0; i < NumConnections && EnableConnections; ++i) {
-                    var weight = throughput *
-                        BidirConnections(hit, -ray.Direction, rng, path, toAncestorJacobian);
-                    value += weight;
+                    value += throughput * BidirConnections(hit, -ray.Direction, rng, path, toAncestorJacobian);
                 }
             }
 

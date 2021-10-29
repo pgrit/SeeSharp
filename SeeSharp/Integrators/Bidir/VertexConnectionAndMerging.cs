@@ -9,7 +9,7 @@ using System.Numerics;
 using TinyEmbree;
 
 namespace SeeSharp.Integrators.Bidir {
-    public class VertexConnectionAndMerging : BidirBase {
+    public class VertexConnectionAndMerging : VertexCacheBidir {
         public bool RenderTechniquePyramid = false;
 
         public bool EnableConnections = true;
@@ -95,11 +95,6 @@ namespace SeeSharp.Integrators.Bidir {
                                                       minDepth: 1, maxDepth: MaxDepth, merges: true);
             }
 
-            if (EnableConnections || NumLightPaths == 0) {
-                // Classic Bidir requires exactly one light path for every camera path.
-                NumLightPaths = scene.FrameBuffer.Width * scene.FrameBuffer.Height;
-            }
-
             InitializeRadius(scene);
 
             base.Render(scene);
@@ -115,7 +110,7 @@ namespace SeeSharp.Integrators.Bidir {
         }
 
         protected override void ProcessPathCache() {
-            if (EnableLightTracing) SplatLightVertices();
+            base.ProcessPathCache();
             if (EnableMerging) photonMap.Build(LightPaths, Radius);
         }
 
@@ -184,10 +179,9 @@ namespace SeeSharp.Integrators.Bidir {
 
             // Perform connections and merging if the maximum depth has not yet been reached
             if (depth < MaxDepth) {
-                if (EnableConnections)
-                    value += throughput *
-                        BidirConnections(hit, -ray.Direction, rng, path, toAncestorJacobian);
-
+                for (int i = 0; i < NumConnections && EnableConnections; ++i) {
+                    value += throughput * BidirConnections(hit, -ray.Direction, rng, path, toAncestorJacobian);
+                }
                 value += throughput * PerformMerging(ray, hit, path, toAncestorJacobian);
             }
 

@@ -2,6 +2,7 @@
 using SeeSharp.Sampling;
 using SimpleImageIO;
 using System;
+using System.Collections.Generic;
 using System.Numerics;
 using System.Threading.Tasks;
 using TinyEmbree;
@@ -42,7 +43,7 @@ namespace SeeSharp.Integrators.Bidir {
         /// </summary>
         protected LightPathCache lightPaths;
 
-        readonly PhotonHashGrid photonMap = new();
+        readonly TinyEmbree.NearestNeighborSearch photonMap = new();
 
         /// <inheritdoc />
         public override void Render(Scene scene) {
@@ -65,23 +66,39 @@ namespace SeeSharp.Integrators.Bidir {
                 ProcessPathCache();
                 TraceAllCameraPaths(iter);
                 scene.FrameBuffer.EndIteration();
+                photonMap.Clear();
             }
         }
+
+        List<(int PathIndex, int VertexIndex)> photons = new();
 
         /// <summary>
         /// Builds the photon map from the cached light paths
         /// </summary>
         protected virtual void ProcessPathCache() {
-            photonMap.Build(lightPaths, scene.Radius / 100);
+            int index = 0;
+            photons = new();
+            for (int i = 0; i < lightPaths.NumPaths; ++i) {
+                for (int k = 1; k < lightPaths.PathCache.Length(i); ++k) {
+                    var vertex = lightPaths.PathCache[i, k];
+                    if (vertex.Depth >= 1 && vertex.Weight != RgbColor.Black) {
+                        photonMap.AddPoint(vertex.Point.Position, index++);
+                        photons.Add((i, k));
+                    }
+                }
+            }
+            photonMap.Build();
         }
 
-        RgbColor Merge(float radius, SurfacePoint hit, Vector3 outDir, int pathIdx, int vertIdx, float distSqr) {
+        RgbColor Merge(float radius, SurfacePoint hit, Vector3 outDir, int pathIdx, int vertIdx) {
             // Compute the contribution of the photon
             var photon = lightPaths.PathCache[pathIdx, vertIdx];
             var ancestor = lightPaths.PathCache[pathIdx, photon.AncestorId];
-            var dirToAncestor = ancestor.Point.Position - photon.Point.Position;
+            var dirToAncestor = Vector3.Normalize(ancestor.Point.Position - photon.Point.Position);
             var bsdfValue = photon.Point.Material.Evaluate(hit, outDir, dirToAncestor, false);
             var photonContrib = photon.Weight * bsdfValue / NumLightPaths;
+
+            float distSqr = (photon.Point.Position - hit.Position).LengthSquared();
 
             // Epanechnikov kernel
             float radiusSquared = radius * radius;
@@ -106,7 +123,18 @@ namespace SeeSharp.Integrators.Bidir {
 
             // Gather nearby photons
             float radius = scene.Radius / 100.0f;
-            RgbColor estimate = photonMap.Accumulate(radius, hit, -ray.Direction, Merge, radius);
+            RgbColor estimate = RgbColor.Black;
+            photonMap.ForAllNearest(hit.Position, int.MaxValue, radius, (position, idx, distance) => {
+                estimate += Merge(radius, hit, -ray.Direction, photons[idx].PathIndex, photons[idx].VertexIndex);
+            });
+            // int[] nearest = photonMap.QueryNearest(hit.Position, int.MaxValue, radius);
+
+            // if (nearest is not null) {
+            //     foreach (int idx in nearest) {
+
+            //     }
+            // }
+            // RgbColor estimate = photonMap.Accumulate(radius, hit, -ray.Direction, Merge, radius);
 
             // Add contribution from directly visible light sources
             var light = scene.QueryEmitter(hit);

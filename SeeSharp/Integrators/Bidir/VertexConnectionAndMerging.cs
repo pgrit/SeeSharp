@@ -9,7 +9,7 @@ using System.Numerics;
 using TinyEmbree;
 
 namespace SeeSharp.Integrators.Bidir {
-    public class VertexConnectionAndMerging : BidirBase {
+    public class VertexConnectionAndMerging : VertexCacheBidir {
         public bool RenderTechniquePyramid = false;
 
         public bool EnableConnections = true;

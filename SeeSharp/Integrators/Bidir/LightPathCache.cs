@@ -219,6 +219,8 @@ namespace SeeSharp.Integrators.Bidir {
         /// <summary>
         /// Utility function that iterates over a light path, starting on the end point, excluding the point on the light itself.
         /// </summary>
+        /// <param name="index">Index of the light path to iterate over</param>
+        /// <param name="func">Delegate invoked on each vertex</param>
         public void ForEachVertex(int index, ProcessVertex func) {
             int n = PathCache?.Length(index) ?? 0;
             for (int i = 1; i < n; ++i) {

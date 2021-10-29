@@ -138,7 +138,7 @@ namespace SeeSharp.Integrators.Bidir {
             var ancestor = LightPaths.PathCache[pathIdx, photon.AncestorId];
             var dirToAncestor = Vector3.Normalize(ancestor.Point.Position - photon.Point.Position);
             var bsdfValue = hit.Material.Evaluate(hit, outDir, dirToAncestor, false);
-            var photonContrib = photon.Weight * bsdfValue / NumLightPaths;
+            var photonContrib = photon.Weight * bsdfValue / NumLightPaths.Value;
 
             // Compute the missing pdf terms and the MIS weight
             var (pdfLightReverse, pdfCameraReverse) =
@@ -217,7 +217,7 @@ namespace SeeSharp.Integrators.Bidir {
 
             // Compute the acceptance probability approximation
             float mergeApproximation = pathPdfs.PdfsLightToCamera[lastCameraVertexIdx]
-                                     * MathF.PI * Radius * Radius * NumLightPaths;
+                                     * MathF.PI * Radius * Radius * NumLightPaths.Value;
 
             // Compute reciprocals for hypothetical connections along the camera sub-path
             float sumReciprocals = 0.0f;
@@ -279,7 +279,7 @@ namespace SeeSharp.Integrators.Bidir {
 
             // Compute the actual weight
             float sumReciprocals = LightPathReciprocals(lastCameraVertexIdx, numPdfs, pathPdfs, pixel);
-            sumReciprocals /= NumLightPaths;
+            sumReciprocals /= NumLightPaths.Value;
             sumReciprocals += 1;
 
             return 1 / sumReciprocals;
@@ -351,7 +351,7 @@ namespace SeeSharp.Integrators.Bidir {
                 // Merging at this vertex
                 if (EnableMerging) {
                     float acceptProb = pdfs.PdfsLightToCamera[i] * MathF.PI * Radius * Radius;
-                    sumReciprocals += nextReciprocal * NumLightPaths * acceptProb;
+                    sumReciprocals += nextReciprocal * NumLightPaths.Value * acceptProb;
                 }
 
                 nextReciprocal *= pdfs.PdfsLightToCamera[i] / pdfs.PdfsCameraToLight[i];
@@ -363,11 +363,11 @@ namespace SeeSharp.Integrators.Bidir {
             // Light tracer
             if (EnableLightTracing)
                 sumReciprocals +=
-                    nextReciprocal * pdfs.PdfsLightToCamera[0] / pdfs.PdfsCameraToLight[0] * NumLightPaths;
+                    nextReciprocal * pdfs.PdfsLightToCamera[0] / pdfs.PdfsCameraToLight[0] * NumLightPaths.Value;
 
             // Merging directly visible (almost the same as the light tracer!)
             if (MergePrimary)
-                sumReciprocals += nextReciprocal * NumLightPaths * pdfs.PdfsLightToCamera[0]
+                sumReciprocals += nextReciprocal * NumLightPaths.Value * pdfs.PdfsLightToCamera[0]
                                 * MathF.PI * Radius * Radius;
 
             return sumReciprocals;
@@ -382,7 +382,7 @@ namespace SeeSharp.Integrators.Bidir {
                     // Account for merging at this vertex
                     if (EnableMerging) {
                         float acceptProb = pdfs.PdfsCameraToLight[i] * MathF.PI * Radius * Radius;
-                        sumReciprocals += nextReciprocal * NumLightPaths * acceptProb;
+                        sumReciprocals += nextReciprocal * NumLightPaths.Value * acceptProb;
                     }
                 }
 

@@ -31,9 +31,10 @@ namespace SeeSharp.Integrators.Bidir {
         public long? MaximumRenderTimeMs;
 
         /// <summary>
-        /// Number of light paths per iteration, or zero (default) to trace one per pixel.
+        /// Number of light paths per iteration. If not given, traces one per pixel.
+        /// Must only be changed in-between rendering iterations. Otherwise: mayhem.
         /// </summary>
-        public int NumLightPaths = 0;
+        public int? NumLightPaths;
 
         /// <summary>
         /// The base seed to generate camera paths.
@@ -172,7 +173,7 @@ namespace SeeSharp.Integrators.Bidir {
         /// Called at the beginning of the rendering process before the first iteration.
         /// </summary>
         protected virtual LightPathCache MakeLightPathCache()
-        => new LightPathCache { MaxDepth = MaxDepth, NumPaths = NumLightPaths, Scene = Scene };
+        => new LightPathCache { MaxDepth = MaxDepth, NumPaths = NumLightPaths.Value, Scene = Scene };
 
         /// <summary>
         /// Renders the scene with the current settings. Not thread-safe: Only one scene can be rendered at a
@@ -181,9 +182,7 @@ namespace SeeSharp.Integrators.Bidir {
         public override void Render(Scene scene) {
             this.Scene = scene;
 
-            if (NumLightPaths <= 0) {
-                NumLightPaths = scene.FrameBuffer.Width * scene.FrameBuffer.Height;
-            }
+            if (!NumLightPaths.HasValue) NumLightPaths = scene.FrameBuffer.Width * scene.FrameBuffer.Height;
 
             LightPaths = MakeLightPathCache();
 
@@ -210,6 +209,9 @@ namespace SeeSharp.Integrators.Bidir {
 
                 PreIteration(iter);
                 try {
+                    // Make sure that changes in the light path count are propagated to the cache.
+                    LightPaths.NumPaths = NumLightPaths.Value;
+
                     lightTracerTimer.Start();
                     LightPaths.TraceAllPaths(iter,
                         (origin, primary, nextDirection) => NextEventPdf(primary.Point, origin.Point));
@@ -451,7 +453,7 @@ namespace SeeSharp.Integrators.Bidir {
                     LightTracerMis(vertex, response.PdfEmit, pdfReverse, pdfNextEvent, response.Pixel, distToCam);
 
                 // Compute image contribution and splat
-                RgbColor weight = vertex.Weight * bsdfValue * response.Weight / NumLightPaths;
+                RgbColor weight = vertex.Weight * bsdfValue * response.Weight / NumLightPaths.Value;
                 Scene.FrameBuffer.Splat(response.Pixel.X, response.Pixel.Y, misWeight * weight);
 
                 // Log the sample

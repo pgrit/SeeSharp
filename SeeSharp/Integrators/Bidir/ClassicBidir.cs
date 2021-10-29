@@ -71,8 +71,10 @@ namespace SeeSharp.Integrators.Bidir {
                                                       minDepth: 1, maxDepth: MaxDepth, merges: false);
             }
 
-            // Classic Bidir requires exactly one light path for every camera path.
-            NumLightPaths = scene.FrameBuffer.Width * scene.FrameBuffer.Height;
+            if (NumLightPaths.HasValue && NumLightPaths.Value != scene.FrameBuffer.Width * scene.FrameBuffer.Height) {
+                throw new ArgumentOutOfRangeException(nameof(NumLightPaths), NumLightPaths,
+                    "Classic Bidir requires exactly one light path for every camera path");
+            }
 
             base.Render(scene);
 
@@ -163,7 +165,7 @@ namespace SeeSharp.Integrators.Bidir {
 
             // Compute the actual weight
             float sumReciprocals = LightPathReciprocals(lastCameraVertexIdx, pathPdfs, pixel);
-            sumReciprocals /= NumLightPaths;
+            sumReciprocals /= NumLightPaths.Value;
             sumReciprocals += 1;
 
             return 1 / sumReciprocals;
@@ -248,7 +250,7 @@ namespace SeeSharp.Integrators.Bidir {
             // Light tracer
             if (EnableLightTracer)
                 sumReciprocals +=
-                    nextReciprocal * pdfs.PdfsLightToCamera[0] / pdfs.PdfsCameraToLight[0] * NumLightPaths;
+                    nextReciprocal * pdfs.PdfsLightToCamera[0] / pdfs.PdfsCameraToLight[0] * NumLightPaths.Value;
             return sumReciprocals;
         }
 

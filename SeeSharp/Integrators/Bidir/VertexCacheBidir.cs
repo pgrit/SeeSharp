@@ -58,7 +58,7 @@ namespace SeeSharp.Integrators.Bidir {
 
             // There are "NumLightPaths" samples that could have generated the selected vertex,
             // we repeat the process "NumConnections" times
-            float numSamples = NumConnections * NumLightPaths;
+            float numSamples = NumConnections * NumLightPaths.Value;
 
             return selectProb * numSamples;
         }
@@ -170,7 +170,7 @@ namespace SeeSharp.Integrators.Bidir {
 
             // Compute the actual weight
             float sumReciprocals = LightPathReciprocals(lastCameraVertexIdx, numPdfs, pathPdfs);
-            sumReciprocals /= NumLightPaths;
+            sumReciprocals /= NumLightPaths.Value;
             sumReciprocals += 1;
             return 1 / sumReciprocals;
         }
@@ -242,7 +242,7 @@ namespace SeeSharp.Integrators.Bidir {
             }
             if (EnableLightTracer)
                 sumReciprocals +=
-                    nextReciprocal * pdfs.PdfsLightToCamera[0] / pdfs.PdfsCameraToLight[0] * NumLightPaths;
+                    nextReciprocal * pdfs.PdfsLightToCamera[0] / pdfs.PdfsCameraToLight[0] * NumLightPaths.Value;
             return sumReciprocals;
         }
 

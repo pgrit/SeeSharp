@@ -10,13 +10,6 @@ using TinyEmbree;
 
 namespace SeeSharp.Integrators.Bidir {
     public class VertexConnectionAndMerging : VertexCacheBidir {
-        public bool RenderTechniquePyramid = false;
-
-        public bool EnableConnections = true;
-        public bool EnableLightTracing = true;
-        public bool EnableNextEvent = true;
-        public bool EnableBsdfLightHit = true;
-
         /// <summary>Whether or not to use merging at the first hit from the camera.</summary>
         public bool MergePrimary = false;
 
@@ -100,6 +93,8 @@ namespace SeeSharp.Integrators.Bidir {
             base.Render(scene);
 
             // Store the technique pyramids
+            // TODO we are rendering some of these twice and replacing all but the merging ones, now that
+            //      the base class has changed! Only write merges here.
             if (RenderTechniquePyramid) {
                 string pathRaw = Path.Join(scene.FrameBuffer.Basename, "techs-raw");
                 techPyramidRaw.WriteToFiles(pathRaw);
@@ -173,7 +168,7 @@ namespace SeeSharp.Integrators.Bidir {
 
             // Was a light hit?
             Emitter light = Scene.QueryEmitter(hit);
-            if (light != null && (EnableBsdfLightHit || depth == 1) && depth >= MinDepth) {
+            if (light != null && (EnableHitting || depth == 1) && depth >= MinDepth) {
                 value += throughput * OnEmitterHit(light, hit, ray, path, toAncestorJacobian);
             }
 
@@ -185,8 +180,11 @@ namespace SeeSharp.Integrators.Bidir {
                 value += throughput * PerformMerging(ray, hit, path, toAncestorJacobian);
             }
 
-            if (EnableNextEvent && depth < MaxDepth && depth + 1 >= MinDepth)
-                value += throughput * PerformNextEventEstimation(ray, hit, rng, path, toAncestorJacobian);
+            if (depth < MaxDepth && depth + 1 >= MinDepth) {
+                for (int i = 0; i < NumShadowRays; ++i) {
+                    value += throughput * PerformNextEventEstimation(ray, hit, rng, path, toAncestorJacobian);
+                }
+            }
 
             return value;
         }
@@ -248,7 +246,7 @@ namespace SeeSharp.Integrators.Bidir {
             float sumReciprocals = 1.0f;
 
             // Next event estimation
-            if (EnableNextEvent) sumReciprocals += pdfNextEvent / pdfThis;
+            sumReciprocals += pdfNextEvent / pdfThis;
 
             // All connections along the camera path
             sumReciprocals +=
@@ -328,7 +326,7 @@ namespace SeeSharp.Integrators.Bidir {
             float sumReciprocals = 1.0f;
 
             // Hitting the light source
-            if (EnableBsdfLightHit) sumReciprocals += pdfHit / pdfNextEvent;
+            if (EnableHitting) sumReciprocals += pdfHit / pdfNextEvent;
 
             // All bidirectional connections
             sumReciprocals += CameraPathReciprocals(lastCameraVertexIdx, numPdfs, pathPdfs, cameraPath.Pixel)
@@ -355,7 +353,7 @@ namespace SeeSharp.Integrators.Bidir {
             }
 
             // Light tracer
-            if (EnableLightTracing)
+            if (EnableLightTracer)
                 sumReciprocals +=
                     nextReciprocal * pdfs.PdfsLightToCamera[0] / pdfs.PdfsCameraToLight[0] * NumLightPaths.Value;
 
@@ -386,7 +384,7 @@ namespace SeeSharp.Integrators.Bidir {
                 if (i < numPdfs - 2) // Connections to the emitter (next event) are treated separately
                     if (EnableConnections) sumReciprocals += nextReciprocal;
             }
-            if (EnableBsdfLightHit || EnableNextEvent) sumReciprocals += nextReciprocal; // Next event and hitting the emitter directly
+            if (EnableHitting || NumShadowRays != 0) sumReciprocals += nextReciprocal; // Next event and hitting the emitter directly
             // TODO / FIXME Bsdf and Nee can only be disabled jointly here: needs proper handling when assembling pdfs
             return sumReciprocals;
         }

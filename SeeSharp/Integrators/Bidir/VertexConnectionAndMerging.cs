@@ -300,8 +300,10 @@ namespace SeeSharp.Integrators.Bidir {
 
             // Compute reciprocals for hypothetical connections along the camera sub-path
             float sumReciprocals = 1.0f;
-            sumReciprocals += CameraPathReciprocals(lastCameraVertexIdx, numPdfs, pathPdfs, cameraPath.Pixel);
-            sumReciprocals += LightPathReciprocals(lastCameraVertexIdx, numPdfs, pathPdfs, cameraPath.Pixel);
+            sumReciprocals += CameraPathReciprocals(lastCameraVertexIdx, numPdfs, pathPdfs, cameraPath.Pixel)
+                / BidirSelectDensity();
+            sumReciprocals += LightPathReciprocals(lastCameraVertexIdx, numPdfs, pathPdfs, cameraPath.Pixel)
+                / BidirSelectDensity();
 
             return 1 / sumReciprocals;
         }
@@ -349,7 +351,7 @@ namespace SeeSharp.Integrators.Bidir {
                 nextReciprocal *= pdfs.PdfsLightToCamera[i] / pdfs.PdfsCameraToLight[i];
 
                 // Connecting this vertex to the next one along the camera path
-                if (EnableConnections) sumReciprocals += nextReciprocal;
+                if (EnableConnections) sumReciprocals += nextReciprocal * BidirSelectDensity();
             }
 
             // Light tracer
@@ -382,7 +384,7 @@ namespace SeeSharp.Integrators.Bidir {
 
                 // Account for connections from this vertex to its ancestor
                 if (i < numPdfs - 2) // Connections to the emitter (next event) are treated separately
-                    if (EnableConnections) sumReciprocals += nextReciprocal;
+                    if (EnableConnections) sumReciprocals += nextReciprocal * BidirSelectDensity();
             }
             if (EnableHitting || NumShadowRays != 0) sumReciprocals += nextReciprocal; // Next event and hitting the emitter directly
             // TODO / FIXME Bsdf and Nee can only be disabled jointly here: needs proper handling when assembling pdfs

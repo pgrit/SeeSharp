@@ -224,7 +224,7 @@ namespace SeeSharp.Image {
             string basename = Path.Combine(dir, fileBase);
 
             if (Path.GetExtension(fname).ToLower() == ".exr") {
-                ImageBase.WriteLayeredExr(fname,
+                Layers.WriteToExr(fname,
                     layers.Select(kv => (kv.Key, kv.Value.Image))
                         .Append(("default", Image))
                         .ToArray()

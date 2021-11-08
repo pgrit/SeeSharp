@@ -745,6 +745,8 @@ namespace SeeSharp.Integrators.Bidir {
                 if (!Scene.Raytracer.IsOccluded(hit, lightSample.Point)) {
                     Vector3 lightToSurface = Vector3.Normalize(hit.Position - lightSample.Point.Position);
                     var emission = light.EmittedRadiance(lightSample.Point, lightToSurface);
+                    if (emission == RgbColor.Black)
+                        return RgbColor.Black;
 
                     var bsdfTimesCosine =
                         hit.Material.EvaluateWithCosine(hit, -ray.Direction, -lightToSurface, false);

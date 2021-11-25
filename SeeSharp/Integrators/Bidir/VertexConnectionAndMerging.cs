@@ -222,7 +222,7 @@ namespace SeeSharp.Integrators.Bidir {
 
             // Add the reciprocal for the connection that replaces the last light path edge
             if (lightVertex.Depth > 1 && EnableConnections)
-                sumReciprocals += 1 / mergeApproximation;
+                sumReciprocals += BidirSelectDensity() / mergeApproximation;
 
             return 1 / sumReciprocals;
         }

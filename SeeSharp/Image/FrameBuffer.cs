@@ -213,6 +213,13 @@ namespace SeeSharp.Image {
         }
 
         /// <summary>
+        /// Clears the image and all layers, but keeps the rendering time
+        /// </summary>
+        public virtual void Clear() {
+            CurIteration = 0;
+        }
+
+        /// <summary>
         /// Writes the current rendered image to a file on disk.
         /// </summary>
         /// <param name="fname">The desired file name. If not given, uses the final image name.</param>

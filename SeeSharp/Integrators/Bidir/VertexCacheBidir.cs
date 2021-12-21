@@ -26,7 +26,7 @@ namespace SeeSharp.Integrators.Bidir {
         TechPyramid techPyramidRaw;
         TechPyramid techPyramidWeighted;
 
-        VertexSelector vertexSelector;
+        protected VertexSelector vertexSelector;
 
         protected override float NextEventPdf(SurfacePoint from, SurfacePoint to) {
             return base.NextEventPdf(from, to) * NumShadowRays;

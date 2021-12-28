@@ -3,6 +3,7 @@ using SeeSharp.Sampling;
 using SimpleImageIO;
 using SeeSharp.Shading.Emitters;
 using TinyEmbree;
+using System;
 
 namespace SeeSharp.Integrators.Common {
     public class CachedRandomWalk : RandomWalk {
@@ -29,7 +30,8 @@ namespace SeeSharp.Integrators.Common {
                 PdfReverseAncestor = 0.0f, // unused
                 Weight = RgbColor.Black, // the first known weight is that at the first hit point
                 AncestorId = -1,
-                Depth = 0
+                Depth = 0,
+                MaximumRoughness = 0
             }, pathIdx);
             return base.StartFromEmitter(emitterSample, initialWeight);
         }
@@ -45,7 +47,8 @@ namespace SeeSharp.Integrators.Common {
                 PdfReverseAncestor = 0.0f, // unused
                 Weight = RgbColor.Black, // the first known weight is that at the first hit point
                 AncestorId = -1,
-                Depth = 0
+                Depth = 0,
+                MaximumRoughness = 0
             }, pathIdx);
             return base.StartFromBackground(ray, initialWeight, pdf);
         }
@@ -53,13 +56,16 @@ namespace SeeSharp.Integrators.Common {
         protected override RgbColor OnHit(Ray ray, SurfacePoint hit, float pdfFromAncestor, RgbColor throughput,
                                           int depth, float toAncestorJacobian) {
             // Add the next vertex
+            float lastRougness = cache[pathIdx, lastId].MaximumRoughness;
+            float roughness = hit.Material.GetRoughness(hit);
             lastId = cache.AddVertex(new PathVertex {
                 Point = hit,
                 PdfFromAncestor = pdfFromAncestor,
                 PdfReverseAncestor = nextReversePdf,
                 Weight = throughput,
                 AncestorId = lastId,
-                Depth = (byte)depth
+                Depth = (byte)depth,
+                MaximumRoughness = MathF.Max(roughness, lastRougness)
             }, pathIdx);
             return RgbColor.Black;
         }

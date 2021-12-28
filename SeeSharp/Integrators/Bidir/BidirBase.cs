@@ -109,6 +109,11 @@ namespace SeeSharp.Integrators.Bidir {
             /// Distances between all points sampled along this path
             /// </summary>
             public List<float> Distances;
+
+            /// <summary>
+            /// Maximum roughness of any surface material encountered along the path
+            /// </summary>
+            public float MaximumRoughness;
         }
 
         /// <summary>
@@ -915,6 +920,10 @@ namespace SeeSharp.Integrators.Bidir {
                 });
                 path.Throughput = throughput;
                 path.Distances.Add(hit.Distance);
+
+                float roughness = ((SurfacePoint)hit).Material.GetRoughness(hit);
+                path.MaximumRoughness = MathF.Max(roughness, path.MaximumRoughness);
+
                 return integrator.OnCameraHit(path, rng, ray, hit, pdfFromAncestor, throughput, depth,
                     toAncestorJacobian);
             }

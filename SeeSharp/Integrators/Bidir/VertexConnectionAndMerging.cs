@@ -109,9 +109,9 @@ namespace SeeSharp.Integrators.Bidir {
             if (EnableMerging) photonMap.Build(LightPaths, Radius);
         }
 
-        protected virtual void OnMergeSample(RgbColor weight, float misWeight, CameraPath cameraPath,
+        protected virtual void OnMergeSample(RgbColor weight, float kernelWeight, float misWeight, CameraPath cameraPath,
                                         PathVertex lightVertex, float pdfCameraReverse,
-                                        float pdfLightReverse, float pdfNextEvent) {}
+                                        float pdfLightReverse, float pdfNextEvent) { }
 
         RgbColor Merge((CameraPath path, float cameraJacobian) userData, SurfacePoint hit, Vector3 outDir,
                        int pathIdx, int vertexIdx, float distSqr) {
@@ -144,15 +144,14 @@ namespace SeeSharp.Integrators.Bidir {
 
             // Epanechnikov kernel
             float radiusSquared = Radius * Radius;
-            photonContrib *= 2 * (radiusSquared - distSqr);
-            photonContrib /= MathF.PI * radiusSquared * radiusSquared;
+            float kernelWeight = 2 * (radiusSquared - distSqr) / (MathF.PI * radiusSquared * radiusSquared);
 
-            RegisterSample(photonContrib * path.Throughput, misWeight, path.Pixel, path.Vertices.Count,
+            RegisterSample(photonContrib * kernelWeight * path.Throughput, misWeight, path.Pixel, path.Vertices.Count,
                 photon.Depth, depth);
-            OnMergeSample(photonContrib * path.Throughput, misWeight, path, photon, pdfCameraReverse,
+            OnMergeSample(photonContrib * path.Throughput, kernelWeight, misWeight, path, photon, pdfCameraReverse,
                 pdfLightReverse, pdfNextEvent);
 
-            return photonContrib * misWeight;
+            return photonContrib * kernelWeight * misWeight;
         }
 
         public virtual RgbColor PerformMerging(Ray ray, SurfacePoint hit, CameraPath path, float cameraJacobian) {

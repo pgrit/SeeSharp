@@ -1,5 +1,4 @@
-﻿using System;
-using System.IO;
+﻿using System.IO;
 using SeeSharp.Common;
 using SeeSharp.Integrators;
 using SeeSharp.Integrators.Bidir;
@@ -18,6 +17,7 @@ namespace SeeSharp.PreviewRender {
         /// <param name="flatten">Set to false to write a multi-layer file with AOVs</param>
         /// <param name="algo">One of: PT, VCM</param>
         /// <param name="denoise">Whether to run Open Image Denoise on the flattened output image</param>
+        /// <param name="interactive">If true, the image is displayed and continuously updated in the tev viewer.</param>
         static int Main(
             FileInfo scene,
             int samples = 8,
@@ -27,7 +27,8 @@ namespace SeeSharp.PreviewRender {
             string output = "Render.exr",
             bool flatten = true,
             string algo = "PT",
-            bool denoise = true
+            bool denoise = true,
+            bool interactive = false
         ) {
             if (scene == null) {
                 Logger.Error("Please provide a scene filename via --scene [file.json]");
@@ -35,7 +36,8 @@ namespace SeeSharp.PreviewRender {
             }
 
             var sc = Scene.LoadFromFile(scene.FullName);
-            sc.FrameBuffer = new(resx, resy, output);
+            var flags = interactive ? Image.FrameBuffer.Flags.SendToTev : Image.FrameBuffer.Flags.None;
+            sc.FrameBuffer = new(resx, resy, output, flags);
             sc.Prepare();
 
             if (algo == "PT") {
@@ -46,7 +48,7 @@ namespace SeeSharp.PreviewRender {
             } else if (algo == "VCM") {
                 new VertexConnectionAndMerging() {
                     MaxDepth = maxdepth,
-                    NumIterations = samples
+                    NumIterations = samples,
                 }.Render(sc);
             } else {
                 Logger.Error($"Unknown rendering algorithm: {algo}. Use PT or VCM");

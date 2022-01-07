@@ -92,7 +92,7 @@ def export_camera(result, scene):
             # We account for this extra rotation here, because we want it to face _our_ negative z with _our_
             # y axis pointing upwards instead.
             "rotation": [
-                -(degrees(camera.rotation_euler.x) - 90),
+                degrees(camera.rotation_euler.x) - 90,
                 degrees(camera.rotation_euler.z) + 180,
                 degrees(camera.rotation_euler.y)
             ],

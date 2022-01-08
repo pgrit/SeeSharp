@@ -111,9 +111,15 @@ namespace SeeSharp.Integrators.Bidir {
             public List<float> Distances;
 
             /// <summary>
-            /// Maximum roughness of any surface material encountered along the path
+            /// Maximum roughness of any surface material encountered along the path, prior to the currently
+            /// last vertex.
             /// </summary>
-            public float MaximumRoughness;
+            public float MaximumPriorRoughness;
+
+            /// <summary>
+            /// Roughness of the material at the currently last vertex of the path.
+            /// </summary>
+            public float CurrentRoughness;
         }
 
         /// <summary>
@@ -921,8 +927,8 @@ namespace SeeSharp.Integrators.Bidir {
                 path.Throughput = throughput;
                 path.Distances.Add(hit.Distance);
 
-                float roughness = ((SurfacePoint)hit).Material.GetRoughness(hit);
-                path.MaximumRoughness = MathF.Max(roughness, path.MaximumRoughness);
+                path.MaximumPriorRoughness = MathF.Max(path.CurrentRoughness, path.MaximumPriorRoughness);
+                path.CurrentRoughness = ((SurfacePoint)hit).Material.GetRoughness(hit);
 
                 return integrator.OnCameraHit(path, rng, ray, hit, pdfFromAncestor, throughput, depth,
                     toAncestorJacobian);

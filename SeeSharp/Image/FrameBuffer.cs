@@ -29,6 +29,11 @@ namespace SeeSharp.Image {
         public RgbImage Image { get; private set; }
 
         /// <summary>
+        /// The reference image. If set, error metrics will be calculated for each iteration
+        /// </summary>
+        public RgbImage ReferenceImage = null;
+
+        /// <summary>
         /// Automatically added layer that estimates per-pixel variances in the frame buffer
         /// </summary>
         public readonly VarianceLayer PixelVariance = new();
@@ -97,6 +102,9 @@ namespace SeeSharp.Image {
             SendToTev = 4
         }
 
+        private record ErrorMetric(long TimeMS, float MSE, float RelMSE, float RelMSE_Outlier);
+        private List<ErrorMetric> Errors = new();
+
         /// <param name="width">Width in pixels</param>
         /// <param name="height">Height in pixels</param>
         /// <param name="filename">
@@ -151,7 +159,7 @@ namespace SeeSharp.Image {
                                 .Append(("default", Image))
                                 .ToArray()
                         );
-                    } catch(Exception exc) {
+                    } catch (Exception exc) {
                         Logger.Warning(exc.ToString());
                         Logger.Warning("Could not connect to tev. Make sure it is running with the correct IP and port.");
                         tevIpc = null;
@@ -191,6 +199,9 @@ namespace SeeSharp.Image {
 
             foreach (var (_, layer) in layers)
                 layer.OnEndIteration(CurIteration);
+
+            if (ReferenceImage != null)
+                Errors.Add(ComputeErrorMetric());
 
             if (flags.HasFlag(Flags.WriteIntermediate)) {
                 string name = Basename + "-iter" + CurIteration.ToString("D3")
@@ -246,6 +257,10 @@ namespace SeeSharp.Image {
                 }
             }
 
+            // Add error metric data if available
+            if (Errors.Count > 0)
+                MetaData["ErrorMetrics"] = Errors;
+
             // Write the metadata as json
             string json = System.Text.Json.JsonSerializer.Serialize(MetaData, options: new() {
                 WriteIndented = true
@@ -259,6 +274,13 @@ namespace SeeSharp.Image {
         public void Dispose() {
             tevIpc?.Dispose();
             tevIpc = null;
+        }
+
+        private ErrorMetric ComputeErrorMetric() {
+            return new(stopwatch.ElapsedMilliseconds,
+                SimpleImageIO.Metrics.MSE(Image, ReferenceImage),
+                SimpleImageIO.Metrics.RelMSE(Image, ReferenceImage),
+                SimpleImageIO.Metrics.RelMSE_OutlierRejection(Image, ReferenceImage));
         }
     }
 }

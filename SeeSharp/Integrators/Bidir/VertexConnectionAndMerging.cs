@@ -259,7 +259,7 @@ public class VertexConnectionAndMerging : VertexCacheBidir {
 
         // Perform connections and merging if the maximum depth has not yet been reached
         if (depth < MaxDepth) {
-            for (int i = 0; i < NumConnections && EnableConnections; ++i) {
+            for (int i = 0; i < NumConnections; ++i) {
                 value += throughput * BidirConnections(hit, -ray.Direction, rng, path, toAncestorJacobian);
             }
             value += throughput * PerformMerging(ray, hit, path, toAncestorJacobian);
@@ -322,7 +322,7 @@ public class VertexConnectionAndMerging : VertexCacheBidir {
             / mergeApproximation;
 
         // Add the reciprocal for the connection that replaces the last light path edge
-        if (lightVertex.Depth > 1 && EnableConnections)
+        if (lightVertex.Depth > 1 && NumConnections > 0)
             sumReciprocals += BidirSelectDensity() / mergeApproximation;
 
         return 1 / sumReciprocals;
@@ -465,7 +465,7 @@ public class VertexConnectionAndMerging : VertexCacheBidir {
             nextReciprocal *= pdfs.PdfsLightToCamera[i] / pdfs.PdfsCameraToLight[i];
 
             // Connecting this vertex to the next one along the camera path
-            if (EnableConnections) sumReciprocals += nextReciprocal * BidirSelectDensity();
+            if (NumConnections > 0) sumReciprocals += nextReciprocal * BidirSelectDensity();
         }
 
         // Light tracer
@@ -501,7 +501,7 @@ public class VertexConnectionAndMerging : VertexCacheBidir {
 
             // Account for connections from this vertex to its ancestor
             if (i < pdfs.NumPdfs - 2) // Connections to the emitter (next event) are treated separately
-                if (EnableConnections) sumReciprocals += nextReciprocal * BidirSelectDensity();
+                if (NumConnections > 0) sumReciprocals += nextReciprocal * BidirSelectDensity();
         }
         if (EnableHitting || NumShadowRays != 0) sumReciprocals += nextReciprocal; // Next event and hitting the emitter directly
                                                                                    // TODO / FIXME Bsdf and Nee can only be disabled jointly here: needs proper handling when assembling pdfs

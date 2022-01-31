@@ -12,3 +12,5 @@ global using SeeSharp.Geometry;
 global using SeeSharp.Integrators.Common;
 global using SeeSharp.Sampling;
 global using SeeSharp.Shading.Emitters;
+global using SeeSharp.Common;
+global using SeeSharp.Integrators.Util;

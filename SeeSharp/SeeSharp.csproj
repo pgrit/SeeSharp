@@ -1,6 +1,6 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
-    <TargetFramework>net5.0</TargetFramework>
+    <TargetFramework>net6.0</TargetFramework>
 
     <Title>SeeSharp</Title>
     <Description>A flexibility-first framework for rapid prototyping of rendering algorithms.</Description>
@@ -29,7 +29,11 @@
   <ItemGroup>
     <PackageReference Include="AssimpNet" Version="4.1.0" />
     <PackageReference Include="SimpleImageIO" Version="0.11.0" />
-    <PackageReference Include="TinyEmbree" Version="0.4.2" />
+    <!-- <PackageReference Include="TinyEmbree" Version="0.4.2" /> -->
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\TinyEmbree\TinyEmbree\TinyEmbree.csproj" />
   </ItemGroup>
 
 </Project>

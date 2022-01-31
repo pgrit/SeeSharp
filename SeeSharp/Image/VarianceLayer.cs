@@ -67,11 +67,10 @@ namespace SeeSharp.Image {
 
             // Blur both buffers to get a more stable estimate.
             // TODO this could be done in-place by directly splatting in multiple pixels above
-            BoxFilter filter = new(1);
             MonochromeImage blurredMean = new(meanImage.Width, meanImage.Height);
             MonochromeImage blurredMoment = new(meanImage.Width, meanImage.Height);
-            filter.Apply(meanImage, blurredMean);
-            filter.Apply(momentImage, blurredMoment);
+            Filter.Box(meanImage, blurredMean, 1);
+            Filter.Box(momentImage, blurredMoment, 1);
 
             // Compute the final variance and update the main image
             Average = 0;

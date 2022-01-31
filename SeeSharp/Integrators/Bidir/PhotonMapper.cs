@@ -90,7 +90,8 @@ namespace SeeSharp.Integrators.Bidir {
             photonMap.Build();
         }
 
-        RgbColor Merge(float radius, SurfacePoint hit, Vector3 outDir, int pathIdx, int vertIdx) {
+        RgbColor Merge(float radius, SurfacePoint hit, Vector3 outDir, int pathIdx, int vertIdx, float distSqr,
+                       float radiusSquared) {
             // Compute the contribution of the photon
             var photon = lightPaths.PathCache[pathIdx, vertIdx];
             var ancestor = lightPaths.PathCache[pathIdx, photon.AncestorId];
@@ -101,7 +102,6 @@ namespace SeeSharp.Integrators.Bidir {
             float distSqr = (photon.Point.Position - hit.Position).LengthSquared();
 
             // Epanechnikov kernel
-            float radiusSquared = radius * radius;
             photonContrib *= (radiusSquared - distSqr) * 2.0f / (radiusSquared * radiusSquared * MathF.PI);
 
             return photonContrib;

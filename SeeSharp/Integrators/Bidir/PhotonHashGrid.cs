@@ -78,7 +78,8 @@ namespace SeeSharp.Integrators.Bidir {
         }
 
         public delegate RgbColor Callback<in T>(T userData, SurfacePoint hit, Vector3 outDir,
-                                                int pathIdx, int vertIdx, float distanceSquared);
+                                                int pathIdx, int vertIdx, float distanceSquared,
+                                                float radiusSquared);
 
         public RgbColor Accumulate<T>(T userData, SurfacePoint hit, Vector3 outDir, Callback<T> callback, float radius) {
             if (!bounds.IsInside(hit.Position))
@@ -102,7 +103,8 @@ namespace SeeSharp.Integrators.Bidir {
                     var photon = photons[photonIndices[j]];
                     float distanceSqr = (hit.Position - photon.Position).LengthSquared();
                     if (distanceSqr < radius * radius) {
-                        result += callback(userData, hit, outDir, photon.PathIndex, photon.VertexIndex, distanceSqr);
+                        result += callback(userData, hit, outDir, photon.PathIndex, photon.VertexIndex,
+                            distanceSqr, radius * radius);
                     }
                 }
             }

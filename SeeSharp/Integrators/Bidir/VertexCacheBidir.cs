@@ -26,7 +26,7 @@ namespace SeeSharp.Integrators.Bidir {
         TechPyramid techPyramidRaw;
         TechPyramid techPyramidWeighted;
 
-        VertexSelector vertexSelector;
+        protected VertexSelector vertexSelector;
 
         protected override float NextEventPdf(SurfacePoint from, SurfacePoint to) {
             return base.NextEventPdf(from, to) * NumShadowRays;
@@ -58,7 +58,7 @@ namespace SeeSharp.Integrators.Bidir {
 
             // There are "NumLightPaths" samples that could have generated the selected vertex,
             // we repeat the process "NumConnections" times
-            float numSamples = NumConnections * NumLightPaths;
+            float numSamples = NumConnections * NumLightPaths.Value;
 
             return selectProb * numSamples;
         }
@@ -92,10 +92,8 @@ namespace SeeSharp.Integrators.Bidir {
         }
 
         protected override void ProcessPathCache() {
-            vertexSelector = new VertexSelector(LightPaths.PathCache);
-
-            if (EnableLightTracer)
-                SplatLightVertices();
+            if (EnableConnections) vertexSelector = new VertexSelector(LightPaths.PathCache);
+            if (EnableLightTracer) SplatLightVertices();
         }
 
         protected override RgbColor OnCameraHit(CameraPath path, RNG rng, Ray ray, SurfacePoint hit,
@@ -112,9 +110,7 @@ namespace SeeSharp.Integrators.Bidir {
             // Perform connections if the maximum depth has not yet been reached
             if (depth < MaxDepth) {
                 for (int i = 0; i < NumConnections && EnableConnections; ++i) {
-                    var weight = throughput *
-                        BidirConnections(hit, -ray.Direction, rng, path, toAncestorJacobian);
-                    value += weight;
+                    value += throughput * BidirConnections(hit, -ray.Direction, rng, path, toAncestorJacobian);
                 }
             }
 
@@ -170,7 +166,7 @@ namespace SeeSharp.Integrators.Bidir {
 
             // Compute the actual weight
             float sumReciprocals = LightPathReciprocals(lastCameraVertexIdx, numPdfs, pathPdfs);
-            sumReciprocals /= NumLightPaths;
+            sumReciprocals /= NumLightPaths.Value;
             sumReciprocals += 1;
             return 1 / sumReciprocals;
         }
@@ -242,7 +238,7 @@ namespace SeeSharp.Integrators.Bidir {
             }
             if (EnableLightTracer)
                 sumReciprocals +=
-                    nextReciprocal * pdfs.PdfsLightToCamera[0] / pdfs.PdfsCameraToLight[0] * NumLightPaths;
+                    nextReciprocal * pdfs.PdfsLightToCamera[0] / pdfs.PdfsCameraToLight[0] * NumLightPaths.Value;
             return sumReciprocals;
         }
 

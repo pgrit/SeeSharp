@@ -47,7 +47,7 @@ namespace SeeSharp.Integrators.Bidir {
         /// <param name="primary">Primary space random number in [0,1]</param>
         /// <returns>The emitter and its selection probability</returns>
         public virtual (Emitter, float) SelectLight(float primary) {
-            if (primary < BackgroundProbability) {
+            if (BackgroundProbability > 0 && primary <= BackgroundProbability) {
                 return (null, BackgroundProbability);
             } else {
                 // Remap the primary sample and select an emitter in the scene

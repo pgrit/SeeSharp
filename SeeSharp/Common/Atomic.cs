@@ -13,16 +13,15 @@ namespace SeeSharp.Common {
         /// <param name="value">Value to add</param>
         public static void AddFloat(ref float target, float value) {
             float initialValue, computedValue;
-
-            // Prevent infinite loop if a pixel value is NaN
-            if (!float.IsFinite(target))
-                return;
-
             do {
                 initialValue = target;
                 computedValue = initialValue + value;
-            } while (initialValue != Interlocked.CompareExchange(ref target,
-                computedValue, initialValue));
+            } while (
+                initialValue != Interlocked.CompareExchange(ref target, computedValue, initialValue)
+                // If another thread changes target to NaN in the meantime, we will be stuck forever
+                // since NaN != NaN is always true, and NaN + value is also NaN
+                && !float.IsNaN(initialValue)
+            );
         }
     }
 }

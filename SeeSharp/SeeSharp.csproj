@@ -28,12 +28,8 @@
 
   <ItemGroup>
     <PackageReference Include="AssimpNet" Version="4.1.0" />
-    <PackageReference Include="SimpleImageIO" Version="0.11.0" />
-    <!-- <PackageReference Include="TinyEmbree" Version="0.4.2" /> -->
-  </ItemGroup>
-
-  <ItemGroup>
-    <ProjectReference Include="..\..\TinyEmbree\TinyEmbree\TinyEmbree.csproj" />
+    <PackageReference Include="SimpleImageIO" Version="0.12.0" />
+    <PackageReference Include="TinyEmbree" Version="0.4.4" />
   </ItemGroup>
 
 </Project>

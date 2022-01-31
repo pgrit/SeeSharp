@@ -23,7 +23,7 @@ namespace SeeSharp.Tests.Integrators {
 
         // We don't create an actual scene, so we need to set the radius somehow for MIS
         class FixedRadiusVcm : VertexConnectionAndMerging {
-            public override void InitializeRadius(Scene scene) => Radius = 0.3f;
+            protected override void InitializeRadius(Scene scene) => MaximumRadius = 0.3f;
         }
 
         static VertexConnectionAndMerging dummyVcm = new FixedRadiusVcm {
@@ -139,7 +139,7 @@ namespace SeeSharp.Tests.Integrators {
             float pdfLightTracer = lightVerts[0, 1].PdfFromAncestor * dummyPath.numLightPaths;
 
             float pdfMerge = verts[1].PdfFromAncestor * lightVerts[0, 1].PdfFromAncestor
-                * dummyPath.numLightPaths * System.MathF.PI * dummyVcm.Radius * dummyVcm.Radius;
+                * dummyPath.numLightPaths * System.MathF.PI * dummyVcm.MaximumRadius * dummyVcm.MaximumRadius;
 
             float pdfSum = pdfHit + pdfNextEvt + pdfLightTracer + pdfMerge;
 

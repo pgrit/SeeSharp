@@ -75,6 +75,7 @@ namespace SeeSharp.Integrators.Bidir {
             techPyramidWeighted.Add(cameraPathLength, lightPathLength, fullLength, pixel, weight * misWeight);
         }
 
+        /// <inheritdoc />
         public override void Render(Scene scene) {
             if (RenderTechniquePyramid) {
                 techPyramidRaw = new TechPyramid(scene.FrameBuffer.Width, scene.FrameBuffer.Height,

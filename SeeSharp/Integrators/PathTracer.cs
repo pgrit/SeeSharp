@@ -437,9 +437,11 @@ namespace SeeSharp.Integrators {
                 float pdfBsdfSolidAngle = DirectionPdf(hit, -ray.Direction, -lightToSurface, state);
                 float pdfBsdf = pdfBsdfSolidAngle * jacobian;
 
+                Debug.Assert(pdfBsdf != 0 || bsdfCos == RgbColor.Black,
+                    "Non-zero BSDF value not sampled by forward path tracing!");
+
                 // Avoid Inf / NaN
-                if (pdfBsdf == 0 || jacobian == 0)
-                    return RgbColor.Black;
+                if (jacobian == 0) return RgbColor.Black;
 
                 // Compute the resulting power heuristic weights
                 float pdfRatio = pdfBsdf / pdfNextEvt;

@@ -1,65 +1,59 @@
-﻿using SimpleImageIO;
-using SeeSharp.Shading.Emitters;
-using SeeSharp.Shading.Materials;
-using SeeSharp.Image;
-using System.Collections.Generic;
-using System.Numerics;
+﻿namespace SeeSharp.Geometry;
 
-namespace SeeSharp.Geometry {
-    /// <summary>
-    /// Converts our parsed wavefront .obj mesh representation into an actual mesh.
-    /// Triangulates surfaces and makes sure that one mesh is created for each material.
-    /// </summary>
-    public static class ObjConverter {
+/// <summary>
+/// Converts our parsed wavefront .obj mesh representation into an actual mesh.
+/// Triangulates surfaces and makes sure that one mesh is created for each material.
+/// </summary>
+public static class ObjConverter {
 
-        struct TriIdx  {
-            public ObjMesh.Index v0, v1, v2;
+    struct TriIdx {
+        public ObjMesh.Index v0, v1, v2;
 
-            public TriIdx(ObjMesh.Index v0, ObjMesh.Index v1, ObjMesh.Index v2) {
-                this.v0 = v0; this.v1 = v1; this.v2 = v2;
-            }
+        public TriIdx(ObjMesh.Index v0, ObjMesh.Index v1, ObjMesh.Index v2) {
+            this.v0 = v0; this.v1 = v1; this.v2 = v2;
         }
+    }
 
-        /// <summary>
-        /// Converts a parsed .obj file into one or more triangle meshes and adds it to the scene.
-        /// We are using our own code and not Assimp.NET, as the latter does not correctly handle meshes
-        /// with multiple materials assigned to different faces.
-        /// </summary>
-        /// <param name="mesh">The parsed .obj mesh</param>
-        /// <param name="scene">The scene to which the mesh should be added</param>
-        /// <param name="materialOverride">
-        ///     Materials from the .obj with a name matching one of the keys in this dictionary will be 
-        ///     replaced by the corresponding dictionary entry
-        /// </param>
-        /// <param name="emissionOverride">
-        ///     If a material name is a key in this dictionary, all meshes with that material will be 
-        ///     converted to diffuse emitters. The value from the dictionary determines their emitted radiance.
-        /// </param>
-        public static void AddToScene(ObjMesh mesh, Scene scene, Dictionary<string, Material> materialOverride,
-                                      Dictionary<string, RgbColor> emissionOverride = null) {
-            // Create a dummy constant texture color for incorrect texture references
-            var dummyColor = new TextureRgb(RgbColor.White);
-            var dummyMaterial = new GenericMaterial(new GenericMaterial.Parameters{
-                BaseColor = dummyColor
-            });
+    /// <summary>
+    /// Converts a parsed .obj file into one or more triangle meshes and adds it to the scene.
+    /// We are using our own code and not Assimp.NET, as the latter does not correctly handle meshes
+    /// with multiple materials assigned to different faces.
+    /// </summary>
+    /// <param name="mesh">The parsed .obj mesh</param>
+    /// <param name="scene">The scene to which the mesh should be added</param>
+    /// <param name="materialOverride">
+    ///     Materials from the .obj with a name matching one of the keys in this dictionary will be
+    ///     replaced by the corresponding dictionary entry
+    /// </param>
+    /// <param name="emissionOverride">
+    ///     If a material name is a key in this dictionary, all meshes with that material will be
+    ///     converted to diffuse emitters. The value from the dictionary determines their emitted radiance.
+    /// </param>
+    public static void AddToScene(ObjMesh mesh, Scene scene, Dictionary<string, Material> materialOverride,
+                                  Dictionary<string, RgbColor> emissionOverride = null) {
+        // Create a dummy constant texture color for incorrect texture references
+        var dummyColor = new TextureRgb(RgbColor.White);
+        var dummyMaterial = new GenericMaterial(new GenericMaterial.Parameters {
+            BaseColor = dummyColor
+        });
 
-            // Create the materials for this OBJ file
-            var errors = new List<string>();
-            var materials = new Dictionary<string, Material>();
-            var emitters = new Dictionary<string, RgbColor>();
-            for (int i = 1, n = mesh.Contents.Materials.Count; i < n; i++) {
-                // Try to find the correct material
-                string materialName = mesh.Contents.Materials[i];
-                ObjMesh.Material objMaterial;
-                if (!mesh.Contents.MaterialLib.TryGetValue(materialName, out objMaterial)) {
-                    errors.Add($"Cannot find material '{materialName}'. Replacing by dummy.");
-                    materials[materialName] = dummyMaterial;
-                    continue;
-                }
+        // Create the materials for this OBJ file
+        var errors = new List<string>();
+        var materials = new Dictionary<string, Material>();
+        var emitters = new Dictionary<string, RgbColor>();
+        for (int i = 1, n = mesh.Contents.Materials.Count; i < n; i++) {
+            // Try to find the correct material
+            string materialName = mesh.Contents.Materials[i];
+            ObjMesh.Material objMaterial;
+            if (!mesh.Contents.MaterialLib.TryGetValue(materialName, out objMaterial)) {
+                errors.Add($"Cannot find material '{materialName}'. Replacing by dummy.");
+                materials[materialName] = dummyMaterial;
+                continue;
+            }
 
-                // Roughly match the different illumination modes to the right parameters of our material.
-                GenericMaterial.Parameters materialParameters;
-                switch (objMaterial.illuminationModel) {
+            // Roughly match the different illumination modes to the right parameters of our material.
+            GenericMaterial.Parameters materialParameters;
+            switch (objMaterial.illuminationModel) {
                 case 5: // perfect mirror
                     materialParameters = new GenericMaterial.Parameters {
                         BaseColor = new TextureRgb(objMaterial.specular),
@@ -96,112 +90,111 @@ namespace SeeSharp.Geometry {
                         Metallic = 0.5f
                     };
                     break;
-                }
-                materials[materialName] = new GenericMaterial(materialParameters);
-
-                // Check if the material is emissive
-                if (objMaterial.emission != RgbColor.Black)
-                    emitters[materialName] = objMaterial.emission;
             }
+            materials[materialName] = new GenericMaterial(materialParameters);
 
-            // Convert the faces to triangles & build the new list of indices
-            foreach (var obj in mesh.Contents.Objects) {
-                // Mapping from material index to triangle definition, per group
-                var triangleGroups = new List<Dictionary<int, List<TriIdx>>>();
+            // Check if the material is emissive
+            if (objMaterial.emission != RgbColor.Black)
+                emitters[materialName] = objMaterial.emission;
+        }
 
-                // Triangulate faces and group triangles by material
-                bool has_normals = false;
-                bool has_texcoords = false;
-                bool empty = true;
-                foreach (var group in obj.Groups) {
-                    // Create the mapping from material index to triangle definition for this group.
-                    triangleGroups.Add(new Dictionary<int, List<TriIdx>>());
+        // Convert the faces to triangles & build the new list of indices
+        foreach (var obj in mesh.Contents.Objects) {
+            // Mapping from material index to triangle definition, per group
+            var triangleGroups = new List<Dictionary<int, List<TriIdx>>>();
 
-                    foreach (var face in group.Faces) {
-                        int mtl_idx = face.Material;
-                        triangleGroups[^1].TryAdd(mtl_idx, new List<TriIdx>());
+            // Triangulate faces and group triangles by material
+            bool has_normals = false;
+            bool has_texcoords = false;
+            bool empty = true;
+            foreach (var group in obj.Groups) {
+                // Create the mapping from material index to triangle definition for this group.
+                triangleGroups.Add(new Dictionary<int, List<TriIdx>>());
 
-                        // Check if any vertex has a normal or uv coordinate
-                        for (int i = 0; i < face.Indices.Count; i++) {
-                            has_normals |= (face.Indices[i].NormalIndex != 0);
-                            has_texcoords |= (face.Indices[i].TextureIndex != 0);
-                        }
+                foreach (var face in group.Faces) {
+                    int mtl_idx = face.Material;
+                    triangleGroups[^1].TryAdd(mtl_idx, new List<TriIdx>());
 
-                        // Compute the triangle indices for every n-gon
-                        int v0 = 0;
-                        int prev = 1;
-                        for (int i = 1; i < face.Indices.Count - 1; i++) {
-                            int next = i + 1;
-                            triangleGroups[^1][mtl_idx].Add(new TriIdx(face.Indices[v0], face.Indices[prev], face.Indices[next]));
-                            prev = next;
+                    // Check if any vertex has a normal or uv coordinate
+                    for (int i = 0; i < face.Indices.Count; i++) {
+                        has_normals |= (face.Indices[i].NormalIndex != 0);
+                        has_texcoords |= (face.Indices[i].TextureIndex != 0);
+                    }
 
-                            empty = false;
-                        }
+                    // Compute the triangle indices for every n-gon
+                    int v0 = 0;
+                    int prev = 1;
+                    for (int i = 1; i < face.Indices.Count - 1; i++) {
+                        int next = i + 1;
+                        triangleGroups[^1][mtl_idx].Add(new TriIdx(face.Indices[v0], face.Indices[prev], face.Indices[next]));
+                        prev = next;
+
+                        empty = false;
                     }
                 }
+            }
 
-                if (empty) continue;
+            if (empty) continue;
 
-                // Create a mesh for each group of triangles with identical materials
-                foreach (var group in triangleGroups) {
-                    foreach (var triangleSet in group) {
-                        string materialName = mesh.Contents.Materials[triangleSet.Key];
+            // Create a mesh for each group of triangles with identical materials
+            foreach (var group in triangleGroups) {
+                foreach (var triangleSet in group) {
+                    string materialName = mesh.Contents.Materials[triangleSet.Key];
 
-                        // Either use the .obj material or the override
-                        Material material;
-                        if (materialOverride == null || !materialOverride.TryGetValue(materialName, out material)) {
-                            material = materials[materialName];
-                        }
+                    // Either use the .obj material or the override
+                    Material material;
+                    if (materialOverride == null || !materialOverride.TryGetValue(materialName, out material)) {
+                        material = materials[materialName];
+                    }
 
-                        // Copy all required vertices, normals, and texture coordinates for this group
-                        // We do not support vertices that share a postion but not a normal, hence we map the full tripel to one int
-                        var objToLocal = new Dictionary<ObjMesh.Index, int>();
-                        var localVertices = new List<Vector3>();
-                        var localNormals = has_normals ? new List<Vector3>() : null;
-                        var localTexcoords = has_texcoords ? new List<Vector2>() : null;
-                        int RemapIndex(ObjMesh.Index oldIndex) {
-                            int newIndex;
-                            if (!objToLocal.TryGetValue(oldIndex, out newIndex)) {
-                                localVertices.Add(mesh.Contents.Vertices[oldIndex.VertexIndex]);
+                    // Copy all required vertices, normals, and texture coordinates for this group
+                    // We do not support vertices that share a postion but not a normal, hence we map the full tripel to one int
+                    var objToLocal = new Dictionary<ObjMesh.Index, int>();
+                    var localVertices = new List<Vector3>();
+                    var localNormals = has_normals ? new List<Vector3>() : null;
+                    var localTexcoords = has_texcoords ? new List<Vector2>() : null;
+                    int RemapIndex(ObjMesh.Index oldIndex) {
+                        int newIndex;
+                        if (!objToLocal.TryGetValue(oldIndex, out newIndex)) {
+                            localVertices.Add(mesh.Contents.Vertices[oldIndex.VertexIndex]);
 
-                                if (has_normals)
-                                    localNormals.Add(mesh.Contents.Normals[oldIndex.NormalIndex]);
+                            if (has_normals)
+                                localNormals.Add(mesh.Contents.Normals[oldIndex.NormalIndex]);
 
-                                if (has_texcoords) {
-                                    var uv = mesh.Contents.Texcoords[oldIndex.TextureIndex];
-                                    uv.Y = 1 - uv.Y;
-                                    localTexcoords.Add(uv);
-                                }
-
-                                newIndex = localVertices.Count - 1;
-                                objToLocal[oldIndex] = newIndex;
+                            if (has_texcoords) {
+                                var uv = mesh.Contents.Texcoords[oldIndex.TextureIndex];
+                                uv.Y = 1 - uv.Y;
+                                localTexcoords.Add(uv);
                             }
-                            return newIndex;
-                        }
 
-                        var indices = new List<int>(triangleSet.Value.Count * 3);
-                        foreach (var triangle in triangleSet.Value) {
-                            indices.Add(RemapIndex(triangle.v0));
-                            indices.Add(RemapIndex(triangle.v1));
-                            indices.Add(RemapIndex(triangle.v2));
+                            newIndex = localVertices.Count - 1;
+                            objToLocal[oldIndex] = newIndex;
                         }
+                        return newIndex;
+                    }
 
-                        // Create and add the mesh
-                        Mesh m = new Mesh(localVertices.ToArray(), indices.ToArray(), localNormals?.ToArray(),
-                                          localTexcoords?.ToArray()) {
-                            Material = material
-                        };
-                        scene.Meshes.Add(m);
+                    var indices = new List<int>(triangleSet.Value.Count * 3);
+                    foreach (var triangle in triangleSet.Value) {
+                        indices.Add(RemapIndex(triangle.v0));
+                        indices.Add(RemapIndex(triangle.v1));
+                        indices.Add(RemapIndex(triangle.v2));
+                    }
 
-                        // Create an emitter if the obj material is emissive
-                        RgbColor emission;
-                        if (emissionOverride != null && emissionOverride.TryGetValue(materialName, out emission)) {
-                            var emitter = new DiffuseEmitter(m, emission);
-                            scene.Emitters.Add(emitter);
-                        } else if (emitters.TryGetValue(materialName, out emission)) {
-                            var emitter = new DiffuseEmitter(m, emission);
-                            scene.Emitters.Add(emitter);
-                        }
+                    // Create and add the mesh
+                    Mesh m = new Mesh(localVertices.ToArray(), indices.ToArray(), localNormals?.ToArray(),
+                                      localTexcoords?.ToArray()) {
+                        Material = material
+                    };
+                    scene.Meshes.Add(m);
+
+                    // Create an emitter if the obj material is emissive
+                    RgbColor emission;
+                    if (emissionOverride != null && emissionOverride.TryGetValue(materialName, out emission)) {
+                        var emitter = new DiffuseEmitter(m, emission);
+                        scene.Emitters.Add(emitter);
+                    } else if (emitters.TryGetValue(materialName, out emission)) {
+                        var emitter = new DiffuseEmitter(m, emission);
+                        scene.Emitters.Add(emitter);
                     }
                 }
             }

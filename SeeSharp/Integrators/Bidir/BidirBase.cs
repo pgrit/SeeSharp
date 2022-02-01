@@ -410,63 +410,65 @@ public abstract class BidirBase : Integrator {
         });
     }
 
+    void ConnectLightVertexToCamera(int pathIdx, in PathVertex vertex, in PathVertex ancestor,
+                                    Vector3 dirToAncestor) {
+        if (vertex.Depth + 1 < MinDepth) return;
+
+        // Compute image plane location
+        var response = Scene.Camera.SampleResponse(vertex.Point, null); // TODO get an RNG in there for DOF!
+        if (!response.IsValid)
+            return;
+
+        if (Scene.Raytracer.IsOccluded(vertex.Point, response.Position))
+            return;
+
+        var dirToCam = response.Position - vertex.Point.Position;
+        float distToCam = dirToCam.Length();
+        dirToCam /= distToCam;
+
+        var bsdfValue = vertex.Point.Material.Evaluate(vertex.Point, dirToAncestor, dirToCam, true);
+        if (bsdfValue == RgbColor.Black)
+            return;
+
+        // Compute the surface area pdf of sampling the previous vertex instead
+        float pdfReverse =
+        vertex.Point.Material.Pdf(vertex.Point, dirToCam, dirToAncestor, false).Item1;
+        if (ancestor.Point.Mesh != null)
+            pdfReverse *= SampleWarp.SurfaceAreaToSolidAngle(vertex.Point, ancestor.Point);
+
+        // Account for next event estimation
+        float pdfNextEvent = 0.0f;
+        if (vertex.Depth == 1) {
+            pdfNextEvent = NextEventPdf(vertex.Point, ancestor.Point);
+        }
+
+        float misWeight =
+            LightTracerMis(vertex, response.PdfEmit, pdfReverse, pdfNextEvent, response.Pixel, distToCam);
+
+        // Compute image contribution and splat
+        RgbColor weight = vertex.Weight * bsdfValue * response.Weight / NumLightPaths.Value;
+        Scene.FrameBuffer.Splat(response.Pixel.X, response.Pixel.Y, misWeight * weight);
+
+        // Log the sample
+        RegisterSample(weight, misWeight, response.Pixel, 0, vertex.Depth, vertex.Depth + 1);
+        OnLightTracerSample(weight, misWeight, response.Pixel, vertex, response.PdfEmit, pdfReverse,
+            pdfNextEvent, distToCam);
+
+        if (PathLogger != null && misWeight != 0 && weight != RgbColor.Black) {
+            var logId = PathLogger.StartNew(response.Pixel);
+            for (int i = 0; i < vertex.Depth + 1; ++i) {
+                PathLogger.Continue(logId, LightPaths.PathCache[pathIdx, i].Point.Position, 1);
+            }
+            PathLogger.SetContrib(logId, misWeight * weight);
+        }
+    }
+
     /// <summary>
     /// Connects the vertices of the i-th path to the camera ("light tracing")
     /// </summary>
     /// <param name="pathIdx">Index of the path in the cache</param>
     protected virtual void ConnectLightPathToCamera(int pathIdx) {
-        LightPaths.ForEachVertex(pathIdx,
-        (int pathIdx, in PathVertex vertex, in PathVertex ancestor, Vector3 dirToAncestor) => {
-            if (vertex.Depth + 1 < MinDepth) return;
-
-                // Compute image plane location
-                var response = Scene.Camera.SampleResponse(vertex.Point, null); // TODO get an RNG in there for DOF!
-                if (!response.IsValid)
-                return;
-
-            if (Scene.Raytracer.IsOccluded(vertex.Point, response.Position))
-                return;
-
-            var dirToCam = response.Position - vertex.Point.Position;
-            float distToCam = dirToCam.Length();
-            dirToCam /= distToCam;
-
-            var bsdfValue = vertex.Point.Material.Evaluate(vertex.Point, dirToAncestor, dirToCam, true);
-            if (bsdfValue == RgbColor.Black)
-                return;
-
-                // Compute the surface area pdf of sampling the previous vertex instead
-                float pdfReverse =
-                vertex.Point.Material.Pdf(vertex.Point, dirToCam, dirToAncestor, false).Item1;
-            if (ancestor.Point.Mesh != null)
-                pdfReverse *= SampleWarp.SurfaceAreaToSolidAngle(vertex.Point, ancestor.Point);
-
-                // Account for next event estimation
-                float pdfNextEvent = 0.0f;
-            if (vertex.Depth == 1) {
-                pdfNextEvent = NextEventPdf(vertex.Point, ancestor.Point);
-            }
-
-            float misWeight =
-                LightTracerMis(vertex, response.PdfEmit, pdfReverse, pdfNextEvent, response.Pixel, distToCam);
-
-                // Compute image contribution and splat
-                RgbColor weight = vertex.Weight * bsdfValue * response.Weight / NumLightPaths.Value;
-            Scene.FrameBuffer.Splat(response.Pixel.X, response.Pixel.Y, misWeight * weight);
-
-                // Log the sample
-                RegisterSample(weight, misWeight, response.Pixel, 0, vertex.Depth, vertex.Depth + 1);
-            OnLightTracerSample(weight, misWeight, response.Pixel, vertex, response.PdfEmit, pdfReverse,
-                pdfNextEvent, distToCam);
-
-            if (PathLogger != null && misWeight != 0 && weight != RgbColor.Black) {
-                var logId = PathLogger.StartNew(response.Pixel);
-                for (int i = 0; i < vertex.Depth + 1; ++i) {
-                    PathLogger.Continue(logId, LightPaths.PathCache[pathIdx, i].Point.Position, 1);
-                }
-                PathLogger.SetContrib(logId, misWeight * weight);
-            }
-        });
+        LightPaths.ForEachVertex(pathIdx, ConnectLightVertexToCamera);
     }
 
     /// <summary>

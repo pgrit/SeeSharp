@@ -196,7 +196,7 @@ namespace SeeSharp.Shading.Materials {
             if (pdfFwd == 0) return BsdfSample.Invalid;
 
             Debug.Assert(float.IsFinite(value.Average / pdfFwd) && pdfFwd > 0);
-            Debug.Assert(pdfRev != 0);
+            Debug.Assert(value == RgbColor.Black || pdfRev != 0);
 
             // Combine results with balance heuristic MIS
             return new BsdfSample {
@@ -234,9 +234,10 @@ namespace SeeSharp.Shading.Materials {
                 pdfRev += rev * selectRev.Retro;
             }
             if (select.Trans > 0) {
-                (fwd, rev) = new MicrofacetTransmission(local.specularTransmittance,
-                    local.transmissionDistribution, 1, MaterialParameters.IndexOfRefraction)
-                    .Pdf(outDir, inDir, isOnLightSubpath);
+                (fwd, rev) = new MicrofacetTransmission(
+                    local.specularTransmittance, local.transmissionDistribution,
+                    1, MaterialParameters.IndexOfRefraction
+                ).Pdf(outDir, inDir, isOnLightSubpath);
                 pdfFwd += fwd * select.Trans;
                 pdfRev += rev * selectRev.Trans;
             }
@@ -358,8 +359,8 @@ namespace SeeSharp.Shading.Materials {
 
             float specularWeight = f * (metallicBRDF + dielectricBRDF + specularBSDF);
             float transmissionWeight = (1 - f) * specularBSDF;
-            float diffuseWeight = dielectricBRDF * (MaterialParameters.Thin ? 0.5f : 1.0f);
-            float difftransWeight = MaterialParameters.Thin ? dielectricBRDF * 0.5f : 0;
+            float diffuseWeight = p.diffuseWeight;
+            float difftransWeight = MaterialParameters.Thin ? MaterialParameters.DiffuseTransmittance : 0;
 
             float norm = 1.0f / (specularWeight + transmissionWeight + diffuseWeight + difftransWeight);
 

@@ -180,8 +180,7 @@ public class VertexConnectionAndMerging : VertexCacheBidir {
 
         // Check that the path does not exceed the maximum length
         var depth = path.Vertices.Count + photon.Depth;
-        if (depth > MaxDepth || depth < MinDepth)
-            return RgbColor.Black;
+        if (depth > MaxDepth || depth < MinDepth) return RgbColor.Black;
 
         // Compute the contribution of the photon
         var ancestor = LightPaths.PathCache[pathIdx, photon.AncestorId];
@@ -189,16 +188,18 @@ public class VertexConnectionAndMerging : VertexCacheBidir {
         var bsdfValue = hit.Material.Evaluate(hit, outDir, dirToAncestor, false);
         var photonContrib = photon.Weight * bsdfValue / NumLightPaths.Value;
 
+        // Early exit + prevent NaN / Inf
+        if (photonContrib == RgbColor.Black) return RgbColor.Black;
+
         // Compute the missing pdf terms and the MIS weight
-        var (pdfLightReverse, pdfCameraReverse) =
-            hit.Material.Pdf(hit, outDir, dirToAncestor, false);
+        var (pdfLightReverse, pdfCameraReverse) = hit.Material.Pdf(hit, outDir, dirToAncestor, false);
         pdfCameraReverse *= cameraJacobian;
         pdfLightReverse *= SampleWarp.SurfaceAreaToSolidAngle(hit, ancestor.Point);
         float pdfNextEvent = (photon.Depth == 1) ? NextEventPdf(hit, ancestor.Point) : 0;
         float misWeight = MergeMis(path, photon, pdfCameraReverse, pdfLightReverse, pdfNextEvent);
 
         // Prevent NaNs in corner cases
-        if (photonContrib == RgbColor.Black || pdfCameraReverse == 0 || pdfLightReverse == 0)
+        if (pdfCameraReverse == 0 || pdfLightReverse == 0)
             return RgbColor.Black;
 
         // Epanechnikov kernel

@@ -426,13 +426,12 @@ public abstract class BidirBase : Integrator {
         float distToCam = dirToCam.Length();
         dirToCam /= distToCam;
 
-        var bsdfValue = vertex.Point.Material.Evaluate(vertex.Point, dirToAncestor, dirToCam, true);
+        var bsdfValue = vertex.Point.Material.Evaluate(vertex.Point, dirToCam, dirToAncestor, false);
         if (bsdfValue == RgbColor.Black)
             return;
 
         // Compute the surface area pdf of sampling the previous vertex instead
-        float pdfReverse =
-        vertex.Point.Material.Pdf(vertex.Point, dirToCam, dirToAncestor, false).Item1;
+        var (pdfReverse, _) = vertex.Point.Material.Pdf(vertex.Point, dirToCam, dirToAncestor, false);
         if (ancestor.Point.Mesh != null)
             pdfReverse *= SampleWarp.SurfaceAreaToSolidAngle(vertex.Point, ancestor.Point);
 

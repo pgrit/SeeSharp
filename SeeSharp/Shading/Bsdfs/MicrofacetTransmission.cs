@@ -15,6 +15,7 @@ public struct MicrofacetTransmission {
         this.distribution = distribution;
         this.outsideIOR = outsideIOR;
         this.insideIOR = insideIOR;
+        Debug.Assert(outsideIOR != insideIOR);
     }
 
     public RgbColor Evaluate(Vector3 outDir, Vector3 inDir, bool isOnLightSubpath) {
@@ -65,6 +66,7 @@ public struct MicrofacetTransmission {
 
     public (float, float) Pdf(Vector3 outDir, Vector3 inDir, bool isOnLightSubpath) {
         if (ShadingSpace.SameHemisphere(outDir, inDir)) return (0, 0);
+        if (ShadingSpace.AbsCosTheta(outDir) == 0 || ShadingSpace.AbsCosTheta(inDir) == 0) return (0, 0);
         return (ComputeOneDir(outDir, inDir), ComputeOneDir(inDir, outDir));
     }
 

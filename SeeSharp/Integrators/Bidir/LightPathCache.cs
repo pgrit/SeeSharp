@@ -171,9 +171,9 @@ public class LightPathCache {
 
             // The next event pdf is computed once the path has three vertices
             if (depth == 2 && callback != null) {
-                ref var vertex = ref cache[pathIdx, lastId];
-                var primary = cache[pathIdx, vertex.AncestorId];
-                var origin = cache[pathIdx, primary.AncestorId];
+                ref var vertex = ref Cache[PathIdx, LastId];
+                var primary = Cache[PathIdx, vertex.AncestorId];
+                var origin = Cache[PathIdx, primary.AncestorId];
                 vertex.PdfNextEventAncestor = callback(origin, primary, ray.Direction);
             }
 
@@ -233,7 +233,7 @@ public class LightPathCache {
             callback = nextEventPdfCallback
         };
         walker.StartFromEmitter(emitterSample, emitterSample.Weight / selectProb);
-        return walker.lastId;
+        return walker.LastId;
     }
 
     int TraceBackgroundPath(RNG rng, float selectProb, NextEventPdfCallback nextEventPdfCallback, int idx) {
@@ -252,6 +252,6 @@ public class LightPathCache {
         var walker = new NotifyingCachedWalk(Scene, rng, MaxDepth, PathCache, idx);
         walker.callback = nextEventPdfCallback;
         walker.StartFromBackground(ray, weight, pdf);
-        return walker.lastId;
+        return walker.LastId;
     }
 }

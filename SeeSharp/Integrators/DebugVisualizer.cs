@@ -1,67 +1,60 @@
-﻿using SeeSharp.Geometry;
-using SeeSharp.Sampling;
-using SimpleImageIO;
-using System;
-using System.Numerics;
-using TinyEmbree;
+﻿namespace SeeSharp.Integrators;
 
-namespace SeeSharp.Integrators {
+/// <summary>
+/// Renders a simple and fast grayscale visualization of a scene
+/// </summary>
+public class DebugVisualizer : Integrator {
     /// <summary>
-    /// Renders a simple and fast grayscale visualization of a scene
+    /// Base seed used for anti-aliasing
     /// </summary>
-    public class DebugVisualizer : Integrator {
-        /// <summary>
-        /// Base seed used for anti-aliasing
-        /// </summary>
-        public uint BaseSeed = 0xC030114;
+    public uint BaseSeed = 0xC030114;
 
-        /// <summary>
-        /// Number of anti-aliasing samples to take in each pixel
-        /// </summary>
-        public int TotalSpp = 1;
+    /// <summary>
+    /// Number of anti-aliasing samples to take in each pixel
+    /// </summary>
+    public int TotalSpp = 1;
 
-        /// <summary>
-        /// Renders the given scene.
-        /// </summary>
-        public override void Render(Scene scene) {
-            for (uint sampleIndex = 0; sampleIndex < TotalSpp; ++sampleIndex) {
-                scene.FrameBuffer.StartIteration();
-                System.Threading.Tasks.Parallel.For(0, scene.FrameBuffer.Height,
-                    row => {
-                        for (uint col = 0; col < scene.FrameBuffer.Width; ++col) {
-                            RenderPixel(scene, (uint)row, col, sampleIndex);
-                        }
+    /// <summary>
+    /// Renders the given scene.
+    /// </summary>
+    public override void Render(Scene scene) {
+        for (uint sampleIndex = 0; sampleIndex < TotalSpp; ++sampleIndex) {
+            scene.FrameBuffer.StartIteration();
+            System.Threading.Tasks.Parallel.For(0, scene.FrameBuffer.Height,
+                row => {
+                    for (uint col = 0; col < scene.FrameBuffer.Width; ++col) {
+                        RenderPixel(scene, (uint)row, col, sampleIndex);
                     }
-                );
-                scene.FrameBuffer.EndIteration();
-            }
+                }
+            );
+            scene.FrameBuffer.EndIteration();
         }
+    }
 
-        /// <summary>
-        /// The shading value at a primary hit point. The default implementation uses "eye light shading",
-        /// i.e., the cosine between the outgoing direction and the normal.
-        /// </summary>
-        public virtual RgbColor ComputeColor(SurfacePoint hit, Vector3 from) {
-            float cosine = Math.Abs(Vector3.Dot(hit.Normal, from));
-            cosine /= hit.Normal.Length();
-            cosine /= from.Length();
-            return RgbColor.White * cosine;
-        }
+    /// <summary>
+    /// The shading value at a primary hit point. The default implementation uses "eye light shading",
+    /// i.e., the cosine between the outgoing direction and the normal.
+    /// </summary>
+    public virtual RgbColor ComputeColor(SurfacePoint hit, Vector3 from) {
+        float cosine = Math.Abs(Vector3.Dot(hit.Normal, from));
+        cosine /= hit.Normal.Length();
+        cosine /= from.Length();
+        return RgbColor.White * cosine;
+    }
 
-        private void RenderPixel(Scene scene, uint row, uint col, uint sampleIndex) {
-            // Seed the random number generator
-            uint pixelIndex = row * (uint)scene.FrameBuffer.Width + col;
-            var rng = new RNG(BaseSeed, pixelIndex, sampleIndex);
+    private void RenderPixel(Scene scene, uint row, uint col, uint sampleIndex) {
+        // Seed the random number generator
+        uint pixelIndex = row * (uint)scene.FrameBuffer.Width + col;
+        var rng = new RNG(BaseSeed, pixelIndex, sampleIndex);
 
-            // Sample a ray from the camera
-            var offset = rng.NextFloat2D();
-            Ray primaryRay = scene.Camera.GenerateRay(new Vector2(col, row) + offset, rng).Ray;
-            var hit = scene.Raytracer.Trace(primaryRay);
+        // Sample a ray from the camera
+        var offset = rng.NextFloat2D();
+        Ray primaryRay = scene.Camera.GenerateRay(new Vector2(col, row) + offset, rng).Ray;
+        var hit = scene.Raytracer.Trace(primaryRay);
 
-            // Shade and splat
-            RgbColor value = RgbColor.Black;
-            if (hit) value = ComputeColor(hit, -primaryRay.Direction);
-            scene.FrameBuffer.Splat(col, row, value);
-        }
+        // Shade and splat
+        RgbColor value = RgbColor.Black;
+        if (hit) value = ComputeColor(hit, -primaryRay.Direction);
+        scene.FrameBuffer.Splat(col, row, value);
     }
 }

@@ -82,6 +82,15 @@ public class TechPyramid {
     }
 
     /// <summary>
+    /// Multiplies all pixels in all images by the given factor.
+    /// </summary>
+    public void Normalize(float scalingFactor) {
+        foreach (var t in techniqueImages) {
+            t.Value.Scale(scalingFactor);
+        }
+    }
+
+    /// <summary>
     /// Writes the images into separate files
     /// </summary>
     /// <param name="basename">First portion of the filenames, will be extended with a per-tech suffix</param>

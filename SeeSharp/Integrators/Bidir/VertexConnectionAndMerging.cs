@@ -92,7 +92,7 @@ public class VertexConnectionAndMerging : VertexCacheBidir {
                                            int cameraPathLength, int lightPathLength, int fullLength) {
         if (!RenderTechniquePyramid)
             return;
-        weight /= NumIterations;
+
         techPyramidRaw.Add(cameraPathLength, lightPathLength, fullLength, pixel, weight);
         techPyramidWeighted.Add(cameraPathLength, lightPathLength, fullLength, pixel, weight * misWeight);
     }
@@ -113,12 +113,12 @@ public class VertexConnectionAndMerging : VertexCacheBidir {
         base.Render(scene);
 
         // Store the technique pyramids
-        // TODO we are rendering some of these twice and replacing all but the merging ones, now that
-        //      the base class has changed! Only write merges here.
         if (RenderTechniquePyramid) {
+            techPyramidRaw.Normalize(1.0f / Scene.FrameBuffer.CurIteration);
             string pathRaw = Path.Join(scene.FrameBuffer.Basename, "techs-raw");
             techPyramidRaw.WriteToFiles(pathRaw);
 
+            techPyramidWeighted.Normalize(1.0f / Scene.FrameBuffer.CurIteration);
             string pathWeighted = Path.Join(scene.FrameBuffer.Basename, "techs-weighted");
             techPyramidWeighted.WriteToFiles(pathWeighted);
         }

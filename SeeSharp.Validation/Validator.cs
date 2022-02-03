@@ -63,16 +63,16 @@ class Validator {
         var sceneLoadTime = stopwatch.ElapsedMilliseconds;
 
         var algorithms = new Dictionary<string, Integrator>() {
-                // { "PathTracer", new PathTracer() {
-                //    TotalSpp = sceneFactory.SamplesPerPixel,
-                //    MaxDepth = sceneFactory.MaxDepth,
-                //    MinDepth = 1
-                // }},
-                // { "ClassicBidir", new ClassicBidir() {
-                //     NumIterations = sceneFactory.SamplesPerPixel / 2,
-                //     MaxDepth = sceneFactory.MaxDepth,
-                //     RenderTechniquePyramid = false
-                // }},
+                { "PathTracer", new PathTracer() {
+                   TotalSpp = sceneFactory.SamplesPerPixel,
+                   MaxDepth = sceneFactory.MaxDepth,
+                   MinDepth = 1
+                }},
+                { "ClassicBidir", new ClassicBidir() {
+                    NumIterations = sceneFactory.SamplesPerPixel / 2,
+                    MaxDepth = sceneFactory.MaxDepth,
+                    RenderTechniquePyramid = false
+                }},
                 { "Vcm", new VertexConnectionAndMerging() {
                     NumIterations = sceneFactory.SamplesPerPixel / 2,
                     MaxDepth = sceneFactory.MaxDepth,

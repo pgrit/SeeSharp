@@ -2,18 +2,18 @@
 using System.Collections.Generic;
 
 var allTests = new List<ValidationSceneFactory>() {
-    // new Validate_DirectIllumTransmit(),
-    // new Validate_DirectIllum(),
-    // new Validate_SingleBounce(),
+    new Validate_DirectIllumTransmit(),
+    new Validate_DirectIllum(),
+    new Validate_SingleBounce(),
 
     // Needs more samples to correctly validate (PT produces mostly outliers)
     // new Validate_SingleBounceGlossy(),
 
-    // new Validate_MultiLight(),
-    // new Validate_GlossyLight(),
-    // new Validate_Environment(),
+    new Validate_MultiLight(),
+    new Validate_GlossyLight(),
+    new Validate_Environment(),
     new Validate_CornellBox(),
-    // new Validate_Textures(),
+    new Validate_Textures(),
 };
 
 int benchmarkRuns = 1;

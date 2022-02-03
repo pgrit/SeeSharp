@@ -172,8 +172,8 @@ public class RandomWalk {
         return estimate;
     }
 
-    protected Scene scene;
-    protected RNG rng;
-    protected int maxDepth;
+    protected readonly Scene scene;
+    protected readonly RNG rng;
+    protected readonly int maxDepth;
     protected bool isOnLightSubpath;
 }

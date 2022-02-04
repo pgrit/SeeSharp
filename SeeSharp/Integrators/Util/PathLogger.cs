@@ -107,11 +107,22 @@ public class PathLogger {
         });
     }
 
+    /// <summary>
+    /// Continues the path by adding a new vertex
+    /// </summary>
+    /// <param name="id">ID of the path</param>
+    /// <param name="nextVertex">Position of the next vertex</param>
+    /// <param name="type">User-defined type</param>
     public void Continue(PathIndex id, Vector3 nextVertex, int type) {
         pixelPaths[id.Pixel][id.Local].Vertices.Add(nextVertex);
         pixelPaths[id.Pixel][id.Local].UserTypes.Add(type);
     }
 
+    /// <summary>
+    /// Assigns a contribution to a path
+    /// </summary>
+    /// <param name="id">ID of an existing path</param>
+    /// <param name="contrib">The contribution of the path</param>
     public void SetContrib(PathIndex id, RgbColor contrib) {
         pixelPaths[id.Pixel][id.Local].Contribution = contrib;
     }
@@ -122,6 +133,7 @@ public class PathLogger {
         return row * width + col;
     }
 
+    /// <returns>All paths stored for the pixel with contribution higher than the minimum</returns>
     public List<LoggedPath> GetAllInPixel(int col, int row, RgbColor minContrib) {
         List<LoggedPath> result = new();
         var candidates = pixelPaths[row * width + col];

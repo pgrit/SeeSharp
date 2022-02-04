@@ -57,7 +57,7 @@ namespace SeeSharp.Shading.MicrofacetDistributions {
         /// This usually importance samples the portion of normals that are in the hemisphere of the outgoing direction.
         /// </summary>
         /// <param name="outDir">The outgoing direction in shading space.</param>
-        /// <param name="inDir">The incoming direction in shading space.</param>
+        /// <param name="normal">The normal in shading space.</param>
         /// <returns>The pdf value.</returns>
         public float Pdf(Vector3 outDir, Vector3 normal) =>
             NormalDistribution(normal) * MaskingShadowing(outDir) * MathF.Abs(Vector3.Dot(outDir, normal))

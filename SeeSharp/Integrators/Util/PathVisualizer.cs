@@ -1,7 +1,17 @@
 namespace SeeSharp.Integrators.Util;
 
+/// <summary>
+/// Renders an eye-light shaded version of the scene and visualizes a set of paths with one arrow per edge.
+/// </summary>
 public class PathVisualizer : DebugVisualizer {
+    /// <summary>
+    /// If set, determines the color of each path type that has an entry in the dictionary.
+    /// </summary>
     public Dictionary<int, RgbColor> TypeToColor;
+
+    /// <summary>
+    /// The set of paths to display
+    /// </summary>
     public List<LoggedPath> Paths;
 
     /// <summary>
@@ -19,6 +29,7 @@ public class PathVisualizer : DebugVisualizer {
     /// </summary>
     public int NumSegments = 16;
 
+    /// <inheritdoc />
     public override void Render(Scene scene) {
         curScene = scene;
 
@@ -37,13 +48,15 @@ public class PathVisualizer : DebugVisualizer {
         scene.Prepare();
     }
 
+    /// <returns>A grayscale color for scene geometry or the color of the intersected path marker</returns>
+    /// <inheritdoc />
     public override RgbColor ComputeColor(SurfacePoint hit, Vector3 from) {
         int type;
         if (!markerTypes.TryGetValue(hit.Mesh, out type))
             return base.ComputeColor(hit, from);
 
         RgbColor color = new RgbColor(1, 0, 0);
-        TypeToColor.TryGetValue(type, out color);
+        TypeToColor?.TryGetValue(type, out color);
 
         float cosine = Math.Abs(Vector3.Dot(hit.Normal, from));
         cosine /= hit.Normal.Length();

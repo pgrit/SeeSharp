@@ -1,10 +1,14 @@
-﻿namespace SeeSharp.Geometry;
+﻿using System.Text.Json;
+
+namespace SeeSharp.IO;
 
 /// <summary>
 /// Converts our parsed wavefront .obj mesh representation into an actual mesh.
 /// Triangulates surfaces and makes sure that one mesh is created for each material.
 /// </summary>
-public static class ObjConverter {
+public class ObjConverter : IMeshLoader {
+    /// <inheritdoc />
+    public string Type => "obj";
 
     struct TriIdx {
         public ObjMesh.Index v0, v1, v2;
@@ -199,5 +203,17 @@ public static class ObjConverter {
                 }
             }
         }
+    }
+
+    public void LoadMesh(Scene resultScene, Dictionary<string, Material> namedMaterials,
+                         Dictionary<string, RgbColor> emissiveMaterials, JsonElement jsonElement, string dirname) {
+        // The path is relative to this .json, we need to make it absolute / relative to the CWD
+        string relpath = jsonElement.GetProperty("relativePath").GetString();
+        string filename = Path.Join(dirname, relpath);
+
+        // Load the mesh and add it to the scene. We pass all materials defined in the .json along
+        // they will replace any equally named materials from the .mtl file.
+        var objMesh = ObjMesh.FromFile(filename);
+        AddToScene(objMesh, resultScene, namedMaterials, emissiveMaterials);
     }
 }

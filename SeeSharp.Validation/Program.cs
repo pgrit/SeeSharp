@@ -16,10 +16,12 @@ var allTests = new List<ValidationSceneFactory>() {
     new Validate_Textures(),
 };
 
+bool useTev = args.Length >= 1 && args[0] == "--tev";
+
 int benchmarkRuns = 1;
 List<List<long>> allTimings = new();
 foreach (var test in allTests) {
-    var timings = Validator.Benchmark(test, benchmarkRuns);
+    var timings = Validator.Benchmark(test, benchmarkRuns, useTev);
     allTimings.Add(timings);
 }
 

@@ -19,3 +19,5 @@ global using SeeSharp.Cameras;
 global using SeeSharp.Shading.Background;
 global using SeeSharp.Shading.Materials;
 global using SeeSharp.Image;
+global using SeeSharp.Shading;
+global using SeeSharp.Integrators;

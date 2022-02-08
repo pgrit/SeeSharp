@@ -1,8 +1,8 @@
 ﻿using System.Text.RegularExpressions;
 
-using MaterialLib = System.Collections.Generic.Dictionary<string, SeeSharp.Geometry.ObjMesh.Material>;
+using MaterialLib = System.Collections.Generic.Dictionary<string, SeeSharp.IO.ObjMesh.Material>;
 
-namespace SeeSharp.Geometry;
+namespace SeeSharp.IO;
 
 /// <summary>
 /// Represents a wavefront .obj mesh parsed from a file

@@ -1,69 +1,70 @@
-﻿using SeeSharp.Geometry;
+﻿using SeeSharp.IO;
 using System;
 using System.Collections.Generic;
 using System.Text;
 using Xunit;
 
-namespace SeeSharp.Tests.Core.Geometry {
-    public class PlyFiles_Import {
-        [Fact]
-        public void SimplePly_ShouldBeReadAscii() {
-            CreateTestAsciiPly();
-            PlyFile file = new();
-            bool success = file.ParseFile("test.ply");
-            Assert.True(success);
+namespace SeeSharp.Tests.Core.Geometry;
 
-            var mesh = file.ToMesh();
+public class PlyFiles_Import {
+    [Fact]
+    public void SimplePly_ShouldBeReadAscii() {
+        CreateTestAsciiPly();
+        PlyFile file = new();
+        bool success = file.ParseFile("test.ply");
+        Assert.True(success);
 
-            // The mesh should NOT have a material assigned
-            Assert.Null(mesh.Material);
-        }
+        var mesh = file.ToMesh();
 
-        [Fact]
-        public void SimplePly_ShouldBeReadBinary() {
-            CreateTestBinaryPly();
-            PlyFile file = new();
-            bool success = file.ParseFile("test.ply");
-            Assert.True(success);
+        // The mesh should NOT have a material assigned
+        Assert.Null(mesh.Material);
+    }
 
-            var mesh = file.ToMesh();
+    [Fact]
+    public void SimplePly_ShouldBeReadBinary() {
+        CreateTestBinaryPly();
+        PlyFile file = new();
+        bool success = file.ParseFile("test.ply");
+        Assert.True(success);
 
-            // The mesh should NOT have a material assigned
-            Assert.Null(mesh.Material);
-        }
+        var mesh = file.ToMesh();
 
-        [Fact]
-        public void SimplePly_TriangulationAscii() {
-            CreateTestAsciiPly();
-            PlyFile file = new();
-            bool success = file.ParseFile("test.ply");
-            Assert.True(success);
+        // The mesh should NOT have a material assigned
+        Assert.Null(mesh.Material);
+    }
 
-            var mesh = file.ToMesh();
+    [Fact]
+    public void SimplePly_TriangulationAscii() {
+        CreateTestAsciiPly();
+        PlyFile file = new();
+        bool success = file.ParseFile("test.ply");
+        Assert.True(success);
 
-            // There should be exactly 12 triangles
-            Assert.Equal(12, mesh.NumFaces);
-            // There should be exactly 8 vertices
-            Assert.Equal(8, mesh.NumVertices);
-        }
+        var mesh = file.ToMesh();
 
-        [Fact]
-        public void SimplePly_TriangulationBinary() {
-            CreateTestBinaryPly();
-            PlyFile file = new();
-            bool success = file.ParseFile("test.ply");
-            Assert.True(success);
+        // There should be exactly 12 triangles
+        Assert.Equal(12, mesh.NumFaces);
+        // There should be exactly 8 vertices
+        Assert.Equal(8, mesh.NumVertices);
+    }
 
-            var mesh = file.ToMesh();
+    [Fact]
+    public void SimplePly_TriangulationBinary() {
+        CreateTestBinaryPly();
+        PlyFile file = new();
+        bool success = file.ParseFile("test.ply");
+        Assert.True(success);
 
-            // There should be exactly 12 triangles
-            Assert.Equal(12, mesh.NumFaces);
-            // There should be exactly 8 vertices
-            Assert.Equal(8, mesh.NumVertices);
-        }
+        var mesh = file.ToMesh();
 
-        static void CreateTestAsciiPly() {
-string plyCode = @"ply
+        // There should be exactly 12 triangles
+        Assert.Equal(12, mesh.NumFaces);
+        // There should be exactly 8 vertices
+        Assert.Equal(8, mesh.NumVertices);
+    }
+
+    static void CreateTestAsciiPly() {
+        string plyCode = @"ply
 format ascii 1.0
 comment made by me, myself and I
 comment this file is a cube I suppose
@@ -89,13 +90,13 @@ end_header
 4 2 6 7 3
 4 3 7 4 0";
 
-            System.IO.File.WriteAllText(@"test.ply", plyCode);
-        }
+        System.IO.File.WriteAllText(@"test.ply", plyCode);
+    }
 
 
-        static void CreateTestBinaryPly() {
-            string format = BitConverter.IsLittleEndian ? "binary_little_endian" : "binary_big_endian";
-            string plyHeader = $@"ply
+    static void CreateTestBinaryPly() {
+        string format = BitConverter.IsLittleEndian ? "binary_little_endian" : "binary_big_endian";
+        string plyHeader = $@"ply
 format {format} 1.0
 comment made by me, myself and I
 comment this file is a cube I suppose
@@ -108,80 +109,79 @@ property list uchar int vertex_indices
 end_header
 ";
 
-            List<byte> data = new();
-            data.AddRange(Encoding.ASCII.GetBytes(plyHeader));
+        List<byte> data = new();
+        data.AddRange(Encoding.ASCII.GetBytes(plyHeader));
 
-            // Vertices
-            data.AddRange(BitConverter.GetBytes((float)0));
-            data.AddRange(BitConverter.GetBytes((float)0));
-            data.AddRange(BitConverter.GetBytes((float)0));
+        // Vertices
+        data.AddRange(BitConverter.GetBytes((float)0));
+        data.AddRange(BitConverter.GetBytes((float)0));
+        data.AddRange(BitConverter.GetBytes((float)0));
 
-            data.AddRange(BitConverter.GetBytes((float)0));
-            data.AddRange(BitConverter.GetBytes((float)0));
-            data.AddRange(BitConverter.GetBytes((float)1));
+        data.AddRange(BitConverter.GetBytes((float)0));
+        data.AddRange(BitConverter.GetBytes((float)0));
+        data.AddRange(BitConverter.GetBytes((float)1));
 
-            data.AddRange(BitConverter.GetBytes((float)0));
-            data.AddRange(BitConverter.GetBytes((float)1));
-            data.AddRange(BitConverter.GetBytes((float)1));
+        data.AddRange(BitConverter.GetBytes((float)0));
+        data.AddRange(BitConverter.GetBytes((float)1));
+        data.AddRange(BitConverter.GetBytes((float)1));
 
-            data.AddRange(BitConverter.GetBytes((float)0));
-            data.AddRange(BitConverter.GetBytes((float)1));
-            data.AddRange(BitConverter.GetBytes((float)0));
+        data.AddRange(BitConverter.GetBytes((float)0));
+        data.AddRange(BitConverter.GetBytes((float)1));
+        data.AddRange(BitConverter.GetBytes((float)0));
 
-            data.AddRange(BitConverter.GetBytes((float)1));
-            data.AddRange(BitConverter.GetBytes((float)0));
-            data.AddRange(BitConverter.GetBytes((float)0));
+        data.AddRange(BitConverter.GetBytes((float)1));
+        data.AddRange(BitConverter.GetBytes((float)0));
+        data.AddRange(BitConverter.GetBytes((float)0));
 
-            data.AddRange(BitConverter.GetBytes((float)1));
-            data.AddRange(BitConverter.GetBytes((float)0));
-            data.AddRange(BitConverter.GetBytes((float)1));
+        data.AddRange(BitConverter.GetBytes((float)1));
+        data.AddRange(BitConverter.GetBytes((float)0));
+        data.AddRange(BitConverter.GetBytes((float)1));
 
-            data.AddRange(BitConverter.GetBytes((float)1));
-            data.AddRange(BitConverter.GetBytes((float)1));
-            data.AddRange(BitConverter.GetBytes((float)1));
+        data.AddRange(BitConverter.GetBytes((float)1));
+        data.AddRange(BitConverter.GetBytes((float)1));
+        data.AddRange(BitConverter.GetBytes((float)1));
 
-            data.AddRange(BitConverter.GetBytes((float)1));
-            data.AddRange(BitConverter.GetBytes((float)1));
-            data.AddRange(BitConverter.GetBytes((float)0));
+        data.AddRange(BitConverter.GetBytes((float)1));
+        data.AddRange(BitConverter.GetBytes((float)1));
+        data.AddRange(BitConverter.GetBytes((float)0));
 
-            // Indices
-            data.Add(4);
-            data.AddRange(BitConverter.GetBytes((int)0));
-            data.AddRange(BitConverter.GetBytes((int)1));
-            data.AddRange(BitConverter.GetBytes((int)2));
-            data.AddRange(BitConverter.GetBytes((int)3));
+        // Indices
+        data.Add(4);
+        data.AddRange(BitConverter.GetBytes((int)0));
+        data.AddRange(BitConverter.GetBytes((int)1));
+        data.AddRange(BitConverter.GetBytes((int)2));
+        data.AddRange(BitConverter.GetBytes((int)3));
 
-            data.Add(4);
-            data.AddRange(BitConverter.GetBytes((int)7));
-            data.AddRange(BitConverter.GetBytes((int)6));
-            data.AddRange(BitConverter.GetBytes((int)5));
-            data.AddRange(BitConverter.GetBytes((int)4));
+        data.Add(4);
+        data.AddRange(BitConverter.GetBytes((int)7));
+        data.AddRange(BitConverter.GetBytes((int)6));
+        data.AddRange(BitConverter.GetBytes((int)5));
+        data.AddRange(BitConverter.GetBytes((int)4));
 
-            data.Add(4);
-            data.AddRange(BitConverter.GetBytes((int)0));
-            data.AddRange(BitConverter.GetBytes((int)4));
-            data.AddRange(BitConverter.GetBytes((int)5));
-            data.AddRange(BitConverter.GetBytes((int)1));
+        data.Add(4);
+        data.AddRange(BitConverter.GetBytes((int)0));
+        data.AddRange(BitConverter.GetBytes((int)4));
+        data.AddRange(BitConverter.GetBytes((int)5));
+        data.AddRange(BitConverter.GetBytes((int)1));
 
-            data.Add(4);
-            data.AddRange(BitConverter.GetBytes((int)1));
-            data.AddRange(BitConverter.GetBytes((int)5));
-            data.AddRange(BitConverter.GetBytes((int)6));
-            data.AddRange(BitConverter.GetBytes((int)2));
+        data.Add(4);
+        data.AddRange(BitConverter.GetBytes((int)1));
+        data.AddRange(BitConverter.GetBytes((int)5));
+        data.AddRange(BitConverter.GetBytes((int)6));
+        data.AddRange(BitConverter.GetBytes((int)2));
 
-            data.Add(4);
-            data.AddRange(BitConverter.GetBytes((int)2));
-            data.AddRange(BitConverter.GetBytes((int)6));
-            data.AddRange(BitConverter.GetBytes((int)7));
-            data.AddRange(BitConverter.GetBytes((int)3));
+        data.Add(4);
+        data.AddRange(BitConverter.GetBytes((int)2));
+        data.AddRange(BitConverter.GetBytes((int)6));
+        data.AddRange(BitConverter.GetBytes((int)7));
+        data.AddRange(BitConverter.GetBytes((int)3));
 
-            data.Add(4);
-            data.AddRange(BitConverter.GetBytes((int)3));
-            data.AddRange(BitConverter.GetBytes((int)7));
-            data.AddRange(BitConverter.GetBytes((int)4));
-            data.AddRange(BitConverter.GetBytes((int)0));
+        data.Add(4);
+        data.AddRange(BitConverter.GetBytes((int)3));
+        data.AddRange(BitConverter.GetBytes((int)7));
+        data.AddRange(BitConverter.GetBytes((int)4));
+        data.AddRange(BitConverter.GetBytes((int)0));
 
-            System.IO.File.WriteAllBytes(@"test.ply", data.ToArray());
-        }
+        System.IO.File.WriteAllBytes(@"test.ply", data.ToArray());
     }
 }

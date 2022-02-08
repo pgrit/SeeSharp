@@ -30,7 +30,7 @@ class Validator {
     }
 
     static (List<FrameBuffer>, List<long>) RenderImages(Scene scene, IEnumerable<Integrator> algorithms,
-                                                        IEnumerable<string> names, string testname) {
+                                                        IEnumerable<string> names, string testname, bool useTev) {
         var images = new List<FrameBuffer>();
         var times = new List<long>();
         Console.WriteLine($"Running test '{testname}'");
@@ -41,8 +41,8 @@ class Validator {
 
             // Create a new empty frame buffer with the desired output filename
             scene.FrameBuffer = new FrameBuffer(scene.FrameBuffer.Width, scene.FrameBuffer.Height,
-                System.IO.Path.Join("Results", $"{testname}", $"{name.Current}.exr"));
-                //, FrameBuffer.Flags.SendToTev);
+                System.IO.Path.Join("Results", $"{testname}", $"{name.Current}.exr"),
+                useTev ? FrameBuffer.Flags.SendToTev : FrameBuffer.Flags.None);
 
             alg.Render(scene);
 
@@ -56,7 +56,7 @@ class Validator {
         return (images, times);
     }
 
-    public static List<long> Validate(ValidationSceneFactory sceneFactory) {
+    public static List<long> Validate(ValidationSceneFactory sceneFactory, bool useTev) {
         var stopwatch = System.Diagnostics.Stopwatch.StartNew();
         using var scene = sceneFactory.MakeScene();
         stopwatch.Stop();
@@ -80,7 +80,7 @@ class Validator {
                 }}
             };
 
-        var (images, times) = RenderImages(scene, algorithms.Values, algorithms.Keys, sceneFactory.Name);
+        var (images, times) = RenderImages(scene, algorithms.Values, algorithms.Keys, sceneFactory.Name, useTev);
 
         if (!ValidateImages(images)) {
             Console.WriteLine("Validation error: Average image values too far appart!");
@@ -91,10 +91,10 @@ class Validator {
         return times;
     }
 
-    public static List<long> Benchmark(ValidationSceneFactory sceneFactory, int numTrials) {
-        var totalTimes = Validate(sceneFactory);
+    public static List<long> Benchmark(ValidationSceneFactory sceneFactory, int numTrials, bool useTev) {
+        var totalTimes = Validate(sceneFactory, useTev);
         for (int i = 1; i < numTrials; ++i) {
-            var times = Validate(sceneFactory);
+            var times = Validate(sceneFactory, useTev);
             for (int k = 0; k < totalTimes.Count; ++k)
                 totalTimes[k] += times[k];
         }

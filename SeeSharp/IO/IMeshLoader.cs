@@ -13,9 +13,9 @@ public interface IMeshLoader {
     string Type { get; }
 
     /// <summary>
-    /// Loads the mesh and adds it to the scene
+    /// Loads the mesh and adds it to the scene. Must acquire a lock for resultScene when modifying scene data!
     /// </summary>
-    /// <param name="resultScene">The loaded mesh is added to this scene</param>
+    /// <param name="resultScene">The loaded mesh is added to this scene, MUST use lock on this object when adding.</param>
     /// <param name="namedMaterials">Set of materials specified in the scene description</param>
     /// <param name="jsonElement">The mesh description in the .json file</param>
     /// <param name="dirname">Full path to the directory containing the .json file</param>

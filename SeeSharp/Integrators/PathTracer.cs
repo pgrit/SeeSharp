@@ -193,7 +193,8 @@ public class PathTracer : Integrator {
         if (EnableDenoiser)
             denoiseBuffers = new(scene.FrameBuffer);
 
-        ProgressBar progressBar = new(TotalSpp);
+        ProgressBar progressBar = new(prefix: "Rendering...");
+        progressBar.Start(TotalSpp);
         RenderTimer timer = new();
         for (uint sampleIndex = 0; sampleIndex < TotalSpp; ++sampleIndex) {
             long nextIterTime = timer.RenderTime + timer.PerIterationCost;
@@ -223,7 +224,7 @@ public class PathTracer : Integrator {
             scene.FrameBuffer.EndIteration();
             timer.EndFrameBuffer();
 
-            progressBar.ReportDone(1, timer.CurrentIterationSeconds);
+            progressBar.ReportDone(1);
             timer.EndIteration();
         }
 
@@ -425,11 +426,11 @@ public class PathTracer : Integrator {
             float pdfBsdfSolidAngle = DirectionPdf(hit, -ray.Direction, -lightToSurface, state);
             float pdfBsdf = pdfBsdfSolidAngle * jacobian;
 
-            Debug.Assert(pdfBsdf != 0 || bsdfCos == RgbColor.Black,
-                "Non-zero BSDF value not sampled by forward path tracing!");
-
             // Avoid Inf / NaN
             if (jacobian == 0) return RgbColor.Black;
+
+            Debug.Assert(pdfBsdf != 0 || bsdfCos == RgbColor.Black,
+                "Non-zero BSDF value not sampled by forward path tracing!");
 
             // Compute the resulting power heuristic weights
             float pdfRatio = pdfBsdf / pdfNextEvt;

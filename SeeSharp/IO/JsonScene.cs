@@ -18,22 +18,32 @@ public static class JsonScene {
                                    Dictionary<string, Material> namedMaterials,
                                    Dictionary<string, RgbColor> emissiveMaterials) {
         var meshes = root.GetProperty("objects");
-        foreach (var m in meshes.EnumerateArray()) {
+        ProgressBar progressBar = new(prefix: "Loading meshes...");
+        progressBar.Start(meshes.GetArrayLength());
+        Parallel.ForEach(meshes.EnumerateArray(), m => {
+            var watch = Stopwatch.StartNew();
+
             string name = m.GetProperty("name").GetString();
             string type = m.GetProperty("type").GetString();
             var loader = Array.Find(KnownLoaders, l => l.Type == type);
             loader.LoadMesh(resultScene, namedMaterials, emissiveMaterials, m, Path.GetDirectoryName(path));
-        }
+
+            lock (progressBar) progressBar.ReportDone(1);
+        });
     }
 
     private static void ReadMaterials(string path, JsonElement root, out Dictionary<string, Material> namedMaterials,
                                       out Dictionary<string, RgbColor> emissiveMaterials) {
-        var watch = System.Diagnostics.Stopwatch.StartNew();
-        Logger.Log("Start parsing materials.", Verbosity.Debug);
-        namedMaterials = new Dictionary<string, Material>();
-        emissiveMaterials = new Dictionary<string, RgbColor>();
+
+        var namedMats = new Dictionary<string, Material>();
+        var emissiveMats = new Dictionary<string, RgbColor>();
         if (root.TryGetProperty("materials", out var materials)) {
-            foreach (var m in materials.EnumerateArray()) {
+            ProgressBar progressBar = new(prefix: "Loading materials...");
+            progressBar.Start(materials.GetArrayLength());
+
+            Parallel.ForEach(materials.EnumerateArray(), m => {
+                var watch = Stopwatch.StartNew();
+
                 string name = m.GetProperty("name").GetString();
 
                 float ReadOptionalFloat(string name, float defaultValue) {
@@ -59,7 +69,7 @@ public static class JsonScene {
                         BaseColor = JsonUtils.ReadColorOrTexture(m.GetProperty("baseColor"), path),
                         Transmitter = ReadOptionalBool("thin", false)
                     };
-                    namedMaterials[name] = new DiffuseMaterial(parameters);
+                    lock (namedMats) namedMats[name] = new DiffuseMaterial(parameters);
                 } else {
                     // TODO check that there are no unsupported parameters
                     var parameters = new GenericMaterial.Parameters {
@@ -73,19 +83,21 @@ public static class JsonScene {
                         SpecularTransmittance = ReadOptionalFloat("specularTransmittance", 0.0f),
                         Thin = ReadOptionalBool("thin", false)
                     };
-                    namedMaterials[name] = new GenericMaterial(parameters);
+                    lock (namedMats) namedMats[name] = new GenericMaterial(parameters);
                 }
 
                 // Check if the material is emissive
                 if (m.TryGetProperty("emission", out elem)) {
                     RgbColor emission = JsonUtils.ReadRgbColor(elem);
                     if (emission != RgbColor.Black)
-                        emissiveMaterials.Add(name, emission);
+                        lock (emissiveMats) emissiveMats.Add(name, emission);
                 }
-            }
+
+                lock (progressBar) progressBar.ReportDone(1);
+            });
         }
-        watch.Stop();
-        Logger.Log($"Done parsing materials after {watch.ElapsedMilliseconds}ms.", Verbosity.Info);
+        namedMaterials = namedMats;
+        emissiveMaterials = emissiveMats;
     }
 
     private static void ReadBackground(string path, Scene resultScene, JsonElement root) {

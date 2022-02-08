@@ -189,16 +189,17 @@ public class ObjConverter : IMeshLoader {
                                       localTexcoords?.ToArray()) {
                         Material = material
                     };
-                    scene.Meshes.Add(m);
+
+                    lock(scene) scene.Meshes.Add(m);
 
                     // Create an emitter if the obj material is emissive
                     RgbColor emission;
                     if (emissionOverride != null && emissionOverride.TryGetValue(materialName, out emission)) {
                         var emitter = new DiffuseEmitter(m, emission);
-                        scene.Emitters.Add(emitter);
+                        lock(scene) scene.Emitters.Add(emitter);
                     } else if (emitters.TryGetValue(materialName, out emission)) {
                         var emitter = new DiffuseEmitter(m, emission);
-                        scene.Emitters.Add(emitter);
+                        lock(scene) scene.Emitters.Add(emitter);
                     }
                 }
             }

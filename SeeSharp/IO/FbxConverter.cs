@@ -77,12 +77,12 @@ public class FbxConverter : IMeshLoader {
             Mesh mesh = new(vertices, m.GetIndices(), normals, texCoords) {
                 Material = mat
             };
-            scene.Meshes.Add(mesh);
+            lock (scene) scene.Meshes.Add(mesh);
 
             // Create an emitter if requested
             if (emissionOverride != null && emissionOverride.TryGetValue(materialName, out var emission)) {
                 var emitter = new DiffuseEmitter(mesh, emission);
-                scene.Emitters.Add(emitter);
+                lock (scene) scene.Emitters.Add(emitter);
             }
         }
     }

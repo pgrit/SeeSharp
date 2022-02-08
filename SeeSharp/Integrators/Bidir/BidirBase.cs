@@ -187,7 +187,8 @@ public abstract class BidirBase : Integrator {
         if (EnableDenoiser) DenoiseBuffers = new(scene.FrameBuffer);
         OnBeforeRender();
 
-        SeeSharp.Common.ProgressBar progressBar = new(NumIterations);
+        ProgressBar progressBar = new(prefix: "Rendering...");
+        progressBar.Start(NumIterations);
         RNG camSeedGen = new(BaseSeedCamera);
         RenderTimer timer = new();
         Stopwatch lightTracerTimer = new();
@@ -230,7 +231,7 @@ public abstract class BidirBase : Integrator {
             scene.FrameBuffer.EndIteration();
             timer.EndFrameBuffer();
 
-            progressBar.ReportDone(1, timer.CurrentIterationSeconds);
+            progressBar.ReportDone(1);
             timer.EndIteration();
         }
 

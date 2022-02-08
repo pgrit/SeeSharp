@@ -30,8 +30,8 @@ public class PlyLoader : IMeshLoader {
         if (jsonElement.TryGetProperty("emission", out var emissionJson)) { // The object is an emitter
             var emission = JsonUtils.ReadRgbColor(emissionJson);
             emitter = new DiffuseEmitter(mesh, emission);
-            resultScene.Emitters.Add(emitter);
+            lock (resultScene) resultScene.Emitters.Add(emitter);
         }
-        resultScene.Meshes.Add(mesh);
+        lock (resultScene) resultScene.Meshes.Add(mesh);
     }
 }

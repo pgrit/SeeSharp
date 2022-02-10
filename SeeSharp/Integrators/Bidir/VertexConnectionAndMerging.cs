@@ -82,7 +82,7 @@ public class VertexConnectionAndMerging : VertexCacheBidir {
     protected virtual void ShrinkRadius(uint iteration) { }
 
     /// <inheritdoc />
-    protected override void PostIteration(uint iteration) {
+    protected override void OnEndIteration(uint iteration) {
         ShrinkRadius(iteration);
     }
 

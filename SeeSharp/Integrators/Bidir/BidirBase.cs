@@ -148,13 +148,13 @@ public abstract class BidirBase : Integrator {
     /// Called once after the end of each rendering iteration (one sample per pixel)
     /// </summary>
     /// <param name="iteration">The 0-based index of the iteration that just finished</param>
-    protected virtual void PostIteration(uint iteration) { }
+    protected virtual void OnEndIteration(uint iteration) { }
 
     /// <summary>
     /// Called once before the start of each rendering iteration (one sample per pixel)
     /// </summary>
     /// <param name="iteration">The 0-based index of the iteration that will now start</param>
-    protected virtual void PreIteration(uint iteration) { }
+    protected virtual void OnStartIteration(uint iteration) { }
 
     /// <summary>
     /// Called after all rendering iterations are finished, or the time budget has been exhausted
@@ -162,7 +162,8 @@ public abstract class BidirBase : Integrator {
     protected virtual void OnAfterRender() { }
 
     /// <summary>
-    /// Called just before the main render loop starts
+    /// Called just before the main render loop starts. Not counted towards the render time. Use this to
+    /// initialize auxiliary buffers for debugging purposes.
     /// </summary>
     protected virtual void OnBeforeRender() { }
 
@@ -206,7 +207,7 @@ public abstract class BidirBase : Integrator {
             scene.FrameBuffer.StartIteration();
             timer.EndFrameBuffer();
 
-            PreIteration(iter);
+            OnStartIteration(iter);
             try {
                 // Make sure that changes in the light path count are propagated to the cache.
                 LightPaths.NumPaths = NumLightPaths.Value;
@@ -223,7 +224,7 @@ public abstract class BidirBase : Integrator {
                 Logger.Log($"Exception in iteration {iter} out of {NumIterations}.", Verbosity.Error);
                 throw;
             }
-            PostIteration(iter);
+            OnEndIteration(iter);
             timer.EndRender();
 
             if (iter == NumIterations - 1 && EnableDenoiser)

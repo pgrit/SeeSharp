@@ -228,12 +228,13 @@ public class VertexConnectionAndMerging : VertexCacheBidir {
     /// </summary>
     /// <param name="ray">Last ray along the camera path</param>
     /// <param name="hit">Last hit point along the camera path</param>
+    /// <param name="rng">Random number generator for random decisions required during merging</param>
     /// <param name="path">The camera subpath data</param>
     /// <param name="cameraJacobian">
     ///     Geometry term used to turn a PDF over outgoing directions into a surface area density.
     /// </param>
     /// <returns>MIS weighted contribution due to merging</returns>
-    protected virtual RgbColor PerformMerging(Ray ray, SurfacePoint hit, CameraPath path, float cameraJacobian) {
+    protected virtual RgbColor PerformMerging(Ray ray, SurfacePoint hit, RNG rng, CameraPath path, float cameraJacobian) {
         if (path.Vertices.Count == 1 && !MergePrimary) return RgbColor.Black;
         if (!EnableMerging) return RgbColor.Black;
         float localRadius = ComputeLocalMergeRadius(path.Distances[0]);
@@ -263,7 +264,7 @@ public class VertexConnectionAndMerging : VertexCacheBidir {
             for (int i = 0; i < NumConnections; ++i) {
                 value += throughput * BidirConnections(hit, -ray.Direction, rng, path, toAncestorJacobian);
             }
-            value += throughput * PerformMerging(ray, hit, path, toAncestorJacobian);
+            value += throughput * PerformMerging(ray, hit, rng, path, toAncestorJacobian);
         }
 
         if (depth < MaxDepth && depth + 1 >= MinDepth) {

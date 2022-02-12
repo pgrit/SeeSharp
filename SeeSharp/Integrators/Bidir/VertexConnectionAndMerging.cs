@@ -325,7 +325,7 @@ public class VertexConnectionAndMerging : VertexCacheBidir {
 
         // Add the reciprocal for the connection that replaces the last light path edge
         if (lightVertex.Depth > 1 && NumConnections > 0)
-            sumReciprocals += BidirSelectDensity() / mergeApproximation;
+            sumReciprocals += BidirSelectDensity(cameraPath.Pixel) / mergeApproximation;
 
         return 1 / sumReciprocals;
     }
@@ -411,9 +411,9 @@ public class VertexConnectionAndMerging : VertexCacheBidir {
         float radius = ComputeLocalMergeRadius(cameraPath.Distances[0]);
         float sumReciprocals = 1.0f;
         sumReciprocals += CameraPathReciprocals(lastCameraVertexIdx, pathPdfs, cameraPath.Pixel, radius)
-            / BidirSelectDensity();
+            / BidirSelectDensity(cameraPath.Pixel);
         sumReciprocals += LightPathReciprocals(lastCameraVertexIdx, pathPdfs, cameraPath.Pixel, radius)
-            / BidirSelectDensity();
+            / BidirSelectDensity(cameraPath.Pixel);
 
         return 1 / sumReciprocals;
     }
@@ -467,7 +467,7 @@ public class VertexConnectionAndMerging : VertexCacheBidir {
             nextReciprocal *= pdfs.PdfsLightToCamera[i] / pdfs.PdfsCameraToLight[i];
 
             // Connecting this vertex to the next one along the camera path
-            if (NumConnections > 0) sumReciprocals += nextReciprocal * BidirSelectDensity();
+            if (NumConnections > 0) sumReciprocals += nextReciprocal * BidirSelectDensity(pixel);
         }
 
         // Light tracer
@@ -503,7 +503,7 @@ public class VertexConnectionAndMerging : VertexCacheBidir {
 
             // Account for connections from this vertex to its ancestor
             if (i < pdfs.NumPdfs - 2) // Connections to the emitter (next event) are treated separately
-                if (NumConnections > 0) sumReciprocals += nextReciprocal * BidirSelectDensity();
+                if (NumConnections > 0) sumReciprocals += nextReciprocal * BidirSelectDensity(pixel);
         }
         if (EnableHitting || NumShadowRays != 0) sumReciprocals += nextReciprocal; // Next event and hitting the emitter directly
                                                                                    // TODO / FIXME Bsdf and Nee can only be disabled jointly here: needs proper handling when assembling pdfs

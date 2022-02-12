@@ -506,15 +506,19 @@ public abstract class BidirBase : Integrator {
     /// </summary>
     /// <param name="cameraPoint">The camera vertex where a connection is to be made</param>
     /// <param name="outDir">Direction from the camera vertex towards its ancestor</param>
-    /// <param name="pixelIndex">Index of the pixel that the camera path originated in</param>
+    /// <param name="pixel">The pixel that the camera path originated in</param>
     /// <param name="rng">Random number generator for sampling a vertex</param>
     /// <returns>
     /// Index of the selected light path, index of the vertex within or -1 for all, and the probability
     /// of sampling that vertex.
     /// </returns>
     protected virtual (int, int, float) SelectBidirPath(SurfacePoint cameraPoint, Vector3 outDir,
-                                                        int pixelIndex, RNG rng)
-    => (pixelIndex, -1, 1.0f);
+                                                        Vector2 pixel, RNG rng) {
+        int row = Math.Min((int)pixel.Y, Scene.FrameBuffer.Height - 1);
+        int col = Math.Min((int)pixel.X, Scene.FrameBuffer.Width - 1);
+        int pixelIndex = row * Scene.FrameBuffer.Width + col;
+        return (pixelIndex, -1, 1.0f);
+    }
 
     /// <summary>
     /// Computes the contribution of inner path connections at the given camera path vertex
@@ -538,7 +542,7 @@ public abstract class BidirBase : Integrator {
         int col = Math.Min((int)path.Pixel.X, Scene.FrameBuffer.Width - 1);
         int pixelIndex = row * Scene.FrameBuffer.Width + col;
         (int lightPathIdx, int lightVertIdx, float lightVertexProb) =
-            SelectBidirPath(cameraPoint, outDir, pixelIndex, rng);
+            SelectBidirPath(cameraPoint, outDir, new(col, row), rng);
 
         void Connect(PathVertex vertex, PathVertex ancestor, Vector3 dirToAncestor) {
             // Only allow connections that do not exceed the maximum total path length

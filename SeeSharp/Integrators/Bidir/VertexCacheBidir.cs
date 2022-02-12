@@ -54,10 +54,10 @@ public class VertexCacheBidir : BidirBase {
 
     /// <inheritdoc />
     protected override (int, int, float) SelectBidirPath(SurfacePoint cameraPoint, Vector3 outDir,
-                                                         int pixelIndex, RNG rng) {
+                                                         Vector2 pixel, RNG rng) {
         // Select a single vertex from the entire cache at random
         var (path, vertex) = vertexSelector.Select(rng);
-        return (path, vertex, BidirSelectDensity());
+        return (path, vertex, BidirSelectDensity(pixel));
     }
 
     /// <summary>
@@ -65,7 +65,7 @@ public class VertexCacheBidir : BidirBase {
     /// That is, the product of the selection probability and the number of samples.
     /// </summary>
     /// <returns>Effective density</returns>
-    public virtual float BidirSelectDensity() {
+    public virtual float BidirSelectDensity(Vector2 pixel) {
         if (vertexSelector.Count == 0) return 0;
 
         // We select light path vertices uniformly
@@ -168,7 +168,7 @@ public class VertexCacheBidir : BidirBase {
         sumReciprocals += pdfNextEvent / pdfThis;
 
         // All connections along the camera path
-        sumReciprocals += CameraPathReciprocals(lastCameraVertexIdx - 1, pathPdfs) / pdfThis;
+        sumReciprocals += CameraPathReciprocals(lastCameraVertexIdx - 1, pathPdfs, cameraPath.Pixel) / pdfThis;
 
         return 1 / sumReciprocals;
     }
@@ -189,7 +189,7 @@ public class VertexCacheBidir : BidirBase {
         pathPdfs.PdfsCameraToLight[1] = pdfReverse + pdfNextEvent;
 
         // Compute the actual weight
-        float sumReciprocals = LightPathReciprocals(lastCameraVertexIdx, numPdfs, pathPdfs);
+        float sumReciprocals = LightPathReciprocals(lastCameraVertexIdx, numPdfs, pathPdfs, pixel);
         sumReciprocals /= NumLightPaths.Value;
         sumReciprocals += 1;
         return 1 / sumReciprocals;
@@ -219,8 +219,10 @@ public class VertexCacheBidir : BidirBase {
 
         // Compute reciprocals for hypothetical connections along the camera sub-path
         float sumReciprocals = 1.0f;
-        sumReciprocals += CameraPathReciprocals(lastCameraVertexIdx, pathPdfs) / BidirSelectDensity();
-        sumReciprocals += LightPathReciprocals(lastCameraVertexIdx, numPdfs, pathPdfs) / BidirSelectDensity();
+        sumReciprocals += CameraPathReciprocals(lastCameraVertexIdx, pathPdfs, cameraPath.Pixel)
+            / BidirSelectDensity(cameraPath.Pixel);
+        sumReciprocals += LightPathReciprocals(lastCameraVertexIdx, numPdfs, pathPdfs, cameraPath.Pixel)
+            / BidirSelectDensity(cameraPath.Pixel);
 
         return 1 / sumReciprocals;
     }
@@ -249,19 +251,19 @@ public class VertexCacheBidir : BidirBase {
         if (EnableHitting) sumReciprocals += pdfHit / pdfNextEvent;
 
         // All bidirectional connections
-        sumReciprocals += CameraPathReciprocals(lastCameraVertexIdx, pathPdfs) / pdfNextEvent;
+        sumReciprocals += CameraPathReciprocals(lastCameraVertexIdx, pathPdfs, cameraPath.Pixel) / pdfNextEvent;
 
         return 1 / sumReciprocals;
     }
 
     /// <inheritdoc />
-    protected virtual float CameraPathReciprocals(int lastCameraVertexIdx, BidirPathPdfs pdfs) {
+    protected virtual float CameraPathReciprocals(int lastCameraVertexIdx, BidirPathPdfs pdfs, Vector2 pixel) {
         float sumReciprocals = 0.0f;
         float nextReciprocal = 1.0f;
         for (int i = lastCameraVertexIdx; i > 0; --i) { // all bidir connections
             nextReciprocal *= pdfs.PdfsLightToCamera[i] / pdfs.PdfsCameraToLight[i];
             if (NumConnections > 0)
-                sumReciprocals += nextReciprocal * BidirSelectDensity();
+                sumReciprocals += nextReciprocal * BidirSelectDensity(pixel);
         }
         if (EnableLightTracer)
             sumReciprocals +=
@@ -270,13 +272,13 @@ public class VertexCacheBidir : BidirBase {
     }
 
     /// <inheritdoc />
-    protected virtual float LightPathReciprocals(int lastCameraVertexIdx, int numPdfs, BidirPathPdfs pdfs) {
+    protected virtual float LightPathReciprocals(int lastCameraVertexIdx, int numPdfs, BidirPathPdfs pdfs, Vector2 pixel) {
         float sumReciprocals = 0.0f;
         float nextReciprocal = 1.0f;
         for (int i = lastCameraVertexIdx + 1; i < numPdfs; ++i) {
             nextReciprocal *= pdfs.PdfsCameraToLight[i] / pdfs.PdfsLightToCamera[i];
             if (i < numPdfs - 2 && NumConnections > 0) // Connections to the emitter (next event) are treated separately
-                sumReciprocals += nextReciprocal * BidirSelectDensity();
+                sumReciprocals += nextReciprocal * BidirSelectDensity(pixel);
         }
         sumReciprocals += nextReciprocal; // Next event and hitting the emitter directly
         return sumReciprocals;

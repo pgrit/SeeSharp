@@ -9,7 +9,7 @@ public class VertexCacheBidir : BidirBase {
     /// <summary>
     /// Number of connections to make
     /// </summary>
-    public int NumConnections = 5;
+    public int NumConnections = 1;
 
     /// <summary>
     /// Number of shadow rays to use for next event. Disabled if zero.

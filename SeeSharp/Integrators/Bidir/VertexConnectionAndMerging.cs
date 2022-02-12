@@ -190,6 +190,8 @@ public class VertexConnectionAndMerging : VertexCacheBidir {
 
         // Early exit + prevent NaN / Inf
         if (photonContrib == RgbColor.Black) return RgbColor.Black;
+        // Prevent outliers du to numerical issues with photons arriving almost parallel to the surface
+        if (Math.Abs(Vector3.Dot(dirToAncestor, hit.Normal)) < 1e-4f) return RgbColor.Black;
 
         // Compute the missing pdf terms and the MIS weight
         var (pdfLightReverse, pdfCameraReverse) = hit.Material.Pdf(hit, outDir, dirToAncestor, false);

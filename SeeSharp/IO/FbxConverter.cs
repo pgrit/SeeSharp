@@ -31,6 +31,7 @@ public class FbxConverter : IMeshLoader {
             Assimp.PostProcessSteps.Triangulate | Assimp.PostProcessSteps.PreTransformVertices);
 
         // Add all meshes to the scene
+        bool ignoredSomeUvs = false;
         foreach (var m in assimpScene.Meshes) {
             var material = assimpScene.Materials[m.MaterialIndex];
             string materialName = material.Name;
@@ -55,9 +56,7 @@ public class FbxConverter : IMeshLoader {
                     texCoords[i] = new(texCoordChannel[i].X, 1 - texCoordChannel[i].Y);
             }
 
-            if (m.TextureCoordinateChannelCount > 1)
-                Logger.Log($"Ignoring additional uv channels in mesh \"{m.Name}\" read from \"{filename}\"",
-                    Verbosity.Warning);
+            if (m.TextureCoordinateChannelCount > 1) ignoredSomeUvs = true;
 
             // If the material is not overridden by json, we load the diffuse color, or set an error color
             Material mat;
@@ -85,6 +84,8 @@ public class FbxConverter : IMeshLoader {
                 lock (scene) scene.Emitters.Add(emitter);
             }
         }
+        if (ignoredSomeUvs)
+            Logger.Warning($"Ignoring additional uv channels in a mesh read from \"{filename}\"");
     }
 
     public void LoadMesh(Scene resultScene, Dictionary<string, Material> namedMaterials,

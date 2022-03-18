@@ -35,8 +35,10 @@ public class Benchmark {
     /// images are placed in a separate folder, using the method's name as the folder's name.
     /// </summary>
     public void Run(string format = ".exr", bool skipReference = false) {
+        experiment.OnStart(workingDirectory);
         foreach (SceneConfig scene in sceneConfigs)
             RunScene(scene, format, skipReference);
+        experiment.OnDone(workingDirectory);
     }
 
     void RunScene(SceneConfig sceneConfig, string format, bool skipReference) {
@@ -55,6 +57,7 @@ public class Benchmark {
         scene.FrameBuffer = MakeFrameBuffer("dummy");
         scene.Prepare();
 
+        experiment.OnStartScene(scene, dir);
         var methods = experiment.MakeMethods();
         foreach (var method in methods) {
             string path = Path.Join(dir, method.Name);
@@ -79,6 +82,7 @@ public class Benchmark {
             method.Integrator.Render(scene);
             scene.FrameBuffer.WriteToFile();
         }
+        experiment.OnDoneScene(scene, dir);
     }
 
     /// <summary>

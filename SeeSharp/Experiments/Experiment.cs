@@ -34,4 +34,32 @@ public abstract class Experiment {
     /// </summary>
     /// <returns>A list of all methods that should be run in a benchmark</returns>
     public abstract List<Method> MakeMethods();
+
+    /// <summary>
+    /// Called before the experiment is run on a test scene.
+    /// </summary>
+    /// <param name="scene">The scene that will be rendered</param>
+    /// <param name="dir">Output directory</param>
+    public virtual void OnStartScene(Scene scene, string dir) { }
+
+    /// <summary>
+    /// Called after all methods have been run on a test scene.
+    /// </summary>
+    /// <param name="scene">The scene that was rendered</param>
+    /// <param name="dir">
+    /// Output directory, each method is in a subdirectory; the method's name is the name of that subdirectory
+    /// </param>
+    public virtual void OnDoneScene(Scene scene, string dir) { }
+
+    /// <summary>
+    /// Called before the experiment is run on a set of scenes
+    /// </summary>
+    /// <param name="workingDirectory">Output directory</param>
+    public virtual void OnStart(string workingDirectory) { }
+
+    /// <summary>
+    /// Called after the experiment run has finished for all scenes
+    /// </summary>
+    /// <param name="workingDirectory">Output directory</param>
+    public virtual void OnDone(string workingDirectory) { }
 }

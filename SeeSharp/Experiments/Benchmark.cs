@@ -62,15 +62,6 @@ public class Benchmark {
         foreach (var method in methods) {
             string path = Path.Join(dir, method.Name);
 
-            // Clear old files (if there are any)
-            if (Directory.Exists(path)) {
-                var dirinfo = new DirectoryInfo(path);
-                foreach (var file in dirinfo.GetFiles()) {
-                    if (file.Extension == format)
-                        file.Delete();
-                }
-            }
-
             Logger.Log($"Rendering {sceneConfig.Name} with {method.Name}");
             scene.FrameBuffer = MakeFrameBuffer(Path.Join(path, "Render" + format));
             method.Integrator.MaxDepth = sceneConfig.MaxDepth;

@@ -172,8 +172,8 @@ public class VertexConnectionAndMerging : VertexCacheBidir {
                                          CameraPath cameraPath, PathVertex lightVertex, float pdfCameraReverse,
                                          float pdfLightReverse, float pdfNextEvent) { }
 
-    RgbColor Merge((CameraPath path, float cameraJacobian) userData, SurfacePoint hit, Vector3 outDir,
-                   int pathIdx, int vertexIdx, float distSqr, float radiusSquared) {
+    protected virtual RgbColor Merge((CameraPath path, float cameraJacobian) userData, SurfacePoint hit,
+                                     Vector3 outDir, int pathIdx, int vertexIdx, float distSqr, float radiusSquared) {
         var photon = LightPaths.PathCache[pathIdx, vertexIdx];
         CameraPath path = userData.path;
         float cameraJacobian = userData.cameraJacobian;

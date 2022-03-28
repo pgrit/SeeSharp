@@ -135,32 +135,39 @@ public class FrameBuffer : IDisposable {
     }
 
     /// <summary>
+    /// Initializes the memory for the image data and aux layers. Should be called exactly once before / at
+    /// the start of the first rendering iteration.
+    /// </summary>
+    protected void Initialize() {
+        Image = new RgbImage(Width, Height);
+        foreach (var (_, layer) in layers)
+            layer.Init(Width, Height);
+
+        if (flags.HasFlag(Flags.SendToTev)) {
+            try {
+                tevIpc = new TevIpc();
+                // If a file with the same name is open, close it to avoid conflicts
+                tevIpc.CloseImage(filename);
+                tevIpc.CreateImageSync(filename, Width, Height,
+                    layers.Select(kv => (kv.Key, kv.Value.Image))
+                        .Append(("default", Image))
+                        .ToArray()
+                );
+            } catch (Exception exc) {
+                Logger.Warning(exc.ToString());
+                Logger.Warning("Could not connect to tev. Make sure it is running with the correct IP and port.");
+                tevIpc = null;
+            }
+        }
+    }
+
+    /// <summary>
     /// Should be called before the start of each new rendering iteration. A rendering iteration is one of
     /// multiple equal-sized batches of samples per pixel.
     /// </summary>
     public virtual void StartIteration() {
         if (CurIteration == 0) {
-            Image = new RgbImage(Width, Height);
-            foreach (var (_, layer) in layers)
-                layer.Init(Width, Height);
-
-            if (flags.HasFlag(Flags.SendToTev)) {
-                try {
-                    tevIpc = new TevIpc();
-                    // If a file with the same name is open, close it to avoid conflicts
-                    tevIpc.CloseImage(filename);
-                    tevIpc.CreateImageSync(filename, Width, Height,
-                        layers.Select(kv => (kv.Key, kv.Value.Image))
-                            .Append(("default", Image))
-                            .ToArray()
-                    );
-                } catch (Exception exc) {
-                    Logger.Warning(exc.ToString());
-                    Logger.Warning("Could not connect to tev. Make sure it is running with the correct IP and port.");
-                    tevIpc = null;
-                }
-            }
-
+            Initialize();
             MetaData["NumIterations"] = 0;
         }
 

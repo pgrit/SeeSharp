@@ -29,7 +29,7 @@
 
   <ItemGroup>
     <PackageReference Include="AssimpNet" Version="4.1.0" />
-    <PackageReference Include="SimpleImageIO" Version="0.13.2" />
+    <PackageReference Include="SimpleImageIO" Version="0.13.3" />
     <PackageReference Include="TinyEmbree" Version="0.4.4" />
   </ItemGroup>
 

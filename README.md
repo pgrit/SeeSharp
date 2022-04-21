@@ -65,7 +65,7 @@ The validation test, which ensure that all integrators agree on the same results
 can be run in Release mode via:
 
 ```
-dotnet run -p SeeSharp.Validation -c Release
+dotnet run --project SeeSharp.Validation -c Release
 ```
 
 Note that the validation tests assume that they are run from within the root directory of this project, as they

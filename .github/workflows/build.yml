@@ -56,7 +56,7 @@ jobs:
         path: ${{github.workspace}}/SeeSharp/bin/**/*.nupkg
 
     - name: Publish on version change
-      uses: rohith/publish-nuget@v2
+      uses: alirezanet/publish-nuget@v3.0.4
       with:
         PROJECT_FILE_PATH: SeeSharp/SeeSharp.csproj
         NUGET_KEY: ${{secrets.NUGET_API_KEY}}

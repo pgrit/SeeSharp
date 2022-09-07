@@ -34,6 +34,8 @@ public class ProgressBar {
     int activeBlocks;
     readonly bool supportsRewrite;
 
+    public static bool Silent = false;
+
     /// <summary>
     /// Initializes a new progress bar for a given amount of work. The amount of work should be specified
     /// as a number of (roughly) equally expensive steps.
@@ -125,6 +127,8 @@ public class ProgressBar {
     }
 
     void UpdateText() {
+        if (Silent) return;
+
         double fractionDone = done / (double)total;
         int nextActiveBlocks = (int)(fractionDone * numBlocks);
         nextActiveBlocks = Math.Min(nextActiveBlocks, numBlocks);

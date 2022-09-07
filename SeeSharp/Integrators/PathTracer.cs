@@ -45,7 +45,7 @@ public class PathTracer : Integrator {
     TechPyramid techPyramidRaw;
     TechPyramid techPyramidWeighted;
 
-    Util.DenoiseBuffers denoiseBuffers;
+    protected Util.DenoiseBuffers denoiseBuffers;
 
     /// <summary>
     /// The scene that is being rendered.
@@ -96,6 +96,9 @@ public class PathTracer : Integrator {
 
     /// <summary> Called after the scene was submitted, before rendering starts. </summary>
     protected virtual void OnPrepareRender() { }
+
+    /// <summary> Called after rendering of the scene has finished. </summary>
+    protected virtual void OnAfterRender() { }
 
     /// <summary>
     /// Called before each iteration (one sample per pixel), after the frame buffer was updated.
@@ -230,6 +233,8 @@ public class PathTracer : Integrator {
 
         scene.FrameBuffer.MetaData["RenderTime"] = timer.RenderTime;
         scene.FrameBuffer.MetaData["FrameBufferTime"] = timer.FrameBufferTime;
+
+        OnAfterRender();
 
         if (RenderTechniquePyramid) {
             string pathRaw = System.IO.Path.Join(scene.FrameBuffer.Basename, "techs-raw");

@@ -259,7 +259,7 @@ public class PathTracer : Integrator {
         scene.FrameBuffer.Splat(col, row, estimate.Outgoing);
     }
 
-    private RadianceEstimate EstimateIncidentRadiance(in Ray ray, ref PathState state) {
+    protected virtual RadianceEstimate EstimateIncidentRadiance(in Ray ray, ref PathState state) {
         // Trace the next ray
         if (state.Depth > MaxDepth)
             return RadianceEstimate.Absorbed;
@@ -332,7 +332,7 @@ public class PathTracer : Integrator {
         };
     }
 
-    private (RgbColor, float) OnBackgroundHit(in Ray ray, in PathState state) {
+    protected virtual (RgbColor, float) OnBackgroundHit(in Ray ray, in PathState state) {
         if (scene.Background == null || !EnableBsdfDI)
             return (RgbColor.Black, 0);
 
@@ -350,8 +350,8 @@ public class PathTracer : Integrator {
         return (misWeight * emission, pdfNextEvent);
     }
 
-    private (RgbColor, float) OnLightHit(in Ray ray, in SurfacePoint hit, in PathState state,
-                                         Emitter light) {
+    protected virtual (RgbColor, float) OnLightHit(in Ray ray, in SurfacePoint hit, in PathState state,
+                                                   Emitter light) {
         float misWeight = 1.0f;
         float pdfNextEvt = 0;
         if (state.Depth > 1) { // directly visible emitters are not explicitely connected
@@ -372,7 +372,7 @@ public class PathTracer : Integrator {
         return (misWeight * emission, pdfNextEvt);
     }
 
-    private RgbColor PerformBackgroundNextEvent(in Ray ray, in SurfacePoint hit, in PathState state) {
+    protected virtual RgbColor PerformBackgroundNextEvent(in Ray ray, in SurfacePoint hit, in PathState state) {
         if (scene.Background == null)
             return RgbColor.Black; // There is no background
 
@@ -400,7 +400,7 @@ public class PathTracer : Integrator {
         return RgbColor.Black;
     }
 
-    private RgbColor PerformNextEventEstimation(in Ray ray, in SurfacePoint hit, in PathState state) {
+    protected virtual RgbColor PerformNextEventEstimation(in Ray ray, in SurfacePoint hit, in PathState state) {
         if (scene.Emitters.Count == 0)
             return RgbColor.Black;
 

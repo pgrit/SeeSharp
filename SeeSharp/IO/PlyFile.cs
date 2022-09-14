@@ -341,7 +341,7 @@ public class PlyFile {
                         continue;
                     }
 
-                    if (name == "vertex_indices")
+                    if (name == "vertex_indices" || name == "vertex_index")
                         header.IndElem = facePropCounter - 1;
                 } else {
                     Logger.Log($"In '{stream.Path}' only float or list properties allowed. Ignoring '{type}'.", Verbosity.Warning);

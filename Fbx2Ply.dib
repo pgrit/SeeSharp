@@ -1,0 +1,237 @@
+#!markdown
+
+# FBX to PLY converter
+
+This notebook converts all meshes in a SeeSharp scene from `.fbx` to `.ply`. It exists because the `.fbx` import in SeeSharp is deprecated and will be removed soon.
+
+This notebook can be run in two ways:
+1. By copying the source code to a C# script or console application project
+2. Via [.NET interactive](https://github.com/dotnet/interactive), e.g., with the [VS Code extension](https://marketplace.visualstudio.com/items?itemName=ms-dotnettools.dotnet-interactive-vscode).
+
+#!csharp
+
+#r "nuget: AssimpNet"
+using System.IO;
+using System.Text.Json;
+using System.Numerics;
+using System.Text.Json.Serialization;
+using System.Text.Json.Nodes;
+
+#!csharp
+
+public class ObjectEntry
+{
+    public string name {get;set;}
+    public string type {get;set;}
+    public string relativePath {get;set;}
+    public string material {get;set;}
+}
+
+struct Data
+{
+    public Vector3[] Vertices {get;set;}
+    public Vector3[] Normals {get;set;}
+    public Vector2[] TexCoords {get;set;}
+    public string MaterialName {get;set;}
+    public int[] Indices {get;set;}
+}
+
+#!csharp
+
+void ConvertScene(string path)
+{
+    System.Globalization.CultureInfo.DefaultThreadCurrentCulture = System.Globalization.CultureInfo.InvariantCulture;
+
+    string jsonString = File.ReadAllText(path);
+
+    JsonDocument document = JsonDocument.Parse(jsonString, new JsonDocumentOptions {
+        AllowTrailingCommas = true,
+        CommentHandling = JsonCommentHandling.Skip
+    });
+
+    var root = document.RootElement;
+
+    // find all objects in .fbx format
+    string directory = Path.GetDirectoryName(path);
+
+    List<Data> fbxMeshes = new();
+
+    var meshes = root.GetProperty("objects");
+    foreach (var m in meshes.EnumerateArray())
+    {
+        string name = m.GetProperty("name").GetString();
+        string type = m.GetProperty("type").GetString();
+        if (type == "fbx")
+        {
+            string relpath = m.GetProperty("relativePath").GetString();
+            string filename = Path.Join(directory, relpath);
+
+            Assimp.AssimpContext context = new();
+            var assimpScene = context.ImportFile(filename,
+                Assimp.PostProcessSteps.Triangulate | Assimp.PostProcessSteps.PreTransformVertices);
+
+            foreach (var mesh in assimpScene.Meshes) {
+                var material = assimpScene.Materials[mesh.MaterialIndex];
+                string materialName = material.Name;
+
+                Vector3[] vertices = new Vector3[mesh.VertexCount];
+                for (int i = 0; i < mesh.VertexCount; ++i)
+                    vertices[i] = new Vector3(-mesh.Vertices[i].X, mesh.Vertices[i].Z, mesh.Vertices[i].Y) * 0.01f;
+
+                Vector3[] normals = null;
+                if (mesh.HasNormals) {
+                    normals = new Vector3[mesh.VertexCount];
+                    for (int i = 0; i < mesh.VertexCount; ++i)
+                        normals[i] = new(-mesh.Normals[i].X, mesh.Normals[i].Z, mesh.Normals[i].Y);
+                }
+
+                // We currently only support a single uv channel
+                Vector2[] texCoords = null;
+                if (mesh.HasTextureCoords(0)) {
+                    texCoords = new Vector2[mesh.VertexCount];
+                    var texCoordChannel = mesh.TextureCoordinateChannels[0];
+                    for (int i = 0; i < mesh.VertexCount; ++i)
+                        texCoords[i] = new(texCoordChannel[i].X, 1 - texCoordChannel[i].Y);
+                }
+
+                if (mesh.GetIndices().Length % 3 != 0)
+                {
+                    Console.WriteLine("WARNING: ignoring mesh that was not triangulated by Assimp");
+                    continue;
+                }
+
+                fbxMeshes.Add(new() {
+                    Vertices = vertices,
+                    Normals = normals,
+                    TexCoords = texCoords,
+                    MaterialName = materialName,
+                    Indices = mesh.GetIndices(),
+                });
+            }
+        }
+    }
+
+    if (fbxMeshes.Count == 0) return;
+
+    // generate one .ply for each mesh
+    Directory.CreateDirectory(Path.Join(directory, "meshes"));
+    for (int idx = 0; idx < fbxMeshes.Count; ++idx)
+    {
+        var mesh = fbxMeshes[idx];    
+        string filename = Path.Join(directory, "meshes", $"mesh{idx}.ply");
+
+        StringBuilder header = new();
+        header.AppendLine("ply");
+        header.AppendLine("format binary_little_endian 1.0");
+        header.AppendLine($"element vertex {mesh.Vertices.Length}");
+        header.AppendLine("property float x");
+        header.AppendLine("property float y");
+        header.AppendLine("property float z");
+        if (mesh.Normals != null)
+        {
+            header.AppendLine("property float nx");
+            header.AppendLine("property float ny");
+            header.AppendLine("property float nz");
+        }
+        if (mesh.TexCoords != null)
+        {
+            header.AppendLine("property float u");
+            header.AppendLine("property float v");
+        }
+        header.AppendLine($"element face {mesh.Indices.Length / 3}");
+        header.AppendLine("property list uchar int vertex_index");
+        header.AppendLine("end_header");
+
+        using var stream = File.Open(filename, FileMode.Create);
+        using var writer = new BinaryWriter(stream, Encoding.ASCII, false);
+        
+        writer.Write(header.ToString().ToCharArray());
+
+        for (int i = 0; i < mesh.Vertices.Length; ++i)
+        {
+            writer.Write(mesh.Vertices[i].X);
+            writer.Write(mesh.Vertices[i].Y);
+            writer.Write(mesh.Vertices[i].Z);
+
+            if (mesh.Normals != null)
+            {
+                writer.Write(mesh.Normals[i].X);
+                writer.Write(mesh.Normals[i].Y);
+                writer.Write(mesh.Normals[i].Z);
+            }
+
+            if (mesh.TexCoords != null)
+            {
+                writer.Write(mesh.TexCoords[i].X);
+                writer.Write(mesh.TexCoords[i].Y);
+            }
+        }
+
+        for (int i = 0; i < mesh.Indices.Length; i += 3)
+        {
+            writer.Write((byte)3);
+            writer.Write(mesh.Indices[i + 0]);
+            writer.Write(mesh.Indices[i + 1]);
+            writer.Write(mesh.Indices[i + 2]);
+        }
+    }
+
+    // add object entry with .ply and material name to the .json
+    List<ObjectEntry> plyObjects = new();
+    for (int idx = 0; idx < fbxMeshes.Count; ++idx)
+    {
+        var mesh = fbxMeshes[idx]; 
+        string filename = Path.Join(directory, "meshes", $"mesh{idx}.ply");
+    
+        plyObjects.Add(new() {
+            name = $"mesh{idx}",
+            material = mesh.MaterialName,
+            relativePath = $"meshes/mesh{idx}.ply",
+            type = "ply"
+        });
+    }
+
+    // Replace old .fbx entries and overwrite the .json
+    JsonNode rootNode = JsonNode.Parse(jsonString, new JsonNodeOptions {});
+    var objects = rootNode.AsObject()["objects"].AsArray();
+
+    var fbxObjs = objects.Where(m => m.AsObject()["type"].AsValue().ToString() == "fbx").ToList();
+    var fbxPaths = objects
+        .Where(m => m.AsObject()["type"].AsValue().ToString() == "fbx")
+        .Select(m => m.AsObject()["relativePath"].AsValue().ToString())
+        .ToList();
+
+    foreach (var m in fbxObjs) 
+    {
+        objects.Remove(m);
+    }
+
+    foreach (var m in plyObjects)
+    {
+        objects.Add(m);
+    }
+
+    File.WriteAllText(path, rootNode.ToJsonString());
+
+    foreach (var relpath in fbxPaths)
+    {
+        string filename = Path.Join(directory, relpath);
+        display(filename);
+        File.Delete(filename);
+    }
+}
+
+#!markdown
+
+## Using the code to convert a scene
+
+The cell below iterates all subdirectories of a directory called `Scenes` and converts the contained scene.
+
+#!csharp
+
+foreach (var dir in Directory.EnumerateDirectories("Scenes/"))
+{
+    string name = Path.GetFileName(dir);
+    display(name);
+    ConvertScene($"Scenes/{name}/{name}.json");
+}

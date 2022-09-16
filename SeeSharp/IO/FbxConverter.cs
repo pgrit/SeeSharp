@@ -90,6 +90,9 @@ public class FbxConverter : IMeshLoader {
 
     public void LoadMesh(Scene resultScene, Dictionary<string, Material> namedMaterials,
                          Dictionary<string, RgbColor> emissiveMaterials, JsonElement jsonElement, string dirname) {
+        Logger.Warning(".fbx support is deprecated and will be removed soon. " +
+            "You can use the conversion code in 'Fbx2Ply.dib' to convert this scene to .ply");
+
         // The path is relative to this .json, we need to make it absolute / relative to the CWD
         string relpath = jsonElement.GetProperty("relativePath").GetString();
         string filename = Path.Join(dirname, relpath);

@@ -2,18 +2,13 @@ import os
 import json
 from math import degrees, atan, tan
 import bpy
-from bpy_extras.io_utils import ExportHelper
+import bmesh
+from bpy_extras.io_utils import ExportHelper, axis_conversion
+from mathutils import Matrix
 from bpy.props import StringProperty, BoolProperty
 from bpy.types import Operator
-from io_scene_fbx.export_fbx_bin import save_single
 
-def export_fbx_meshes(filepath, scene, depsgraph):
-    # Not sure what the "operator" is supposed to be, but passing a dummy seems to work fine.
-    class DummyOp:
-        def report(self, *args, **kwargs):
-            print(*args)
-    save_single(DummyOp(), scene, depsgraph, filepath, object_types={"MESH"}, context_objects=depsgraph.objects,
-        use_tspace=False, axis_forward='Z', axis_up='Y')
+from .ply import save_mesh
 
 def map_rgb(rgb):
     return { "type": "rgb", "value": [ rgb[0], rgb[1], rgb[2] ] }
@@ -110,23 +105,72 @@ def export_camera(result, scene):
         }
     ]
 
-def export_scene(filepath, scene, depsgraph):
-    # export all meshes as obj
-    export_fbx_meshes(filepath.replace('json', 'fbx'), scene, depsgraph)
+def export_ply_object(result, obj, filepath):
+    """ Exports an object as a set of .ply files, separated by material, with baked transformations
+    """
+    global_matrix = axis_conversion(
+        to_forward="Z",
+        to_up="Y",
+    ).to_4x4()
 
-    # Write all materials and cameras to a dict with the layout of our json file
+    mesh = obj.to_mesh()
+    # Iterate over every material and export the faces that use this material
+    for mat_idx in range(0, len(mesh.materials)):
+        bm = bmesh.new()
+        bm.from_mesh(mesh)
+
+        # Filter by material ID: remove all faces that are not the current material
+        if len(mesh.materials) > 1:
+            for f in bm.faces:
+                if f.material_index != mat_idx:
+                    bm.faces.remove(f)
+        if len(bm.verts) == 0 or len(bm.faces) == 0 or not bm.is_valid:
+            bm.free()
+            continue
+
+        # Bake transformation and convert from Blender-space to SeeSharp-space
+        bm.transform(obj.matrix_world)
+        bm.transform(global_matrix)
+
+        bm.normal_update()
+
+        path = os.path.join(os.path.dirname(filepath), 'Meshes', f"{obj.name}.{mat_idx}.ply")
+        save_mesh(path, bm,
+            use_ascii=False,
+            use_normals=True,
+            use_uv=True,
+            use_color=False)
+
+        result['objects'].append({
+            "name": obj.name,
+            "type": "ply",
+            "material": mesh.materials[mat_idx].name,
+            "relativePath": f"Meshes/{obj.name}.{mat_idx}.ply"
+        })
+
+        bm.free()
+
+def export_ply_meshes(result, depsgraph, filepath):
+    import time
+    start = time.time()
+
+    os.makedirs(os.path.join(os.path.dirname(filepath), 'Meshes'), exist_ok=True)
+    result['objects'] = []
+    for inst in depsgraph.object_instances:
+        objType = inst.object.type
+        if objType == "MESH" or objType == "CURVE" or objType == "SURFACE":
+            export_ply_object(result, inst.object, filepath)
+
+    end = time.time()
+    print(f".ply meshes exported in {end - start:.3f}s")
+
+
+def export_scene(filepath, scene, depsgraph):
     result = {}
     export_materials(result, os.path.dirname(filepath))
     export_camera(result, scene)
     export_background(result, os.path.dirname(filepath), scene)
-
-    fbx_name = os.path.splitext(os.path.basename(filepath))[0] + '.fbx'
-
-    result['objects'] = [{
-        "name": "scene",
-        "type": "fbx",
-        "relativePath": fbx_name
-    }]
+    export_ply_meshes(result, depsgraph, filepath)
 
     # Write the result into the .json
     with open(filepath, 'w') as fp:
@@ -153,6 +197,7 @@ class SeeSharpExport(Operator, ExportHelper):
     )
 
     def execute(self, context):
+        context.window.cursor_set('WAIT')
         if self.animations is True:
             for frame in range(context.scene.frame_start, context.scene.frame_end+1):
                 context.scene.frame_set(frame)
@@ -161,6 +206,7 @@ class SeeSharpExport(Operator, ExportHelper):
         else:
             depsgraph = context.evaluated_depsgraph_get()
             export_scene(self.filepath, context.scene, depsgraph)
+        context.window.cursor_set('DEFAULT')
         return {'FINISHED'}
 
 def menu_func_export(self, context):

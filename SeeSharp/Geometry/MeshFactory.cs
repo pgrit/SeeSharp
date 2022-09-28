@@ -12,7 +12,7 @@ public static class MeshFactory {
     /// <param name="radius">Radius of the cylinder</param>
     /// <param name="numSegments">Number of quads used to build the outer surface</param>
     public static Mesh MakeCylinder(Vector3 from, Vector3 to, float radius, int numSegments) {
-        ShadingSpace.ComputeBasisVectors(Vector3.Normalize(to - from), out var tan, out var binorm);
+        ComputeBasisVectors(Vector3.Normalize(to - from), out var tan, out var binorm);
 
         List<Vector3> vertices = new();
         List<int> indices = new();
@@ -54,7 +54,7 @@ public static class MeshFactory {
     /// <param name="radius">Radius at the base of the cone</param>
     /// <param name="numSegments">Number of triangles used to build the side surface</param>
     public static Mesh MakeCone(Vector3 baseCenter, Vector3 tip, float radius, int numSegments) {
-        ShadingSpace.ComputeBasisVectors(Vector3.Normalize(tip - baseCenter), out var tan, out var binorm);
+        ComputeBasisVectors(Vector3.Normalize(tip - baseCenter), out var tan, out var binorm);
 
         List<Vector3> vertices = new();
         List<int> indices = new();

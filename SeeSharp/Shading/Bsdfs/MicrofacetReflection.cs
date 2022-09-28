@@ -14,11 +14,11 @@ public struct MicrofacetReflection {
     }
 
     public RgbColor Evaluate(Vector3 outDir, Vector3 inDir, bool isOnLightSubpath) {
-        if (!ShadingSpace.SameHemisphere(outDir, inDir))
+        if (!SameHemisphere(outDir, inDir))
             return RgbColor.Black;
 
-        float cosThetaO = ShadingSpace.AbsCosTheta(outDir);
-        float cosThetaI = ShadingSpace.AbsCosTheta(inDir);
+        float cosThetaO = AbsCosTheta(outDir);
+        float cosThetaI = AbsCosTheta(inDir);
         Vector3 halfVector = inDir + outDir;
 
         // Handle degenerate cases for microfacet reflection
@@ -30,7 +30,7 @@ public struct MicrofacetReflection {
         // For the Fresnel call, make sure that wh is in the same hemisphere
         // as the surface normal, so that total internal reflection is handled correctly.
         halfVector = Vector3.Normalize(halfVector);
-        if (ShadingSpace.CosTheta(halfVector) < 0)
+        if (CosTheta(halfVector) < 0)
             halfVector = -halfVector;
 
         var cosine = Vector3.Dot(inDir, halfVector);
@@ -42,18 +42,19 @@ public struct MicrofacetReflection {
     }
 
     public (float, float) Pdf(Vector3 outDir, Vector3 inDir, bool isOnLightSubpath) {
-        if (!ShadingSpace.SameHemisphere(outDir, inDir))
-            return (0, 0);
-
         var halfVector = outDir + inDir;
+        halfVector = Vector3.Normalize(halfVector);
+
+        // Compute the jacobian of the reflection about the half vector
+        float reflectJacobianFwd = Math.Abs(4 * Vector3.Dot(outDir, halfVector));
+        float reflectJacobianRev = Math.Abs(4 * Vector3.Dot(inDir, halfVector));
 
         // catch NaN causing corner cases
-        if (halfVector == Vector3.Zero)
+        if (halfVector == Vector3.Zero || reflectJacobianFwd == 0.0f || reflectJacobianRev == 0.0f)
             return (0, 0);
 
-        halfVector = Vector3.Normalize(halfVector);
-        var pdfForward = distribution.Pdf(outDir, halfVector) / Math.Abs(4 * Vector3.Dot(outDir, halfVector));
-        var pdfReverse = distribution.Pdf(inDir, halfVector) / Math.Abs(4 * Vector3.Dot(inDir, halfVector));
+        var pdfForward = distribution.Pdf(outDir, halfVector) / reflectJacobianFwd;
+        var pdfReverse = distribution.Pdf(inDir, halfVector) / reflectJacobianRev;
         return (pdfForward, pdfReverse);
     }
 
@@ -62,12 +63,7 @@ public struct MicrofacetReflection {
             return null;
 
         var halfVector = distribution.Sample(outDir, primarySample);
-        if (Vector3.Dot(halfVector, outDir) < 0)
-            return null;
-
-        var inDir = ShadingSpace.Reflect(outDir, halfVector);
-        if (!ShadingSpace.SameHemisphere(outDir, inDir))
-            return null;
+        var inDir = Reflect(outDir, halfVector);
 
         return inDir;
     }

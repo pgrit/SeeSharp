@@ -22,4 +22,4 @@ global using SeeSharp.Image;
 global using SeeSharp.Shading;
 global using SeeSharp.Integrators;
 
-global using static SeeSharp.Shading.ShadingSpace;
+global using Xunit;

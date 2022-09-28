@@ -45,8 +45,8 @@ public class DiffuseMaterial : Material {
 
         // Transform directions to shading space and normalize
         var normal = hit.ShadingNormal;
-        outDir = ShadingSpace.WorldToShading(normal, outDir);
-        inDir = ShadingSpace.WorldToShading(normal, inDir);
+        outDir = WorldToShading(normal, outDir);
+        inDir = WorldToShading(normal, inDir);
 
         var baseColor = MaterialParameters.BaseColor.Lookup(hit.TextureCoordinates);
         if (MaterialParameters.Transmitter && !shouldReflect) {
@@ -63,7 +63,7 @@ public class DiffuseMaterial : Material {
     public override BsdfSample Sample(in SurfacePoint hit, Vector3 outDir, bool isOnLightSubpath,
                                       Vector2 primarySample) {
         var normal = hit.ShadingNormal;
-        outDir = ShadingSpace.WorldToShading(normal, outDir);
+        outDir = WorldToShading(normal, outDir);
 
         var baseColor = MaterialParameters.BaseColor.Lookup(hit.TextureCoordinates);
         Vector3? sample;
@@ -86,10 +86,10 @@ public class DiffuseMaterial : Material {
         if (!sample.HasValue)
             return BsdfSample.Invalid;
 
-        var sampledDir = ShadingSpace.ShadingToWorld(normal, sample.Value);
+        var sampledDir = ShadingToWorld(normal, sample.Value);
 
         // Evaluate all components
-        var outWorld = ShadingSpace.ShadingToWorld(normal, outDir);
+        var outWorld = ShadingToWorld(normal, outDir);
         var value = EvaluateWithCosine(hit, outWorld, sampledDir, isOnLightSubpath);
 
         // Compute all pdfs
@@ -99,10 +99,10 @@ public class DiffuseMaterial : Material {
 
         // Combine results with balance heuristic MIS
         return new BsdfSample {
-            pdf = pdfFwd,
-            pdfReverse = pdfRev,
-            weight = value / pdfFwd,
-            direction = sampledDir
+            Pdf = pdfFwd,
+            PdfReverse = pdfRev,
+            Weight = value / pdfFwd,
+            Direction = sampledDir
         };
     }
 
@@ -110,8 +110,8 @@ public class DiffuseMaterial : Material {
     public override (float, float) Pdf(in SurfacePoint hit, Vector3 outDir, Vector3 inDir, bool isOnLightSubpath) {
         // Transform directions to shading space and normalize
         var normal = hit.ShadingNormal;
-        outDir = ShadingSpace.WorldToShading(normal, outDir);
-        inDir = ShadingSpace.WorldToShading(normal, inDir);
+        outDir = WorldToShading(normal, outDir);
+        inDir = WorldToShading(normal, inDir);
 
         var baseColor = MaterialParameters.BaseColor.Lookup(hit.TextureCoordinates);
         var reflectPdf = new DiffuseBsdf(baseColor).Pdf(outDir, inDir, isOnLightSubpath);

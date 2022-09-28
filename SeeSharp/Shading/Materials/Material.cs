@@ -56,8 +56,8 @@ namespace SeeSharp.Shading.Materials {
         /// <returns>BSDF * cosine</returns>
         public virtual RgbColor EvaluateWithCosine(in SurfacePoint hit, Vector3 outDir, Vector3 inDir, bool isOnLightSubpath) {
             var bsdf = Evaluate(hit, outDir, inDir, isOnLightSubpath);
-            inDir = ShadingSpace.WorldToShading(hit.ShadingNormal, inDir);
-            return bsdf * ShadingSpace.AbsCosTheta(inDir);
+            inDir = WorldToShading(hit.ShadingNormal, inDir);
+            return bsdf * AbsCosTheta(inDir);
         }
 
         /// <summary>

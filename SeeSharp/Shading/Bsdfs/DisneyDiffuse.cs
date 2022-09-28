@@ -11,11 +11,11 @@ namespace SeeSharp.Shading.Bsdfs {
 
         public RgbColor Evaluate(Vector3 outDir, Vector3 inDir, bool isOnLightSubpath) {
             // No transmission
-            if (!ShadingSpace.SameHemisphere(outDir, inDir))
+            if (!SameHemisphere(outDir, inDir))
                 return RgbColor.Black;
 
-            float fresnelOut = FresnelSchlick.SchlickWeight(ShadingSpace.AbsCosTheta(outDir));
-            float fresnelIn = FresnelSchlick.SchlickWeight(ShadingSpace.AbsCosTheta(inDir));
+            float fresnelOut = FresnelSchlick.SchlickWeight(AbsCosTheta(outDir));
+            float fresnelIn = FresnelSchlick.SchlickWeight(AbsCosTheta(inDir));
 
             // Diffuse fresnel - go from 1 at normal incidence to .5 at grazing.
             // Burley 2015, eq (4).
@@ -27,7 +27,7 @@ namespace SeeSharp.Shading.Bsdfs {
             var local = SampleWarp.ToCosHemisphere(primarySample);
 
             // Make sure it ends up on the same hemisphere as the outgoing direction
-            if (ShadingSpace.CosTheta(outDir) < 0)
+            if (CosTheta(outDir) < 0)
                 local.Direction.Z *= -1;
 
             return local.Direction;
@@ -35,11 +35,11 @@ namespace SeeSharp.Shading.Bsdfs {
 
         public (float, float) Pdf(Vector3 outDir, Vector3 inDir, bool isOnLightSubpath) {
             // No transmission
-            if (!ShadingSpace.SameHemisphere(outDir, inDir))
+            if (!SameHemisphere(outDir, inDir))
                 return (0, 0);
 
-            float pdf = ShadingSpace.AbsCosTheta(inDir) / MathF.PI;
-            float pdfReverse = ShadingSpace.AbsCosTheta(outDir) / MathF.PI;
+            float pdf = AbsCosTheta(inDir) / MathF.PI;
+            float pdfReverse = AbsCosTheta(outDir) / MathF.PI;
             return (pdf, pdfReverse);
         }
     }
@@ -54,7 +54,7 @@ namespace SeeSharp.Shading.Bsdfs {
         }
 
         public RgbColor Evaluate(Vector3 outDir, Vector3 inDir, bool isOnLightSubpath) {
-            if (!ShadingSpace.SameHemisphere(outDir, inDir))
+            if (!SameHemisphere(outDir, inDir))
                 return RgbColor.Black;
 
             Vector3 wh = inDir + outDir;
@@ -63,8 +63,8 @@ namespace SeeSharp.Shading.Bsdfs {
 
             float cosThetaD = Vector3.Dot(inDir, wh);
 
-            float Fo = FresnelSchlick.SchlickWeight(ShadingSpace.AbsCosTheta(outDir));
-            float Fi = FresnelSchlick.SchlickWeight(ShadingSpace.AbsCosTheta(inDir));
+            float Fo = FresnelSchlick.SchlickWeight(AbsCosTheta(outDir));
+            float Fi = FresnelSchlick.SchlickWeight(AbsCosTheta(inDir));
             float Rr = 2 * roughness * cosThetaD * cosThetaD;
 
             // Burley 2015, eq (4).
@@ -76,7 +76,7 @@ namespace SeeSharp.Shading.Bsdfs {
             var local = SampleWarp.ToCosHemisphere(primarySample);
 
             // Make sure it ends up on the same hemisphere as the outgoing direction
-            if (ShadingSpace.CosTheta(outDir) < 0)
+            if (CosTheta(outDir) < 0)
                 local.Direction.Z *= -1;
 
             return local.Direction;
@@ -84,11 +84,11 @@ namespace SeeSharp.Shading.Bsdfs {
 
         public (float, float) Pdf(Vector3 outDir, Vector3 inDir, bool isOnLightSubpath) {
             // No transmission
-            if (!ShadingSpace.SameHemisphere(outDir, inDir))
+            if (!SameHemisphere(outDir, inDir))
                 return (0, 0);
 
-            float pdf = ShadingSpace.AbsCosTheta(inDir) / MathF.PI;
-            float pdfReverse = ShadingSpace.AbsCosTheta(outDir) / MathF.PI;
+            float pdf = AbsCosTheta(inDir) / MathF.PI;
+            float pdfReverse = AbsCosTheta(outDir) / MathF.PI;
             return (pdf, pdfReverse);
         }
     }

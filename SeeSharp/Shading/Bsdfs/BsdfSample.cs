@@ -1,22 +1,19 @@
-﻿using SimpleImageIO;
-using System.Numerics;
+﻿namespace SeeSharp.Shading.Bsdfs;
 
-namespace SeeSharp.Shading.Bsdfs {
-    public struct BsdfSample {
-        public Vector3 direction;
-        public float pdf;
-        public float pdfReverse;
+public struct BsdfSample {
+    public Vector3 Direction;
+    public float Pdf;
+    public float PdfReverse;
 
-        /// <summary>
-        /// Sample weight of the reflectance estimate, i.e., the product of
-        /// BSDF and shading cosine divided by the pdf.
-        /// </summary>
-        public RgbColor weight;
+    /// <summary>
+    /// Sample weight of the reflectance estimate, i.e., the product of
+    /// BSDF and shading cosine divided by the pdf.
+    /// </summary>
+    public RgbColor Weight;
 
-        public static BsdfSample Invalid
-            => new BsdfSample { pdf = 0, pdfReverse = 0, weight = RgbColor.Black };
+    public static BsdfSample Invalid
+        => new BsdfSample { Pdf = 0, PdfReverse = 0, Weight = RgbColor.Black };
 
-        public static implicit operator bool(BsdfSample sample)
-            => sample.pdf > 0 && sample.pdfReverse > 0;
-    }
+    public static implicit operator bool(BsdfSample sample)
+        => sample.Pdf > 0 && sample.PdfReverse > 0;
 }

@@ -1,14 +1,11 @@
-﻿using SeeSharp.Geometry;
-using SeeSharp.Shading.Materials;
-using SimpleImageIO;
-using System.Numerics;
-using Xunit;
-
-namespace SeeSharp.Tests.Core.Shading;
+﻿namespace SeeSharp.Tests.Core.Shading;
 
 public class Material_Generic {
-    [Fact]
-    public void Pdfs_ShouldBeConsistent() {
+    [Theory]
+    [InlineData(0, 0, 1, 0, 1, 1)]
+    [InlineData(1, 0, 1, 0, 1, 1)]
+    [InlineData(1, 0, 1, 1, 0, -1)]
+    public void Pdfs_ShouldBeConsistent(float ox, float oy, float oz, float ix, float iy, float iz) {
         Material mtl = new GenericMaterial(new GenericMaterial.Parameters {
             BaseColor = new(new RgbColor(1, 1, 1)),
             Roughness = new(0.2f),
@@ -34,8 +31,8 @@ public class Material_Generic {
             Position = new Vector3(0, 0, 0),
         };
 
-        var outDir = new Vector3(0, 0, 1);
-        var inDir = Vector3.Normalize(new Vector3(0, 1, 1));
+        var outDir = Vector3.Normalize(new Vector3(ox, oy, oz));
+        var inDir = Vector3.Normalize(new Vector3(ix, iy, iz));
 
         var (fwd1, rev1) = mtl.Pdf(hit, outDir, inDir, false);
         var (rev2, fwd2) = mtl.Pdf(hit, inDir, outDir, false);
@@ -44,10 +41,10 @@ public class Material_Generic {
         Assert.Equal(fwd1, fwd2, 3);
 
         var sample = mtl.Sample(hit, outDir, false, new Vector2(0.2f, 0.7f));
-        var (fwdS, revS) = mtl.Pdf(hit, outDir, sample.direction, false);
+        var (fwdS, revS) = mtl.Pdf(hit, outDir, sample.Direction, false);
 
-        Assert.Equal(sample.pdf, fwdS, 3);
-        Assert.Equal(sample.pdfReverse, revS, 3);
+        Assert.Equal(sample.Pdf, fwdS, 3);
+        Assert.Equal(sample.PdfReverse, revS, 3);
     }
 
     [Fact]

@@ -91,8 +91,8 @@ public class GenericMaterial : Material {
 
         // Transform directions to shading space and normalize
         var normal = hit.ShadingNormal;
-        outDir = ShadingSpace.WorldToShading(normal, outDir);
-        inDir = ShadingSpace.WorldToShading(normal, inDir);
+        outDir = WorldToShading(normal, outDir);
+        inDir = WorldToShading(normal, inDir);
 
         var local = ComputeLocalParams(hit.TextureCoordinates);
 
@@ -127,7 +127,7 @@ public class GenericMaterial : Material {
                                       Vector2 primarySample) {
         // Transform directions to shading space and normalize
         var normal = hit.ShadingNormal;
-        outDir = ShadingSpace.WorldToShading(normal, outDir);
+        outDir = WorldToShading(normal, outDir);
 
         // Compute parameters
         var local = ComputeLocalParams(hit.TextureCoordinates);
@@ -180,10 +180,10 @@ public class GenericMaterial : Material {
 
         // Terminate if no valid direction was sampled
         if (!sample.HasValue) return BsdfSample.Invalid;
-        var sampledDir = ShadingSpace.ShadingToWorld(normal, sample.Value);
+        var sampledDir = ShadingToWorld(normal, sample.Value);
 
         // Evaluate all components
-        var outWorld = ShadingSpace.ShadingToWorld(normal, outDir);
+        var outWorld = ShadingToWorld(normal, outDir);
         var value = EvaluateWithCosine(hit, outWorld, sampledDir, isOnLightSubpath);
 
         // Compute all pdfs
@@ -191,14 +191,14 @@ public class GenericMaterial : Material {
         if (pdfFwd == 0) return BsdfSample.Invalid;
 
         Debug.Assert(float.IsFinite(value.Average / pdfFwd) && pdfFwd > 0);
-        Debug.Assert(value == RgbColor.Black || pdfRev != 0);
+        // Debug.Assert(value == RgbColor.Black || pdfRev != 0);
 
         // Combine results with balance heuristic MIS
         return new BsdfSample {
-            pdf = pdfFwd,
-            pdfReverse = pdfRev,
-            weight = value / pdfFwd,
-            direction = sampledDir
+            Pdf = pdfFwd,
+            PdfReverse = pdfRev,
+            Weight = value / pdfFwd,
+            Direction = sampledDir
         };
     }
 
@@ -207,8 +207,8 @@ public class GenericMaterial : Material {
                                        bool isOnLightSubpath) {
         // Transform directions to shading space and normalize
         var normal = hit.ShadingNormal;
-        outDir = ShadingSpace.WorldToShading(normal, outDir);
-        inDir = ShadingSpace.WorldToShading(normal, inDir);
+        outDir = WorldToShading(normal, outDir);
+        inDir = WorldToShading(normal, inDir);
 
         // Compute parameters
         var local = ComputeLocalParams(hit.TextureCoordinates);
@@ -340,8 +340,8 @@ public class GenericMaterial : Material {
     (SelectionWeights, SelectionWeights) ComputeSelectWeights(LocalParams p, Vector3 outDir, Vector3 inDir) {
         // Evaluate the fresnel term for transmittance importance sampling, as if the roughness was zero.
         // While not perfect, this is a lot better than uniform sampling.
-        float f = p.fresnel.Evaluate(ShadingSpace.CosTheta(outDir)).Average;
-        float fRev = p.fresnel.Evaluate(ShadingSpace.CosTheta(inDir)).Average;
+        float f = p.fresnel.Evaluate(CosTheta(outDir)).Average;
+        float fRev = p.fresnel.Evaluate(CosTheta(inDir)).Average;
 
         // TODO remove once we have a proper solution. This is required because the microfacet half vector
         //      can have a vastly different Fresnel term (one that is not zero, in particular)

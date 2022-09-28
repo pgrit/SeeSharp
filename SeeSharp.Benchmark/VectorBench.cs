@@ -1,4 +1,4 @@
-﻿using SeeSharp.Shading;
+﻿using static SeeSharp.Shading.ShadingSpace;
 using System;
 using System.Diagnostics;
 using System.Numerics;
@@ -17,7 +17,7 @@ namespace SeeSharp.Benchmark {
             Stopwatch stop = Stopwatch.StartNew();
             for (int i = 0; i < numTrials; ++i) {
                 Vector3 tan, binorm;
-                ShadingSpace.ComputeBasisVectors(NextVector(), out tan, out binorm);
+                ComputeBasisVectors(NextVector(), out tan, out binorm);
                 avg += (tan + binorm) / numTrials * 0.5f;
             }
             Console.WriteLine($"Computing {numTrials} basis vectors took {stop.ElapsedMilliseconds}ms - {avg.Length()}");

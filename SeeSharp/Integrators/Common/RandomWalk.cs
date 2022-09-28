@@ -91,10 +91,10 @@ public class RandomWalk {
         // Sample the next direction from the BSDF
         var bsdfSample = hit.Material.Sample(hit, -ray.Direction, isOnLightSubpath, rng.NextFloat2D());
         return (
-            bsdfSample.pdf,
-            bsdfSample.pdfReverse,
-            bsdfSample.weight,
-            bsdfSample.direction
+            bsdfSample.Pdf,
+            bsdfSample.PdfReverse,
+            bsdfSample.Weight,
+            bsdfSample.Direction
         );
     }
 

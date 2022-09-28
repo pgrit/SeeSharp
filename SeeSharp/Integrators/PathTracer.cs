@@ -478,7 +478,7 @@ public class PathTracer : Integrator {
                                                              in PathState state) {
         var primary = state.Rng.NextFloat2D();
         var bsdfSample = hit.Material.Sample(hit, -ray.Direction, false, primary);
-        var bsdfRay = Raytracer.SpawnRay(hit, bsdfSample.direction);
-        return (bsdfRay, bsdfSample.pdf, bsdfSample.weight);
+        var bsdfRay = Raytracer.SpawnRay(hit, bsdfSample.Direction);
+        return (bsdfRay, bsdfSample.Pdf, bsdfSample.Weight);
     }
 }

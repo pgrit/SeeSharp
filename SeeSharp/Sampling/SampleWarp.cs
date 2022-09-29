@@ -1,4 +1,6 @@
-﻿namespace SeeSharp.Sampling;
+﻿using static SeeSharp.Common.MathUtils;
+
+namespace SeeSharp.Sampling;
 
 /// <summary>
 /// Offers functions to transform uniform samples to other distributions or spaces.
@@ -17,6 +19,72 @@ public static class SampleWarp {
             (1 - barycentric.X) * (1 - barycentric.X),
             barycentric.Y / (1 - barycentric.X)
         );
+    }
+
+    /// <summary>
+    /// Transforms a primary sample to the spherical triangle formed by three direction vectors.
+    /// From "Stratified Sampling of Spherical Triangles", Arvo 1995, 10.1145/218380.218500
+    /// </summary>
+    /// <param name="a">First triangle vertex projected onto the sphere</param>
+    /// <param name="b">Second triangle vertex projected onto the sphere</param>
+    /// <param name="c">Third triangle vertex projected onto the sphere</param>
+    /// <param name="primary">Primary sample</param>
+    public static DirectionSample ToSphericalTriangle(Vector3 a, Vector3 b, Vector3 c, Vector2 primary) {
+        // Compute the angles at each corner
+        var nAB = Vector3.Normalize(Vector3.Cross(a, b));
+        var nBC = Vector3.Normalize(Vector3.Cross(b, c));
+        var nCA = Vector3.Normalize(Vector3.Cross(c, a));
+        float alpha = AngleBetween(nAB, -nCA);
+        float beta = AngleBetween(nBC, -nAB);
+        float gamma = AngleBetween(nCA, -nBC);
+
+        float cosAlpha = MathF.Cos(alpha);
+        float sinAlpha = MathF.Sin(alpha);
+
+        // Cosine of the arc length of the curved line between v1 and v2
+        float cosLenC = (MathF.Cos(gamma) + MathF.Cos(beta) * cosAlpha) / (MathF.Sin(beta) * sinAlpha);
+
+        Debug.Assert(float.IsFinite(cosLenC));
+
+        float area = alpha + beta + gamma - MathF.PI;
+
+        // Randomly select a sub-triangle
+        float sampleA = primary.X * area;
+
+        float s = MathF.Sin(sampleA - alpha);
+        float t = MathF.Cos(sampleA - alpha);
+
+        float u = t - cosAlpha;
+        float v = s + sinAlpha * cosLenC;
+
+        float num = (v * t - u * s) * cosAlpha - v;
+        float denom = (v * s + u * t) * sinAlpha;
+        float q = num / denom;
+
+        // Prevent NaN from numerical precision error
+        Debug.Assert(q < 1.1f);
+        q = Math.Min(q, 1.0f);
+
+        Vector3 NormComp(Vector3 x, Vector3 y) => Vector3.Normalize(x - Vector3.Dot(x, y) * y);
+
+        var sampleC = q * a + MathF.Sqrt(1 - q * q) * NormComp(c, a);
+
+        float z = 1 - primary.Y * (1 - Vector3.Dot(sampleC, b));
+
+        // Prevent NaN from numerical precision error
+        Debug.Assert(z < 1.1f);
+        z = Math.Min(z, 1.0f);
+
+        var dir = z * b + MathF.Sqrt(1 - z * z) * NormComp(sampleC, b);
+
+        Debug.Assert(float.IsFinite(dir.X));
+        Debug.Assert(float.IsFinite(dir.Y));
+        Debug.Assert(float.IsFinite(dir.Z));
+
+        return new() {
+            Direction = dir,
+            Pdf = 1.0f / area
+        };
     }
 
     public static Vector3 SphericalToCartesian(float sintheta, float costheta, float phi) {
@@ -196,8 +264,30 @@ public static class SampleWarp {
     /// <param name="from">The position at which the hemispherical distribution is defined.</param>
     /// <param name="to">The point on the surface area that is projected onto the hemisphere.</param>
     /// <returns>Inverse jacobian, multiply solid angle densities by this value.</returns>
-    public static float SurfaceAreaToSolidAngle(SurfacePoint from, SurfacePoint to) {
+    public static float SurfaceAreaToSolidAngle(in SurfacePoint from, in SurfacePoint to) {
         var dir = to.Position - from.Position;
+        var distSqr = dir.LengthSquared();
+        return MathF.Abs(Vector3.Dot(to.Normal, -dir)) / (distSqr * MathF.Sqrt(distSqr));
+    }
+
+    /// <summary>
+    /// Computes the inverse jacobian for the mapping from surface area around "to" to the sphere around "from".
+    ///
+    /// Required for integrals that perform this change of variables (e.g., next event estimation).
+    ///
+    /// Multiplying solid angle pdfs by this value computes the corresponding surface area density.
+    /// Dividing surface area pdfs by this value computes the corresponding solid angle density.
+    ///
+    /// This function simply computes the cosine formed by the normal at "to" and the direction from "to" to "from".
+    /// The absolute value of that cosine is then divided by the squared distance between the two points:
+    ///
+    /// result = cos(normal_to, from - to) / ||from - to||^2
+    /// </summary>
+    /// <param name="from">The position at which the hemispherical distribution is defined.</param>
+    /// <param name="to">The point on the surface area that is projected onto the hemisphere.</param>
+    /// <returns>Inverse jacobian, multiply solid angle densities by this value.</returns>
+    public static float SurfaceAreaToSolidAngle(Vector3 from, in SurfacePoint to) {
+        var dir = to.Position - from;
         var distSqr = dir.LengthSquared();
         return MathF.Abs(Vector3.Dot(to.Normal, -dir)) / (distSqr * MathF.Sqrt(distSqr));
     }

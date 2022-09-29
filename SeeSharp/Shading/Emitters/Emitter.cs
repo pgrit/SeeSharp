@@ -15,7 +15,7 @@ public abstract class Emitter {
     public Triangle Triangle { get; init; }
 
     /// <summary>
-    /// Samples a point on the mesh, ideally proportionally to its emission strength.
+    /// Samples a point on the mesh
     /// </summary>
     /// <param name="primary">A uniform sample in [0,1]x[0,1]</param>
     public SurfaceSample SampleUniformArea(Vector2 primary) => Triangle.SampleUniformArea(primary);
@@ -25,11 +25,34 @@ public abstract class Emitter {
     /// </summary>
     /// <param name="point">A point on a surface of the emissive mesh</param>
     /// <returns>The uniform sample in [0,1]x[0,1]</returns>
-    public Vector2 SampleUniformAreaInverse(SurfacePoint point) => Triangle.SampleUniformAreaInverse(point);
+    public Vector2 SampleUniformAreaInverse(in SurfacePoint point) => Triangle.SampleUniformAreaInverse(point);
 
     /// <param name="point">A point on the surface of the emissive mesh</param>
     /// <returns>The PDF of sampling this point</returns>
-    public float PdfUniformArea(SurfacePoint point) => Triangle.PdfUniformArea(point);
+    public float PdfUniformArea(in SurfacePoint point) => Triangle.PdfUniformArea(point);
+
+    /// <summary>
+    /// Samples a point on the mesh
+    /// </summary>
+    /// <param name="observer">A point from which the emitter is seen</param>
+    /// <param name="primary">A uniform sample in [0,1]x[0,1]</param>
+    public SurfaceSample SampleSolidAngle(in SurfacePoint observer, Vector2 primary)
+    => Triangle.SampleSolidAngle(observer.Position, primary);
+
+    /// <summary>
+    /// Performs the inverse transformation that is done by <see cref="SampleSolidAngle"/>
+    /// </summary>
+    /// <param name="observer">A point from which the emitter is seen</param>
+    /// <param name="point">A point on a surface of the emissive mesh</param>
+    /// <returns>The uniform sample in [0,1]x[0,1]</returns>
+    public Vector2 SampleSolidAngleInverse(in SurfacePoint observer, in SurfacePoint point)
+    => Triangle.SampleSolidAngleInverse(observer.Position, point);
+
+    /// <param name="observer">A point from which the emitter is seen</param>
+    /// <param name="point">A point on the surface of the emissive mesh</param>
+    /// <returns>The PDF of sampling this point</returns>
+    public float PdfSolidAngle(in SurfacePoint observer, in SurfacePoint point)
+    => Triangle.PdfSolidAngle(observer.Position, point);
 
     /// <summary>
     /// Samples an emitted ray by sampling a point on the mesh and a direction for that point

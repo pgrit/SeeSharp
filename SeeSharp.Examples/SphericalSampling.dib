@@ -1,0 +1,139 @@
+#!csharp
+
+#r "nuget: TinyEmbree"
+#r "nuget: SimpleImageIO"
+#r "../SeeSharp/bin/Debug/net6.0/SeeSharp.dll"
+
+using SeeSharp;
+using SeeSharp.Sampling;
+using SeeSharp.Integrators;
+using SeeSharp.Experiments;
+using SeeSharp.Geometry;
+using TinyEmbree;
+using SimpleImageIO;
+using SimpleImageIO.FlipBook;
+using System.Numerics;
+using System;
+using System.Threading.Tasks;
+
+// Avoids slowing down the Jupyter Kernel with console spam
+SeeSharp.Common.ProgressBar.Silent = true;
+
+HTML(FlipBook.MakeHeader()).Display();
+
+#!csharp
+
+SceneRegistry.AddSource("../Data/Scenes");
+var sceneConfig = SceneRegistry.LoadScene("CornellBox");
+var reference = sceneConfig.GetReferenceImage(512, 512);
+var scene = sceneConfig.MakeScene();
+scene.FrameBuffer = new(512, 512, "");
+scene.Prepare();
+
+#!csharp
+
+abstract class DirectIllum : Integrator {
+    public UInt32 BaseSeed = 0xC030114;
+    public int TotalSpp = 20;
+
+    protected Scene scene;
+
+    public DirectIllum(int spp) {
+        TotalSpp = spp;
+    }
+
+    public override void Render(Scene scene) {
+        this.scene = scene;
+
+        for (uint sampleIndex = 0; sampleIndex < TotalSpp; ++sampleIndex) {
+            scene.FrameBuffer.StartIteration();
+            Parallel.For(0, scene.FrameBuffer.Height, row => {
+                for (uint col = 0; col < scene.FrameBuffer.Width; ++col) {
+                    uint pixelIndex = (uint)(row * scene.FrameBuffer.Width + col);
+                    RNG rng = new(BaseSeed, pixelIndex, sampleIndex);
+                    RenderPixel((uint)row, col, rng);
+                }
+            });
+            scene.FrameBuffer.EndIteration();
+        }
+    }
+
+    private void RenderPixel(uint row, uint col, RNG rng) {
+        var offset = rng.NextFloat2D();
+        var pixel = new Vector2(col, row) + offset;
+        var primaryRay = scene.Camera.GenerateRay(pixel, rng).Ray;
+        var primaryHit = scene.Raytracer.Trace(primaryRay);
+
+        if (primaryHit) {
+            var estimate = EstimateIncidentRadiance(primaryRay, primaryHit, rng);
+            scene.FrameBuffer.Splat(col, row, estimate);
+        }
+    }
+
+    protected abstract RgbColor EstimateIncidentRadiance(in Ray ray, in SurfacePoint hit, RNG rng);
+}
+
+#!csharp
+
+class UniformArea : DirectIllum {
+    public UniformArea(int spp) : base(spp) { }
+
+    protected override RgbColor EstimateIncidentRadiance(in Ray ray, in SurfacePoint hit, RNG rng) {
+        // Select a light source
+        var light = scene.Emitters[rng.NextInt(0, scene.Emitters.Count)];
+        float lightSelectProb = 1.0f / scene.Emitters.Count;
+
+        // Sample a point on the light source
+        var lightSample = light.SampleUniformArea(rng.NextFloat2D());
+        Vector3 lightToSurface = Vector3.Normalize(hit.Position - lightSample.Point.Position);
+
+        if (!scene.Raytracer.IsOccluded(hit, lightSample.Point)) {
+            var emission = light.EmittedRadiance(lightSample.Point, lightToSurface);
+            float jacobian = SampleWarp.SurfaceAreaToSolidAngle(hit, lightSample.Point);
+            var bsdfCos = hit.Material.EvaluateWithCosine(hit, -ray.Direction, -lightToSurface, false);
+            var pdf = lightSample.Pdf * lightSelectProb;
+            return emission / pdf * jacobian * bsdfCos;
+        }
+        return RgbColor.Black;
+    }
+}
+
+#!csharp
+
+class SolidAngle : DirectIllum {
+    public SolidAngle(int spp) : base(spp) { }
+
+    protected override RgbColor EstimateIncidentRadiance(in Ray ray, in SurfacePoint hit, RNG rng) {
+        // Select a light source
+        var light = scene.Emitters[rng.NextInt(0, scene.Emitters.Count)];
+        float lightSelectProb = 1.0f / scene.Emitters.Count;
+
+        // Sample a point on the light source
+        var lightSample = light.SampleSolidAngle(hit, rng.NextFloat2D());
+        Vector3 lightToSurface = Vector3.Normalize(hit.Position - lightSample.Point.Position);
+
+        if (!scene.Raytracer.IsOccluded(hit, lightSample.Point)) {
+            var emission = light.EmittedRadiance(lightSample.Point, lightToSurface);
+            float jacobian = SampleWarp.SurfaceAreaToSolidAngle(hit, lightSample.Point);
+            var bsdfCos = hit.Material.EvaluateWithCosine(hit, -ray.Direction, -lightToSurface, false);
+            var pdf = lightSample.Pdf * lightSelectProb;
+            return emission / pdf * jacobian * bsdfCos;
+        }
+        return RgbColor.Black;
+    }
+}
+
+#!csharp
+
+scene.FrameBuffer = new(512, 512, "");
+new UniformArea(1).Render(scene);
+var uniform = scene.FrameBuffer.Image;
+
+scene.FrameBuffer = new(512, 512, "");
+new SolidAngle(1).Render(scene);
+var solidAngle = scene.FrameBuffer.Image;
+
+Metrics.RelMSE(uniform, reference).Display();
+Metrics.RelMSE(solidAngle, reference).Display();
+
+HTML(FlipBook.Make(("uniform", uniform), ("spherical", solidAngle)))

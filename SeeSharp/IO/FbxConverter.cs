@@ -80,8 +80,8 @@ public class FbxConverter : IMeshLoader {
 
             // Create an emitter if requested
             if (emissionOverride != null && emissionOverride.TryGetValue(materialName, out var emission)) {
-                var emitter = new DiffuseEmitter(mesh, emission);
-                lock (scene) scene.Emitters.Add(emitter);
+                var emitters = DiffuseEmitter.MakeFromMesh(mesh, emission);
+                lock (scene) scene.Emitters.AddRange(emitters);
             }
         }
         if (ignoredSomeUvs)

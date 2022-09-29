@@ -131,7 +131,9 @@ public class Scene : IDisposable {
         // Build the mesh to emitter mapping
         meshToEmitter.Clear();
         foreach (var emitter in Emitters) {
-            meshToEmitter.Add(emitter.Mesh, emitter);
+            if (!meshToEmitter.ContainsKey(emitter.Mesh))
+                meshToEmitter.Add(emitter.Mesh, new());
+            meshToEmitter[emitter.Mesh].Add(emitter.Triangle.FaceIndex, emitter);
         }
     }
 
@@ -174,7 +176,9 @@ public class Scene : IDisposable {
     /// <param name="point">A point on a mesh surface.</param>
     /// <returns>The attached emitter reference, or null.</returns>
     public Emitter QueryEmitter(SurfacePoint point) {
-        if (!meshToEmitter.TryGetValue(point.Mesh, out var emitter))
+        if (!meshToEmitter.TryGetValue(point.Mesh, out var meshEmitters))
+            return null;
+        if (!meshEmitters.TryGetValue((int)point.PrimId, out var emitter))
             return null;
         return emitter;
     }
@@ -199,5 +203,5 @@ public class Scene : IDisposable {
         Raytracer = null;
     }
 
-    readonly Dictionary<Mesh, Emitter> meshToEmitter = new();
+    readonly Dictionary<Mesh, Dictionary<int, Emitter>> meshToEmitter = new();
 }

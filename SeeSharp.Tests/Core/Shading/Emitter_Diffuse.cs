@@ -1,239 +1,234 @@
-﻿using SeeSharp.Geometry;
-using SeeSharp.Shading.Emitters;
-using SimpleImageIO;
-using System;
-using System.Numerics;
-using Xunit;
+﻿using System.Linq;
 
-namespace SeeSharp.Tests.Core.Shading {
-    public class Emitter_Diffuse {
-        [Fact]
-        public void EmittedRays_ShouldHaveOffset() {
-            var mesh = new Mesh(
-                new Vector3[] {
-                    new Vector3(-1, 10, -1),
-                    new Vector3( 1, 10, -1),
-                    new Vector3( 1, 10,  1),
+namespace SeeSharp.Tests.Core.Shading;
+
+public class Emitter_Diffuse {
+    [Fact]
+    public void EmittedRays_ShouldHaveOffset() {
+        var mesh = new Mesh(
+            new Vector3[] {
+                new Vector3(-1, 10, -1),
+                new Vector3( 1, 10, -1),
+                new Vector3( 1, 10,  1),
+                new Vector3(-1, 10,  1)
+            }, new int[] {
+                0, 1, 2,
+                0, 2, 3
+            }
+        );
+        var emitter = DiffuseEmitter.MakeFromMesh(mesh, RgbColor.White);
+
+        var sample = emitter.First().SampleRay(new Vector2(0.3f, 0.8f), new Vector2(0.56f, 0.03f));
+
+        Assert.True(sample.Point.ErrorOffset > 0);
+    }
+
+    [Fact]
+    public void EmittedRays_Sidedness_ShouldBePositive() {
+        var mesh = new Mesh(
+            new Vector3[] {
+                new Vector3(-1, 10, -1),
+                new Vector3( 1, 10, -1),
+                new Vector3( 1, 10,  1),
                     new Vector3(-1, 10,  1)
-                }, new int[] {
-                    0, 1, 2,
-                    0, 2, 3
-                }
-            );
-            var emitter = new DiffuseEmitter(mesh, RgbColor.White);
+            }, new int[] {
+                0, 1, 2,
+                0, 2, 3
+            },
+            shadingNormals: new Vector3[] {
+                new Vector3(0, 1, 0),
+                new Vector3(0, 1, 0),
+                new Vector3(0, 1, 0),
+                new Vector3(0, 1, 0)
+            }
+        );
+        var emitter = DiffuseEmitter.MakeFromMesh(mesh, RgbColor.White);
 
-            var sample = emitter.SampleRay(new Vector2(0.3f, 0.8f), new Vector2(0.56f, 0.03f));
+        var sample = emitter.First().SampleRay(new Vector2(0.3f, 0.8f), new Vector2(0.56f, 0.03f));
 
-            Assert.True(sample.Point.ErrorOffset > 0);
-        }
+        Assert.True(sample.Direction.Y > 0);
+    }
 
-        [Fact]
-        public void EmittedRays_Sidedness_ShouldBePositive() {
-            var mesh = new Mesh(
-                new Vector3[] {
-                    new Vector3(-1, 10, -1),
-                    new Vector3( 1, 10, -1),
-                    new Vector3( 1, 10,  1),
-                    new Vector3(-1, 10,  1)
-                }, new int[] {
-                    0, 1, 2,
-                    0, 2, 3
-                },
-                shadingNormals: new Vector3[] {
-                    new Vector3(0, 1, 0),
-                    new Vector3(0, 1, 0),
-                    new Vector3(0, 1, 0),
-                    new Vector3(0, 1, 0)
-                }
-            );
-            var emitter = new DiffuseEmitter(mesh, RgbColor.White);
+    [Fact]
+    public void EmittedRays_Sidedness_ShouldBeNegative() {
+        var mesh = new Mesh(
+            new Vector3[] {
+                new Vector3(-1, 10, -1),
+                new Vector3( 1, 10, -1),
+                new Vector3( 1, 10,  1),
+                new Vector3(-1, 10,  1)
+            }, new int[] {
+                0, 1, 2,
+                0, 2, 3
+            },
+            shadingNormals: new Vector3[] {
+                new Vector3(0, -1, 0),
+                new Vector3(0, -1, 0),
+                new Vector3(0, -1, 0),
+                new Vector3(0, -1, 0)
+            }
+        );
+        var emitter = DiffuseEmitter.MakeFromMesh(mesh, RgbColor.White);
 
-            var sample = emitter.SampleRay(new Vector2(0.3f, 0.8f), new Vector2(0.56f, 0.03f));
+        var sample = emitter.First().SampleRay(new Vector2(0.3f, 0.8f), new Vector2(0.56f, 0.03f));
 
-            Assert.True(sample.Direction.Y > 0);
-        }
+        Assert.True(sample.Direction.Y < 0);
+    }
 
-        [Fact]
-        public void EmittedRays_Sidedness_ShouldBeNegative() {
-            var mesh = new Mesh(
-                new Vector3[] {
-                    new Vector3(-1, 10, -1),
-                    new Vector3( 1, 10, -1),
-                    new Vector3( 1, 10,  1),
-                    new Vector3(-1, 10,  1)
-                }, new int[] {
-                    0, 1, 2,
-                    0, 2, 3
-                },
-                shadingNormals: new Vector3[] {
-                    new Vector3(0, -1, 0),
-                    new Vector3(0, -1, 0),
-                    new Vector3(0, -1, 0),
-                    new Vector3(0, -1, 0)
-                }
-            );
-            var emitter = new DiffuseEmitter(mesh, RgbColor.White);
+    [Fact]
+    public void Emission_ShouldBeOneSided() {
+        var mesh = new Mesh(
+            new Vector3[] {
+                new Vector3(-1, 10, -1),
+                new Vector3( 1, 10, -1),
+                new Vector3( 1, 10,  1),
+                new Vector3(-1, 10,  1)
+            }, new int[] {
+                0, 1, 2,
+                0, 2, 3
+            },
+            shadingNormals: new Vector3[] {
+                new Vector3(0, 1, 0),
+                new Vector3(0, 1, 0),
+                new Vector3(0, 1, 0),
+                new Vector3(0, 1, 0)
+            }
+        );
+        var emitter = DiffuseEmitter.MakeFromMesh(mesh, RgbColor.White);
 
-            var sample = emitter.SampleRay(new Vector2(0.3f, 0.8f), new Vector2(0.56f, 0.03f));
+        var dummyHit = new SurfacePoint {
+            Mesh = mesh
+        };
 
-            Assert.True(sample.Direction.Y < 0);
-        }
+        var r1 = emitter.First().EmittedRadiance(dummyHit, new Vector3(0, 1, 1));
+        var r2 = emitter.First().EmittedRadiance(dummyHit, new Vector3(0, -1, 1));
 
-        [Fact]
-        public void Emission_ShouldBeOneSided() {
-            var mesh = new Mesh(
-                new Vector3[] {
-                    new Vector3(-1, 10, -1),
-                    new Vector3( 1, 10, -1),
-                    new Vector3( 1, 10,  1),
-                    new Vector3(-1, 10,  1)
-                }, new int[] {
-                    0, 1, 2,
-                    0, 2, 3
-                },
-                shadingNormals: new Vector3[] {
-                    new Vector3(0, 1, 0),
-                    new Vector3(0, 1, 0),
-                    new Vector3(0, 1, 0),
-                    new Vector3(0, 1, 0)
-                }
-            );
-            var emitter = new DiffuseEmitter(mesh, RgbColor.White);
+        Assert.True(r1.R > 0);
+        Assert.Equal(0, r2.R);
+    }
 
-            var dummyHit = new SurfacePoint {
-                Mesh = mesh
-            };
+    [Fact]
+    public void EmittedRays_Pdf_ShouldBeOneSided() {
+        var mesh = new Mesh(
+            new Vector3[] {
+                new Vector3(-1, 10, -1),
+                new Vector3( 1, 10, -1),
+                new Vector3( 1, 10,  1),
+                new Vector3(-1, 10,  1)
+            }, new int[] {
+                0, 1, 2,
+                0, 2, 3
+            },
+            shadingNormals: new Vector3[] {
+                new Vector3(0, 1, 0),
+                new Vector3(0, 1, 0),
+                new Vector3(0, 1, 0),
+                new Vector3(0, 1, 0)
+            }
+        );
+        var emitter = DiffuseEmitter.MakeFromMesh(mesh, RgbColor.White);
 
-            var r1 = emitter.EmittedRadiance(dummyHit, new Vector3(0, 1, 1));
-            var r2 = emitter.EmittedRadiance(dummyHit, new Vector3(0, -1, 1));
+        var dummyHit = new SurfacePoint {
+            Mesh = mesh
+        };
 
-            Assert.True(r1.R > 0);
-            Assert.Equal(0, r2.R);
-        }
+        var p1 = emitter.First().PdfRay(dummyHit, new Vector3(0, 1, 1));
+        var p2 = emitter.First().PdfRay(dummyHit, new Vector3(0, -1, 1));
 
-        [Fact]
-        public void EmittedRays_Pdf_ShouldBeOneSided() {
-            var mesh = new Mesh(
-                new Vector3[] {
-                    new Vector3(-1, 10, -1),
-                    new Vector3( 1, 10, -1),
-                    new Vector3( 1, 10,  1),
-                    new Vector3(-1, 10,  1)
-                }, new int[] {
-                    0, 1, 2,
-                    0, 2, 3
-                },
-                shadingNormals: new Vector3[] {
-                    new Vector3(0, 1, 0),
-                    new Vector3(0, 1, 0),
-                    new Vector3(0, 1, 0),
-                    new Vector3(0, 1, 0)
-                }
-            );
-            var emitter = new DiffuseEmitter(mesh, RgbColor.White);
+        Assert.True(p1 > 0);
+        Assert.Equal(0, p2);
+    }
 
-            var dummyHit = new SurfacePoint {
-                Mesh = mesh
-            };
+    [Fact]
+    public void EmittedRays_Pdf_ShouldBeCosHemisphere() {
+        var mesh = new Mesh(
+            new Vector3[] {
+                new Vector3(-1, 10, -1),
+                new Vector3( 1, 10, -1),
+                new Vector3( 1, 10,  1),
+                new Vector3(-1, 10,  1)
+            }, new int[] {
+                0, 1, 2,
+                0, 2, 3
+            },
+            shadingNormals: new Vector3[] {
+                new Vector3(0, 1, 0),
+                new Vector3(0, 1, 0),
+                new Vector3(0, 1, 0),
+                new Vector3(0, 1, 0)
+            }
+        );
+        var emitter = DiffuseEmitter.MakeFromMesh(mesh, RgbColor.White);
 
-            var p1 = emitter.PdfRay(dummyHit, new Vector3(0, 1, 1));
-            var p2 = emitter.PdfRay(dummyHit, new Vector3(0, -1, 1));
+        var sample = emitter.First().SampleRay(new Vector2(0.3f, 0.8f), new Vector2(0.56f, 0.03f));
 
-            Assert.True(p1 > 0);
-            Assert.Equal(0, p2);
-        }
+        float c = Vector3.Dot(sample.Direction, new Vector3(0, 1, 0));
+        Assert.Equal(0.5f * c / MathF.PI, sample.Pdf);
+    }
 
-        [Fact]
-        public void EmittedRays_Pdf_ShouldBeCosHemisphere() {
-            var mesh = new Mesh(
-                new Vector3[] {
-                    new Vector3(-1, 10, -1),
-                    new Vector3( 1, 10, -1),
-                    new Vector3( 1, 10,  1),
-                    new Vector3(-1, 10,  1)
-                }, new int[] {
-                    0, 1, 2,
-                    0, 2, 3
-                },
-                shadingNormals: new Vector3[] {
-                    new Vector3(0, 1, 0),
-                    new Vector3(0, 1, 0),
-                    new Vector3(0, 1, 0),
-                    new Vector3(0, 1, 0)
-                }
-            );
-            var emitter = new DiffuseEmitter(mesh, RgbColor.White);
+    [Fact]
+    public void EmittedRays_Weight_ShouldBeRadianceOverPdf() {
+        var mesh = new Mesh(
+            new Vector3[] {
+                new Vector3(-1, 10, -1),
+                new Vector3( 1, 10, -1),
+                new Vector3( 1, 10,  1),
+                new Vector3(-1, 10,  1)
+            }, new int[] {
+                0, 1, 2,
+                0, 2, 3
+            },
+            shadingNormals: new Vector3[] {
+                new Vector3(0, 1, 0),
+                new Vector3(0, 1, 0),
+                new Vector3(0, 1, 0),
+                new Vector3(0, 1, 0)
+            }
+        );
+        var emitter = DiffuseEmitter.MakeFromMesh(mesh, RgbColor.White);
 
-            var sample = emitter.SampleRay(new Vector2(0.3f, 0.8f), new Vector2(0.56f, 0.03f));
+        var sample = emitter.First().SampleRay(new Vector2(0.3f, 0.8f), new Vector2(0.56f, 0.03f));
 
-            float c = Vector3.Dot(sample.Direction, new Vector3(0, 1, 0));
-            Assert.Equal(0.25f * c / MathF.PI, sample.Pdf);
-        }
+        float c = Vector3.Dot(sample.Direction, new Vector3(0, 1, 0));
+        float expectedPdf = 0.5f * c / MathF.PI;
+        Assert.Equal(expectedPdf, sample.Pdf);
 
-        [Fact]
-        public void EmittedRays_Weight_ShouldBeRadianceOverPdf() {
-            var mesh = new Mesh(
-                new Vector3[] {
-                    new Vector3(-1, 10, -1),
-                    new Vector3( 1, 10, -1),
-                    new Vector3( 1, 10,  1),
-                    new Vector3(-1, 10,  1)
-                }, new int[] {
-                    0, 1, 2,
-                    0, 2, 3
-                },
-                shadingNormals: new Vector3[] {
-                    new Vector3(0, 1, 0),
-                    new Vector3(0, 1, 0),
-                    new Vector3(0, 1, 0),
-                    new Vector3(0, 1, 0)
-                }
-            );
-            var emitter = new DiffuseEmitter(mesh, RgbColor.White);
+        var expectedWeight =
+            emitter.First().EmittedRadiance(sample.Point, sample.Direction) * c
+            / expectedPdf;
+        Assert.Equal(expectedWeight.R, sample.Weight.R);
+        Assert.Equal(expectedWeight.G, sample.Weight.G);
+        Assert.Equal(expectedWeight.B, sample.Weight.B);
+    }
 
-            var sample = emitter.SampleRay(new Vector2(0.3f, 0.8f), new Vector2(0.56f, 0.03f));
+    [Fact]
+    public void EmittedRays_SampleInverse() {
+        var mesh = new Mesh(
+            new Vector3[] {
+                new Vector3(-1, 10, -1),
+                new Vector3( 1, 10, -1),
+                new Vector3( 1, 10,  1),
+                new Vector3(-1, 10,  1)
+            }, new int[] {
+                0, 1, 2,
+                0, 2, 3
+            },
+            shadingNormals: new Vector3[] {
+                new Vector3(0, 1, 0),
+                new Vector3(0, 1, 0),
+                new Vector3(0, 1, 0),
+                new Vector3(0, 1, 0)
+            }
+        );
+        var emitter = DiffuseEmitter.MakeFromMesh(mesh, RgbColor.White);
 
-            float c = Vector3.Dot(sample.Direction, new Vector3(0, 1, 0));
-            float expectedPdf = 0.25f * c / MathF.PI;
-            Assert.Equal(expectedPdf, sample.Pdf);
+        var sample = emitter.First().SampleRay(new Vector2(0.3f, 0.8f), new Vector2(0.56f, 0.03f));
 
-            var expectedWeight =
-                emitter.EmittedRadiance(sample.Point, sample.Direction) * c
-                / expectedPdf;
-            Assert.Equal(expectedWeight.R, sample.Weight.R);
-            Assert.Equal(expectedWeight.G, sample.Weight.G);
-            Assert.Equal(expectedWeight.B, sample.Weight.B);
-        }
+        var (posP, dirP) = emitter.First().SampleRayInverse(sample.Point, sample.Direction);
 
-        [Fact]
-        public void EmittedRays_SampleInverse() {
-            var mesh = new Mesh(
-                new Vector3[] {
-                    new Vector3(-1, 10, -1),
-                    new Vector3( 1, 10, -1),
-                    new Vector3( 1, 10,  1),
-                    new Vector3(-1, 10,  1)
-                }, new int[] {
-                    0, 1, 2,
-                    0, 2, 3
-                },
-                shadingNormals: new Vector3[] {
-                    new Vector3(0, 1, 0),
-                    new Vector3(0, 1, 0),
-                    new Vector3(0, 1, 0),
-                    new Vector3(0, 1, 0)
-                }
-            );
-            var emitter = new DiffuseEmitter(mesh, RgbColor.White);
-
-            var sample = emitter.SampleRay(new Vector2(0.3f, 0.8f), new Vector2(0.56f, 0.03f));
-
-            var (posP, dirP) = emitter.SampleRayInverse(sample.Point, sample.Direction);
-
-            Assert.Equal(0.3f, posP.X, 3);
-            Assert.Equal(0.8f, posP.Y, 3);
-            Assert.Equal(0.56f, dirP.X, 3);
-            Assert.Equal(0.03f, dirP.Y, 3);
-        }
+        Assert.Equal(0.3f, posP.X, 3);
+        Assert.Equal(0.8f, posP.Y, 3);
+        Assert.Equal(0.56f, dirP.X, 3);
+        Assert.Equal(0.03f, dirP.Y, 3);
     }
 }

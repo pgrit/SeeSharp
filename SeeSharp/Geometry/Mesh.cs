@@ -33,7 +33,14 @@ public class Mesh : TinyEmbree.TriangleMesh {
         triangleDistribution = new PiecewiseConstant(surfaceAreas);
     }
 
-    float ComputeErrorOffset(int faceIdx, Vector2 barycentricCoords) {
+    /// <summary>
+    /// Computes a sufficient offset around a point on the surface that ensures no self-intersections will
+    /// be reported when tracing a ray from this point.
+    /// </summary>
+    /// <param name="faceIdx">Index of a triangle within the mesh</param>
+    /// <param name="barycentricCoords">Position on the triangle</param>
+    /// <returns>Required offset</returns>
+    public float ComputeErrorOffset(int faceIdx, Vector2 barycentricCoords) {
         var v1 = Vertices[Indices[faceIdx * 3 + 0]];
         var v2 = Vertices[Indices[faceIdx * 3 + 1]];
         var v3 = Vertices[Indices[faceIdx * 3 + 2]];

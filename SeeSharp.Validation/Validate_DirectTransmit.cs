@@ -56,7 +56,7 @@ class Validate_DirectIllumTransmit : ValidationSceneFactory {
         scene.Meshes[^1].Material = new DiffuseMaterial(new DiffuseMaterial.Parameters {
             BaseColor = new TextureRgb(RgbColor.Black)
         });
-        scene.Emitters.Add(new DiffuseEmitter(scene.Meshes[^1], RgbColor.White * 1000));
+        scene.Emitters.AddRange(DiffuseEmitter.MakeFromMesh(scene.Meshes[^1], RgbColor.White * 1000));
 
         scene.Camera = new PerspectiveCamera(Matrix4x4.CreateLookAt(Vector3.Zero, -Vector3.UnitZ, Vector3.UnitY), 40);
         scene.FrameBuffer = new FrameBuffer(512, 512, "");

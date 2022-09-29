@@ -50,11 +50,10 @@ internal class TriMeshLoader : IMeshLoader {
 
         var mesh = new Mesh(vertices, indices, normals, uvs) { Material = material };
 
-        Emitter emitter;
         if (jsonElement.TryGetProperty("emission", out var emissionJson)) { // The object is an emitter
             var emission = JsonUtils.ReadRgbColor(emissionJson);
-            emitter = new DiffuseEmitter(mesh, emission);
-            lock (resultScene) resultScene.Emitters.Add(emitter);
+            var emitters = DiffuseEmitter.MakeFromMesh(mesh, emission);
+            lock (resultScene) resultScene.Emitters.AddRange(emitters);
         }
         lock (resultScene) resultScene.Meshes.Add(mesh);
     }

@@ -51,7 +51,7 @@ namespace SeeSharp.Validation {
             scene.Meshes[^1].Material = new GenericMaterial(new GenericMaterial.Parameters {
                 BaseColor = new TextureRgb(RgbColor.Black)
             });
-            scene.Emitters.Add(new DiffuseEmitter(scene.Meshes[^1], RgbColor.White * 1000));
+            scene.Emitters.AddRange(DiffuseEmitter.MakeFromMesh(scene.Meshes[^1], RgbColor.White * 1000));
 
             // Reflector plane
             float reflectorDepth = 2.0f;

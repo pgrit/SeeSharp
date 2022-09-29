@@ -193,14 +193,15 @@ public class ObjConverter : IMeshLoader {
                     lock(scene) scene.Meshes.Add(m);
 
                     // Create an emitter if the obj material is emissive
-                    RgbColor emission;
-                    if (emissionOverride != null && emissionOverride.TryGetValue(materialName, out emission)) {
-                        var emitter = new DiffuseEmitter(m, emission);
-                        lock(scene) scene.Emitters.Add(emitter);
-                    } else if (emitters.TryGetValue(materialName, out emission)) {
-                        var emitter = new DiffuseEmitter(m, emission);
-                        lock(scene) scene.Emitters.Add(emitter);
+                    RgbColor emission = RgbColor.Black;
+                    emitters.TryGetValue(materialName, out emission);
+                    emissionOverride?.TryGetValue(materialName, out emission);
+
+                    if (emission != RgbColor.Black) {
+                        var emitter = DiffuseEmitter.MakeFromMesh(m, emission);
+                        lock(scene) scene.Emitters.AddRange(emitter);
                     }
+
                 }
             }
         }

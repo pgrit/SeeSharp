@@ -652,7 +652,7 @@ public abstract class BidirBase : Integrator {
     /// <returns>The sampled emitter and point on the emitter</returns>
     protected virtual (Emitter, SurfaceSample) SampleNextEvent(SurfacePoint from, RNG rng) {
         var (light, lightProb) = SelectLight(from, rng);
-        var lightSample = light.SampleArea(rng.NextFloat2D());
+        var lightSample = light.SampleUniformArea(rng.NextFloat2D());
         lightSample.Pdf *= lightProb;
         return (light, lightSample);
     }
@@ -670,7 +670,7 @@ public abstract class BidirBase : Integrator {
             return Scene.Background.DirectionPdf(direction) * backgroundProbability;
         } else { // Emissive object
             var emitter = Scene.QueryEmitter(to);
-            return emitter.PdfArea(to) * SelectLightPmf(from, emitter) * (1 - backgroundProbability);
+            return emitter.PdfUniformArea(to) * SelectLightPmf(from, emitter) * (1 - backgroundProbability);
         }
     }
 

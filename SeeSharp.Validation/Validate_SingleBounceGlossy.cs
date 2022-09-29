@@ -84,8 +84,8 @@ class Validate_SingleBounceGlossy : ValidationSceneFactory {
         scene.Meshes.Add(lightMesh);
         var lightPower = 500;
         var radiance = lightPower / (MathF.PI * lightArea);
-        var emitter = new DiffuseEmitter(lightMesh, RgbColor.White * radiance);
-        scene.Emitters.Add(emitter);
+        var emitter = DiffuseEmitter.MakeFromMesh(lightMesh, RgbColor.White * radiance);
+        scene.Emitters.AddRange(emitter);
 
         scene.FrameBuffer = new FrameBuffer(512, 512, "");
 

@@ -362,7 +362,7 @@ public class PathTracer : Integrator {
         if (state.Depth > 1) { // directly visible emitters are not explicitely connected
                                // Compute the solid angle pdf of next event
             var jacobian = SampleWarp.SurfaceAreaToSolidAngle(state.PreviousHit.Value, hit);
-            pdfNextEvt = light.PdfArea(hit) / scene.Emitters.Count * NumShadowRays / jacobian;
+            pdfNextEvt = light.PdfUniformArea(hit) / scene.Emitters.Count * NumShadowRays / jacobian;
 
             // Compute power heuristic MIS weights
             float pdfRatio = pdfNextEvt / state.PreviousPdf;
@@ -415,7 +415,7 @@ public class PathTracer : Integrator {
         float lightSelectProb = 1.0f / scene.Emitters.Count;
 
         // Sample a point on the light source
-        var lightSample = light.SampleArea(state.Rng.NextFloat2D());
+        var lightSample = light.SampleUniformArea(state.Rng.NextFloat2D());
         Vector3 lightToSurface = Vector3.Normalize(hit.Position - lightSample.Point.Position);
 
         if (!scene.Raytracer.IsOccluded(hit, lightSample.Point)) {

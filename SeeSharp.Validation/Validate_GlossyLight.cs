@@ -53,7 +53,7 @@ namespace SeeSharp.Validation {
             scene.Meshes[^1].Material = new DiffuseMaterial(new DiffuseMaterial.Parameters {
                 BaseColor = new TextureRgb(RgbColor.Black)
             });
-            scene.Emitters.Add(new GlossyEmitter(scene.Meshes[^1], RgbColor.White * 1000, 200));
+            scene.Emitters.AddRange(GlossyEmitter.MakeFromMesh(scene.Meshes[^1], RgbColor.White * 1000, 200));
             //scene.Emitters.Add(new DiffuseEmitter(scene.Meshes[^1], RgbColor.White * 1000));
 
             var matrix = Matrix4x4.CreateLookAt(Vector3.UnitZ * 2,

@@ -40,7 +40,9 @@ public abstract class Experiment {
     /// </summary>
     /// <param name="scene">The scene that will be rendered</param>
     /// <param name="dir">Output directory</param>
-    public virtual void OnStartScene(Scene scene, string dir) { }
+    /// <param name="minDepth">Minimum path length during rendering</param>
+    /// <param name="maxDepth">Maximum path length during rendering</param>
+    public virtual void OnStartScene(Scene scene, string dir, int minDepth, int maxDepth) { }
 
     /// <summary>
     /// Called after all methods have been run on a test scene.

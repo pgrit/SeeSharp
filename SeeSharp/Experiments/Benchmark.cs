@@ -57,7 +57,7 @@ public class Benchmark {
         scene.FrameBuffer = MakeFrameBuffer("dummy");
         scene.Prepare();
 
-        experiment.OnStartScene(scene, dir);
+        experiment.OnStartScene(scene, dir, sceneConfig.MinDepth, sceneConfig.MaxDepth);
         var methods = experiment.MakeMethods();
         foreach (var method in methods) {
             string path = Path.Join(dir, method.Name);

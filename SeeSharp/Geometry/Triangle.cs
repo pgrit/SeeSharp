@@ -11,8 +11,8 @@ public struct Triangle {
     float invSurfaceArea;
     Vector3 v1, v2, v3;
 
-    const float MinSolidAngle = 3e-4f;
-    const float MaxSolidAngle = 6.22f;
+    const float MinSolidAngle = 1e-2f;
+    const float MaxSolidAngle = 5f;
 
     /// <summary>
     /// Creates a new view for a triangle inside an existing mesh
@@ -78,8 +78,6 @@ public struct Triangle {
     /// <summary>
     /// Transforms a primary sample to the projection of the triangle onto the sphere of directions
     /// around a point.
-    /// This function returns points on surfaces, but reports the corresponding _solid angle_ PDF.
-    /// This avoids unnecessary computation of geometry terms that would cancel out most of the time.
     /// </summary>
     /// <param name="observerPosition">The point onto which we project this triangle</param>
     /// <param name="primary">A uniform sample in [0,1]x[0,1]</param>
@@ -152,13 +150,14 @@ public struct Triangle {
 
     /// <param name="observerPosition">The point onto which we project this triangle</param>
     /// <param name="point">A point on the surface of the triangle</param>
-    /// <returns>The PDF of sampling the direction towards this point. (unit: 1/sr)</returns>
+    /// <returns>The surface PDF of sampling this point. (unit: 1/m^2)</returns>
     public float PdfSolidAngle(Vector3 observerPosition, in SurfacePoint point) {
         float solidAngle = ComputeSolidAngle(observerPosition);
 
         if (solidAngle < MinSolidAngle || solidAngle > MaxSolidAngle)
             return PdfUniformArea(point);
 
-        return 1.0f / solidAngle;
+        float jacobian = SampleWarp.SurfaceAreaToSolidAngle(observerPosition, point);
+        return jacobian / solidAngle;
     }
 }

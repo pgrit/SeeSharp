@@ -7,6 +7,21 @@ namespace SeeSharp.Experiments;
 public static class SceneRegistry {
     static readonly HashSet<DirectoryInfo> directories = new();
 
+    static SceneRegistry() {
+        string env = Environment.GetEnvironmentVariable("SEESHARP_SCENE_DIRS");
+        if (string.IsNullOrEmpty(env))
+            return;
+
+        foreach (string path in env.Split(Path.PathSeparator)) {
+            if (!Directory.Exists(path)) {
+                Logger.Warning($"Skipping scene directory '{path}' because it does not exist.");
+                continue;
+            }
+            AddSource(path);
+            Logger.Log($"Added scene directory specified in the environment: {path}", Verbosity.Debug);
+        }
+    }
+
     /// <summary>
     /// Adds a directory to the list of sources. The contents must adhere the expected structure:
     /// Each subdirectory represents a scene, the name of the subdirectory is that of the scene.

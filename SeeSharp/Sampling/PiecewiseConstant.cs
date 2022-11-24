@@ -76,5 +76,9 @@ public class PiecewiseConstant {
         return cdf[idx];
     }
 
+    /// <param name="idx">Index of a bin in the piecewise distribution</param>
+    /// <returns>The CDF value of the given bin</returns>
+    public float CumulativeProbability(int idx) => cdf[idx];
+
     List<float> cdf;
 }

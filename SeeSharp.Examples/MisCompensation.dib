@@ -1,0 +1,38 @@
+#!csharp
+
+#r "nuget: TinyEmbree"
+#r "nuget: SimpleImageIO"
+#r "../SeeSharp/bin/Debug/net6.0/SeeSharp.dll"
+
+using SeeSharp;
+using SeeSharp.Integrators;
+using SimpleImageIO;
+using SimpleImageIO.FlipBook;
+
+// Avoids slowing down the Jupyter Kernel with console spam
+SeeSharp.Common.ProgressBar.Silent = true;
+
+HTML(FlipBook.MakeHeader()).Display();
+
+#!csharp
+
+var scene = Scene.LoadFromFile("../Data/Scenes/simplebackground.json");
+scene.FrameBuffer = new(512, 512, "");
+scene.Prepare();
+
+new PathTracer() {
+    TotalSpp = 10
+}.Render(scene);
+var plain = scene.FrameBuffer.Image;
+
+#!csharp
+
+scene.FrameBuffer = new(512, 512, "");
+(scene.Background as SeeSharp.Shading.Background.EnvironmentMap).BuildSamplingGrid(true);
+scene.Prepare();
+
+new PathTracer() {
+    TotalSpp = 10
+}.Render(scene);
+
+HTML(FlipBook.Make(("plain", plain), ("comp", scene.FrameBuffer.Image)))

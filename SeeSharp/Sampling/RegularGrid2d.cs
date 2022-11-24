@@ -76,6 +76,31 @@ public class RegularGrid2d {
         }
     }
 
+    /// <summary>
+    /// Applies a clipping operation to alter the PDF to only sample the strongest regions. This only makes
+    /// sense when used in an MIS / mixture combination.
+    /// Applies the logic of: Karlik et al. 2019. MIS Compensation (SIGGRAPH Asia)
+    /// The PDF is correctly normalized at the end.
+    /// </summary>
+    public void ApplyMISCompensation() {
+        float avg = 0;
+        for (int row = 0; row < numRows; ++row)
+            avg += rowMarginals[row];
+        avg /= (numRows * numCols);
+
+        for (int row = 0; row < numRows; ++row) {
+            rowMarginals[row] = 0;
+            for (int col = 0; col < numCols; ++col) {
+                int idx = row * numCols + col;
+                density[idx] = Math.Max(density[idx] - avg, 0.0f);
+                rowMarginals[row] += density[idx];
+            }
+
+        }
+
+        Normalize();
+    }
+
     float[] density;
     float[] rowMarginals;
     int numCols, numRows;

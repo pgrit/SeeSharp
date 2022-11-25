@@ -69,30 +69,30 @@ public class PathTracer : Integrator {
     /// <summary>
     /// Called for every surface hit, before any sampling takes place.
     /// </summary>
-    protected virtual void OnHit(in Ray ray, in Hit hit, in PathState state) { }
+    protected virtual void OnHit(in Ray ray, in Hit hit, PathState state) { }
 
     /// <summary>
     /// Called whenever direct illumination was estimated via next event estimation
     /// </summary>
-    protected virtual void OnNextEventResult(in Ray ray, in SurfacePoint point, in PathState state,
+    protected virtual void OnNextEventResult(in Ray ray, in SurfacePoint point, PathState state,
                                              float misWeight, RgbColor estimate) { }
 
     /// <summary>
     /// Called whenever an emitter was intersected
     /// </summary>
-    protected virtual void OnHitLightResult(in Ray ray, in PathState state, float misWeight,
+    protected virtual void OnHitLightResult(in Ray ray, PathState state, float misWeight,
                                             RgbColor emission, bool isBackground) { }
 
     /// <summary>
     /// Called before a path is traced, after the initial camera ray was sampled
     /// </summary>
     /// <param name="state">Initial state of the path (only pixel and RNG are set)</param>
-    protected virtual void OnStartPath(in PathState state) { }
+    protected virtual void OnStartPath(PathState state) { }
 
     /// <summary>
     /// Called after a path has finished tracing and its contribution was added to the corresponding pixel.
     /// </summary>
-    protected virtual void OnFinishedPath(in RadianceEstimate estimate, in PathState state) { }
+    protected virtual void OnFinishedPath(in RadianceEstimate estimate, PathState state) { }
 
     /// <summary> Called after the scene was submitted, before rendering starts. </summary>
     protected virtual void OnPrepareRender() { }
@@ -115,16 +115,16 @@ public class PathTracer : Integrator {
     /// <summary>
     /// Tracks the current state of a path that is being traced
     /// </summary>
-    protected struct PathState {
+    protected class PathState {
         /// <summary>
         /// The pixel this path originated from
         /// </summary>
-        public readonly Vector2 Pixel { get; init; }
+        public Vector2 Pixel { get; set; }
 
         /// <summary>
         /// Current state of the random number generator
         /// </summary>
-        public readonly RNG Rng { get; init; }
+        public RNG Rng { get; set; }
 
         /// <summary>
         /// Product of BSDF terms and cosines, divided by sampling pdfs, along the path so far.
@@ -244,27 +244,34 @@ public class PathTracer : Integrator {
         }
     }
 
-    private void RenderPixel(uint row, uint col, RNG rng) {
+    /// <summary>
+    /// Factory function for new path states. Use this to augment the state in derived classes.
+    /// </summary>
+    protected virtual PathState MakePathState() => new PathState();
+
+    /// <summary>
+    /// Updates the estimate of one pixel. Called once per iteration for every pixel.
+    /// </summary>
+    protected virtual void RenderPixel(uint row, uint col, RNG rng) {
         // Sample a ray from the camera
         var offset = rng.NextFloat2D();
         var pixel = new Vector2(col, row) + offset;
         Ray primaryRay = scene.Camera.GenerateRay(pixel, rng).Ray;
 
-        PathState state = new() {
-            Pixel = pixel,
-            Rng = rng,
-            Throughput = RgbColor.White,
-            Depth = 1
-        };
+        var state = MakePathState();
+        state.Pixel = pixel;
+        state.Rng = rng;
+        state.Throughput = RgbColor.White;
+        state.Depth = 1;
 
         OnStartPath(state);
-        var estimate = EstimateIncidentRadiance(primaryRay, ref state);
+        var estimate = EstimateIncidentRadiance(primaryRay, state);
         OnFinishedPath(estimate, state);
 
         scene.FrameBuffer.Splat(col, row, estimate.Outgoing);
     }
 
-    protected virtual RadianceEstimate EstimateIncidentRadiance(in Ray ray, ref PathState state) {
+    protected virtual RadianceEstimate EstimateIncidentRadiance(in Ray ray, PathState state) {
         // Trace the next ray
         if (state.Depth > MaxDepth)
             return RadianceEstimate.Absorbed;
@@ -328,7 +335,7 @@ public class PathTracer : Integrator {
         state.Depth += 1;
         state.PreviousHit = hit;
         state.PreviousPdf = bsdfPdf;
-        var nested = EstimateIncidentRadiance(bsdfRay, ref state);
+        var nested = EstimateIncidentRadiance(bsdfRay, state);
 
         return new RadianceEstimate {
             Emitted = directHitContrib,
@@ -337,7 +344,7 @@ public class PathTracer : Integrator {
         };
     }
 
-    protected virtual (RgbColor, float) OnBackgroundHit(in Ray ray, in PathState state) {
+    protected virtual (RgbColor, float) OnBackgroundHit(in Ray ray, PathState state) {
         if (scene.Background == null || !EnableBsdfDI)
             return (RgbColor.Black, 0);
 
@@ -355,7 +362,7 @@ public class PathTracer : Integrator {
         return (misWeight * emission, pdfNextEvent);
     }
 
-    protected virtual (RgbColor, float) OnLightHit(in Ray ray, in SurfacePoint hit, in PathState state,
+    protected virtual (RgbColor, float) OnLightHit(in Ray ray, in SurfacePoint hit, PathState state,
                                                    Emitter light) {
         float misWeight = 1.0f;
         float pdfNextEvt = 0;
@@ -377,7 +384,7 @@ public class PathTracer : Integrator {
         return (misWeight * emission, pdfNextEvt);
     }
 
-    protected virtual RgbColor PerformBackgroundNextEvent(in Ray ray, in SurfacePoint hit, in PathState state) {
+    protected virtual RgbColor PerformBackgroundNextEvent(in Ray ray, in SurfacePoint hit, PathState state) {
         if (scene.Background == null)
             return RgbColor.Black; // There is no background
 
@@ -405,7 +412,7 @@ public class PathTracer : Integrator {
         return RgbColor.Black;
     }
 
-    protected virtual RgbColor PerformNextEventEstimation(in Ray ray, in SurfacePoint hit, in PathState state) {
+    protected virtual RgbColor PerformNextEventEstimation(in Ray ray, in SurfacePoint hit, PathState state) {
         if (scene.Emitters.Count == 0)
             return RgbColor.Black;
 
@@ -461,7 +468,7 @@ public class PathTracer : Integrator {
     /// <param name="state">The current state of the path</param>
     /// <returns>Pdf of sampling "sampledDir" when coming from "outDir".</returns>
     protected virtual float DirectionPdf(in SurfacePoint hit, Vector3 outDir, Vector3 sampledDir,
-                                         in PathState state)
+                                         PathState state)
     => hit.Material.Pdf(hit, outDir, sampledDir, false).Item1;
 
     /// <summary>
@@ -475,7 +482,7 @@ public class PathTracer : Integrator {
     /// If sampling was not successful, the pdf will be zero and the path should be terminated.
     /// </returns>
     protected virtual (Ray, float, RgbColor) SampleDirection(in Ray ray, in SurfacePoint hit,
-                                                             in PathState state) {
+                                                             PathState state) {
         var primary = state.Rng.NextFloat2D();
         var bsdfSample = hit.Material.Sample(hit, -ray.Direction, false, primary);
         var bsdfRay = Raytracer.SpawnRay(hit, bsdfSample.Direction);

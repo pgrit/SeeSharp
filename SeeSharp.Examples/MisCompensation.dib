@@ -2,7 +2,7 @@
 
 #r "nuget: TinyEmbree"
 #r "nuget: SimpleImageIO"
-#r "../SeeSharp/bin/Debug/net6.0/SeeSharp.dll"
+#r "../SeeSharp/bin/Debug/net7.0/SeeSharp.dll"
 
 using SeeSharp;
 using SeeSharp.Integrators;

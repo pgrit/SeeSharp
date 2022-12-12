@@ -47,6 +47,71 @@ public static class MeshFactory {
     }
 
     /// <summary>
+    /// Creates a triangulated sphere around a point.
+    /// </summary>
+    /// <param name="center">Center of the sphere</param>
+    /// <param name="radius">Radius of the sphere</param>
+    /// <param name="numRings">Number of rings that form the sphere</param>
+    public static Mesh MakeSphere(Vector3 center, float radius, int numRings) {
+        Vector3 tan = Vector3.UnitX;
+        Vector3 binorm = Vector3.UnitZ;
+        Vector3 normal = Vector3.UnitY;
+
+        List<Vector3> vertices = new();
+        List<int> indices = new();
+
+        // Create the vertices in a ring-by-ring ordering
+        int numQuads = numRings * 2;
+        vertices.Add(center + normal * radius);
+        for (int j = 1; j < numRings; ++j) {
+            float angleV = j * MathF.PI / numRings;
+            float r = MathF.Sin(angleV) * radius;
+            float h = MathF.Cos(angleV) * radius;
+
+            for (int i = 0; i < numQuads; ++i) {
+                float angleH = i * 2 * MathF.PI / numQuads;
+
+                float y = MathF.Sin(angleH) * r;
+                float x = MathF.Cos(angleH) * r;
+
+                vertices.Add(center + normal * h + tan * x + binorm * y);
+            }
+        }
+        vertices.Add(center - normal * radius);
+
+        // First ring is special (degenerate)
+        for (int i = 0; i < numQuads-1; ++i)
+            indices.AddRange(new[] { 0, i+2, i+1 });
+        indices.AddRange(new[] { 0, 1, numQuads });
+
+        // Center rings
+        for (int j = 1; j < numRings-1; ++j) {
+            // Offsets to the first vertex in each ring that we connect here
+            int o1 = 1 + numQuads * (j - 1);
+            int o2 = 1 + numQuads * j;
+            for (int i = 0; i < numQuads-1; ++i) {
+                indices.AddRange(new[] {
+                    o1 + i, o2 + i + 1, o2 + i,
+                    o1 + i, o1 + i + 1, o2 + i + 1
+                });
+            }
+            indices.AddRange(new[] {
+                o1 + numQuads - 1, o2, o2 + numQuads - 1,
+                o1 + numQuads - 1, o1, o2
+            });
+        }
+
+        // Last ring is just like the first
+        int o = 1 + numQuads * (numRings - 1);
+        for (int i = 0; i < numQuads-1; ++i)
+            indices.AddRange(new[] { vertices.Count - 1, vertices.Count - i - 3, vertices.Count - i - 2 });
+        indices.AddRange(new[] { vertices.Count - 1, vertices.Count - 2, vertices.Count - numQuads - 1 });
+
+        Mesh result = new(vertices.ToArray(), indices.ToArray());
+        return result;
+    }
+
+    /// <summary>
     /// Creates a cone oriented such that it connects two points like an arrow tip
     /// </summary>
     /// <param name="baseCenter">The point in the center of the cone's base</param>

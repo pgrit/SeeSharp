@@ -254,7 +254,7 @@ public abstract class BidirBase : Integrator {
         });
     }
 
-    private void RenderPixel(uint row, uint col, RNG rng) {
+    protected virtual void RenderPixel(uint row, uint col, RNG rng) {
         // Sample a ray from the camera
         var offset = rng.NextFloat2D();
         var filmSample = new Vector2(col, row) + offset;

@@ -20,8 +20,8 @@ namespace SeeSharp.IntegrationTests {
     static class BidirZeroLightPaths {
         public static void Run() {
             var scene = SeeSharp.Scene.LoadFromFile("Data/Scenes/CornellBox/CornellBox.json");
-            scene.FrameBuffer = new SeeSharp.Image.FrameBuffer(512, 512, "test.exr",
-                SeeSharp.Image.FrameBuffer.Flags.SendToTev);
+            scene.FrameBuffer = new SeeSharp.Images.FrameBuffer(512, 512, "test.exr",
+                SeeSharp.Images.FrameBuffer.Flags.SendToTev);
             scene.Prepare();
 
             var integrator = new Dummy() {
@@ -30,8 +30,8 @@ namespace SeeSharp.IntegrationTests {
             };
             integrator.Render(scene);
 
-            scene.FrameBuffer = new SeeSharp.Image.FrameBuffer(512, 512, "test.exr",
-                SeeSharp.Image.FrameBuffer.Flags.SendToTev);
+            scene.FrameBuffer = new SeeSharp.Images.FrameBuffer(512, 512, "test.exr",
+                SeeSharp.Images.FrameBuffer.Flags.SendToTev);
             integrator.Render(scene);
         }
     }

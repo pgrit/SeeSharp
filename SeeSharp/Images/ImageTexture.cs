@@ -1,7 +1,7 @@
 ﻿using SimpleImageIO;
 using System.Numerics;
 
-namespace SeeSharp.Image {
+namespace SeeSharp.Images {
     /// <summary>
     /// An image texture
     /// </summary>
@@ -48,6 +48,6 @@ namespace SeeSharp.Image {
         /// <summary>
         /// The texture image
         /// </summary>
-        public ImageBase Image;
+        public Image Image;
     }
 }

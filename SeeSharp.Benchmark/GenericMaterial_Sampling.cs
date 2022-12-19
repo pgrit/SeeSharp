@@ -1,6 +1,6 @@
 using SeeSharp.Cameras;
 using SeeSharp.Geometry;
-using SeeSharp.Image;
+using SeeSharp.Images;
 using SeeSharp.Integrators;
 using SeeSharp.Sampling;
 using SeeSharp.Shading.Background;

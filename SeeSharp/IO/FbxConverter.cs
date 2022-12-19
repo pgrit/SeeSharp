@@ -65,11 +65,11 @@ public class FbxConverter : IMeshLoader {
             } else if (material.HasColorDiffuse) {
                 var c = material.ColorDiffuse;
                 mat = new DiffuseMaterial(new() {
-                    BaseColor = new Image.TextureRgb(new RgbColor(c.R, c.G, c.B))
+                    BaseColor = new Images.TextureRgb(new RgbColor(c.R, c.G, c.B))
                 });
             } else {
                 mat = new DiffuseMaterial(new() {
-                    BaseColor = new Image.TextureRgb(new RgbColor(1, 0, 1))
+                    BaseColor = new Images.TextureRgb(new RgbColor(1, 0, 1))
                 });
             }
 

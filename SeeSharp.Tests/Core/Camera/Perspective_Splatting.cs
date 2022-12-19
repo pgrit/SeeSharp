@@ -1,4 +1,4 @@
-﻿using SeeSharp.Image;
+﻿using SeeSharp.Images;
 using System;
 using System.Numerics;
 using Xunit;

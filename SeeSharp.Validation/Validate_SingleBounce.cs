@@ -4,7 +4,7 @@ using SeeSharp.Geometry;
 using SeeSharp.Shading;
 using SeeSharp.Shading.Emitters;
 using SeeSharp.Shading.Materials;
-using SeeSharp.Image;
+using SeeSharp.Images;
 using System.Numerics;
 using SimpleImageIO;
 

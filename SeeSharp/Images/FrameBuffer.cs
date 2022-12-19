@@ -1,6 +1,6 @@
 using System.Linq;
 
-namespace SeeSharp.Image;
+namespace SeeSharp.Images;
 
 /// <summary>
 /// Provides an image buffer to receive pixel estimates during rendering. Additional named layers can

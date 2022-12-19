@@ -1,6 +1,6 @@
 ﻿using SimpleImageIO;
 
-namespace SeeSharp.Image {
+namespace SeeSharp.Images {
     /// <summary>
     /// A layer in the frame buffer, an image to hold AOVs
     /// </summary>
@@ -10,7 +10,7 @@ namespace SeeSharp.Image {
         /// <summary>
         /// The image buffer
         /// </summary>
-        public ImageBase Image { get; set; }
+        public Image Image { get; set; }
 
         /// <summary>
         /// Stops normalizing the image data. Useful if an AOV is only written during some initial iterations.

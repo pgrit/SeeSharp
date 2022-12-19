@@ -2,7 +2,7 @@ using System;
 using System.Collections.Generic;
 using SeeSharp.Integrators;
 using SeeSharp.Integrators.Bidir;
-using SeeSharp.Image;
+using SeeSharp.Images;
 
 namespace SeeSharp.Validation;
 

@@ -2,7 +2,7 @@ using SeeSharp.Cameras;
 using SeeSharp.Geometry;
 using SeeSharp.Shading.Emitters;
 using SeeSharp.Shading.Materials;
-using SeeSharp.Image;
+using SeeSharp.Images;
 using System.Numerics;
 using SimpleImageIO;
 

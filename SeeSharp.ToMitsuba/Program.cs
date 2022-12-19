@@ -8,7 +8,7 @@ using System.Xml.Linq;
 using SeeSharp;
 using SeeSharp.Common;
 using SeeSharp.Geometry;
-using SeeSharp.Image;
+using SeeSharp.Images;
 using SeeSharp.Shading.Background;
 using SeeSharp.Shading.Emitters;
 using SeeSharp.Shading.Materials;

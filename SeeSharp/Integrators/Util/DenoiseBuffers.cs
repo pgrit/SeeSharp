@@ -26,7 +26,7 @@ public class DenoiseBuffers {
     /// Runs the denoiser on the current rendered image. The result is stored in the "denoised" layer.
     /// </summary>
     public void Denoise() {
-        ImageBase.Move(
+        Image.Move(
             denoiser.Denoise(frameBuffer.Image, (RgbImage)albedo.Image, (RgbImage)normal.Image),
             denoised.Image);
     }

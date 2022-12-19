@@ -1,7 +1,7 @@
 ﻿using SimpleImageIO;
 using System.Numerics;
 
-namespace SeeSharp.Image {
+namespace SeeSharp.Images {
     /// <summary>
     /// An RGB image texture
     /// </summary>

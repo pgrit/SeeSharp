@@ -73,7 +73,7 @@ public class Benchmark {
             method.Integrator.Render(scene);
             scene.FrameBuffer.WriteToFile();
         }
-        experiment.OnDoneScene(scene, dir);
+        experiment.OnDoneScene(scene, dir, sceneConfig.MinDepth, sceneConfig.MaxDepth);
     }
 
     /// <summary>

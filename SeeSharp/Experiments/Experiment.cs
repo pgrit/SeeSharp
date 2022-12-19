@@ -51,7 +51,9 @@ public abstract class Experiment {
     /// <param name="dir">
     /// Output directory, each method is in a subdirectory; the method's name is the name of that subdirectory
     /// </param>
-    public virtual void OnDoneScene(Scene scene, string dir) { }
+    /// <param name="minDepth">Minimum path length during rendering</param>
+    /// <param name="maxDepth">Maximum path length during rendering</param>
+    public virtual void OnDoneScene(Scene scene, string dir, int minDepth, int maxDepth) { }
 
     /// <summary>
     /// Called before the experiment is run on a set of scenes

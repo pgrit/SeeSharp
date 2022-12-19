@@ -34,7 +34,7 @@ namespace SeeSharp.IntegrationTests {
             });
 
             var camera = new LightProbeCamera(hit.Position, hit.Normal, hit.ErrorOffset, Vector3.UnitY);
-            var framebuffer = new Image.FrameBuffer(512, 256, "WhiteProbe.exr", Image.FrameBuffer.Flags.SendToTev);
+            var framebuffer = new Images.FrameBuffer(512, 256, "WhiteProbe.exr", Images.FrameBuffer.Flags.SendToTev);
             camera.UpdateResolution(framebuffer.Width, framebuffer.Height);
 
             int numIter = 10;
@@ -64,7 +64,7 @@ namespace SeeSharp.IntegrationTests {
 
         public static void CornellProbe() {
             var scene = Scene.LoadFromFile("../Data/Scenes/CornellBox/CornellBox.json");
-            scene.FrameBuffer = new(512, 512, "CornellProbe.exr", Image.FrameBuffer.Flags.SendToTev);
+            scene.FrameBuffer = new(512, 512, "CornellProbe.exr", Images.FrameBuffer.Flags.SendToTev);
             scene.Prepare();
 
             var sample = scene.Camera.GenerateRay(new(250, 50), new());

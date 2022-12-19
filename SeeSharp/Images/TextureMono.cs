@@ -1,7 +1,7 @@
 using SimpleImageIO;
 using System.Numerics;
 
-namespace SeeSharp.Image {
+namespace SeeSharp.Images {
     /// <summary>
     /// Monochromatic image texture
     /// </summary>

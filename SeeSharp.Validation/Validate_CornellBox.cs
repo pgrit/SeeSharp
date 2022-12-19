@@ -1,4 +1,4 @@
-using SeeSharp.Image;
+using SeeSharp.Images;
 
 namespace SeeSharp.Validation {
     class Validate_CornellBox : ValidationSceneFactory {

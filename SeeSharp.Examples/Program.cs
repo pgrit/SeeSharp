@@ -1,6 +1,6 @@
 ﻿using System.Diagnostics;
 using SeeSharp.Experiments;
-using SeeSharp.Image;
+using SeeSharp.Images;
 using SeeSharp.Examples;
 
 // Register the directory as a scene file provider.

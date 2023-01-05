@@ -246,7 +246,7 @@ public class FrameBuffer : IDisposable {
         if (Path.GetExtension(fname).ToLower() == ".exr") {
             Layers.WriteToExr(fname,
                 layers.Select(kv => (kv.Key, kv.Value.Image))
-                    .Append(("default", Image))
+                    .Append((null, Image))
                     .ToArray()
             );
         } else {

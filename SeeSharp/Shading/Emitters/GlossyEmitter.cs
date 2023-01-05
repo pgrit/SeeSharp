@@ -24,7 +24,11 @@ public class GlossyEmitter : Emitter {
     public static IEnumerable<Emitter> MakeFromMesh(Mesh mesh, RgbColor radiance, float exponent) {
         List<Emitter> emitters = new(mesh.NumFaces);
         for (int i = 0; i < mesh.NumFaces; ++i) {
-            emitters.Add(new GlossyEmitter(new(mesh, i), radiance, exponent));
+            try {
+                emitters.Add(new GlossyEmitter(new(mesh, i), radiance, exponent));
+            } catch(ArgumentException) {
+                continue;
+            }
         }
         return emitters;
     }

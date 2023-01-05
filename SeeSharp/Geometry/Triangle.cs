@@ -27,7 +27,12 @@ public struct Triangle {
         v2 = Mesh.Vertices[Mesh.Indices[faceIndex * 3 + 1]];
         v3 = Mesh.Vertices[Mesh.Indices[faceIndex * 3 + 2]];
         Vector3 n = Vector3.Cross(v2 - v1, v3 - v1);
-        invSurfaceArea = 1.0f / (n.Length() * 0.5f);
+        float area = n.Length() * 0.5f;
+
+        if (area == 0.0f)
+            throw new ArgumentException("Zero-area triangles cannot be emitters");
+
+        invSurfaceArea = 1.0f / area;
     }
 
     /// <summary>

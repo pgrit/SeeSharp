@@ -21,7 +21,11 @@ public class DiffuseEmitter : Emitter {
     public static IEnumerable<Emitter> MakeFromMesh(Mesh mesh, RgbColor radiance) {
         List<DiffuseEmitter> emitters = new(mesh.NumFaces);
         for (int i = 0; i < mesh.NumFaces; ++i) {
-            emitters.Add(new(new(mesh, i), radiance));
+            try {
+                emitters.Add(new(new(mesh, i), radiance));
+            } catch(ArgumentException) {
+                continue;
+            }
         }
         return emitters;
     }

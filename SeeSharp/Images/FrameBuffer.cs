@@ -59,7 +59,7 @@ public class FrameBuffer : IDisposable {
     /// 1-based index of the current iteration (i.e., the total number of iterations so far).
     /// If rendering has not started yet, this will be zero.
     /// </summary>
-    public int CurIteration { get => curIter; private set => curIter = value; }
+    public int CurIteration { get => curIter; protected set => curIter = value; }
     int curIter = 0;
 
     /// <summary>
@@ -78,6 +78,9 @@ public class FrameBuffer : IDisposable {
     /// File extension of the final image, which also specifies the format.
     /// </summary>
     public string Extension => Path.GetExtension(filename);
+
+    public string Filename => filename;
+    public Flags Behavior => flags;
 
     /// <summary>
     /// Flags controlling some behaviour of the buffer
@@ -129,8 +132,7 @@ public class FrameBuffer : IDisposable {
         // Ideally can be reproduced with a single sample from a correctly seeded RNG.
         Debug.Assert(float.IsFinite(value.Average));
         if (!float.IsFinite(value.Average)) {
-            Logger.Log($"NaN or Inf written to frame buffer! Iteration: {CurIteration}, Pixel: ({x},{y})",
-                Verbosity.Warning);
+            Logger.Warning($"NaN or Inf written to frame buffer! Iteration: {CurIteration}, Pixel: ({x},{y})");
         }
     }
 
@@ -138,7 +140,7 @@ public class FrameBuffer : IDisposable {
     /// Initializes the memory for the image data and aux layers. Should be called exactly once before / at
     /// the start of the first rendering iteration.
     /// </summary>
-    protected void Initialize() {
+    protected virtual void Initialize() {
         Image = new RgbImage(Width, Height);
         foreach (var (_, layer) in layers)
             layer.Init(Width, Height);
@@ -161,6 +163,8 @@ public class FrameBuffer : IDisposable {
         }
     }
 
+    public virtual void Normalize() => Image.Scale((CurIteration - 1.0f) / CurIteration);
+
     /// <summary>
     /// Should be called before the start of each new rendering iteration. A rendering iteration is one of
     /// multiple equal-sized batches of samples per pixel.
@@ -174,8 +178,7 @@ public class FrameBuffer : IDisposable {
         CurIteration++;
 
         // Correct the division by the number of iterations from the previous iterations
-        if (CurIteration > 1)
-            Image.Scale((CurIteration - 1.0f) / CurIteration);
+        if (CurIteration > 1) Normalize();
 
         foreach (var (_, layer) in layers)
             layer.OnStartIteration(CurIteration);
@@ -280,8 +283,8 @@ public class FrameBuffer : IDisposable {
 
     private ErrorMetric ComputeErrorMetric() {
         return new(stopwatch.ElapsedMilliseconds,
-            SimpleImageIO.Metrics.MSE(Image, ReferenceImage),
-            SimpleImageIO.Metrics.RelMSE(Image, ReferenceImage),
-            SimpleImageIO.Metrics.RelMSE_OutlierRejection(Image, ReferenceImage));
+            Metrics.MSE(Image, ReferenceImage),
+            Metrics.RelMSE(Image, ReferenceImage),
+            Metrics.RelMSE_OutlierRejection(Image, ReferenceImage));
     }
 }

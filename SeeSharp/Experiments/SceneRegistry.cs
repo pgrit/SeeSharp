@@ -53,8 +53,11 @@ public static class SceneRegistry {
         lock (directories) {
             foreach (DirectoryInfo dir in directories) {
                 candidate = Path.Join(dir.FullName, name);
-                if (Directory.Exists(candidate))
+                if (Directory.Exists(candidate)) {
+                    Logger.Log($"Using {name} scene from {dir.FullName}", Verbosity.Debug);
                     break;
+                }
+                candidate = null;
             }
         }
 

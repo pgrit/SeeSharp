@@ -152,7 +152,7 @@ public class FrameBuffer : IDisposable {
                 tevIpc.CloseImage(filename);
                 tevIpc.CreateImageSync(filename, Width, Height,
                     layers.Select(kv => (kv.Key, kv.Value.Image))
-                        .Append(("default", Image))
+                        .Append(("", Image))
                         .ToArray()
                 );
             } catch (Exception exc) {

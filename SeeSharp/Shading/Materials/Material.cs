@@ -80,6 +80,13 @@ namespace SeeSharp.Shading.Materials {
         /// <returns>The pdf of sampling the incoming direction via <see cref="Sample"/></returns>
         public abstract (float, float) Pdf(in SurfacePoint hit, Vector3 outDir, Vector3 inDir, bool isOnLightSubpath);
 
+        public abstract BsdfSample Sample(in SurfacePoint hit, Vector3 outDir, bool isOnLightSubpath, Vector2 primarySample,
+            Span<float> pdfs, Span<float> weights);
+        public abstract (float, float) Pdf(in SurfacePoint hit, Vector3 outDir, Vector3 inDir, bool isOnLightSubpath,
+            Span<float> pdfs, Span<float> weights);
+
+        public virtual int MaxSamplingComponents => 1;
+
         /// <summary>
         /// Tests whether the incoming and outgoing direction are on the same or different sides of the
         /// actual geometry, based on the actual normal, not the shading normal.

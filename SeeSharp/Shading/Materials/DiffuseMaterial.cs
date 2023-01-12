@@ -133,6 +133,22 @@ public class DiffuseMaterial : Material {
         }
     }
 
+    public override BsdfSample Sample(in SurfacePoint hit, Vector3 outDir, bool isOnLightSubpath, Vector2 primarySample,
+                                      Span<float> pdfs, Span<float> weights) {
+        var sample = Sample(hit, outDir, isOnLightSubpath, primarySample);
+        pdfs[0] = sample.Pdf;
+        weights[0] = 1;
+        return sample;
+    }
+
+    public override (float, float) Pdf(in SurfacePoint hit, Vector3 outDir, Vector3 inDir, bool isOnLightSubpath,
+                                       Span<float> pdfs, Span<float> weights) {
+        var (pdf, pdfRev) = Pdf(hit, outDir, inDir, isOnLightSubpath);
+        pdfs[0] = pdf;
+        weights[0] = 1;
+        return (pdf, pdfRev);
+    }
+
     /// <summary>
     /// Material parameters
     /// </summary>

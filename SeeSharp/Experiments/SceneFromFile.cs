@@ -57,7 +57,10 @@ public class SceneFromFile : SceneConfig {
         string filename = Path.Join(refDir, $"{minDepthString}MaxDepth{MaxDepth}-Width{width}-Height{height}.exr");
 
         if (File.Exists(filename)) {
-            return new RgbImage(filename);
+            // support legacy .exr files
+            var layers = Layers.LoadFromFile(filename);
+            if (layers.ContainsKey("")) return layers[""] as RgbImage;
+            else return layers["default"] as RgbImage;
         }
 
         // TODO we could make this even more fancy by triggering a re-render if the hash of the config

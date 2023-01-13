@@ -60,13 +60,6 @@ namespace SeeSharp.Shading.Materials {
             return bsdf * AbsCosTheta(inDir);
         }
 
-        public abstract int GetNumSamplingLobes(in SurfacePoint hit, Vector3 outDir, Vector3 inDir);
-
-        public abstract float GetSamplingLobeWeight(int idx, in SurfacePoint hit, Vector3 outDir, Vector3 inDir);
-
-        public abstract (float, float) GetSamplingLobePdf(int idx, in SurfacePoint hit, Vector3 outDir, Vector3 inDir,
-                                                          bool isOnLightSubpath);
-
         /// <summary>
         /// Importance samples the product of BSDF and cosine
         /// </summary>

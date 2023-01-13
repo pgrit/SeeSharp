@@ -281,86 +281,6 @@ public class GenericMaterial : Material {
         };
     }
 
-    public override int GetNumSamplingLobes(in SurfacePoint hit, Vector3 outDir, Vector3 inDir) {
-        var normal = hit.ShadingNormal;
-        outDir = WorldToShading(normal, outDir);
-        inDir = WorldToShading(normal, inDir);
-        var local = ComputeLocalParams(hit.TextureCoordinates);
-        var (select, selectRev) = ComputeSelectWeights(local, outDir, inDir);
-
-        int num = 0;
-        if (select.Diff > 0) num++;
-        if (select.Retro > 0) num++;
-        if (select.Trans > 0) num++;
-        if (select.DiffTrans > 0) num++;
-        if (select.Reflect > 0) num++;
-        return num;
-    }
-
-    public override float GetSamplingLobeWeight(int idx, in SurfacePoint hit, Vector3 outDir, Vector3 inDir) {
-        var normal = hit.ShadingNormal;
-        outDir = WorldToShading(normal, outDir);
-        inDir = WorldToShading(normal, inDir);
-        var local = ComputeLocalParams(hit.TextureCoordinates);
-        var (select, selectRev) = ComputeSelectWeights(local, outDir, inDir);
-
-        if (select.Diff > 0)
-            if (idx == 0) return select.Diff;
-            else idx--;
-        if (select.Retro > 0)
-            if (idx == 0) return select.Reflect;
-            else idx--;
-        if (select.Trans > 0)
-            if (idx == 0) return select.Trans;
-            else idx--;
-        if (select.DiffTrans > 0)
-            if (idx == 0) return select.DiffTrans;
-            else idx--;
-        if (select.Reflect > 0)
-            if (idx == 0) return select.Reflect;
-            else idx--;
-
-        Debug.Assert(false);
-        return 0.0f;
-    }
-
-    public override (float, float) GetSamplingLobePdf(int idx, in SurfacePoint hit, Vector3 outDir, Vector3 inDir, bool isOnLightSubpath) {
-        // Transform directions to shading space and normalize
-        var normal = hit.ShadingNormal;
-        outDir = WorldToShading(normal, outDir);
-        inDir = WorldToShading(normal, inDir);
-
-        // Compute parameters
-        var local = ComputeLocalParams(hit.TextureCoordinates);
-        var (select, selectRev) = ComputeSelectWeights(local, outDir, inDir);
-
-        if (select.Diff > 0)
-            if (idx == 0)
-                return new DisneyDiffuse(local.diffuseReflectance).Pdf(outDir, inDir, isOnLightSubpath);
-            else idx--;
-        if (select.Retro > 0)
-            if (idx == 0) return new DisneyRetroReflection(local.retroReflectance, local.roughness)
-                .Pdf(outDir, inDir, isOnLightSubpath);
-            else idx--;
-        if (select.Trans > 0)
-            if (idx == 0) return new MicrofacetTransmission(
-                    local.specularTransmittance, local.transmissionDistribution,
-                    1, MaterialParameters.IndexOfRefraction
-                ).Pdf(outDir, inDir, isOnLightSubpath);
-            else idx--;
-        if (select.DiffTrans > 0)
-            if (idx == 0) return new DiffuseTransmission(local.baseColor * MaterialParameters.DiffuseTransmittance)
-                .Pdf(outDir, inDir, isOnLightSubpath);
-            else idx--;
-        if (select.Reflect > 0)
-            if (idx == 0) return new MicrofacetReflection(local.microfacetDistrib, local.fresnel, local.specularTint)
-                .Pdf(outDir, inDir, isOnLightSubpath);
-            else idx--;
-
-        Debug.Assert(false);
-        return (0.0f, 0.0f);
-    }
-
     /// <returns>PDF used by <see cref="Sample"/></returns>
     public override (float, float) Pdf(in SurfacePoint hit, Vector3 outDir, Vector3 inDir,
                                        bool isOnLightSubpath) {
@@ -435,7 +355,7 @@ public class GenericMaterial : Material {
             pdfRev += rev * selectRev.Diff;
 
             if (select.Diff > 0) {
-                pdfs[i] = pdfFwd;
+                pdfs[i] = fwd;
                 weights[i] = select.Diff;
                 i++;
             }
@@ -447,7 +367,7 @@ public class GenericMaterial : Material {
             pdfRev += rev * selectRev.Retro;
 
             if (select.Retro > 0) {
-                pdfs[i] = pdfFwd;
+                pdfs[i] = fwd;
                 weights[i] = select.Retro;
                 i++;
             }
@@ -461,7 +381,7 @@ public class GenericMaterial : Material {
             pdfRev += rev * selectRev.Trans;
 
             if (select.Trans > 0) {
-                pdfs[i] = pdfFwd;
+                pdfs[i] = fwd;
                 weights[i] = select.Trans;
                 i++;
             }
@@ -473,7 +393,7 @@ public class GenericMaterial : Material {
             pdfRev += rev * selectRev.DiffTrans;
 
             if (select.DiffTrans > 0) {
-                pdfs[i] = pdfFwd;
+                pdfs[i] = fwd;
                 weights[i] = select.DiffTrans;
                 i++;
             }
@@ -485,7 +405,7 @@ public class GenericMaterial : Material {
             pdfRev += rev * selectRev.Reflect;
 
             if (select.Reflect > 0) {
-                pdfs[i] = pdfFwd;
+                pdfs[i] = fwd;
                 weights[i] = select.Reflect;
                 i++;
             }

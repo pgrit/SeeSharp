@@ -57,14 +57,6 @@ public class DiffuseMaterial : Material {
             return RgbColor.Black;
     }
 
-    public override int GetNumSamplingLobes(in SurfacePoint hit, Vector3 outDir, Vector3 inDir) => 1;
-
-    public override float GetSamplingLobeWeight(int idx, in SurfacePoint hit, Vector3 outDir, Vector3 inDir) => 1.0f;
-
-    public override (float, float) GetSamplingLobePdf(int idx, in SurfacePoint hit, Vector3 outDir, Vector3 inDir,
-                                             bool isOnLightSubpath)
-    => Pdf(hit, outDir, inDir, isOnLightSubpath);
-
     /// <summary>
     /// Importance samples the cosine hemisphere
     /// </summary>

@@ -31,7 +31,7 @@ public class FrameBuffer : IDisposable {
     /// <summary>
     /// Automatically added layer that estimates per-pixel variances in the frame buffer
     /// </summary>
-    public readonly VarianceLayer PixelVariance = new();
+    public readonly VarianceLayer PixelVariance;
 
     /// <summary>
     /// Associated meta data that will be stored along with the final rendered image. By default,
@@ -97,7 +97,12 @@ public class FrameBuffer : IDisposable {
         WriteContinously = 2,
 
         ///<summary> Like WriteContinously, but sends the data via a socket to the tev viewer </summary>
-        SendToTev = 4
+        SendToTev = 4,
+
+        /// <summary>
+        /// If set, adds a layer that approximates the pixel variance
+        /// </summary>
+        EstimatePixelVariance = 8
     }
 
     private record ErrorMetric(long TimeMS, float MSE, float RelMSE, float RelMSE_Outlier);
@@ -115,7 +120,10 @@ public class FrameBuffer : IDisposable {
         this.flags = flags;
         Width = width;
         Height = height;
-        AddLayer("variance", PixelVariance);
+        if (flags.HasFlag(Flags.EstimatePixelVariance)) {
+            PixelVariance = new();
+            AddLayer("variance", PixelVariance);
+        }
     }
 
     /// <summary>
@@ -126,7 +134,7 @@ public class FrameBuffer : IDisposable {
     /// <param name="value">Color to add to the current value</param>
     public virtual void Splat(float x, float y, RgbColor value) {
         Image.AtomicAdd((int)x, (int)y, value / CurIteration);
-        PixelVariance.Splat(x, y, value);
+        PixelVariance?.Splat(x, y, value);
 
         // Catch invalid values in long running Release mode renderings.
         // Ideally can be reproduced with a single sample from a correctly seeded RNG.

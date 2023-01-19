@@ -135,6 +135,10 @@ public class Scene : IDisposable {
                 meshToEmitter.Add(emitter.Mesh, new());
             meshToEmitter[emitter.Mesh].Add(emitter.Triangle.FaceIndex, emitter);
         }
+
+        emitterToIdx.Clear();
+        for (int i = 0; i < Emitters.Count; ++i)
+            emitterToIdx.Add(Emitters[i], i);
     }
 
     /// <summary>
@@ -183,6 +187,10 @@ public class Scene : IDisposable {
         return emitter;
     }
 
+    /// <param name="emitter">An emitter object</param>
+    /// <returns>Index of this emitter in the <see cref="Emitters"/> list</returns>
+    public int GetEmitterIndex(Emitter emitter) => emitterToIdx[emitter];
+
     /// <summary>
     /// Loads a .json file and parses it as a scene. Assumes the file has been validated against
     /// the correct schema.
@@ -204,4 +212,5 @@ public class Scene : IDisposable {
     }
 
     readonly Dictionary<Mesh, Dictionary<int, Emitter>> meshToEmitter = new();
+    readonly Dictionary<Emitter, int> emitterToIdx = new();
 }

@@ -70,7 +70,13 @@ public class Benchmark {
             if (computeErrorMetrics && refImg != null)
                 scene.FrameBuffer.ReferenceImage = refImg;
 
+            scene.Raytracer.ResetStats();
+            ShadingStats.Reset();
+
             method.Integrator.Render(scene);
+
+            scene.FrameBuffer.MetaData["RayStats"] = scene.Raytracer.Stats;
+            scene.FrameBuffer.MetaData["ShadeStats"] = ShadingStats.Current;
             scene.FrameBuffer.WriteToFile();
         }
         experiment.OnDoneScene(scene, dir, sceneConfig.MinDepth, sceneConfig.MaxDepth);

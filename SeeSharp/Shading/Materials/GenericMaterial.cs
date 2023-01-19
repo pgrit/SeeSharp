@@ -87,6 +87,8 @@ public class GenericMaterial : Material {
 
     /// <returns>BSDF value</returns>
     public override RgbColor Evaluate(in SurfacePoint hit, Vector3 outDir, Vector3 inDir, bool isOnLightSubpath) {
+        Interlocked.Increment(ref ShadingStats.Current.NumMaterialEval);
+
         bool shouldReflect = ShouldReflect(hit, outDir, inDir);
 
         // Transform directions to shading space and normalize
@@ -124,6 +126,8 @@ public class GenericMaterial : Material {
 
     public override (BsdfSample, int) Sample(in SurfacePoint hit, Vector3 outDir, bool isOnLightSubpath,
                                              Vector2 primarySample, Span<float> pdfs, Span<float> weights) {
+        Interlocked.Increment(ref ShadingStats.Current.NumMaterialSample);
+
         // Transform directions to shading space and normalize
         var normal = hit.ShadingNormal;
         outDir = WorldToShading(normal, outDir);
@@ -204,6 +208,8 @@ public class GenericMaterial : Material {
     /// <summary>Crudely importance samples the combined BSDFs</summary>
     public override BsdfSample Sample(in SurfacePoint hit, Vector3 outDir, bool isOnLightSubpath,
                                       Vector2 primarySample) {
+        Interlocked.Increment(ref ShadingStats.Current.NumMaterialSample);
+
         // Transform directions to shading space and normalize
         var normal = hit.ShadingNormal;
         outDir = WorldToShading(normal, outDir);
@@ -284,6 +290,8 @@ public class GenericMaterial : Material {
     /// <returns>PDF used by <see cref="Sample"/></returns>
     public override (float, float) Pdf(in SurfacePoint hit, Vector3 outDir, Vector3 inDir,
                                        bool isOnLightSubpath) {
+        Interlocked.Increment(ref ShadingStats.Current.NumMaterialPdf);
+
         // Transform directions to shading space and normalize
         var normal = hit.ShadingNormal;
         outDir = WorldToShading(normal, outDir);
@@ -336,6 +344,8 @@ public class GenericMaterial : Material {
 
     public override (float, float, int) Pdf(in SurfacePoint hit, Vector3 outDir, Vector3 inDir,
                                             bool isOnLightSubpath, Span<float> pdfs, Span<float> weights) {
+        Interlocked.Increment(ref ShadingStats.Current.NumMaterialPdf);
+
         // Transform directions to shading space and normalize
         var normal = hit.ShadingNormal;
         outDir = WorldToShading(normal, outDir);

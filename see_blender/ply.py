@@ -19,7 +19,7 @@ def _write_binary(fw, ply_verts: list, ply_faces: list) -> None:
         if normal is not None:
             fw(pack("<3f", *normal))
         if uv is not None:
-            fw(pack("<2f", *uv))
+            fw(pack("<2f", uv[0], 1 - uv[1]))
         if color is not None:
             fw(pack("<4B", *color))
 
@@ -40,7 +40,7 @@ def _write_ascii(fw, ply_verts: list, ply_faces: list) -> None:
         if normal is not None:
             fw(b" %.6f %.6f %.6f" % normal[:])
         if uv is not None:
-            fw(b" %.6f %.6f" % uv)
+            fw(b" %.6f %.6f" % (uv[0], 1 - uv[1]))
         if color is not None:
             fw(b" %u %u %u %u" % color)
         fw(b"\n")

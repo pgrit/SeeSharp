@@ -113,6 +113,15 @@ public class PathTracer : Integrator {
     protected virtual void OnPostIteration(uint iterIdx) { }
 
     /// <summary>
+    /// Called at the end of each iteration before the frame buffer is updated, just after
+    /// <see cref="OnPostIteration" />. The difference to the latter is that execution time in this method is
+    /// counted towards the frame buffer cost, not the render cost. Use this to update AOVs, process
+    /// frame buffer layers, run progressive denoising, or output debug visualizations.
+    /// </summary>
+    /// <param name="iterIdx">0-based index of the iteration that just ended</param>
+    protected virtual void PostprocessIteration(uint iterIdx) { }
+
+    /// <summary>
     /// Tracks the current state of a path that is being traced
     /// </summary>
     protected class PathState {
@@ -224,6 +233,7 @@ public class PathTracer : Integrator {
 
             if (sampleIndex == TotalSpp - 1 && EnableDenoiser)
                 denoiseBuffers.Denoise();
+            PostprocessIteration(sampleIndex);
             scene.FrameBuffer.EndIteration();
             timer.EndFrameBuffer();
 

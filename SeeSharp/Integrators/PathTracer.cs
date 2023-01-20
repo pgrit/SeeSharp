@@ -371,9 +371,9 @@ public class PathTracer : Integrator {
             var jacobian = SampleWarp.SurfaceAreaToSolidAngle(state.PreviousHit.Value, hit);
             pdfNextEvt = light.PdfUniformArea(hit) / scene.Emitters.Count * NumShadowRays / jacobian;
 
-            // Compute power heuristic MIS weights
+            // Compute balance heuristic MIS weights
             float pdfRatio = pdfNextEvt / state.PreviousPdf;
-            misWeight = 1 / (pdfRatio * pdfRatio + 1);
+            misWeight = 1 / (pdfRatio + 1);
 
             if (!EnableBsdfDI) misWeight = 0;
         }
@@ -444,9 +444,9 @@ public class PathTracer : Integrator {
             Debug.Assert(pdfBsdf != 0 || bsdfCos == RgbColor.Black,
                 "Non-zero BSDF value not sampled by forward path tracing!");
 
-            // Compute the resulting power heuristic weights
+            // Compute the resulting balance heuristic weights
             float pdfRatio = pdfBsdf / pdfNextEvt;
-            float misWeight = EnableBsdfDI ? 1.0f / (pdfRatio * pdfRatio + 1) : 1;
+            float misWeight = EnableBsdfDI ? 1.0f / (pdfRatio + 1) : 1;
 
             // Compute the final sample weight, account for the change of variables from light source area
             // to the hemisphere about the shading point.

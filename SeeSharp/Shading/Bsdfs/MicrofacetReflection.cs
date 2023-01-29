@@ -2,12 +2,12 @@
 
 namespace SeeSharp.Shading.Bsdfs;
 
-public struct MicrofacetReflection {
+public struct MicrofacetReflection<T> where T : Fresnel {
     TrowbridgeReitzDistribution distribution;
-    Fresnel fresnel;
+    T fresnel;
     RgbColor tint;
 
-    public MicrofacetReflection(TrowbridgeReitzDistribution distribution, Fresnel fresnel, RgbColor tint) {
+    public MicrofacetReflection(TrowbridgeReitzDistribution distribution, T fresnel, RgbColor tint) {
         this.distribution = distribution;
         this.fresnel = fresnel;
         this.tint = tint;

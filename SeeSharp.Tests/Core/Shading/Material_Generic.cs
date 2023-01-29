@@ -47,6 +47,74 @@ public class Material_Generic {
         Assert.Equal(sample.PdfReverse, revS, 3);
     }
 
+    [Theory]
+    [InlineData(0, 0, 1, 0, 1, 1)]
+    [InlineData(1, 0, 1, 0, 1, 1)]
+    [InlineData(1, 0, 1, 1, 0, -1)]
+    public void ComponentPdfs_ShouldBeConsistent(float ox, float oy, float oz, float ix, float iy, float iz) {
+        Material mtl = new GenericMaterial(new GenericMaterial.Parameters {
+            BaseColor = new(new RgbColor(1, 1, 1)),
+            Roughness = new(0.2f),
+            SpecularTransmittance = 0.8f,
+            DiffuseTransmittance = 0.3f
+        });
+
+        var mesh = new Mesh(new Vector3[] {
+            new Vector3(-1, -1, 0),
+            new Vector3( 1, -1, 0),
+            new Vector3( 1,  1, 0),
+            new Vector3(-1,  1, 0)
+        }, new int[] {
+            0, 1, 2,
+            0, 2, 3
+        });
+
+        SurfacePoint hit = new SurfacePoint {
+            BarycentricCoords = new Vector2(0.5f, 0.2f),
+            Normal = new Vector3(0, 0, 1),
+            Mesh = mesh,
+            PrimId = 0,
+            Position = new Vector3(0, 0, 0),
+        };
+
+        var outDir = Vector3.Normalize(new Vector3(ox, oy, oz));
+        var inDir = Vector3.Normalize(new Vector3(ix, iy, iz));
+
+        Material.ComponentWeights componentWeights = new() {
+            Pdfs = stackalloc float[mtl.MaxSamplingComponents],
+            Weights = stackalloc float[mtl.MaxSamplingComponents],
+            PdfsReverse = stackalloc float[mtl.MaxSamplingComponents],
+            WeightsReverse = stackalloc float[mtl.MaxSamplingComponents],
+        };
+
+        var (fwd, rev) = mtl.Pdf(hit, outDir, inDir, false, ref componentWeights);
+
+        float fwdRecompute = 0;
+        for (int i = 0; i < componentWeights.NumComponents; ++i) {
+            fwdRecompute += componentWeights.Pdfs[i] * componentWeights.Weights[i];
+        }
+        float revRecompute = 0;
+        for (int i = 0; i < componentWeights.NumComponents; ++i) {
+            revRecompute += componentWeights.PdfsReverse[i] * componentWeights.WeightsReverse[i];
+        }
+
+        Assert.Equal(rev, revRecompute, 3);
+        Assert.Equal(fwd, fwdRecompute, 3);
+
+        var sample = mtl.Sample(hit, outDir, false, new Vector2(0.2f, 0.7f), ref componentWeights);
+        float fwdRecomputeS = 0;
+        for (int i = 0; i < componentWeights.NumComponents; ++i) {
+            fwdRecomputeS += componentWeights.Pdfs[i] * componentWeights.Weights[i];
+        }
+        float revRecomputeS = 0;
+        for (int i = 0; i < componentWeights.NumComponents; ++i) {
+            revRecomputeS += componentWeights.PdfsReverse[i] * componentWeights.WeightsReverse[i];
+        }
+
+        Assert.Equal(sample.Pdf, fwdRecomputeS, 3);
+        Assert.Equal(sample.PdfReverse, revRecomputeS, 3);
+    }
+
     [Fact]
     public void Pdf_ShouldBeNonZero() {
         Material mtl = new GenericMaterial(new GenericMaterial.Parameters {

@@ -63,7 +63,7 @@ public class DiffuseMaterial : Material {
     /// Importance samples the cosine hemisphere
     /// </summary>
     public override BsdfSample Sample(in SurfacePoint hit, Vector3 outDir, bool isOnLightSubpath,
-                                      Vector2 primarySample) {
+                                      Vector2 primarySample, ref ComponentWeights componentWeights) {
         Interlocked.Increment(ref ShadingStats.Current.NumMaterialSample);
 
         var normal = hit.ShadingNormal;
@@ -97,7 +97,7 @@ public class DiffuseMaterial : Material {
         var value = EvaluateWithCosine(hit, outWorld, sampledDir, isOnLightSubpath);
 
         // Compute all pdfs
-        var (pdfFwd, pdfRev) = Pdf(hit, outWorld, sampledDir, isOnLightSubpath);
+        var (pdfFwd, pdfRev) = Pdf(hit, outWorld, sampledDir, isOnLightSubpath, ref componentWeights);
         if (pdfFwd == 0)
             return BsdfSample.Invalid;
 
@@ -111,7 +111,8 @@ public class DiffuseMaterial : Material {
     }
 
     /// <returns>PDF value used by <see cref="Sample"/></returns>
-    public override (float, float) Pdf(in SurfacePoint hit, Vector3 outDir, Vector3 inDir, bool isOnLightSubpath) {
+    public override (float, float) Pdf(in SurfacePoint hit, Vector3 outDir, Vector3 inDir, bool isOnLightSubpath,
+                                       ref ComponentWeights componentWeights) {
         Interlocked.Increment(ref ShadingStats.Current.NumMaterialPdf);
 
         // Transform directions to shading space and normalize
@@ -125,26 +126,16 @@ public class DiffuseMaterial : Material {
             var transmitPdf = new DiffuseTransmission(baseColor).Pdf(outDir, inDir, isOnLightSubpath);
             float pdfFwd = (reflectPdf.Item1 + transmitPdf.Item1) * 0.5f;
             float pdfRev = (reflectPdf.Item2 + transmitPdf.Item2) * 0.5f;
+
+            if (componentWeights.Pdfs != null) componentWeights.Pdfs[0] = pdfFwd * 2.0f;
+            if (componentWeights.Weights != null) componentWeights.Weights[0] = 0.5f;
+            if (componentWeights.PdfsReverse != null) componentWeights.PdfsReverse[0] = pdfRev * 2.0f;
+            if (componentWeights.WeightsReverse != null) componentWeights.WeightsReverse[0] = 0.5f;
+
             return (pdfFwd, pdfRev);
         } else {
             return reflectPdf;
         }
-    }
-
-    public override (BsdfSample, int) Sample(in SurfacePoint hit, Vector3 outDir, bool isOnLightSubpath, Vector2 primarySample,
-                                             Span<float> pdfs, Span<float> weights) {
-        var sample = Sample(hit, outDir, isOnLightSubpath, primarySample);
-        pdfs[0] = sample.Pdf;
-        weights[0] = 1;
-        return (sample, 1);
-    }
-
-    public override (float, float, int) Pdf(in SurfacePoint hit, Vector3 outDir, Vector3 inDir, bool isOnLightSubpath,
-                                            Span<float> pdfs, Span<float> weights) {
-        var (pdf, pdfRev) = Pdf(hit, outDir, inDir, isOnLightSubpath);
-        pdfs[0] = pdf;
-        weights[0] = 1;
-        return (pdf, pdfRev, 1);
     }
 
     /// <summary>

@@ -1,6 +1,4 @@
-﻿using SeeSharp.Shading.Bsdfs;
-using SeeSharp.Shading.MicrofacetDistributions;
-using System.Threading;
+﻿using SeeSharp.Shading.MicrofacetDistributions;
 
 namespace SeeSharp.Shading.Materials;
 
@@ -87,36 +85,27 @@ public class GenericMaterial : Material {
 
     /// <returns>BSDF value</returns>
     public override RgbColor Evaluate(in SurfacePoint hit, Vector3 outDir, Vector3 inDir, bool isOnLightSubpath) {
+        var context = MakeContext(hit, outDir, inDir);
+        return Evaluate(context, isOnLightSubpath);
+    }
+
+    RgbColor Evaluate(in ShadingContext context, bool isOnLightSubpath) {
         Interlocked.Increment(ref ShadingStats.Current.NumMaterialEval);
-
-        bool shouldReflect = ShouldReflect(hit, outDir, inDir);
-
-        // Transform directions to shading space and normalize
-        var normal = hit.ShadingNormal;
-        outDir = WorldToShading(normal, outDir);
-        inDir = WorldToShading(normal, inDir);
-
-        var local = ComputeLocalParams(hit.TextureCoordinates);
 
         // Evaluate all components
         var result = RgbColor.Black;
-        if (local.diffuseWeight > 0 && shouldReflect) {
-            result += new DisneyDiffuse(local.diffuseReflectance).Evaluate(outDir, inDir, isOnLightSubpath);
-            result += new DisneyRetroReflection(local.retroReflectance, local.roughness)
-                .Evaluate(outDir, inDir, isOnLightSubpath);
+        if (context.LocalParameters.diffuseWeight > 0 && context.SameHemisphere) {
+            result += context.DiffuseComponent.Evaluate(context.OutDirShadingSpace, context.InDirShadingSpace, isOnLightSubpath);
+            result += context.RetroComponent.Evaluate(context.OutDirShadingSpace, context.InDirShadingSpace, isOnLightSubpath);
         }
-        if (MaterialParameters.SpecularTransmittance > 0 && !shouldReflect) {
-            result += new MicrofacetTransmission(local.specularTransmittance,
-                local.transmissionDistribution, 1, MaterialParameters.IndexOfRefraction)
-                .Evaluate(outDir, inDir, isOnLightSubpath);
+        if (MaterialParameters.SpecularTransmittance > 0 && !context.SameHemisphere) {
+            result += context.MicroTransmitComponent.Evaluate(context.OutDirShadingSpace, context.InDirShadingSpace, isOnLightSubpath);
         }
-        if (MaterialParameters.Thin && !shouldReflect) {
-            result += new DiffuseTransmission(local.baseColor * MaterialParameters.DiffuseTransmittance)
-                .Evaluate(outDir, inDir, isOnLightSubpath);
+        if (MaterialParameters.Thin && !context.SameHemisphere) {
+            result += context.DiffuseTransmitComponent.Evaluate(context.OutDirShadingSpace, context.InDirShadingSpace, isOnLightSubpath);
         }
-        if (shouldReflect) {
-            result += new MicrofacetReflection(local.microfacetDistrib, local.fresnel, local.specularTint)
-                .Evaluate(outDir, inDir, isOnLightSubpath);
+        if (context.SameHemisphere) {
+            result += context.MicroReflectComponent.Evaluate(context.OutDirShadingSpace, context.InDirShadingSpace, isOnLightSubpath);
         }
 
         Debug.Assert(float.IsFinite(result.Average) && result.Average >= 0);
@@ -124,155 +113,81 @@ public class GenericMaterial : Material {
         return result;
     }
 
-    public override (BsdfSample, int) Sample(in SurfacePoint hit, Vector3 outDir, bool isOnLightSubpath,
-                                             Vector2 primarySample, Span<float> pdfs, Span<float> weights) {
-        Interlocked.Increment(ref ShadingStats.Current.NumMaterialSample);
+    ShadingContext MakeContext(in SurfacePoint hit, Vector3 outDir) {
+        ShadingContext context = new();
+        context.Normal = hit.ShadingNormal;
+        ComputeBasisVectors(context.Normal, out context.Tangent, out context.Binormal);
+        context.OutDirShadingSpace = WorldToShading(context.Normal, context.Tangent, context.Binormal, outDir);
+        context.LocalParameters = ComputeLocalParams(hit.TextureCoordinates);
+        context.SelectionWeightsForward = ComputeSelectWeights(context.LocalParameters, context.OutDirShadingSpace);
+        context.RetroComponent = new DisneyRetroReflection(context.LocalParameters.retroReflectance, context.LocalParameters.roughness);
+        context.DiffuseComponent = new DisneyDiffuse(context.LocalParameters.diffuseReflectance);
+        context.DiffuseTransmitComponent = new DiffuseTransmission(context.LocalParameters.baseColor * MaterialParameters.DiffuseTransmittance);
+        context.MicroReflectComponent = new MicrofacetReflection<DisneyFresnel>(context.LocalParameters.microfacetDistrib, context.LocalParameters.fresnel, context.LocalParameters.specularTint);
+        context.MicroTransmitComponent = new MicrofacetTransmission(context.LocalParameters.specularTransmittance, context.LocalParameters.transmissionDistribution, 1, MaterialParameters.IndexOfRefraction);
+        return context;
+    }
 
-        // Transform directions to shading space and normalize
-        var normal = hit.ShadingNormal;
-        outDir = WorldToShading(normal, outDir);
-
-        // Compute parameters
-        var local = ComputeLocalParams(hit.TextureCoordinates);
-        var (select, _) = ComputeSelectWeights(local, outDir, outDir);
-
-        // Select a component to sample from
-        // TODO this can be done in a loop if the selection probs are in an array
-        Vector3? sample = null;
-        float offset = 0;
-        if (primarySample.X < offset + select.DiffTrans) {
-            var remapped = primarySample;
-            remapped.X = Math.Min((primarySample.X - offset) / select.DiffTrans, 1);
-            sample = new DiffuseTransmission(local.baseColor * MaterialParameters.DiffuseTransmittance)
-                .Sample(outDir, isOnLightSubpath, remapped);
-        }
-        offset += select.DiffTrans;
-
-        if (primarySample.X > offset && primarySample.X < offset + select.Retro) {
-            var remapped = primarySample;
-            remapped.X = Math.Min((primarySample.X - offset) / select.Retro, 1);
-            sample = new DisneyRetroReflection(local.retroReflectance, local.roughness)
-                .Sample(outDir, isOnLightSubpath, remapped);
-        }
-        offset += select.Retro;
-
-        if (primarySample.X > offset && primarySample.X < offset + select.Diff) {
-            var remapped = primarySample;
-            remapped.X = Math.Min((primarySample.X - offset) / select.Diff, 1);
-            sample = new DisneyDiffuse(local.diffuseReflectance)
-                .Sample(outDir, isOnLightSubpath, remapped);
-        }
-        offset += select.Diff;
-
-        if (primarySample.X > offset && primarySample.X < offset + select.Reflect) {
-            var remapped = primarySample;
-            remapped.X = Math.Min((primarySample.X - offset) / select.Reflect, 1);
-            sample = new MicrofacetReflection(local.microfacetDistrib, local.fresnel, local.specularTint)
-                .Sample(outDir, isOnLightSubpath, remapped);
-        }
-        offset += select.Reflect;
-
-        if (primarySample.X > offset && primarySample.X < offset + select.Trans) {
-            var remapped = primarySample;
-            remapped.X = Math.Min((primarySample.X - offset) / select.Trans, 1);
-            sample = new MicrofacetTransmission(local.specularTransmittance, local.transmissionDistribution,
-                1, MaterialParameters.IndexOfRefraction).Sample(outDir, isOnLightSubpath, remapped);
-            Debug.Assert(!sample.HasValue || float.IsFinite(sample.Value.X));
-        }
-        offset += select.Trans;
-
-        // Terminate if no valid direction was sampled
-        if (!sample.HasValue) return (BsdfSample.Invalid, 0);
-        var sampledDir = ShadingToWorld(normal, sample.Value);
-
-        // Evaluate all components
-        var outWorld = ShadingToWorld(normal, outDir);
-        var value = EvaluateWithCosine(hit, outWorld, sampledDir, isOnLightSubpath);
-
-        // Compute all pdfs
-        var (pdfFwd, pdfRev, num) = Pdf(hit, outWorld, sampledDir, isOnLightSubpath, pdfs, weights);
-        if (pdfFwd == 0) return (BsdfSample.Invalid, 0);
-
-        Debug.Assert(float.IsFinite(value.Average / pdfFwd) && pdfFwd > 0);
-        // Debug.Assert(value == RgbColor.Black || pdfRev != 0);
-
-        // Combine results with balance heuristic MIS
-        return (new BsdfSample {
-            Pdf = pdfFwd,
-            PdfReverse = pdfRev,
-            Weight = value / pdfFwd,
-            Direction = sampledDir
-        }, num);
+    ShadingContext MakeContext(in SurfacePoint hit, Vector3 outDir, Vector3 inDir) {
+        var context = MakeContext(hit, outDir);
+        context.InDirShadingSpace = WorldToShading(context.Normal, context.Tangent, context.Binormal, inDir);
+        var (_, r) = ComputeSelectWeights(context.LocalParameters, context.OutDirShadingSpace, context.InDirShadingSpace);
+        context.SelectionWeightsReverse = r;
+        context.SameHemisphere = ShouldReflect(hit, outDir, inDir);
+        return context;
     }
 
     /// <summary>Crudely importance samples the combined BSDFs</summary>
     public override BsdfSample Sample(in SurfacePoint hit, Vector3 outDir, bool isOnLightSubpath,
-                                      Vector2 primarySample) {
+                                      Vector2 primarySample, ref ComponentWeights componentWeights) {
         Interlocked.Increment(ref ShadingStats.Current.NumMaterialSample);
 
-        // Transform directions to shading space and normalize
-        var normal = hit.ShadingNormal;
-        outDir = WorldToShading(normal, outDir);
-
-        // Compute parameters
-        var local = ComputeLocalParams(hit.TextureCoordinates);
-        var (select, _) = ComputeSelectWeights(local, outDir, outDir);
+        var context = MakeContext(hit, outDir);
 
         // Select a component to sample from
         // TODO this can be done in a loop if the selection probs are in an array
         Vector3? sample = null;
         float offset = 0;
-        if (primarySample.X < offset + select.DiffTrans) {
+        if (primarySample.X < offset + context.SelectionWeightsForward.DiffTrans) {
             var remapped = primarySample;
-            remapped.X = Math.Min((primarySample.X - offset) / select.DiffTrans, 1);
-            sample = new DiffuseTransmission(local.baseColor * MaterialParameters.DiffuseTransmittance)
-                .Sample(outDir, isOnLightSubpath, remapped);
+            remapped.X = Math.Min((primarySample.X - offset) / context.SelectionWeightsForward.DiffTrans, 1);
+            sample = context.DiffuseTransmitComponent.Sample(context.OutDirShadingSpace, isOnLightSubpath, remapped);
         }
-        offset += select.DiffTrans;
+        offset += context.SelectionWeightsForward.DiffTrans;
 
-        if (primarySample.X > offset && primarySample.X < offset + select.Retro) {
+        if (primarySample.X > offset && primarySample.X < offset + context.SelectionWeightsForward.Diff) {
             var remapped = primarySample;
-            remapped.X = Math.Min((primarySample.X - offset) / select.Retro, 1);
-            sample = new DisneyRetroReflection(local.retroReflectance, local.roughness)
-                .Sample(outDir, isOnLightSubpath, remapped);
+            remapped.X = Math.Min((primarySample.X - offset) / context.SelectionWeightsForward.Diff, 1);
+            sample = context.DiffuseComponent.Sample(context.OutDirShadingSpace, isOnLightSubpath, remapped);
         }
-        offset += select.Retro;
+        offset += context.SelectionWeightsForward.Diff;
 
-        if (primarySample.X > offset && primarySample.X < offset + select.Diff) {
+        if (primarySample.X > offset && primarySample.X < offset + context.SelectionWeightsForward.Reflect) {
             var remapped = primarySample;
-            remapped.X = Math.Min((primarySample.X - offset) / select.Diff, 1);
-            sample = new DisneyDiffuse(local.diffuseReflectance)
-                .Sample(outDir, isOnLightSubpath, remapped);
+            remapped.X = Math.Min((primarySample.X - offset) / context.SelectionWeightsForward.Reflect, 1);
+            sample = context.MicroReflectComponent.Sample(context.OutDirShadingSpace, isOnLightSubpath, remapped);
         }
-        offset += select.Diff;
+        offset += context.SelectionWeightsForward.Reflect;
 
-        if (primarySample.X > offset && primarySample.X < offset + select.Reflect) {
+        if (primarySample.X > offset && primarySample.X < offset + context.SelectionWeightsForward.Trans) {
             var remapped = primarySample;
-            remapped.X = Math.Min((primarySample.X - offset) / select.Reflect, 1);
-            sample = new MicrofacetReflection(local.microfacetDistrib, local.fresnel, local.specularTint)
-                .Sample(outDir, isOnLightSubpath, remapped);
-        }
-        offset += select.Reflect;
-
-        if (primarySample.X > offset && primarySample.X < offset + select.Trans) {
-            var remapped = primarySample;
-            remapped.X = Math.Min((primarySample.X - offset) / select.Trans, 1);
-            sample = new MicrofacetTransmission(local.specularTransmittance, local.transmissionDistribution,
-                1, MaterialParameters.IndexOfRefraction).Sample(outDir, isOnLightSubpath, remapped);
+            remapped.X = Math.Min((primarySample.X - offset) / context.SelectionWeightsForward.Trans, 1);
+            sample = context.MicroTransmitComponent.Sample(context.OutDirShadingSpace, isOnLightSubpath, remapped);
             Debug.Assert(!sample.HasValue || float.IsFinite(sample.Value.X));
         }
-        offset += select.Trans;
+        offset += context.SelectionWeightsForward.Trans;
 
-        // Terminate if no valid direction was sampled
         if (!sample.HasValue) return BsdfSample.Invalid;
-        var sampledDir = ShadingToWorld(normal, sample.Value);
 
-        // Evaluate all components
-        var outWorld = ShadingToWorld(normal, outDir);
-        var value = EvaluateWithCosine(hit, outWorld, sampledDir, isOnLightSubpath);
+        context.InDirShadingSpace = sample.Value;
+        var sampledDir = ShadingToWorld(context.Normal, context.Tangent, context.Binormal, sample.Value);
+        context.SameHemisphere = ShouldReflect(hit, outDir, sampledDir);
+        var (_, r) = ComputeSelectWeights(context.LocalParameters, context.OutDirShadingSpace, context.InDirShadingSpace);
+        context.SelectionWeightsReverse = r;
 
-        // Compute all pdfs
-        var (pdfFwd, pdfRev) = Pdf(hit, outWorld, sampledDir, isOnLightSubpath);
+        var value = Evaluate(context, isOnLightSubpath) * AbsCosTheta(context.InDirShadingSpace);
+
+        var (pdfFwd, pdfRev) = Pdf(context, isOnLightSubpath, ref componentWeights);
         if (pdfFwd == 0) return BsdfSample.Invalid;
 
         Debug.Assert(float.IsFinite(value.Average / pdfFwd) && pdfFwd > 0);
@@ -287,173 +202,114 @@ public class GenericMaterial : Material {
         };
     }
 
-    /// <returns>PDF used by <see cref="Sample"/></returns>
-    public override (float, float) Pdf(in SurfacePoint hit, Vector3 outDir, Vector3 inDir,
-                                       bool isOnLightSubpath) {
+    (float, float) Pdf(in ShadingContext context, bool isOnLightSubpath, ref ComponentWeights components) {
         Interlocked.Increment(ref ShadingStats.Current.NumMaterialPdf);
-
-        // Transform directions to shading space and normalize
-        var normal = hit.ShadingNormal;
-        outDir = WorldToShading(normal, outDir);
-        inDir = WorldToShading(normal, inDir);
-
-        // Compute parameters
-        var local = ComputeLocalParams(hit.TextureCoordinates);
-        var (select, selectRev) = ComputeSelectWeights(local, outDir, inDir);
 
         // Compute the sum of all pdf values
         float pdfFwd = 0, pdfRev = 0;
         float fwd, rev;
-        if (select.Diff > 0 || selectRev.Diff > 0) {
-            (fwd, rev) = new DisneyDiffuse(local.diffuseReflectance).Pdf(outDir, inDir, isOnLightSubpath);
-            pdfFwd += fwd * select.Diff;
-            pdfRev += rev * selectRev.Diff;
+        int idxFwd = 0;
+        int idxRev = 0;
+        if (context.SelectionWeightsForward.Diff > 0 || context.SelectionWeightsReverse.Diff > 0) {
+            (fwd, rev) = context.DiffuseComponent.Pdf(context.OutDirShadingSpace, context.InDirShadingSpace, isOnLightSubpath);
+            pdfFwd += fwd * context.SelectionWeightsForward.Diff;
+            pdfRev += rev * context.SelectionWeightsReverse.Diff;
+
+            if (context.SelectionWeightsForward.Diff > 0) {
+                if (components.Pdfs != null) components.Pdfs[idxFwd] = fwd;
+                if (components.Weights != null) components.Weights[idxFwd] = context.SelectionWeightsForward.Diff;
+                idxFwd++;
+            }
+            if (context.SelectionWeightsReverse.Diff > 0) {
+                if (components.PdfsReverse != null) components.PdfsReverse[idxRev] = rev;
+                if (components.WeightsReverse != null) components.WeightsReverse[idxRev] = context.SelectionWeightsReverse.Diff;
+                idxRev++;
+            }
         }
-        if (select.Retro > 0 || selectRev.Retro > 0) {
-            (fwd, rev) = new DisneyRetroReflection(local.retroReflectance, local.roughness)
-                .Pdf(outDir, inDir, isOnLightSubpath);
-            pdfFwd += fwd * select.Retro;
-            pdfRev += rev * selectRev.Retro;
+        if (context.SelectionWeightsForward.Trans > 0 || context.SelectionWeightsReverse.Trans > 0) {
+            (fwd, rev) = context.MicroTransmitComponent.Pdf(context.OutDirShadingSpace, context.InDirShadingSpace, isOnLightSubpath);
+            pdfFwd += fwd * context.SelectionWeightsForward.Trans;
+            pdfRev += rev * context.SelectionWeightsReverse.Trans;
+
+            if (context.SelectionWeightsForward.Trans > 0) {
+                if (components.Pdfs != null) components.Pdfs[idxFwd] = fwd;
+                if (components.Weights != null) components.Weights[idxFwd] = context.SelectionWeightsForward.Trans;
+                idxFwd++;
+            }
+            if (context.SelectionWeightsReverse.Trans > 0) {
+                if (components.PdfsReverse != null) components.PdfsReverse[idxRev] = rev;
+                if (components.WeightsReverse != null) components.WeightsReverse[idxRev] = context.SelectionWeightsReverse.Trans;
+                idxRev++;
+            }
         }
-        if (select.Trans > 0 || selectRev.Trans > 0) {
-            (fwd, rev) = new MicrofacetTransmission(
-                local.specularTransmittance, local.transmissionDistribution,
-                1, MaterialParameters.IndexOfRefraction
-            ).Pdf(outDir, inDir, isOnLightSubpath);
-            pdfFwd += fwd * select.Trans;
-            pdfRev += rev * selectRev.Trans;
+        if (context.SelectionWeightsForward.DiffTrans > 0 || context.SelectionWeightsReverse.DiffTrans > 0) {
+            (fwd, rev) = context.DiffuseTransmitComponent.Pdf(context.OutDirShadingSpace, context.InDirShadingSpace, isOnLightSubpath);
+            pdfFwd += fwd * context.SelectionWeightsForward.DiffTrans;
+            pdfRev += rev * context.SelectionWeightsReverse.DiffTrans;
+
+            if (context.SelectionWeightsForward.DiffTrans > 0) {
+                if (components.Pdfs != null) components.Pdfs[idxFwd] = fwd;
+                if (components.Weights != null) components.Weights[idxFwd] = context.SelectionWeightsForward.DiffTrans;
+                idxFwd++;
+            }
+            if (context.SelectionWeightsReverse.DiffTrans > 0) {
+                if (components.PdfsReverse != null) components.PdfsReverse[idxRev] = rev;
+                if (components.WeightsReverse != null) components.WeightsReverse[idxRev] = context.SelectionWeightsReverse.DiffTrans;
+                idxRev++;
+            }
         }
-        if (select.DiffTrans > 0 || selectRev.DiffTrans > 0) {
-            (fwd, rev) = new DiffuseTransmission(local.baseColor * MaterialParameters.DiffuseTransmittance)
-                .Pdf(outDir, inDir, isOnLightSubpath);
-            pdfFwd += fwd * select.DiffTrans;
-            pdfRev += rev * selectRev.DiffTrans;
-        }
-        if (select.Reflect > 0 || selectRev.Reflect > 0) {
-            (fwd, rev) = new MicrofacetReflection(local.microfacetDistrib, local.fresnel, local.specularTint)
-                .Pdf(outDir, inDir, isOnLightSubpath);
-            pdfFwd += fwd * select.Reflect;
-            pdfRev += rev * selectRev.Reflect;
+        if (context.SelectionWeightsForward.Reflect > 0 || context.SelectionWeightsReverse.Reflect > 0) {
+            (fwd, rev) = context.MicroReflectComponent.Pdf(context.OutDirShadingSpace, context.InDirShadingSpace, isOnLightSubpath);
+            pdfFwd += fwd * context.SelectionWeightsForward.Reflect;
+            pdfRev += rev * context.SelectionWeightsReverse.Reflect;
+
+            if (context.SelectionWeightsForward.Reflect > 0) {
+                if (components.Pdfs != null) components.Pdfs[idxFwd] = fwd;
+                if (components.Weights != null) components.Weights[idxFwd] = context.SelectionWeightsForward.Reflect;
+                idxFwd++;
+            }
+            if (context.SelectionWeightsReverse.Reflect > 0) {
+                if (components.PdfsReverse != null) components.PdfsReverse[idxRev] = rev;
+                if (components.WeightsReverse != null) components.WeightsReverse[idxRev] = context.SelectionWeightsReverse.Reflect;
+                idxRev++;
+            }
         }
         Debug.Assert(float.IsFinite(pdfFwd) && pdfFwd >= 0);
+
+        components.NumComponents = idxFwd;
+        components.NumComponentsReverse = idxRev;
 
         return (pdfFwd, pdfRev);
     }
 
-    public override int MaxSamplingComponents => 5;
-
-    public unsafe override (float, float, int) Pdf(in SurfacePoint hit, Vector3 outDir, Vector3 inDir,
-                                                   bool isOnLightSubpath, Span<float> pdfs, Span<float> weights) {
-        Interlocked.Increment(ref ShadingStats.Current.NumMaterialPdf);
-
-        // Transform directions to shading space and normalize
-        var normal = hit.ShadingNormal;
-        outDir = WorldToShading(normal, outDir);
-        inDir = WorldToShading(normal, inDir);
-
-        // Compute parameters
-        var local = ComputeLocalParams(hit.TextureCoordinates);
-        var (select, selectRev) = ComputeSelectWeights(local, outDir, inDir);
-
-        // Compute the sum of all pdf values
-        float pdfFwd = 0, pdfRev = 0;
-        float fwd, rev;
-
-        int i = 0;
-        if (weights != null) {
-            fixed (float* weightsPtr = weights) {
-                if (select.Diff > 0)
-                    weightsPtr[i++] = select.Diff;
-                if (select.Retro > 0)
-                    weightsPtr[i++] = select.Retro;
-                if (select.Trans > 0)
-                    weightsPtr[i++] = select.Trans;
-                if (select.DiffTrans > 0)
-                    weightsPtr[i++] = select.DiffTrans;
-                if (select.Reflect > 0)
-                    weightsPtr[i++] = select.Reflect;
-            }
-        }
-
-        // Use unsafe pointers to write the PDFs without bounds checks. Fast, but risk of buffer overflow
-        i = 0;
-        fixed (float* pdfsPtr = pdfs) {
-            if (select.Diff > 0 || selectRev.Diff > 0) {
-                (fwd, rev) = new DisneyDiffuse(local.diffuseReflectance).Pdf(outDir, inDir, isOnLightSubpath);
-                pdfFwd += fwd * select.Diff;
-                pdfRev += rev * selectRev.Diff;
-
-                if (pdfsPtr != null && select.Diff > 0)
-                    pdfsPtr[i++] = fwd;
-            }
-            if (select.Retro > 0 || selectRev.Retro > 0) {
-                (fwd, rev) = new DisneyRetroReflection(local.retroReflectance, local.roughness)
-                    .Pdf(outDir, inDir, isOnLightSubpath);
-                pdfFwd += fwd * select.Retro;
-                pdfRev += rev * selectRev.Retro;
-
-                if (pdfsPtr != null && select.Retro > 0)
-                    pdfsPtr[i++] = fwd;
-            }
-            if (select.Trans > 0 || selectRev.Trans > 0) {
-                (fwd, rev) = new MicrofacetTransmission(
-                    local.specularTransmittance, local.transmissionDistribution,
-                    1, MaterialParameters.IndexOfRefraction
-                ).Pdf(outDir, inDir, isOnLightSubpath);
-                pdfFwd += fwd * select.Trans;
-                pdfRev += rev * selectRev.Trans;
-
-                if (pdfsPtr != null && select.Trans > 0)
-                    pdfsPtr[i++] = fwd;
-            }
-            if (select.DiffTrans > 0 || selectRev.DiffTrans > 0) {
-                (fwd, rev) = new DiffuseTransmission(local.baseColor * MaterialParameters.DiffuseTransmittance)
-                    .Pdf(outDir, inDir, isOnLightSubpath);
-                pdfFwd += fwd * select.DiffTrans;
-                pdfRev += rev * selectRev.DiffTrans;
-
-                if (pdfsPtr != null && select.DiffTrans > 0)
-                    pdfsPtr[i++] = fwd;
-            }
-            if (select.Reflect > 0 || selectRev.Reflect > 0) {
-                (fwd, rev) = new MicrofacetReflection(local.microfacetDistrib, local.fresnel, local.specularTint)
-                    .Pdf(outDir, inDir, isOnLightSubpath);
-                pdfFwd += fwd * select.Reflect;
-                pdfRev += rev * selectRev.Reflect;
-
-                if (pdfsPtr != null && select.Reflect > 0)
-                    pdfsPtr[i++] = fwd;
-            }
-        }
-        Debug.Assert(float.IsFinite(pdfFwd) && pdfFwd >= 0);
-
-        return (pdfFwd, pdfRev, i);
+    public override (float, float) Pdf(in SurfacePoint hit, Vector3 outDir, Vector3 inDir,
+                                       bool isOnLightSubpath, ref ComponentWeights components) {
+        return Pdf(MakeContext(hit, outDir, inDir), isOnLightSubpath, ref components);
     }
+
+    public override int MaxSamplingComponents => 5;
 
     struct LocalParams {
         public RgbColor baseColor, colorTint, specularTint;
         public float roughness;
         public TrowbridgeReitzDistribution microfacetDistrib;
         public TrowbridgeReitzDistribution transmissionDistribution;
-        public Fresnel fresnel;
+        public DisneyFresnel fresnel;
         public float diffuseWeight;
         public RgbColor diffuseReflectance;
         public RgbColor retroReflectance;
         public RgbColor specularTransmittance;
     }
 
-    readonly ThreadLocal<Fresnel> fresnelPrealloc = new(() => new DisneyFresnel());
-
     LocalParams ComputeLocalParams(Vector2 texCoords) {
         LocalParams result = new();
 
-        (result.baseColor, result.colorTint, result.specularTint) = GetColorAndTints(texCoords);
+        GetColorAndTints(texCoords, out result.baseColor, out result.colorTint, out result.specularTint);
         result.roughness = GetRoughness(texCoords);
         result.microfacetDistrib = CreateMicrofacetDistribution(result.roughness);
         result.transmissionDistribution = CreateTransmissionDistribution(result.roughness);
 
-        CreateFresnel(result.baseColor, result.specularTint, ((DisneyFresnel)fresnelPrealloc.Value));
-        result.fresnel = fresnelPrealloc.Value;
+        CreateFresnel(result.baseColor, result.specularTint, out result.fresnel);
 
         result.diffuseWeight = (1 - MaterialParameters.Metallic) * (1 - MaterialParameters.SpecularTransmittance);
         result.diffuseReflectance = result.baseColor;
@@ -469,13 +325,11 @@ public class GenericMaterial : Material {
         return result;
     }
 
-    (RgbColor, RgbColor, RgbColor) GetColorAndTints(Vector2 texCoords) {
-        // Isolate hue and saturation from the base color
-        var baseColor = MaterialParameters.BaseColor.Lookup(texCoords);
+    void GetColorAndTints(Vector2 texCoords, out RgbColor baseColor, out RgbColor colorTint, out RgbColor specularTint) {
+        baseColor = MaterialParameters.BaseColor.Lookup(texCoords);
         float luminance = baseColor.Luminance;
-        var colorTint = luminance > 0 ? (baseColor / luminance) : RgbColor.White;
-        var specularTint = RgbColor.Lerp(MaterialParameters.SpecularTintStrength, RgbColor.White, colorTint);
-        return (baseColor, colorTint, specularTint);
+        colorTint = luminance > 0 ? (baseColor / luminance) : RgbColor.White;
+        specularTint = RgbColor.Lerp(MaterialParameters.SpecularTintStrength, RgbColor.White, colorTint);
     }
 
     TrowbridgeReitzDistribution CreateMicrofacetDistribution(float roughness) {
@@ -497,7 +351,7 @@ public class GenericMaterial : Material {
             return CreateMicrofacetDistribution(roughness);
     }
 
-    void CreateFresnel(RgbColor baseColor, RgbColor specularTint, DisneyFresnel target) {
+    void CreateFresnel(RgbColor baseColor, RgbColor specularTint, out DisneyFresnel target) {
         var specularReflectanceAtNormal = RgbColor.Lerp(MaterialParameters.Metallic,
             FresnelSchlick.SchlickR0FromEta(MaterialParameters.IndexOfRefraction) * specularTint,
             baseColor);
@@ -508,22 +362,56 @@ public class GenericMaterial : Material {
 
     struct SelectionWeights {
         public float DiffTrans;
-        public float Retro;
         public float Diff;
         public float Reflect;
         public float Trans;
     }
 
-    (SelectionWeights, SelectionWeights) ComputeSelectWeights(LocalParams p, Vector3 outDir, Vector3 inDir) {
-        // Evaluate the fresnel term for transmittance importance sampling, as if the roughness was zero.
-        // While not perfect, this is a lot better than uniform sampling.
-        float f = p.fresnel.Evaluate(CosTheta(outDir)).Average;
-        float fRev = p.fresnel.Evaluate(CosTheta(inDir)).Average;
+    struct ShadingContext {
+        public SelectionWeights SelectionWeightsForward;
+        public SelectionWeights SelectionWeightsReverse;
+        public LocalParams LocalParameters;
+        public Vector3 OutDirShadingSpace;
+        public Vector3 InDirShadingSpace;
+        public Vector3 Normal, Tangent, Binormal;
+        public bool SameHemisphere;
 
-        // TODO remove once we have a proper solution. This is required because the microfacet half vector
-        //      can have a vastly different Fresnel term (one that is not zero, in particular)
-        f = Math.Clamp(f, 0.2f, 0.8f);
+        public DisneyDiffuse DiffuseComponent;
+        public DisneyRetroReflection RetroComponent;
+        public MicrofacetTransmission MicroTransmitComponent;
+        public DiffuseTransmission DiffuseTransmitComponent;
+        public MicrofacetReflection<DisneyFresnel> MicroReflectComponent;
+    }
+
+    (SelectionWeights, SelectionWeights) ComputeSelectWeights(LocalParams p, Vector3 outDir, Vector3 inDir) {
+        var selectFwd = ComputeSelectWeights(p, outDir);
+
+        float fRev = p.fresnel.Evaluate(CosTheta(inDir)).Average;
         fRev = Math.Clamp(fRev, 0.2f, 0.8f);
+        float metallicBRDF = MaterialParameters.Metallic;
+        float specularBSDF = (1.0f - MaterialParameters.Metallic) * MaterialParameters.SpecularTransmittance;
+        float dielectricBRDF = (1.0f - MaterialParameters.SpecularTransmittance) * (1.0f - MaterialParameters.Metallic);
+
+        float diffuseWeight = p.diffuseWeight;
+        float difftransWeight = MaterialParameters.Thin ? MaterialParameters.DiffuseTransmittance : 0;
+        float specularWeightRev = fRev * (metallicBRDF + dielectricBRDF + specularBSDF);
+        float transmissionWeightRev = (1 - fRev) * specularBSDF;
+        float normRev = 1.0f / (specularWeightRev + transmissionWeightRev + diffuseWeight + difftransWeight);
+
+        return (
+            selectFwd,
+            new() {
+                Diff = diffuseWeight * normRev,
+                DiffTrans = difftransWeight * normRev,
+                Reflect = specularWeightRev * normRev,
+                Trans = transmissionWeightRev * normRev
+            }
+        );
+    }
+
+    SelectionWeights ComputeSelectWeights(LocalParams p, Vector3 outDir) {
+        float f = p.fresnel.Evaluate(CosTheta(outDir)).Average;
+        f = Math.Clamp(f, 0.2f, 0.8f);
 
         float metallicBRDF = MaterialParameters.Metallic;
         float specularBSDF = (1.0f - MaterialParameters.Metallic) * MaterialParameters.SpecularTransmittance;
@@ -536,26 +424,12 @@ public class GenericMaterial : Material {
 
         float norm = 1.0f / (specularWeight + transmissionWeight + diffuseWeight + difftransWeight);
 
-        float specularWeightRev = fRev * (metallicBRDF + dielectricBRDF + specularBSDF);
-        float transmissionWeightRev = (1 - fRev) * specularBSDF;
-        float normRev = 1.0f / (specularWeightRev + transmissionWeightRev + diffuseWeight + difftransWeight);
-
-        return (
-            new() {
-                Diff = diffuseWeight * norm,
-                Retro = 0,
-                DiffTrans = difftransWeight * norm,
-                Reflect = specularWeight * norm,
-                Trans = transmissionWeight * norm
-            },
-            new() {
-                Diff = diffuseWeight * normRev,
-                Retro = 0,
-                DiffTrans = difftransWeight * normRev,
-                Reflect = specularWeightRev * normRev,
-                Trans = transmissionWeightRev * normRev
-            }
-        );
+        return new() {
+            Diff = diffuseWeight * norm,
+            DiffTrans = difftransWeight * norm,
+            Reflect = specularWeight * norm,
+            Trans = transmissionWeight * norm
+        };
     }
 
     /// <summary>

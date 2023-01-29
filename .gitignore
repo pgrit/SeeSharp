@@ -37,3 +37,7 @@ docs/*
 # Generated images of the validation test
 /SeeSharp.Validation/Results
 /Results
+
+# Profiler output
+*.nettrace
+*.speedscope.json

@@ -5,6 +5,18 @@
 /// </summary>
 public abstract class Material {
     /// <summary>
+    /// Tracks buffers to receive per-component PDF values and mixture weights
+    /// </summary>
+    public ref struct ComponentWeights {
+        public Span<float> Pdfs;
+        public Span<float> Weights;
+        public Span<float> PdfsReverse;
+        public Span<float> WeightsReverse;
+        public int NumComponents;
+        public int NumComponentsReverse;
+    }
+
+    /// <summary>
     /// Computes the surface roughness, a value between 0 and 1.
     /// 0 is perfectly specular, 1 is perfectly diffuse.
     /// The exact value can differ between materials, as
@@ -64,15 +76,21 @@ public abstract class Material {
     /// <param name="isOnLightSubpath">True for paths originating from a light source</param>
     /// <param name="primarySample">A uniform sample in [0,1]x[0,1] that should be transformed</param>
     /// <returns>Sampled direction and associated weights</returns>
-    public abstract BsdfSample Sample(in SurfacePoint hit, Vector3 outDir, bool isOnLightSubpath, Vector2 primarySample);
+    public BsdfSample Sample(in SurfacePoint hit, Vector3 outDir, bool isOnLightSubpath, Vector2 primarySample) {
+        ComponentWeights c = new();
+        return Sample(hit, outDir, isOnLightSubpath, primarySample, ref c);
+    }
 
-    /// <returns>The pdf of sampling the incoming direction via <see cref="Sample"/></returns>
-    public abstract (float, float) Pdf(in SurfacePoint hit, Vector3 outDir, Vector3 inDir, bool isOnLightSubpath);
+    /// <returns>The pdf of sampling the incoming direction via <see cref="Sample(in SurfacePoint, Vector3, bool, Vector2)"/></returns>
+    public (float Pdf, float PdfReverse) Pdf(in SurfacePoint hit, Vector3 outDir, Vector3 inDir, bool isOnLightSubpath) {
+        ComponentWeights c = new();
+        return Pdf(hit, outDir, inDir, isOnLightSubpath, ref c);
+    }
 
-    public abstract (BsdfSample, int) Sample(in SurfacePoint hit, Vector3 outDir, bool isOnLightSubpath,
-                                             Vector2 primarySample, Span<float> pdfs, Span<float> weights);
-    public abstract (float, float, int) Pdf(in SurfacePoint hit, Vector3 outDir, Vector3 inDir, bool isOnLightSubpath,
-                                            Span<float> pdfs, Span<float> weights);
+    public abstract BsdfSample Sample(in SurfacePoint hit, Vector3 outDir, bool isOnLightSubpath,
+                                             Vector2 primarySample, ref ComponentWeights componentWeights);
+    public abstract (float Pdf, float PdfReverse) Pdf(in SurfacePoint hit, Vector3 outDir, Vector3 inDir,
+                                                      bool isOnLightSubpath, ref ComponentWeights componentWeights);
 
     public virtual int MaxSamplingComponents => 1;
 

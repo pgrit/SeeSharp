@@ -37,6 +37,16 @@ public static class ShadingSpace {
         return new Vector3(x, y, z);
     }
 
+    public static Vector3 WorldToShading(Vector3 shadingNormal, Vector3 tangent, Vector3 binormal, Vector3 worldDirection) {
+        SanityChecks.IsNormalized(worldDirection);
+
+        float z = Vector3.Dot(shadingNormal, worldDirection);
+        float x = Vector3.Dot(tangent, worldDirection);
+        float y = Vector3.Dot(binormal, worldDirection);
+
+        return new Vector3(x, y, z);
+    }
+
     /// <summary>
     /// Trnasforms the given direction from shading space into world space and normalizes it.
     /// Assumes the shading normal is a valid normal (i.e. normalized).
@@ -45,6 +55,15 @@ public static class ShadingSpace {
         SanityChecks.IsNormalized(shadingDirection);
 
         ComputeBasisVectors(shadingNormal, out var tangent, out var binormal);
+        Vector3 dir = shadingDirection.Z * shadingNormal
+                    + shadingDirection.X * tangent
+                    + shadingDirection.Y * binormal;
+        return dir;
+    }
+
+    public static Vector3 ShadingToWorld(Vector3 shadingNormal, Vector3 tangent, Vector3 binormal, Vector3 shadingDirection) {
+        SanityChecks.IsNormalized(shadingDirection);
+
         Vector3 dir = shadingDirection.Z * shadingNormal
                     + shadingDirection.X * tangent
                     + shadingDirection.Y * binormal;

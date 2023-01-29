@@ -13,13 +13,6 @@ public class ShadingStats {
 
     public static ShadingStats Current { get; private set; } = new();
 
-    uint Accumulate(ThreadLocal<uint> values) {
-        uint result = 0;
-        foreach (var v in values.Values)
-            result += v;
-        return result;
-    }
-
     public uint NumMaterialEval => numEval;
     public uint NumMaterialSample => numSample;
     public uint NumMaterialPdf => numPdf;

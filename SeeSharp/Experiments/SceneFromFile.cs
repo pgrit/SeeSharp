@@ -1,5 +1,4 @@
 using System.Linq;
-using System.Text.Json;
 
 namespace SeeSharp.Experiments;
 
@@ -63,10 +62,6 @@ public class SceneFromFile : SceneConfig {
             else return layers["default"] as RgbImage;
         }
 
-        // TODO we could make this even more fancy by triggering a re-render if the hash of the config
-        //      file has changed since the last render (which can be embedded in the filename)
-        //      Need to be careful about line-endings in git, though.
-
         string referenceSpecs = Path.Join(refDir, "Config.json");
         Integrators.Integrator refIntegrator = null;
         if (File.Exists(referenceSpecs)) {
@@ -102,11 +97,16 @@ public class SceneFromFile : SceneConfig {
         refIntegrator.MaxDepth = MaxDepth;
         refIntegrator.MinDepth = MinDepth;
 
+        bool oldStatsState = ShadingStats.Enabled;
+        ShadingStats.Enabled = false;
+
         using Scene scn = MakeScene();
         scn.FrameBuffer = new(width, height, filename);
         scn.Prepare();
         refIntegrator.Render(scn);
         scn.FrameBuffer.WriteToFile();
+
+        ShadingStats.Enabled = oldStatsState;
 
         return scn.FrameBuffer.Image;
     }

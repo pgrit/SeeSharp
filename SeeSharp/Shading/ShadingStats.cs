@@ -9,7 +9,7 @@ public class ShadingStats {
     /// If set to true, material operations will be counted using atomics.
     /// Increases render time by about 10%, should be disabled for reference rendering.
     /// </summary>
-    public static bool Enabled { get; set; } = true;
+    public static bool Enabled { get; set; } = false;
 
     public static ShadingStats Current { get; private set; } = new();
 

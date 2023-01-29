@@ -41,7 +41,7 @@ public class DiffuseMaterial : Material {
 
     /// <returns>1/pi * baseColor, or zero if the directions are not in the right hemispheres</returns>
     public override RgbColor Evaluate(in SurfacePoint hit, Vector3 outDir, Vector3 inDir, bool isOnLightSubpath) {
-        Interlocked.Increment(ref ShadingStats.Current.NumMaterialEval);
+        ShadingStats.NotifyEvaluate();
 
         bool shouldReflect = ShouldReflect(hit, outDir, inDir);
 
@@ -64,7 +64,7 @@ public class DiffuseMaterial : Material {
     /// </summary>
     public override BsdfSample Sample(in SurfacePoint hit, Vector3 outDir, bool isOnLightSubpath,
                                       Vector2 primarySample, ref ComponentWeights componentWeights) {
-        Interlocked.Increment(ref ShadingStats.Current.NumMaterialSample);
+        ShadingStats.NotifySample();
 
         var normal = hit.ShadingNormal;
         outDir = WorldToShading(normal, outDir);
@@ -113,7 +113,7 @@ public class DiffuseMaterial : Material {
     /// <returns>PDF value used by <see cref="Sample"/></returns>
     public override (float, float) Pdf(in SurfacePoint hit, Vector3 outDir, Vector3 inDir, bool isOnLightSubpath,
                                        ref ComponentWeights componentWeights) {
-        Interlocked.Increment(ref ShadingStats.Current.NumMaterialPdf);
+        ShadingStats.NotifyPdfCompute();
 
         // Transform directions to shading space and normalize
         var normal = hit.ShadingNormal;

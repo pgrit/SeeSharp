@@ -90,7 +90,7 @@ public class GenericMaterial : Material {
     }
 
     RgbColor Evaluate(in ShadingContext context, bool isOnLightSubpath) {
-        Interlocked.Increment(ref ShadingStats.Current.NumMaterialEval);
+        ShadingStats.NotifyEvaluate();
 
         // Evaluate all components
         var result = RgbColor.Black;
@@ -140,7 +140,7 @@ public class GenericMaterial : Material {
     /// <summary>Crudely importance samples the combined BSDFs</summary>
     public override BsdfSample Sample(in SurfacePoint hit, Vector3 outDir, bool isOnLightSubpath,
                                       Vector2 primarySample, ref ComponentWeights componentWeights) {
-        Interlocked.Increment(ref ShadingStats.Current.NumMaterialSample);
+        ShadingStats.NotifySample();
 
         var context = MakeContext(hit, outDir);
 
@@ -203,7 +203,7 @@ public class GenericMaterial : Material {
     }
 
     (float, float) Pdf(in ShadingContext context, bool isOnLightSubpath, ref ComponentWeights components) {
-        Interlocked.Increment(ref ShadingStats.Current.NumMaterialPdf);
+        ShadingStats.NotifyPdfCompute();
 
         // Compute the sum of all pdf values
         float pdfFwd = 0, pdfRev = 0;

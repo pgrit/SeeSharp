@@ -221,7 +221,7 @@ public class LightPathCache {
         }
     }
 
-    int TraceEmitterPath(RNG rng, Emitter emitter, float selectProb,
+    protected int TraceEmitterPath(RNG rng, Emitter emitter, float selectProb,
                          NextEventPdfCallback nextEventPdfCallback, int idx) {
         var emitterSample = SampleEmitter(rng, emitter);
 
@@ -236,7 +236,7 @@ public class LightPathCache {
         return walker.LastId;
     }
 
-    int TraceBackgroundPath(RNG rng, float selectProb, NextEventPdfCallback nextEventPdfCallback, int idx) {
+    protected int TraceBackgroundPath(RNG rng, float selectProb, NextEventPdfCallback nextEventPdfCallback, int idx) {
         var (ray, weight, pdf) = SampleBackground(rng);
 
         // Account for the light selection probability

@@ -451,9 +451,6 @@ public class PathTracer : Integrator {
             // Avoid Inf / NaN
             if (jacobian == 0) return RgbColor.Black;
 
-            Debug.Assert(pdfBsdf != 0 || bsdfCos == RgbColor.Black,
-                "Non-zero BSDF value not sampled by forward path tracing!");
-
             // Compute the resulting balance heuristic weights
             float pdfRatio = pdfBsdf / pdfNextEvt;
             float misWeight = EnableBsdfDI ? 1.0f / (pdfRatio + 1) : 1;

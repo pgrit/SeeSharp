@@ -1,36 +1,38 @@
-﻿using SimpleImageIO;
-using System.Numerics;
+﻿namespace SeeSharp.Images;
 
-namespace SeeSharp.Images {
+/// <summary>
+/// An RGB image texture
+/// </summary>
+public class TextureRgb : ImageTexture {
     /// <summary>
-    /// An RGB image texture
+    /// Creates a single-pixel image texture with a constant color
     /// </summary>
-    public class TextureRgb : ImageTexture {
-        /// <summary>
-        /// Creates a single-pixel image texture with a constant color
-        /// </summary>
-        public TextureRgb(RgbColor color) => constColor = color;
+    public TextureRgb(RgbColor color) => constColor = color;
 
-        /// <summary>
-        /// Creates a texture from an RGB image
-        /// </summary>
-        /// <param name="filename">Full path to the RGB image</param>
-        public TextureRgb(string filename) => Image = new RgbImage(filename);
+    /// <summary>
+    /// Creates a texture from an RGB image
+    /// </summary>
+    /// <param name="filename">Full path to the RGB image</param>
+    public TextureRgb(string filename) => Image = new RgbImage(filename);
 
-        /// <summary>
-        /// True if the texture is just a single constant value
-        /// </summary>
-        public bool IsConstant => Image == null;
+    /// <summary>
+    /// Creates a texture from an RGB image
+    /// </summary>
+    public TextureRgb(RgbImage image) => Image = image;
 
-        /// <returns>Color value at the given uv-coordinates</returns>
-        public RgbColor Lookup(Vector2 uv) {
-            if (Image == null)
-                return constColor;
+    /// <summary>
+    /// True if the texture is just a single constant value
+    /// </summary>
+    public bool IsConstant => Image == null;
 
-            (int col, int row) = ComputeTexel(uv);
-            return (Image as RgbImage).GetPixel(col, row);
-        }
+    /// <returns>Color value at the given uv-coordinates</returns>
+    public RgbColor Lookup(Vector2 uv) {
+        if (Image == null)
+            return constColor;
 
-        RgbColor constColor;
+        (int col, int row) = ComputeTexel(uv);
+        return (Image as RgbImage).GetPixel(col, row);
     }
+
+    RgbColor constColor;
 }

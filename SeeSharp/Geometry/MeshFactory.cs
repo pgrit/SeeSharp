@@ -102,7 +102,6 @@ public static class MeshFactory {
         }
 
         // Last ring is just like the first
-        int o = 1 + numQuads * (numRings - 1);
         for (int i = 0; i < numQuads-1; ++i)
             indices.AddRange(new[] { vertices.Count - 1, vertices.Count - i - 3, vertices.Count - i - 2 });
         indices.AddRange(new[] { vertices.Count - 1, vertices.Count - 2, vertices.Count - numQuads - 1 });

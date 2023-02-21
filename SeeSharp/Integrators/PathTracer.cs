@@ -427,7 +427,7 @@ public class PathTracer : Integrator {
             return RgbColor.Black;
 
         // Select a light source
-        int idx = state.Rng.NextInt(0, scene.Emitters.Count);
+        int idx = state.Rng.NextInt(scene.Emitters.Count);
         var light = scene.Emitters[idx];
         float lightSelectProb = 1.0f / scene.Emitters.Count;
 

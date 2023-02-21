@@ -45,13 +45,39 @@ public class RNG {
     public Vector3 NextFloat3D()
     => new Vector3(NextFloat(), NextFloat(), NextFloat());
 
+    /// <summary>Random number from 0 (inclusive) to max (exclusive)</summary>
+    public uint NextInt(uint max) {
+        // https://arxiv.org/pdf/1805.10941.pdf
+        uint x = Next();
+        ulong m = (ulong)x * max;
+        uint l = (uint)m;
+        if (l < max) {
+            uint t = (0u - max) % max;
+            while (l < t) {
+                x = Next();
+                m = (ulong)x * max;
+                l = (uint)m;
+            }
+        }
+        return (uint)(m >> 32);
+    }
+
+    /// <summary>Random number from 0 (inclusive) to max (exclusive)</summary>
+    public int NextInt(int max) {
+        Debug.Assert(max > 0);
+        return (int)NextInt((uint)max);
+    }
+
     /// <summary>Random number from min (inclusive) to max (exclusive)</summary>
     public int NextInt(int min, int max) {
-        if (max <= min)
-            return min;
+        Debug.Assert(max > min);
+        return min + (int)NextInt((uint)(max - min));
+    }
 
-        int delta = (int)(Next() % Math.Abs(max - min));
-        return min + delta;
+    /// <summary>Random number from min (inclusive) to max (exclusive)</summary>
+    public uint NextInt(uint min, uint max) {
+        Debug.Assert(max > min);
+        return min + (uint)NextInt((uint)(max - min));
     }
 
     public uint Next() {

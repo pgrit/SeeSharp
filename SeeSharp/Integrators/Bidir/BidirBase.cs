@@ -122,7 +122,7 @@ public abstract class BidirBase : Integrator {
     /// <param name="rng">Random number generator</param>
     /// <returns>The selected light and the discrete probability of selecting that light</returns>
     protected virtual (Emitter, float) SelectLight(in SurfacePoint from, RNG rng) {
-        int idx = rng.NextInt(0, Scene.Emitters.Count);
+        int idx = rng.NextInt(Scene.Emitters.Count);
         return (Scene.Emitters[idx], 1.0f / Scene.Emitters.Count);
     }
 

@@ -17,7 +17,7 @@ public class VertexSelector {
     /// <param name="rng">RNG to use</param>
     /// <returns>Index of the path, index of the vertex along the path</returns>
     public (int, int) Select(RNG rng) {
-        int idx = rng.NextInt(0, Count);
+        int idx = rng.NextInt(Count);
         var (pathIdx, vertIdx) = vertices[idx];
         return (pathIdx, vertIdx);
     }

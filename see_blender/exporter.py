@@ -1,4 +1,5 @@
 import os
+import re
 import json
 from math import degrees, atan, tan
 import bpy
@@ -10,13 +11,21 @@ from bpy.types import Operator
 
 from .ply import save_mesh
 
+def sanitize_path(path):
+    # Remove forbidden characters from the filename, make sure it does not end on a . or space
+    path = re.sub('[<>:"/\\\\|?*]', "_", path).strip()
+    if path.endswith('.'): path = path[:-1]
+    path = path.strip()
+    assert path != ""
+    return path
+
 def map_rgb(rgb):
     return { "type": "rgb", "value": [ rgb[0], rgb[1], rgb[2] ] }
 
 def map_texture(texture, out_dir):
     path = texture.filepath_raw.replace('//', '')
     if path == '':
-        path = texture.name + ".exr"
+        path = sanitize_path(texture.name + ".exr")
         texture.file_format = "OPEN_EXR"
 
     # Make sure the image is loaded to memory, so we can write it out
@@ -134,7 +143,9 @@ def export_ply_object(result, obj, filepath):
 
         bm.normal_update()
 
-        path = os.path.join(os.path.dirname(filepath), 'Meshes', f"{obj.name}.{mat_idx}.ply")
+        filename = sanitize_path(f"{obj.name}.{mat_idx}.ply")
+
+        path = os.path.join(os.path.dirname(filepath), 'Meshes', filename)
         save_mesh(path, bm,
             use_ascii=False,
             use_normals=True,
@@ -145,7 +156,7 @@ def export_ply_object(result, obj, filepath):
             "name": obj.name,
             "type": "ply",
             "material": mesh.materials[mat_idx].name,
-            "relativePath": f"Meshes/{obj.name}.{mat_idx}.ply"
+            "relativePath": os.path.join('Meshes', filename)
         })
 
         bm.free()

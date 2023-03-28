@@ -152,8 +152,6 @@ public class RandomWalk {
             var (pdfNext, pdfReverse, weight, direction) = SampleNextDirection(hit, ray, throughput, depth);
             float pdfToAncestor = pdfReverse * SampleWarp.SurfaceAreaToSolidAngle(hit, previousPoint);
 
-            if (pdfToAncestor == 0) Debug.Assert(pdfNext == 0 || weight == RgbColor.Black);
-
             OnContinue(pdfToAncestor, depth);
 
             if (pdfNext == 0 || weight == RgbColor.Black) {

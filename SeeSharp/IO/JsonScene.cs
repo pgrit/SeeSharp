@@ -77,7 +77,7 @@ public static class JsonScene {
                         Roughness = new TextureMono(ReadOptionalFloat("roughness", 0.5f)),
                         Anisotropic = ReadOptionalFloat("anisotropic", 0.0f),
                         DiffuseTransmittance = ReadOptionalFloat("diffuseTransmittance", 1.0f),
-                        IndexOfRefraction = ReadOptionalFloat("IOR", 1.0f),
+                        IndexOfRefraction = ReadOptionalFloat("IOR", 1.01f),
                         Metallic = ReadOptionalFloat("metallic", 0.0f),
                         SpecularTintStrength = ReadOptionalFloat("specularTint", 0.0f),
                         SpecularTransmittance = ReadOptionalFloat("specularTransmittance", 0.0f),

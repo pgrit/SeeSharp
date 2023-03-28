@@ -249,6 +249,11 @@ public class VertexConnectionAndMerging : VertexCacheBidir {
         return estimate;
     }
 
+    protected override RgbColor OnBackgroundHit(Ray ray, CameraPath path) {
+        if (!EnableHitting && path.Vertices.Count > 1) return RgbColor.Black;
+        return base.OnBackgroundHit(ray, path);
+    }
+
     /// <inheritdoc />
     protected override RgbColor OnCameraHit(CameraPath path, RNG rng, Ray ray, SurfacePoint hit,
                                             float pdfFromAncestor, RgbColor throughput, int depth,

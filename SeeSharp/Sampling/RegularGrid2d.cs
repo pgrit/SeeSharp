@@ -56,6 +56,10 @@ public class RegularGrid2d {
     public void Splat(float x, float y, float value) {
         int row = (int)(y * numRows);
         int col = (int)(x * numCols);
+        Splat(col, row, value);
+    }
+
+    public void Splat(int col, int row, float value) {
         density[row * numCols + col] += value;
         rowMarginals[row] += value;
     }

@@ -141,9 +141,7 @@ public class EnvironmentMap : Background {
 
         for (int row = 0; row < Image.Height; ++row) {
             for (int col = 0; col < Image.Width; ++col) {
-                var x = col / (float)Image.Width;
-                var y = row / (float)Image.Height;
-                result.Splat(x, y, Image.GetPixel(col, row).Luminance);
+                result.Splat(col, row, Image.GetPixel(col, row).Luminance);
             }
         }
 

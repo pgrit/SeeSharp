@@ -1,6 +1,4 @@
-﻿using System.Text.Json;
-
-namespace SeeSharp.IO;
+﻿namespace SeeSharp.IO;
 
 /// <summary>
 /// Converts our parsed wavefront .obj mesh representation into an actual mesh.
@@ -20,11 +18,8 @@ public class ObjConverter : IMeshLoader {
 
     /// <summary>
     /// Converts a parsed .obj file into one or more triangle meshes and adds it to the scene.
-    /// We are using our own code and not Assimp.NET, as the latter does not correctly handle meshes
-    /// with multiple materials assigned to different faces.
     /// </summary>
     /// <param name="mesh">The parsed .obj mesh</param>
-    /// <param name="scene">The scene to which the mesh should be added</param>
     /// <param name="materialOverride">
     ///     Materials from the .obj with a name matching one of the keys in this dictionary will be
     ///     replaced by the corresponding dictionary entry
@@ -33,13 +28,17 @@ public class ObjConverter : IMeshLoader {
     ///     If a material name is a key in this dictionary, all meshes with that material will be
     ///     converted to diffuse emitters. The value from the dictionary determines their emitted radiance.
     /// </param>
-    public static void AddToScene(ObjMesh mesh, Scene scene, Dictionary<string, Material> materialOverride,
-                                  Dictionary<string, RgbColor> emissionOverride = null) {
+    public static (IEnumerable<Mesh>, IEnumerable<Emitter>) CreateMeshes(ObjMesh mesh,
+                                                                         Dictionary<string, Material> materialOverride,
+                                                                         Dictionary<string, RgbColor> emissionOverride = null) {
         // Create a dummy constant texture color for incorrect texture references
         var dummyColor = new TextureRgb(RgbColor.White);
         var dummyMaterial = new GenericMaterial(new GenericMaterial.Parameters {
             BaseColor = dummyColor
         });
+
+        List<Mesh> loadedMeshes = new();
+        List<Emitter> loadedEmitters = new();
 
         // Create the materials for this OBJ file
         var errors = new List<string>();
@@ -190,7 +189,7 @@ public class ObjConverter : IMeshLoader {
                         Material = material
                     };
 
-                    lock(scene) scene.Meshes.Add(m);
+                    loadedMeshes.Add(m);
 
                     // Create an emitter if the obj material is emissive
                     RgbColor emission = RgbColor.Black;
@@ -199,16 +198,19 @@ public class ObjConverter : IMeshLoader {
 
                     if (emission != RgbColor.Black) {
                         var emitter = DiffuseEmitter.MakeFromMesh(m, emission);
-                        lock(scene) scene.Emitters.AddRange(emitter);
+                        loadedEmitters.AddRange(emitter);
                     }
 
                 }
             }
         }
+
+        return (loadedMeshes, loadedEmitters);
     }
 
-    public void LoadMesh(Scene resultScene, Dictionary<string, Material> namedMaterials,
-                         Dictionary<string, RgbColor> emissiveMaterials, JsonElement jsonElement, string dirname) {
+    public (IEnumerable<Mesh>, IEnumerable<Emitter>) LoadMesh(Dictionary<string, Material> namedMaterials,
+                                                              Dictionary<string, RgbColor> emissiveMaterials,
+                                                              JsonElement jsonElement, string dirname) {
         // The path is relative to this .json, we need to make it absolute / relative to the CWD
         string relpath = jsonElement.GetProperty("relativePath").GetString();
         string filename = Path.Join(dirname, relpath);
@@ -216,6 +218,6 @@ public class ObjConverter : IMeshLoader {
         // Load the mesh and add it to the scene. We pass all materials defined in the .json along
         // they will replace any equally named materials from the .mtl file.
         var objMesh = ObjMesh.FromFile(filename);
-        AddToScene(objMesh, resultScene, namedMaterials, emissiveMaterials);
+        return CreateMeshes(objMesh, namedMaterials, emissiveMaterials);
     }
 }

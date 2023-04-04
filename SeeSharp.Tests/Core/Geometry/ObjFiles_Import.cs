@@ -1,5 +1,5 @@
 ﻿using SeeSharp.IO;
-using Xunit;
+using System.Linq;
 
 namespace SeeSharp.Tests.Core.Geometry;
 
@@ -9,33 +9,31 @@ public class ObjFiles_Import {
     public void SimpleObj_ShouldBeRead() {
         CreateTestObj();
         var mesh = ObjMesh.FromFile("test.obj");
-        var dummyScene = new Scene();
-        ObjConverter.AddToScene(mesh, dummyScene, null);
+        var (meshes, emitters) = ObjConverter.CreateMeshes(mesh, null);
 
         Assert.Empty(mesh.Errors);
 
         // There should be some meshes
-        Assert.NotEmpty(dummyScene.Meshes);
+        Assert.NotEmpty(meshes);
 
         // Every mesh should have a material assigned
-        foreach (var m in dummyScene.Meshes) {
+        foreach (var m in meshes) {
             Assert.NotNull(m.Material);
         }
 
         // There should be an emitter
-        Assert.NotEmpty(dummyScene.Emitters);
+        Assert.NotEmpty(emitters);
     }
 
     [Fact]
     public void SimpleObj_Triangulation() {
         CreateTestObj();
         var mesh = ObjMesh.FromFile("test.obj");
-        var dummyScene = new Scene();
-        ObjConverter.AddToScene(mesh, dummyScene, null);
+        var (meshes, emitters) = ObjConverter.CreateMeshes(mesh, null);
 
         // There should be exactly 7 triangles
         int numTriangles = 0;
-        foreach (var m in dummyScene.Meshes) {
+        foreach (var m in meshes) {
             numTriangles += m.NumFaces;
         }
 
@@ -46,12 +44,11 @@ public class ObjFiles_Import {
     public void SimpleObj_OneMeshPerMaterialGroup() {
         CreateTestObj();
         var mesh = ObjMesh.FromFile("test.obj");
-        var dummyScene = new Scene();
-        ObjConverter.AddToScene(mesh, dummyScene, null);
+        var (meshes, emitters) = ObjConverter.CreateMeshes(mesh, null);
 
         // There should be four meshes in total (one per group, except if there are multiple
         // materials in the same group)
-        Assert.Equal(4, dummyScene.Meshes.Count);
+        Assert.Equal(4, meshes.Count());
     }
 
     static void CreateTestObj() {

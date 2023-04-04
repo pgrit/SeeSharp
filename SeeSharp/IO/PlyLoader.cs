@@ -1,5 +1,3 @@
-using System.Text.Json;
-
 namespace SeeSharp.IO;
 
 /// <summary>
@@ -8,8 +6,9 @@ namespace SeeSharp.IO;
 public class PlyLoader : IMeshLoader {
     public string Type => "ply";
 
-    public void LoadMesh(Scene resultScene, Dictionary<string, Material> namedMaterials,
-                         Dictionary<string, RgbColor> emissiveMaterials, JsonElement jsonElement, string dirname) {
+    public (IEnumerable<Mesh>, IEnumerable<Emitter>) LoadMesh(Dictionary<string, Material> namedMaterials,
+                                                              Dictionary<string, RgbColor> emissiveMaterials,
+                                                              JsonElement jsonElement, string dirname) {
         // The path is relative to this .json, we need to make it absolute / relative to the CWD
         string relpath = jsonElement.GetProperty("relativePath").GetString();
         string filename = Path.Join(dirname, relpath);
@@ -21,20 +20,18 @@ public class PlyLoader : IMeshLoader {
         // Load the mesh and add it to the scene.
         PlyFile plyFile = new();
         if (!plyFile.ParseFile(filename))
-            return;
+            return (null, null);
 
         var mesh = plyFile.ToMesh();
         mesh.Material = material;
 
-        RgbColor emission;
-        if (emissiveMaterials != null && emissiveMaterials.TryGetValue(materialName, out emission)) {
-            var emitters = DiffuseEmitter.MakeFromMesh(mesh, emission);
-            lock(resultScene) resultScene.Emitters.AddRange(emitters);
-        } else if (jsonElement.TryGetProperty("emission", out var emissionJson)) { // The object is an emitter
-            emission = JsonUtils.ReadRgbColor(emissionJson);
-            var emitters = DiffuseEmitter.MakeFromMesh(mesh, emission);
-            lock (resultScene) resultScene.Emitters.AddRange(emitters);
+        IEnumerable<Emitter> emitters = null;
+        if (emissiveMaterials != null && emissiveMaterials.TryGetValue(materialName, out var emission)) {
+            emitters = DiffuseEmitter.MakeFromMesh(mesh, emission);
+        } else if (jsonElement.TryGetProperty("emission", out var emissionJson)) {
+            emitters = DiffuseEmitter.MakeFromMesh(mesh, JsonUtils.ReadRgbColor(emissionJson));
         }
-        lock (resultScene) resultScene.Meshes.Add(mesh);
+
+        return (new[] { mesh }, emitters);
     }
 }

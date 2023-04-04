@@ -1,5 +1,3 @@
-using System.Text.Json;
-
 namespace SeeSharp.IO;
 
 /// <summary>
@@ -13,14 +11,13 @@ public interface IMeshLoader {
     string Type { get; }
 
     /// <summary>
-    /// Loads the mesh and adds it to the scene. Must acquire a lock for resultScene when modifying scene data!
+    /// Loads the mesh / meshes described by a json entry and any associated emitters.
     /// </summary>
-    /// <param name="resultScene">The loaded mesh is added to this scene, MUST use lock on this object when adding.</param>
     /// <param name="namedMaterials">Set of materials specified in the scene description</param>
     /// <param name="jsonElement">The mesh description in the .json file</param>
     /// <param name="dirname">Full path to the directory containing the .json file</param>
     /// <param name="emissiveMaterials">All emissive materials in the scene</param>
     /// <exception cref="MeshLoadException">Thrown if the file is corrupted</exception>
-    void LoadMesh(Scene resultScene, Dictionary<string, Material> namedMaterials,
-                  Dictionary<string, RgbColor> emissiveMaterials, JsonElement jsonElement, string dirname);
+    (IEnumerable<Mesh>, IEnumerable<Emitter>) LoadMesh(Dictionary<string, Material> namedMaterials,
+        Dictionary<string, RgbColor> emissiveMaterials, JsonElement jsonElement, string dirname);
 }

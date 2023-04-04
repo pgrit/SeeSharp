@@ -1,5 +1,3 @@
-using System.Text.Json;
-
 namespace SeeSharp.IO;
 
 /// <summary>
@@ -18,18 +16,26 @@ public static class JsonScene {
                                    Dictionary<string, Material> namedMaterials,
                                    Dictionary<string, RgbColor> emissiveMaterials) {
         var meshes = root.GetProperty("objects");
+
         ProgressBar progressBar = new(prefix: "Loading meshes...");
         progressBar.Start(meshes.GetArrayLength());
-        Parallel.ForEach(meshes.EnumerateArray(), m => {
-            var watch = Stopwatch.StartNew();
 
+        var meshSets = new IEnumerable<Mesh>[meshes.GetArrayLength()];
+        var emitterSets = new IEnumerable<Emitter>[meshes.GetArrayLength()];
+        Parallel.For(0, meshes.GetArrayLength(), i => {
+            JsonElement m = meshes[i];
             string name = m.GetProperty("name").GetString();
             string type = m.GetProperty("type").GetString();
+
             var loader = Array.Find(KnownLoaders, l => l.Type == type);
-            loader.LoadMesh(resultScene, namedMaterials, emissiveMaterials, m, Path.GetDirectoryName(path));
+            (meshSets[i], emitterSets[i]) = loader.LoadMesh(namedMaterials, emissiveMaterials, m,
+                Path.GetDirectoryName(path));
 
             lock (progressBar) progressBar.ReportDone(1);
         });
+
+        foreach (var m in meshSets) if (m != null) resultScene.Meshes.AddRange(m);
+        foreach (var e in emitterSets) if (e != null) resultScene.Emitters.AddRange(e);
     }
 
     private static void ReadMaterials(string path, JsonElement root, out Dictionary<string, Material> namedMaterials,
@@ -42,8 +48,6 @@ public static class JsonScene {
             progressBar.Start(materials.GetArrayLength());
 
             Parallel.ForEach(materials.EnumerateArray(), m => {
-                var watch = Stopwatch.StartNew();
-
                 string name = m.GetProperty("name").GetString();
 
                 float ReadOptionalFloat(string name, float defaultValue) {

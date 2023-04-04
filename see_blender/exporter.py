@@ -156,7 +156,7 @@ def export_ply_object(result, obj, filepath):
             "name": obj.name,
             "type": "ply",
             "material": mesh.materials[mat_idx].name,
-            "relativePath": os.path.join('Meshes', filename)
+            "relativePath": 'Meshes/' + filename
         })
 
         bm.free()

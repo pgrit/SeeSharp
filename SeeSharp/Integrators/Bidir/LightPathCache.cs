@@ -132,7 +132,7 @@ public class LightPathCache {
     /// <param name="nextEventPdfCallback">
     /// Delegate that is invoked to compute the next event sampling density
     /// </param>
-    public void TraceAllPaths(uint iter, NextEventPdfCallback nextEventPdfCallback) {
+    public virtual void TraceAllPaths(uint iter, NextEventPdfCallback nextEventPdfCallback) {
         if (PathCache == null)
             PathCache = new PathCache(NumPaths, MaxDepth);
         else if (NumPaths != PathCache.NumPaths) {
@@ -157,7 +157,7 @@ public class LightPathCache {
     /// <returns>Next event pdf to sample the same edge</returns>
     public delegate float NextEventPdfCallback(PathVertex origin, PathVertex primary, Vector3 nextDirection);
 
-    class NotifyingCachedWalk : CachedRandomWalk {
+    protected class NotifyingCachedWalk : CachedRandomWalk {
         public NextEventPdfCallback callback;
         public NotifyingCachedWalk(Scene scene, RNG rng, int maxDepth, PathCache cache, int pathIdx)
             : base(scene, rng, maxDepth, cache, pathIdx) {

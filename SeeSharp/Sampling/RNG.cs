@@ -8,6 +8,13 @@ public class RNG {
     uint state;
 
     /// <summary>
+    /// Creates a new random generator with identical state to the provided random generator.
+    /// </summary>
+    public RNG(RNG other) {
+        state = other.state;
+    }
+
+    /// <summary>
     /// Creates a new random generator with either the given seed or a constant default value.
     /// </summary>
     public RNG(uint seed = 0xAB20F90u) => state = seed;
@@ -33,7 +40,7 @@ public class RNG {
     }
 
     /// <returns>A floating point value in [0,1] (inclusive)</returns>
-    public float NextFloat() {
+    public virtual float NextFloat() {
         return Next() / (float)uint.MaxValue;
     }
 
@@ -80,7 +87,7 @@ public class RNG {
         return min + (uint)NextInt((uint)(max - min));
     }
 
-    public uint Next() {
+    public virtual uint Next() {
         uint word = ((state >> (int)((state >> 28) + 4)) ^ state) * 277803737u;
         state = state * 747796405u + 2891336453u;
         return ((word >> 22) ^ word);

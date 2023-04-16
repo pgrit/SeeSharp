@@ -142,7 +142,7 @@ public class PhotonMapper : Integrator {
         var filmSample = new Vector2(col, row) + offset;
         var cameraRay = scene.Camera.GenerateRay(filmSample, rng);
         var value = EstimatePixelValue(filmSample, cameraRay.Ray, cameraRay.Weight, rng);
-        scene.FrameBuffer.Splat(col, row, value);
+        scene.FrameBuffer.Splat((int)col, (int)row, value);
     }
 
     private void TraceAllCameraPaths(uint iter) {

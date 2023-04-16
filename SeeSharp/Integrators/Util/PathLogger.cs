@@ -73,7 +73,7 @@ public class PathLogger {
     /// Starts a new path from a pixel
     /// </summary>
     /// <returns>Index of the new path</returns>
-    public PathIndex StartNew(Vector2 pixel) {
+    public PathIndex StartNew(Pixel pixel) {
         var paths = pixelPaths[PixelToIndex(pixel)];
         int id;
         lock (paths) {
@@ -127,9 +127,9 @@ public class PathLogger {
         pixelPaths[id.Pixel][id.Local].Contribution = contrib;
     }
 
-    int PixelToIndex(Vector2 pixel) {
-        int col = Math.Clamp((int)pixel.X, 0, width - 1);
-        int row = Math.Clamp((int)pixel.Y, 0, height - 1);
+    int PixelToIndex(Pixel pixel) {
+        int col = Math.Clamp(pixel.Col, 0, width - 1);
+        int row = Math.Clamp(pixel.Row, 0, height - 1);
         return row * width + col;
     }
 

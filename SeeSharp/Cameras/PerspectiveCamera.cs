@@ -144,7 +144,7 @@ namespace SeeSharp.Cameras {
             float pdfEmit = invLensArea * jacobian;
 
             return new CameraResponseSample {
-                Pixel = new(filmPos.Value.X, filmPos.Value.Y),
+                Pixel = new((int)filmPos.Value.X, (int)filmPos.Value.Y),
                 Position = lensPoint,
                 Weight = jacobian * RgbColor.White,
                 PdfConnect = pdfConnect,

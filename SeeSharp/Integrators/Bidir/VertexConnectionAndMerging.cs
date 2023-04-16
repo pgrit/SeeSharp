@@ -88,7 +88,7 @@ public class VertexConnectionAndMerging : VertexCacheBidir {
 
     /// <summary>Splats all non-zero samples into the technique pyramid, if enabled.</summary>
     /// <inheritdoc />
-    protected override void RegisterSample(RgbColor weight, float misWeight, Vector2 pixel,
+    protected override void RegisterSample(RgbColor weight, float misWeight, Pixel pixel,
                                            int cameraPathLength, int lightPathLength, int fullLength) {
         if (!RenderTechniquePyramid)
             return;
@@ -370,7 +370,7 @@ public class VertexConnectionAndMerging : VertexCacheBidir {
 
     /// <inheritdoc />
     public override float LightTracerMis(PathVertex lightVertex, float pdfCamToPrimary, float pdfReverse,
-                                         float pdfNextEvent, Vector2 pixel, float distToCam) {
+                                         float pdfNextEvent, Pixel pixel, float distToCam) {
         int numPdfs = lightVertex.Depth + 1;
         int lastCameraVertexIdx = -1;
         Span<float> camToLight = stackalloc float[numPdfs];
@@ -461,7 +461,7 @@ public class VertexConnectionAndMerging : VertexCacheBidir {
     /// Computes the PDF ratios along the camera subpath for MIS weight computations
     /// </summary>
     protected virtual float CameraPathReciprocals(int lastCameraVertexIdx, BidirPathPdfs pdfs,
-                                                  Vector2 pixel, float radius) {
+                                                  Pixel pixel, float radius) {
         float sumReciprocals = 0.0f;
         float nextReciprocal = 1.0f;
         for (int i = lastCameraVertexIdx; i > 0; --i) {
@@ -494,7 +494,7 @@ public class VertexConnectionAndMerging : VertexCacheBidir {
     /// Computes the PDF ratios along the light subpath for MIS weight computations
     /// </summary>
     protected virtual float LightPathReciprocals(int lastCameraVertexIdx, BidirPathPdfs pdfs,
-                                                 Vector2 pixel, float radius) {
+                                                 Pixel pixel, float radius) {
         float sumReciprocals = 0.0f;
         float nextReciprocal = 1.0f;
         for (int i = lastCameraVertexIdx + 1; i < pdfs.NumPdfs; ++i) {

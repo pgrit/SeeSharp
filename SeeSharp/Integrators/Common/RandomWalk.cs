@@ -17,7 +17,7 @@ public class RandomWalk {
     }
 
     // TODO replace parameter list by a single CameraRaySample object
-    public virtual RgbColor StartFromCamera(Vector2 filmPosition, SurfacePoint cameraPoint,
+    public virtual RgbColor StartFromCamera(Pixel filmPosition, SurfacePoint cameraPoint,
                                             float pdfFromCamera, Ray primaryRay, RgbColor initialWeight) {
         isOnLightSubpath = false;
         return ContinueWalk(primaryRay, cameraPoint, pdfFromCamera, initialWeight, 1);

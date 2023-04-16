@@ -54,7 +54,7 @@ public class VertexCacheBidir : BidirBase {
 
     /// <inheritdoc />
     protected override (int, int, float) SelectBidirPath(SurfacePoint cameraPoint, Vector3 outDir,
-                                                         Vector2 pixel, RNG rng) {
+                                                         Pixel pixel, RNG rng) {
         // Select a single vertex from the entire cache at random
         var (path, vertex) = vertexSelector.Select(rng);
         return (path, vertex, BidirSelectDensity(pixel));
@@ -65,7 +65,7 @@ public class VertexCacheBidir : BidirBase {
     /// That is, the product of the selection probability and the number of samples.
     /// </summary>
     /// <returns>Effective density</returns>
-    public virtual float BidirSelectDensity(Vector2 pixel) {
+    public virtual float BidirSelectDensity(Pixel pixel) {
         if (vertexSelector.Count == 0) return 0;
 
         // We select light path vertices uniformly
@@ -80,7 +80,7 @@ public class VertexCacheBidir : BidirBase {
 
     /// <summary>Adds the contribution to the technique pyramid, if enabled</summary>
     /// <inheritdoc />
-    protected override void RegisterSample(RgbColor weight, float misWeight, Vector2 pixel,
+    protected override void RegisterSample(RgbColor weight, float misWeight, Pixel pixel,
                                            int cameraPathLength, int lightPathLength, int fullLength) {
         if (!RenderTechniquePyramid)
             return;
@@ -175,7 +175,7 @@ public class VertexCacheBidir : BidirBase {
 
     /// <inheritdoc />
     public override float LightTracerMis(PathVertex lightVertex, float pdfCamToPrimary, float pdfReverse,
-                                         float pdfNextEvent, Vector2 pixel, float distToCam) {
+                                         float pdfNextEvent, Pixel pixel, float distToCam) {
         int numPdfs = lightVertex.Depth + 1;
         int lastCameraVertexIdx = -1;
         Span<float> camToLight = stackalloc float[numPdfs];
@@ -257,7 +257,7 @@ public class VertexCacheBidir : BidirBase {
     }
 
     /// <inheritdoc />
-    protected virtual float CameraPathReciprocals(int lastCameraVertexIdx, BidirPathPdfs pdfs, Vector2 pixel) {
+    protected virtual float CameraPathReciprocals(int lastCameraVertexIdx, BidirPathPdfs pdfs, Pixel pixel) {
         float sumReciprocals = 0.0f;
         float nextReciprocal = 1.0f;
         for (int i = lastCameraVertexIdx; i > 0; --i) { // all bidir connections
@@ -272,7 +272,7 @@ public class VertexCacheBidir : BidirBase {
     }
 
     /// <inheritdoc />
-    protected virtual float LightPathReciprocals(int lastCameraVertexIdx, int numPdfs, BidirPathPdfs pdfs, Vector2 pixel) {
+    protected virtual float LightPathReciprocals(int lastCameraVertexIdx, int numPdfs, BidirPathPdfs pdfs, Pixel pixel) {
         float sumReciprocals = 0.0f;
         float nextReciprocal = 1.0f;
         for (int i = lastCameraVertexIdx + 1; i < numPdfs; ++i) {

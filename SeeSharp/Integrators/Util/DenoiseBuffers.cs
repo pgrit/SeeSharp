@@ -17,9 +17,9 @@ public class DenoiseBuffers {
     /// <summary>
     /// Logs the features at a primary hit point
     /// </summary>
-    public void LogPrimaryHit(Vector2 pixel, RgbColor albedo, Vector3 normal) {
-        this.albedo.Splat(pixel.X, pixel.Y, albedo);
-        this.normal.Splat(pixel.X, pixel.Y, normal);
+    public void LogPrimaryHit(Pixel pixel, RgbColor albedo, Vector3 normal) {
+        this.albedo.Splat(pixel, albedo);
+        this.normal.Splat(pixel, normal);
     }
 
     /// <summary>

@@ -45,7 +45,7 @@ public class ClassicBidir : BidirBase {
     }
 
     /// <inheritdoc />
-    protected override void RegisterSample(RgbColor weight, float misWeight, Vector2 pixel,
+    protected override void RegisterSample(RgbColor weight, float misWeight, Pixel pixel,
                                            int cameraPathLength, int lightPathLength, int fullLength) {
         if (!RenderTechniquePyramid)
             return;
@@ -142,7 +142,7 @@ public class ClassicBidir : BidirBase {
 
     /// <inheritdoc />
     public override float LightTracerMis(PathVertex lightVertex, float pdfCamToPrimary, float pdfReverse,
-                                         float pdfNextEvent, Vector2 pixel, float distToCam) {
+                                         float pdfNextEvent, Pixel pixel, float distToCam) {
         int numPdfs = lightVertex.Depth + 1;
         int lastCameraVertexIdx = -1;
         Span<float> camToLight = stackalloc float[numPdfs];
@@ -232,7 +232,7 @@ public class ClassicBidir : BidirBase {
     /// <param name="pdfs">The sampling pdfs along the path</param>
     /// <param name="pixel">The pixel that this sample contributes to</param>
     /// <returns>Sum of the pdfs of all other techniques divided by the current technique.</returns>
-    protected virtual float CameraPathReciprocals(int lastCameraVertexIdx, BidirPathPdfs pdfs, Vector2 pixel) {
+    protected virtual float CameraPathReciprocals(int lastCameraVertexIdx, BidirPathPdfs pdfs, Pixel pixel) {
         float sumReciprocals = 0.0f;
         float nextReciprocal = 1.0f;
         for (int i = lastCameraVertexIdx; i > 0; --i) { // all bidir connections
@@ -255,7 +255,7 @@ public class ClassicBidir : BidirBase {
     /// <param name="pdfs">The sampling pdfs along the path</param>
     /// <param name="pixel">The pixel that this sample contributes to</param>
     /// <returns>Sum of the pdfs of all other techniques divided by the current technique.</returns>
-    protected virtual float LightPathReciprocals(int lastCameraVertexIdx, BidirPathPdfs pdfs, Vector2 pixel) {
+    protected virtual float LightPathReciprocals(int lastCameraVertexIdx, BidirPathPdfs pdfs, Pixel pixel) {
         float sumReciprocals = 0.0f;
         float nextReciprocal = 1.0f;
         for (int i = lastCameraVertexIdx + 1; i < pdfs.NumPdfs; ++i) {

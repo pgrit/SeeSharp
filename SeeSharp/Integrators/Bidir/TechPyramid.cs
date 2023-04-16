@@ -76,9 +76,9 @@ public class TechPyramid {
     /// <param name="filmPoint">Position on the image that this path contributes to</param>
     /// <param name="value">The contribution</param>
     public void Add(int cameraPathEdges, int lightPathEdges, int totalEdges,
-                    Vector2 filmPoint, RgbColor value) {
+                    Pixel filmPoint, RgbColor value) {
         var image = techniqueImages[(cameraPathEdges, lightPathEdges, totalEdges)];
-        image.AtomicAdd((int)filmPoint.X, (int)filmPoint.Y, value);
+        image.AtomicAdd(filmPoint.Col, filmPoint.Row, value);
     }
 
     /// <summary>

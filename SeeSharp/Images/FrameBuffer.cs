@@ -129,20 +129,28 @@ public class FrameBuffer : IDisposable {
     /// <summary>
     /// Adds a contribution to the frame buffer
     /// </summary>
-    /// <param name="x">Horizontal pixel coordinate, [0, Width), left to right</param>
-    /// <param name="y">Vertical pixel coordinate, [0, Height), top to bottom</param>
+    /// <param name="col">Horizontal pixel coordinate, [0, Width), left to right</param>
+    /// <param name="row">Vertical pixel coordinate, [0, Height), top to bottom</param>
     /// <param name="value">Color to add to the current value</param>
-    public virtual void Splat(float x, float y, RgbColor value) {
-        Image.AtomicAdd((int)x, (int)y, value / CurIteration);
-        PixelVariance?.Splat(x, y, value);
+    public virtual void Splat(int col, int row, RgbColor value) {
+        Image.AtomicAdd(col, row, value / CurIteration);
+        PixelVariance?.Splat(col, row, value);
 
         // Catch invalid values in long running Release mode renderings.
         // Ideally can be reproduced with a single sample from a correctly seeded RNG.
         Debug.Assert(float.IsFinite(value.Average));
         if (!float.IsFinite(value.Average)) {
-            Logger.Warning($"NaN or Inf written to frame buffer! Iteration: {CurIteration}, Pixel: ({x},{y})");
+            Logger.Warning($"NaN or Inf written to frame buffer! Iteration: {CurIteration}, Pixel: ({col},{row})");
         }
     }
+
+    /// <summary>
+    /// Adds a contribution to the frame buffer
+    /// </summary>
+    /// <param name="pixel">Ppixel coordinate, [0, Width), left to right, top to bottom</param>
+    /// <param name="value">Color to add to the current value</param>
+    public void Splat(Pixel pixel, RgbColor value)
+    => Splat(pixel.Col, pixel.Row, value);
 
     /// <summary>
     /// Initializes the memory for the image data and aux layers. Should be called exactly once before / at

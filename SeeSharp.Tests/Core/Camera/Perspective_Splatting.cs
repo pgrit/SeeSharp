@@ -22,8 +22,8 @@ namespace SeeSharp.Tests.Core.Camera {
             var cam = MakeTestCamera();
             var raster = cam.SampleResponse(new() { Position = new Vector3(0, 0, 3.5f) }, null).Pixel;
 
-            Assert.Equal(1.5f, raster.X, 4);
-            Assert.Equal(1.5f, raster.Y, 4);
+            Assert.Equal(1, raster.Col);
+            Assert.Equal(1, raster.Row);
         }
 
         [Fact]
@@ -36,8 +36,8 @@ namespace SeeSharp.Tests.Core.Camera {
 
             var raster = cam.SampleResponse(new() { Position = new Vector3(xyz, xyz, xyz) }, null).Pixel;
 
-            Assert.Equal(0.0f, raster.X, 4);
-            Assert.Equal(0.0f, raster.Y, 4);
+            Assert.Equal(0, raster.Col);
+            Assert.Equal(0, raster.Row);
         }
 
         [Fact]

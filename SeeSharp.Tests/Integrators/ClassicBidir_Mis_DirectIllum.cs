@@ -55,7 +55,7 @@ namespace SeeSharp.Tests.Integrators {
                 pdfCamToPrimary: dummyPath.cameraVertices[1].PdfFromAncestor,
                 pdfReverse: dummyPath.cameraVertices[2].PdfFromAncestor,
                 pdfNextEvent: 1 / dummyPath.lightArea,
-                pixel: Vector2.Zero,
+                pixel: new(),
                 distToCam: dummyPath.Distances[^1]);
         }
 

@@ -56,7 +56,7 @@ public class PathTracer : Integrator {
     /// Called once for each complete path from the camera to a light.
     /// The default implementation generates a technique pyramid for the MIS samplers.
     /// </summary>
-    public virtual void RegisterSample(Vector2 pixel, RgbColor weight, float misWeight, uint depth,
+    public virtual void RegisterSample(Pixel pixel, RgbColor weight, float misWeight, uint depth,
                                        bool isNextEvent) {
         if (!RenderTechniquePyramid)
             return;
@@ -128,7 +128,7 @@ public class PathTracer : Integrator {
         /// <summary>
         /// The pixel this path originated from
         /// </summary>
-        public Vector2 Pixel { get; set; }
+        public Pixel Pixel { get; set; }
 
         /// <summary>
         /// Current state of the random number generator
@@ -269,7 +269,7 @@ public class PathTracer : Integrator {
         Ray primaryRay = scene.Camera.GenerateRay(pixel, rng).Ray;
 
         var state = MakePathState();
-        state.Pixel = pixel;
+        state.Pixel = new((int)col, (int)row);
         state.Rng = rng;
         state.Throughput = RgbColor.White;
         state.Depth = 1;
@@ -278,7 +278,7 @@ public class PathTracer : Integrator {
         var estimate = EstimateIncidentRadiance(primaryRay, state);
         OnFinishedPath(estimate, state);
 
-        scene.FrameBuffer.Splat(col, row, estimate.Outgoing);
+        scene.FrameBuffer.Splat(state.Pixel, estimate.Outgoing);
     }
 
     protected virtual RadianceEstimate EstimateIncidentRadiance(in Ray ray, PathState state) {

@@ -80,7 +80,7 @@ public abstract class BidirBase : Integrator {
         /// <summary>
         /// The pixel position where the path was started.
         /// </summary>
-        public Vector2 Pixel;
+        public Pixel Pixel;
 
         /// <summary>
         /// The product of the local estimators along the path (BSDF * cos / pdf)
@@ -137,11 +137,11 @@ public abstract class BidirBase : Integrator {
     /// possibly connecting vertices with those from the light path cache.
     /// </summary>
     /// <returns>The estimated pixel value.</returns>
-    protected virtual RgbColor EstimatePixelValue(in SurfacePoint cameraPoint, Vector2 filmPosition,
+    protected virtual RgbColor EstimatePixelValue(in SurfacePoint cameraPoint, Pixel pixel,
                                                   in Ray primaryRay, float pdfFromCamera,
                                                   RgbColor initialWeight, RNG rng) {
-        var walk = new CameraRandomWalk(rng, filmPosition, this);
-        return walk.StartFromCamera(filmPosition, cameraPoint, pdfFromCamera, primaryRay, initialWeight);
+        var walk = new CameraRandomWalk(rng, pixel, this);
+        return walk.StartFromCamera(pixel, cameraPoint, pdfFromCamera, primaryRay, initialWeight);
     }
 
     /// <summary>
@@ -259,9 +259,9 @@ public abstract class BidirBase : Integrator {
         var offset = rng.NextFloat2D();
         var filmSample = new Vector2(col, row) + offset;
         var cameraRay = Scene.Camera.GenerateRay(filmSample, rng);
-        var value = EstimatePixelValue(cameraRay.Point, filmSample, cameraRay.Ray,
+        var value = EstimatePixelValue(cameraRay.Point, new((int)col, (int)row), cameraRay.Ray,
                                        cameraRay.PdfRay, cameraRay.Weight, rng);
-        Scene.FrameBuffer.Splat((float)col, (float)row, value);
+        Scene.FrameBuffer.Splat((int)col, (int)row, value);
     }
 
     /// <summary>
@@ -275,7 +275,7 @@ public abstract class BidirBase : Integrator {
     /// <param name="cameraPathLength">Number of edges in the camera sub-path (0 if light tracer).</param>
     /// <param name="lightPathLength">Number of edges in the light sub-path (0 when hitting the light).</param>
     /// <param name="fullLength">Number of edges forming the full path. Used to disambiguate techniques.</param>
-    protected virtual void RegisterSample(RgbColor weight, float misWeight, Vector2 pixel,
+    protected virtual void RegisterSample(RgbColor weight, float misWeight, Pixel pixel,
                                           int cameraPathLength, int lightPathLength, int fullLength) { }
 
     /// <summary>
@@ -297,7 +297,7 @@ public abstract class BidirBase : Integrator {
     /// Will be zero unless this is a direct illumination sample.
     /// </param>
     /// <param name="distToCam">Distance of the last vertex to the camera</param>
-    protected virtual void OnLightTracerSample(RgbColor weight, float misWeight, Vector2 pixel,
+    protected virtual void OnLightTracerSample(RgbColor weight, float misWeight, Pixel pixel,
                                                PathVertex lightVertex, float pdfCamToPrimary, float pdfReverse,
                                                float pdfNextEvent, float distToCam) { }
 
@@ -401,7 +401,7 @@ public abstract class BidirBase : Integrator {
     /// <param name="distToCam">Distance between the camera and the last light path vertex</param>
     /// <returns>MIS weight of the sampled path</returns>
     public abstract float LightTracerMis(PathVertex lightVertex, float pdfCamToPrimary, float pdfReverse,
-                                         float pdfNextEvent, Vector2 pixel, float distToCam);
+                                         float pdfNextEvent, Pixel pixel, float distToCam);
 
     /// <summary>
     /// Connects all vertices along all light paths to the camera via shadow rays ("light tracing").
@@ -448,7 +448,7 @@ public abstract class BidirBase : Integrator {
 
         // Compute image contribution and splat
         RgbColor weight = vertex.Weight * bsdfValue * response.Weight / NumLightPaths.Value;
-        Scene.FrameBuffer.Splat(response.Pixel.X, response.Pixel.Y, misWeight * weight);
+        Scene.FrameBuffer.Splat(response.Pixel, misWeight * weight);
 
         // Log the sample
         RegisterSample(weight, misWeight, response.Pixel, 0, vertex.Depth, vertex.Depth + 1);
@@ -513,9 +513,9 @@ public abstract class BidirBase : Integrator {
     /// of sampling that vertex.
     /// </returns>
     protected virtual (int, int, float) SelectBidirPath(SurfacePoint cameraPoint, Vector3 outDir,
-                                                        Vector2 pixel, RNG rng) {
-        int row = Math.Min((int)pixel.Y, Scene.FrameBuffer.Height - 1);
-        int col = Math.Min((int)pixel.X, Scene.FrameBuffer.Width - 1);
+                                                        Pixel pixel, RNG rng) {
+        int row = Math.Min(pixel.Row, Scene.FrameBuffer.Height - 1);
+        int col = Math.Min(pixel.Col, Scene.FrameBuffer.Width - 1);
         int pixelIndex = row * Scene.FrameBuffer.Width + col;
         return (pixelIndex, -1, 1.0f);
     }
@@ -538,8 +538,8 @@ public abstract class BidirBase : Integrator {
         if (NumLightPaths == 0) return result;
 
         // Select a path to connect to (based on pixel index)
-        int row = Math.Min((int)path.Pixel.Y, Scene.FrameBuffer.Height - 1);
-        int col = Math.Min((int)path.Pixel.X, Scene.FrameBuffer.Width - 1);
+        int row = Math.Min(path.Pixel.Row, Scene.FrameBuffer.Height - 1);
+        int col = Math.Min(path.Pixel.Col, Scene.FrameBuffer.Width - 1);
         int pixelIndex = row * Scene.FrameBuffer.Width + col;
         (int lightPathIdx, int lightVertIdx, float lightVertexProb) =
             SelectBidirPath(cameraPoint, outDir, new(col, row), rng);
@@ -887,12 +887,12 @@ public abstract class BidirBase : Integrator {
         BidirBase integrator;
         CameraPath path;
 
-        public CameraRandomWalk(RNG rng, Vector2 filmPosition, BidirBase integrator)
+        public CameraRandomWalk(RNG rng, Pixel pixel, BidirBase integrator)
             : base(integrator.Scene, rng, integrator.MaxDepth + 1) {
             this.integrator = integrator;
             path.Vertices = new List<PathPdfPair>(integrator.MaxDepth);
             path.Distances = new List<float>(integrator.MaxDepth);
-            path.Pixel = filmPosition;
+            path.Pixel = pixel;
         }
 
         protected override RgbColor OnInvalidHit(Ray ray, float pdfFromAncestor, RgbColor throughput,

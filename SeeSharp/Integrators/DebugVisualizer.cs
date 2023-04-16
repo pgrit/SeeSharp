@@ -55,6 +55,6 @@ public class DebugVisualizer : Integrator {
         // Shade and splat
         RgbColor value = RgbColor.Black;
         if (hit) value = ComputeColor(hit, -primaryRay.Direction);
-        scene.FrameBuffer.Splat(col, row, value);
+        scene.FrameBuffer.Splat((int)col, (int)row, value);
     }
 }

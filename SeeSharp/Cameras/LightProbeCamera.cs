@@ -76,7 +76,7 @@ public class LightProbeCamera : Camera {
 
         return new() {
             Position = Position,
-            Pixel = new(filmPoint.X, filmPoint.Y),
+            Pixel = new((int)filmPoint.X, (int)filmPoint.Y),
             Weight = jacobian * RgbColor.White,
             PdfConnect = 1,
             PdfEmit = jacobian

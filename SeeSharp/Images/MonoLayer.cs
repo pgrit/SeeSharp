@@ -14,6 +14,11 @@ public class MonoLayer : Layer {
     /// <summary>
     /// Adds a new sample contribution to the layer
     /// </summary>
-    public virtual void Splat(float x, float y, float value)
-    => (Image as MonochromeImage).AtomicAdd((int)x, (int)y, value / curIteration);
+    public virtual void Splat(int x, int y, float value)
+    => (Image as MonochromeImage).AtomicAdd(x, y, value / curIteration);
+
+    /// <summary>
+    /// Adds a new sample contribution to the layer
+    /// </summary>
+    public virtual void Splat(Pixel pixel, float value) => Splat(pixel.Col, pixel.Row, value);
 }

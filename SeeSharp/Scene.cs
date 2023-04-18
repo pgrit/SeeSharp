@@ -75,9 +75,10 @@ public class Scene : IDisposable {
         Scene cpy = (Scene)MemberwiseClone();
         cpy.Meshes = new(Meshes);
         cpy.Emitters = new(Emitters);
-        cpy.ValidationErrorMessages = new(ValidationErrorMessages);
-        FrameBuffer = null;
-        Raytracer = null;
+        cpy.ValidationErrorMessages = new();
+        cpy.Camera = Camera.Copy();
+        cpy.FrameBuffer = null;
+        cpy.Raytracer = null;
         return cpy;
     }
 

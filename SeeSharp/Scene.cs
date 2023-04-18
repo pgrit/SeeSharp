@@ -68,7 +68,7 @@ public class Scene : IDisposable {
     /// Creates a semi-deep copy of the scene. That is, a shallow copy except that all lists of references
     /// are copied into new lists of references. So meshes in the new scene can be removed or added.
     /// The <see cref="FrameBuffer" /> and <see cref="Raytracer" /> are not copied and set to null, to
-    /// avoid any conflicts. The scene is in an invalid state untill <see cref="Prepare" /> is called.
+    /// avoid any conflicts. The scene is in an invalid state until <see cref="Prepare" /> is called.
     /// </summary>
     /// <returns>A copy of the scene</returns>
     public Scene Copy() {

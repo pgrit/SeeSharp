@@ -31,21 +31,18 @@ public class PathVisualizer : DebugVisualizer {
 
     /// <inheritdoc />
     public override void Render(Scene scene) {
-        curScene = scene;
+        curScene = scene.Copy();
+        curScene.FrameBuffer = scene.FrameBuffer;
+
+        markerTypes = new();
+        meshToPath = new();
 
         if (Paths != null) {
-            // Generate and add geometry for the selected paths
             MakePathArrows();
-            scene.Prepare();
+            curScene.Prepare();
         }
 
-        base.Render(scene);
-
-        // Remove the marker meshes from the scene and trigger acceleration structure regeneration
-        foreach (var mesh in markerTypes.Keys) {
-            scene.Meshes.Remove(mesh);
-        }
-        scene.Prepare();
+        base.Render(curScene);
     }
 
     /// <returns>A grayscale color for scene geometry or the color of the intersected path marker</returns>
@@ -64,7 +61,7 @@ public class PathVisualizer : DebugVisualizer {
         return color * cosine;
     }
 
-    void MakeArrow(Vector3 start, Vector3 end, int type) {
+    void MakeArrow(Vector3 start, Vector3 end, int type, LoggedPath path) {
         float headHeight = curScene.Radius * HeadHeight;
         float radius = curScene.Radius * Radius;
 
@@ -79,6 +76,8 @@ public class PathVisualizer : DebugVisualizer {
 
         markerTypes.Add(line, type);
         markerTypes.Add(head, type);
+        meshToPath.Add(line, path);
+        meshToPath.Add(head, path);
     }
 
     void MakePathArrows() {
@@ -88,11 +87,21 @@ public class PathVisualizer : DebugVisualizer {
                 var start = path.Vertices[i];
                 var end = path.Vertices[i + 1];
                 int type = path.UserTypes[i];
-                MakeArrow(start, end, type);
+                MakeArrow(start, end, type, path);
             }
         }
     }
 
+    public LoggedPath QueryPath(Pixel pixel) {
+        Ray primaryRay = curScene.Camera.GenerateRay(new Vector2(pixel.Col + 0.5f, pixel.Row + 0.5f), new()).Ray;
+        var hit = (SurfacePoint)curScene.Raytracer.Trace(primaryRay);
+        if (hit) Console.WriteLine(hit.Mesh.NumFaces);
+        if (!hit || !meshToPath.TryGetValue(hit.Mesh, out var path))
+            return null;
+        return path;
+    }
+
     Dictionary<Mesh, int> markerTypes = new();
+    Dictionary<Mesh, LoggedPath> meshToPath = new();
     Scene curScene;
 }

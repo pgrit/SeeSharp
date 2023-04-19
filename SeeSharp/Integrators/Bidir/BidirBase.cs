@@ -34,7 +34,8 @@ public abstract class BidirBase : Integrator {
     public uint BaseSeedLight = 0x13C0FEFEu;
 
     /// <summary>
-    /// Can be set to log some or all paths that have been sampled. Full support is still WIP.
+    /// Can be set to log some or all paths that have been sampled. It is up to the derived class to decide
+    /// which paths to log and what data to associate with them.
     /// </summary>
     public Util.PathLogger PathLogger;
 
@@ -454,14 +455,6 @@ public abstract class BidirBase : Integrator {
         RegisterSample(weight, misWeight, response.Pixel, 0, vertex.Depth, vertex.Depth + 1);
         OnLightTracerSample(weight, misWeight, response.Pixel, vertex, response.PdfEmit, pdfReverse,
             pdfNextEvent, distToCam);
-
-        if (PathLogger != null && misWeight != 0 && weight != RgbColor.Black) {
-            var logId = PathLogger.StartNew(response.Pixel);
-            for (int i = 0; i < vertex.Depth + 1; ++i) {
-                PathLogger.Continue(logId, LightPaths.PathCache[pathIdx, i].Point.Position, 1);
-            }
-            PathLogger.SetContrib(logId, misWeight * weight);
-        }
     }
 
     /// <summary>

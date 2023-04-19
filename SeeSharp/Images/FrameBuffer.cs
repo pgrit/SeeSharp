@@ -50,7 +50,7 @@ public class FrameBuffer : IDisposable {
     /// Adds a new layer to the frame buffer. Will be written with the final image, either as a layer or
     /// separately, depending on the file format.
     /// </summary>
-    public void AddLayer(string name, Layer layer) => layers.Add(name, layer);
+    public void AddLayer(string name, Layer layer) => layers[name] = layer;
 
     /// <returns>Layer with the given name</returns>
     public Layer GetLayer(string name) => layers[name];

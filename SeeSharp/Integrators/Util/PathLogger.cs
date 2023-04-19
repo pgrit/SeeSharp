@@ -20,11 +20,14 @@ public class LoggedPath {
     /// </summary>
     public List<int> UserTypes = new();
 
+    public object UserData;
+
     /// <returns>A deep copy of this path</returns>
     public LoggedPath Copy() => new LoggedPath {
         Vertices = new(Vertices),
         Contribution = Contribution,
-        UserTypes = new(UserTypes)
+        UserTypes = new(UserTypes),
+        UserData = UserData
     };
 }
 
@@ -125,6 +128,10 @@ public class PathLogger {
     /// <param name="contrib">The contribution of the path</param>
     public void SetContrib(PathIndex id, RgbColor contrib) {
         pixelPaths[id.Pixel][id.Local].Contribution = contrib;
+    }
+
+    public void SetUserData(PathIndex id, object userData) {
+        pixelPaths[id.Pixel][id.Local].UserData = userData;
     }
 
     int PixelToIndex(Pixel pixel) {

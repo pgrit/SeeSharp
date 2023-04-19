@@ -39,9 +39,8 @@ public class PathVisualizer : DebugVisualizer {
 
         if (Paths != null) {
             MakePathArrows();
-            curScene.Prepare();
         }
-
+        curScene.Prepare();
         base.Render(curScene);
     }
 

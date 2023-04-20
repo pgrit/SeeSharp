@@ -20,9 +20,9 @@ public class PathVisualizer : DebugVisualizer {
     public float Radius = 0.01f;
 
     /// <summary>
-    /// Length of the arrow head, as a fraction of the scene radius.
+    /// Length of the arrow head, as a fraction of the  radius.
     /// </summary>
-    public float HeadHeight = 0.02f;
+    public float HeadHeight = 4.0f;
 
     /// <summary>
     /// Number of quads used to model the cylinder / cone that make up each arrow.
@@ -61,10 +61,10 @@ public class PathVisualizer : DebugVisualizer {
     }
 
     void MakeArrow(Vector3 start, Vector3 end, int type, LoggedPath path) {
-        float headHeight = curScene.Radius * HeadHeight;
         float radius = curScene.Radius * Radius;
+        float headHeight = radius * HeadHeight;
 
-        var headStart = end + headHeight * (start - end);
+        var headStart = end + headHeight * Vector3.Normalize(start - end);
         var line = MeshFactory.MakeCylinder(start, headStart, radius, NumSegments);
         var head = MeshFactory.MakeCone(headStart, end, radius * 2, NumSegments);
         line.Material = new SeeSharp.Shading.Materials.DiffuseMaterial(new());

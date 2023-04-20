@@ -15,7 +15,10 @@ public struct MicrofacetTransmission {
         this.distribution = distribution;
         this.outsideIOR = outsideIOR;
         this.insideIOR = insideIOR;
-        Debug.Assert(outsideIOR != insideIOR);
+
+        if (insideIOR == outsideIOR) {
+            outsideIOR += 0.01f;
+        }
     }
 
     public RgbColor Evaluate(Vector3 outDir, Vector3 inDir, bool isOnLightSubpath) {

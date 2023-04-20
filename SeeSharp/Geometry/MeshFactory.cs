@@ -130,9 +130,14 @@ public static class MeshFactory {
 
             vertices.Add(baseCenter + tan * x + binorm * y);
 
-            indices.AddRange(new List<int>(){
-                    0, i, (i == numSegments - 1) ? 1 : (i + 1)
-                });
+            indices.AddRange(new[] {
+                0, i, (i == numSegments - 1) ? 1 : (i + 1)
+            });
+        }
+
+        // Base disk
+        for (int i = 2; i < vertices.Count - 1; ++i) {
+            indices.AddRange(new[] { 1, i, i+1 });
         }
 
         Mesh result = new(vertices.ToArray(), indices.ToArray());

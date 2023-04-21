@@ -91,6 +91,7 @@ public class Scene : IDisposable {
             throw new InvalidOperationException("Cannot finalize an invalid scene.");
 
         // Prepare the scene geometry for ray tracing.
+        Raytracer?.Dispose();
         Raytracer = new();
         for (int idx = 0; idx < Meshes.Count; ++idx) {
             Raytracer.AddMesh(Meshes[idx]);

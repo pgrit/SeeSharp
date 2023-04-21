@@ -4,6 +4,8 @@
 /// A simple triangle mesh with methods to uniformly sample its area.
 /// </summary>
 public class Mesh : TinyEmbree.TriangleMesh {
+    public string Name { get; set; }
+
     /// <summary>
     /// The assigned material
     /// </summary>

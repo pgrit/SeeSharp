@@ -31,6 +31,16 @@ public static class JsonScene {
             (meshSets[i], emitterSets[i]) = loader.LoadMesh(namedMaterials, emissiveMaterials, m,
                 Path.GetDirectoryName(path));
 
+            if (meshSets[i] != null) {
+                var iter = meshSets[i].GetEnumerator();
+                if (iter.MoveNext()) iter.Current.Name = name;
+                int uniqueNum = 0;
+                while (iter.MoveNext()) {
+                    iter.Current.Name = name + $".{uniqueNum:000}";
+                    uniqueNum++;
+                }
+            }
+
             lock (progressBar) progressBar.ReportDone(1);
         });
 
@@ -73,7 +83,7 @@ public static class JsonScene {
                         BaseColor = JsonUtils.ReadColorOrTexture(m.GetProperty("baseColor"), path),
                         Transmitter = ReadOptionalBool("thin", false)
                     };
-                    lock (namedMats) namedMats[name] = new DiffuseMaterial(parameters);
+                    lock (namedMats) namedMats[name] = new DiffuseMaterial(parameters) { Name = name };
                 } else {
                     // TODO check that there are no unsupported parameters
                     var parameters = new GenericMaterial.Parameters {
@@ -87,7 +97,7 @@ public static class JsonScene {
                         SpecularTransmittance = ReadOptionalFloat("specularTransmittance", 0.0f),
                         Thin = ReadOptionalBool("thin", false)
                     };
-                    lock (namedMats) namedMats[name] = new GenericMaterial(parameters);
+                    lock (namedMats) namedMats[name] = new GenericMaterial(parameters) { Name = name };
                 }
 
                 // Check if the material is emissive

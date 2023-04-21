@@ -4,6 +4,8 @@
 /// Base class for all surface materials
 /// </summary>
 public abstract class Material {
+    public string Name { get; init; }
+
     /// <summary>
     /// Tracks buffers to receive per-component PDF values and mixture weights
     /// </summary>

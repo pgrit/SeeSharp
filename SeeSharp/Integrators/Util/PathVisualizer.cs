@@ -93,8 +93,7 @@ public class PathVisualizer : DebugVisualizer {
     }
 
     public LoggedPath QueryPath(Pixel pixel) {
-        Ray primaryRay = curScene.Camera.GenerateRay(new Vector2(pixel.Col + 0.5f, pixel.Row + 0.5f), new()).Ray;
-        var hit = (SurfacePoint)curScene.Raytracer.Trace(primaryRay);
+        var hit = curScene.RayCast(pixel);
         if (!hit || !meshToPath.TryGetValue(hit.Mesh, out var path))
             return null;
         return path;

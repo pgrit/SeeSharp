@@ -31,6 +31,7 @@ public class PathVisualizer : DebugVisualizer {
 
     /// <inheritdoc />
     public override void Render(Scene scene) {
+        curScene?.Dispose();
         curScene = scene.Copy();
         curScene.FrameBuffer = scene.FrameBuffer;
 

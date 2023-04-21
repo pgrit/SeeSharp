@@ -1,3 +1,5 @@
+using System.Linq;
+
 namespace SeeSharp.Experiments;
 
 /// <summary>
@@ -73,5 +75,12 @@ public static class SceneRegistry {
             : Path.Join(candidate, variant, $"{name}-{variant}.json");
 
         return new SceneFromFile(sceneFile, minDepth ?? 1, maxDepth ?? 5, name + (variant ?? ""));
+    }
+
+    public static IEnumerable<string> FindAvailableScenes() {
+        lock (directories) {
+            var dirs = directories.SelectMany(dir => dir.EnumerateDirectories());
+            return dirs.Select(dir => dir.Name);
+        }
     }
 }

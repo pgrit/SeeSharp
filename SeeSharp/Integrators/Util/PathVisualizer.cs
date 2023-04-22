@@ -99,7 +99,7 @@ public class PathVisualizer : DebugVisualizer {
         return path;
     }
 
-    Dictionary<Mesh, int> markerTypes = new();
-    Dictionary<Mesh, LoggedPath> meshToPath = new();
-    Scene curScene;
+    protected Dictionary<Mesh, int> markerTypes = new();
+    protected Dictionary<Mesh, LoggedPath> meshToPath = new();
+    protected Scene curScene;
 }

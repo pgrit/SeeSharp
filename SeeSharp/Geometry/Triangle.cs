@@ -11,7 +11,7 @@ public struct Triangle {
     float invSurfaceArea;
     Vector3 v1, v2, v3;
 
-    const float MinSolidAngle = 1e-2f;
+    const float MinSolidAngle = 2e-2f;
     const float MaxSolidAngle = 5f;
 
     /// <summary>

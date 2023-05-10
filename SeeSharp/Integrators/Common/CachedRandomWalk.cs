@@ -19,7 +19,7 @@ public class CachedRandomWalk : RandomWalk {
     /// </summary>
     public readonly int PathIdx;
 
-    float nextReversePdf = 0.0f;
+    protected float nextReversePdf = 0.0f;
 
     /// <summary>
     /// Prepares an object that can be used to perform one random walk.

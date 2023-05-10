@@ -104,7 +104,7 @@ public class RandomWalk {
                                                        int depth)
     => 1.0f;
 
-    RgbColor ContinueWalk(Ray ray, SurfacePoint previousPoint, float pdfDirection, RgbColor throughput,
+    protected RgbColor ContinueWalk(Ray ray, SurfacePoint previousPoint, float pdfDirection, RgbColor throughput,
                           int depth) {
         // Terminate if the maximum depth has been reached
         if (depth >= maxDepth) {
@@ -118,7 +118,11 @@ public class RandomWalk {
             OnTerminate();
             return result;
         }
+        return HandleHit(ray, hit, previousPoint, pdfDirection, throughput, depth);
+    }
 
+    protected RgbColor HandleHit(Ray ray, SurfacePoint hit, SurfacePoint previousPoint, float pdfDirection, RgbColor throughput,
+                          int depth) {
         // Convert the PDF of the previous hemispherical sample to surface area
         float pdfFromAncestor = pdfDirection * SampleWarp.SurfaceAreaToSolidAngle(previousPoint, hit);
 

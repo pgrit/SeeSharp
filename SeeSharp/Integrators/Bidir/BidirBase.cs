@@ -186,8 +186,16 @@ public abstract class BidirBase : Integrator {
 
         LightPaths = MakeLightPathCache();
 
+        Stopwatch processPathCacheTimer = new();
+        Stopwatch onBeforeRenderTimer = new();
+        Stopwatch onAfterRenderTimer = new();
+        Stopwatch onStartIterationTimer = new();
+        Stopwatch onEndIterationTimer = new();
+
         if (EnableDenoiser) DenoiseBuffers = new(scene.FrameBuffer);
+        onBeforeRenderTimer.Start();
         OnBeforeRender();
+        onBeforeRenderTimer.Stop();
 
         ProgressBar progressBar = new(prefix: "Rendering...");
         progressBar.Start(NumIterations);
@@ -208,7 +216,9 @@ public abstract class BidirBase : Integrator {
             scene.FrameBuffer.StartIteration();
             timer.EndFrameBuffer();
 
+            onStartIterationTimer.Start();
             OnStartIteration(iter);
+            onStartIterationTimer.Stop();
             try {
                 // Make sure that changes in the light path count are propagated to the cache.
                 LightPaths.NumPaths = NumLightPaths.Value;
@@ -216,7 +226,9 @@ public abstract class BidirBase : Integrator {
                 lightTracerTimer.Start();
                 LightPaths.TraceAllPaths(iter,
                     (origin, primary, nextDirection) => NextEventPdf(primary.Point, origin.Point));
+                processPathCacheTimer.Start();
                 ProcessPathCache();
+                processPathCacheTimer.Stop();
                 lightTracerTimer.Stop();
                 pathTracerTimer.Start();
                 TraceAllCameraPaths(iter);
@@ -225,7 +237,9 @@ public abstract class BidirBase : Integrator {
                 Logger.Log($"Exception in iteration {iter} out of {NumIterations}.", Verbosity.Error);
                 throw;
             }
+            onEndIterationTimer.Start();
             OnEndIteration(iter);
+            onEndIterationTimer.Stop();
             timer.EndRender();
 
             if (iter == NumIterations - 1 && EnableDenoiser)
@@ -241,8 +255,16 @@ public abstract class BidirBase : Integrator {
         scene.FrameBuffer.MetaData["FrameBufferTime"] = timer.FrameBufferTime;
         scene.FrameBuffer.MetaData["PathTracerTime"] = pathTracerTimer.ElapsedMilliseconds;
         scene.FrameBuffer.MetaData["LightTracerTime"] = lightTracerTimer.ElapsedMilliseconds;
+        scene.FrameBuffer.MetaData["ProcessPathCacheTime"] = processPathCacheTimer.ElapsedMilliseconds;
+        scene.FrameBuffer.MetaData["OnBeforeRenderTime"] = onBeforeRenderTimer.ElapsedMilliseconds;
+        scene.FrameBuffer.MetaData["OnStartIterationTime"] = onStartIterationTimer.ElapsedMilliseconds;
+        scene.FrameBuffer.MetaData["OnEndIterationTime"] = onEndIterationTimer.ElapsedMilliseconds;
 
+        onAfterRenderTimer.Start();
         OnAfterRender();
+        onAfterRenderTimer.Stop();
+
+        scene.FrameBuffer.MetaData["OnAfterRenderTime"] = onAfterRenderTimer.ElapsedMilliseconds;
     }
 
     private void TraceAllCameraPaths(uint iter) {

@@ -62,8 +62,9 @@ public static class SampleWarp {
         float q = num / denom;
 
         // Prevent NaN from numerical precision error
-        Debug.Assert(q < 1.1f);
-        q = Math.Min(q, 1.0f);
+        Debug.Assert(Math.Abs(q) < 1.1f);
+        if (Math.Abs(q) >= 1.0f)
+            q = MathF.CopySign(1.0f, q);
 
         Vector3 NormComp(Vector3 x, Vector3 y) => Vector3.Normalize(x - Vector3.Dot(x, y) * y);
 

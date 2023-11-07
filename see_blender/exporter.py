@@ -208,7 +208,9 @@ class SeeSharpExport(Operator, ExportHelper):
     )
 
     def execute(self, context):
-        context.window.cursor_set('WAIT')
+        if context.window is not None:
+            context.window.cursor_set('WAIT')
+
         if self.animations is True:
             for frame in range(context.scene.frame_start, context.scene.frame_end+1):
                 context.scene.frame_set(frame)
@@ -217,7 +219,9 @@ class SeeSharpExport(Operator, ExportHelper):
         else:
             depsgraph = context.evaluated_depsgraph_get()
             export_scene(self.filepath, context.scene, depsgraph)
-        context.window.cursor_set('DEFAULT')
+
+        if context.window is not None:
+            context.window.cursor_set('DEFAULT')
         return {'FINISHED'}
 
 def menu_func_export(self, context):

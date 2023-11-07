@@ -22,6 +22,11 @@ public class SceneFromFile : SceneConfig {
     public override string Name => name;
 
     /// <summary>
+    /// Absolute path to the directory that this scene was loaded from
+    /// </summary>
+    public string SourceDirectory => Path.GetFullPath(file.DirectoryName);
+
+    /// <summary>
     /// Creates a shallow copy of this scene configuration under a new name.
     /// </summary>
     /// <param name="newName">The new name to use</param>
@@ -33,9 +38,9 @@ public class SceneFromFile : SceneConfig {
     }
 
     static readonly Dictionary<string, Type> IntegratorNames = new() {
-        { "PathTracer", typeof(Integrators.PathTracer) },
-        { "VCM", typeof(Integrators.Bidir.VertexConnectionAndMerging) },
-        { "ClassicBidir", typeof(Integrators.Bidir.ClassicBidir) },
+        { "PathTracer", typeof(PathTracer) },
+        { "VCM", typeof(VertexConnectionAndMerging) },
+        { "ClassicBidir", typeof(ClassicBidir) },
     };
 
     /// <summary>
@@ -63,7 +68,7 @@ public class SceneFromFile : SceneConfig {
         }
 
         string referenceSpecs = Path.Join(refDir, "Config.json");
-        Integrators.Integrator refIntegrator = null;
+        Integrator refIntegrator = null;
         if (File.Exists(referenceSpecs)) {
             string json = File.ReadAllText(referenceSpecs);
 
@@ -75,10 +80,10 @@ public class SceneFromFile : SceneConfig {
                 refIntegrator = JsonSerializer.Deserialize(settings, integratorType,
                     new JsonSerializerOptions() {
                         IncludeFields = true,
-                    }) as Integrators.Integrator;
+                    }) as Integrator;
             }
 
-            Common.Logger.Log("Rendering reference based on Config.json");
+            Logger.Log("Rendering reference based on Config.json");
         } else {
             refIntegrator = DefaultReferenceIntegrator;
 
@@ -91,7 +96,7 @@ public class SceneFromFile : SceneConfig {
             string json = "{ \"Name\": \"" + name + "\", \"Settings\": " + settingsJson + "}";
             File.WriteAllText(referenceSpecs, json);
 
-            Common.Logger.Log("Rendering reference with default integrator");
+            Logger.Log("Rendering reference with default integrator");
         }
 
         refIntegrator.MaxDepth = MaxDepth;
@@ -129,8 +134,8 @@ public class SceneFromFile : SceneConfig {
     /// <summary>
     /// The default integrator used when rendering reference images, if no config.json file is present.
     /// </summary>
-    public virtual Integrators.Integrator DefaultReferenceIntegrator
-    => new Integrators.PathTracer() {
+    public virtual Integrator DefaultReferenceIntegrator
+    => new PathTracer() {
         BaseSeed = 571298512u,
         TotalSpp = 512
     };

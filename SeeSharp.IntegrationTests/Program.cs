@@ -1,4 +1,6 @@
-﻿using SeeSharp.Integrators;
+﻿using SeeSharp.Common;
+using SeeSharp.Experiments;
+using SeeSharp.Integrators;
 
 namespace SeeSharp.IntegrationTests;
 
@@ -18,17 +20,25 @@ class Program {
         scene.FrameBuffer.WriteToFile();
     }
 
+    static void BlenderAutoImport() {
+        Logger.Verbosity = Verbosity.Debug;
+        SceneRegistry.AddSourceRelativeToScript("../Data/Scenes");
+        SceneRegistry.LoadScene("ExportTest");
+    }
+
     static void Main(string[] args) {
         // BidirPathLogger_HomeOffice.Run();
         // BidirPathLogger_IndirectRoom.Run();
 
-        ConsoleUtils.TestProgressBar();
-        ConsoleUtils.TestLogger();
+        // ConsoleUtils.TestProgressBar();
+        // ConsoleUtils.TestLogger();
 
         // LightProbeTest.WhiteImage();
         // LightProbeTest.CornellProbe();
 
         // BidirZeroLightPaths.Run();
         // PathTracerTimeBudget();
+
+        BlenderAutoImport();
     }
 }

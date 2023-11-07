@@ -1,4 +1,6 @@
 using System.Linq;
+using System.Runtime.CompilerServices;
+using System.Security.Cryptography;
 
 namespace SeeSharp.Experiments;
 
@@ -40,6 +42,17 @@ public static class SceneRegistry {
     }
 
     /// <summary>
+    /// Adds a scene directory with a path relative to the <b>source code file that this method was called from</b>.
+    /// This method should only be used when running directly from source. Allows to specify asset locations
+    /// within a repository, independent of the working directory during debugging / execution.
+    /// </summary>
+    /// <param name="relativePath">The relative path from the caller's code file</param>
+    /// <param name="scriptPath">(compiler provided) path to the code file that called this method</param>
+    public static void AddSourceRelativeToScript(string relativePath, [CallerFilePath] string scriptPath = null) {
+        AddSource(Path.Join(Path.GetDirectoryName(scriptPath), relativePath));
+    }
+
+    /// <summary>
     /// Searches all sources for the given scene and returns the configuration retrieved from any one
     /// of the sources (not guaranteed to be a specific one in case of duplicates).
     /// </summary>
@@ -74,6 +87,11 @@ public static class SceneRegistry {
             ? Path.Join(candidate, $"{name}.json")
             : Path.Join(candidate, variant, $"{name}-{variant}.json");
 
+        string blendFile = sceneFile[0..^4] + "blend";
+        if (File.Exists(blendFile)) {
+            ImportBlendFile(name, blendFile, sceneFile);
+        }
+
         return new SceneFromFile(sceneFile, minDepth ?? 1, maxDepth ?? 5, name + (variant ?? ""));
     }
 
@@ -82,5 +100,66 @@ public static class SceneRegistry {
             var dirs = directories.SelectMany(dir => dir.EnumerateDirectories());
             return dirs.Select(dir => dir.Name);
         }
+    }
+
+    static void ImportBlendFile(string name, string blendFile, string sceneFile) {
+        string importDescFile = blendFile + ".import";
+
+        bool NeedsReimport() {
+            if (!File.Exists(importDescFile)) {
+                Logger.Log($"Scene {name}: importing .blend for the first time", Verbosity.Info);
+                return true;
+            }
+
+            var lines = File.ReadAllLines(importDescFile);
+            if (lines.Length < 2) {
+                Logger.Log($"Scene {name}: corrupted import file, reimporting .blend", Verbosity.Warning);
+                return true;
+            }
+
+            long timestamp = long.Parse(lines[0]);
+            string md5 = lines[1];
+
+            long newTime = File.GetLastWriteTime(blendFile).ToFileTime();
+            if (newTime == timestamp) {
+                Logger.Log($"Scene {name}: no reimport, last known write time is current", Verbosity.Debug);
+                return false;
+            }
+
+            var newMd5 = Convert.ToHexString(MD5.HashData(File.ReadAllBytes(blendFile)));
+            if (md5 == newMd5) {
+                Logger.Log($"Scene {name}: no reimport, md5 matches last known value", Verbosity.Debug);
+                return false;
+            }
+
+            Logger.Log($"Scene {name}: reimporting .blend - md5 changed", Verbosity.Info);
+            return true;
+        }
+
+        bool needsReimport = NeedsReimport();
+        if (!needsReimport && File.Exists(sceneFile))
+            return;
+
+        // Delete the old .json so we notice immediately if Blender export failed - avoids confusion due to missing changes
+        File.Delete(sceneFile);
+
+        if (!BlenderImporter.Import(blendFile, sceneFile)) {
+            Logger.Error($"Scene {name}: Blender import failed. Check if Blender is in PATH, " +
+                "the correct version is used, and the SeeSharp Plugin is installed. " +
+                "Resuming with old .json (if it exists)...");
+            return;
+        }
+
+        if (!File.Exists(sceneFile)) {
+            Logger.Error($"Scene {name}: Blender did not create a new scene file. Likely due to an error in the exporter, " +
+                "try manual export and check for error messages.");
+        }
+
+        long time = File.GetLastWriteTime(blendFile).ToFileTime();
+        var md5 = Convert.ToHexString(MD5.HashData(File.ReadAllBytes(blendFile)));
+        File.WriteAllLines(importDescFile, new[] {
+            time.ToString(),
+            md5
+        });
     }
 }

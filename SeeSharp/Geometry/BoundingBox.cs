@@ -64,4 +64,19 @@ public readonly struct BoundingBox {
     /// Computes the diagonal vector of the box
     /// </summary>
     public Vector3 Diagonal => Max - Min;
+
+    /// <summary>
+    /// Center point of the box
+    /// </summary>
+    public Vector3 Center => (Max + Min) / 2;
+
+    /// <summary>
+    /// An empty box is one where Max &lt; Min along every axis
+    /// </summary>
+    public bool IsEmpty => Min.X >= Max.X && Min.Y >= Max.Y && Min.Z >= Max.Z;
+
+    /// <summary>
+    /// Surface area of the box
+    /// </summary>
+    public float SurfaceArea => 2 * (Diagonal.X * (Diagonal.Y + Diagonal.Z) + Diagonal.Y * Diagonal.Z);
 }

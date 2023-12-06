@@ -36,8 +36,10 @@ public static class SceneRegistry {
     public static void AddSource(string directoryName) {
         lock (directories) {
             DirectoryInfo directory = new(directoryName);
-            Debug.Assert(directory.Exists);
-            directories.Add(directory);
+            if (!directory.Exists)
+                Logger.Error($"Tried to add non-existing directory as a scene source. Check if the path is correct: {directoryName}");
+            else
+                directories.Add(directory);
         }
     }
 

@@ -31,13 +31,13 @@ public class DiffuseEmitter : Emitter {
     }
 
     public override RgbColor EmittedRadiance(SurfacePoint point, Vector3 direction) {
-        if (Vector3.Dot(point.Normal, direction) < 0)
+        if (Vector3.Dot(point.ShadingNormal, direction) < 0)
             return RgbColor.Black;
         return Radiance;
     }
 
     public override float PdfRay(SurfacePoint point, Vector3 direction) {
-        float cosine = Vector3.Dot(point.Normal, direction) / direction.Length();
+        float cosine = Vector3.Dot(point.ShadingNormal, direction) / direction.Length();
         return PdfUniformArea(point) * MathF.Max(cosine, 0) / MathF.PI;
     }
 
@@ -48,7 +48,7 @@ public class DiffuseEmitter : Emitter {
         var local = SampleWarp.ToCosHemisphere(primaryDir);
 
         // Transform to world space direction
-        var normal = posSample.Point.Normal;
+        var normal = posSample.Point.ShadingNormal;
         Vector3 tangent, binormal;
         ComputeBasisVectors(normal, out tangent, out binormal);
         Vector3 dir = local.Direction.Z * normal
@@ -67,7 +67,7 @@ public class DiffuseEmitter : Emitter {
         var posPrimary = SampleUniformAreaInverse(point);
 
         // Transform from world space to sampling space
-        var normal = point.Normal;
+        var normal = point.ShadingNormal;
         Vector3 tangent, binormal;
         ComputeBasisVectors(normal, out tangent, out binormal);
         float z = Vector3.Dot(normal, direction);

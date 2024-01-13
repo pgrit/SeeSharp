@@ -34,13 +34,13 @@ public class GlossyEmitter : Emitter {
     }
 
     public override RgbColor EmittedRadiance(SurfacePoint point, Vector3 direction) {
-        float cosine = Vector3.Dot(point.Normal, direction) / direction.Length();
+        float cosine = Vector3.Dot(point.ShadingNormal, direction) / direction.Length();
         if (cosine < 0) return RgbColor.Black;
         return radiance * MathF.Pow(cosine, exponent) * normalizationFactor;
     }
 
     public override float PdfRay(SurfacePoint point, Vector3 direction) {
-        float cosine = Vector3.Dot(point.Normal, direction) / direction.Length();
+        float cosine = Vector3.Dot(point.ShadingNormal, direction) / direction.Length();
         return PdfUniformArea(point) * SampleWarp.ToCosineLobeJacobian(exponent + 1, cosine);
     }
 
@@ -52,7 +52,7 @@ public class GlossyEmitter : Emitter {
         var local = SampleWarp.ToCosineLobe(exponent + 1, primaryDir);
 
         // Transform to world space direction
-        var normal = posSample.Point.Normal;
+        var normal = posSample.Point.ShadingNormal;
         Vector3 tangent, binormal;
         ComputeBasisVectors(normal, out tangent, out binormal);
         Vector3 dir = local.Direction.Z * normal
@@ -74,7 +74,7 @@ public class GlossyEmitter : Emitter {
         var posPrimary = SampleUniformAreaInverse(point);
 
         // Transform from world space to sampling space
-        var normal = point.Normal;
+        var normal = point.ShadingNormal;
         Vector3 tangent, binormal;
         ComputeBasisVectors(normal, out tangent, out binormal);
         float z = Vector3.Dot(normal, direction);

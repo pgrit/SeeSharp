@@ -30,6 +30,12 @@ public abstract class Experiment {
     }
 
     /// <summary>
+    /// If true, the Benchmark will drop the method reference after execution. This allows costly integrator
+    /// data to be freed as soon as possible. Disadvantage: all integrator state will be lost. The default is false.
+    /// </summary>
+    public virtual bool DeleteMethodAfterRun => false;
+
+    /// <summary>
     /// Factory function for the methods.
     /// </summary>
     /// <returns>A list of all methods that should be run in a benchmark</returns>

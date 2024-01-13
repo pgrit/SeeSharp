@@ -59,7 +59,9 @@ public class Benchmark {
 
         experiment.OnStartScene(scene, dir, sceneConfig.MinDepth, sceneConfig.MaxDepth);
         var methods = experiment.MakeMethods();
-        foreach (var method in methods) {
+        for (int i = 0; i < methods.Count; ++i) {
+            var method = methods[i];
+
             string path = Path.Join(dir, method.Name);
 
             Logger.Log($"Rendering {sceneConfig.Name} with {method.Name}");
@@ -78,6 +80,11 @@ public class Benchmark {
             scene.FrameBuffer.MetaData["RayStats"] = scene.Raytracer.Stats;
             scene.FrameBuffer.MetaData["ShadeStats"] = ShadingStats.Current;
             scene.FrameBuffer.WriteToFile();
+
+            if (experiment.DeleteMethodAfterRun) {
+                methods.RemoveAt(i);
+                i--;
+            }
         }
         experiment.OnDoneScene(scene, dir, sceneConfig.MinDepth, sceneConfig.MaxDepth);
     }

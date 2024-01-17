@@ -177,6 +177,19 @@ public class VertexConnectionAndMerging : VertexCacheBidir {
                                          CameraPath cameraPath, PathVertex lightVertex, float pdfCameraReverse,
                                          float pdfLightReverse, float pdfNextEvent) { }
 
+    /// <summary>
+    /// Called after each full photon mapping operation is finished, i.e., after all nearby photons
+    /// have been found and merged wtih
+    /// </summary>
+    /// <param name="ray">The last ray of the camera path</param>
+    /// <param name="hit">Shading point / last vertex of the camera path</param>
+    /// <param name="rng">Current RNG state</param>
+    /// <param name="path">The camera prefix path</param>
+    /// <param name="cameraJacobian">Geometry term used to turn a PDF over outgoing directions into a surface area density.</param>
+    /// <param name="estimate">The computed photon mapping contribution</param>
+    protected virtual void OnCombinedMergeSample(Ray ray, SurfacePoint hit, RNG rng, CameraPath path,
+                                                 float cameraJacobian, RgbColor estimate) { }
+
     protected virtual RgbColor Merge((CameraPath path, float cameraJacobian) userData, SurfacePoint hit,
                                      Vector3 outDir, int pathIdx, int vertexIdx, float distSqr, float radiusSquared) {
         var photon = LightPaths.PathCache[pathIdx, vertexIdx];
@@ -252,6 +265,7 @@ public class VertexConnectionAndMerging : VertexCacheBidir {
             estimate += Merge((path, cameraJacobian), hit, -ray.Direction, photons[idx].PathIndex,
                 photons[idx].VertexIndex, distance * distance, radiusSquared);
         });
+        OnCombinedMergeSample(ray, hit, rng, path, cameraJacobian, estimate);
         return estimate;
     }
 

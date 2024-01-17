@@ -2,11 +2,25 @@
 using SeeSharp;
 using SeeSharp.Benchmark;
 
-var scene = Scene.LoadFromFile("Data/Scenes/CornellBox/CornellBox.json");
+// Measure PT performance. Start with a dry run to give JIT a chance to do its magic
+// var scene = Scene.LoadFromFile("Data/Scenes/CornellBox/CornellBox.json");
+var scene = Scene.LoadFromFile("Data/Scenes/HomeOffice/office.json");
 scene.FrameBuffer = new(512, 512, "");
 scene.Prepare();
-new SeeSharp.Integrators.PathTracer().Render(scene);
-Console.WriteLine(scene.FrameBuffer.RenderTimeMs);
+new SeeSharp.Integrators.PathTracer(){
+    TotalSpp = 32
+}.Render(scene);
+
+int num = 10;
+long total = 0;
+for (int i = 0; i < num; ++i) {
+    scene.FrameBuffer = new(512, 512, "");
+    new SeeSharp.Integrators.PathTracer() {
+        TotalSpp = 32
+    }.Render(scene);
+    total += scene.FrameBuffer.RenderTimeMs;
+}
+Console.WriteLine(total / (double)num);
 
 GenericMaterial_Sampling.QuickTest();
 

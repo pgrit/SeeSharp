@@ -40,17 +40,17 @@ public class RNG {
     }
 
     /// <returns>A floating point value in [0,1] (inclusive)</returns>
-    public virtual float NextFloat() {
+    public float NextFloat() {
         return Next() / (float)uint.MaxValue;
     }
 
     /// <returns>A pair of floating point values in [0,1] (inclusive)</returns>
     public Vector2 NextFloat2D()
-    => new Vector2(NextFloat(), NextFloat());
+    => new(NextFloat(), NextFloat());
 
     /// <returns>A triple of floating point values in [0,1] (inclusive)</returns>
     public Vector3 NextFloat3D()
-    => new Vector3(NextFloat(), NextFloat(), NextFloat());
+    => new(NextFloat(), NextFloat(), NextFloat());
 
     /// <summary>Random number from 0 (inclusive) to max (exclusive)</summary>
     public uint NextInt(uint max) {
@@ -87,7 +87,7 @@ public class RNG {
         return min + (uint)NextInt((uint)(max - min));
     }
 
-    public virtual uint Next() {
+    public uint Next() {
         uint word = ((state >> (int)((state >> 28) + 4)) ^ state) * 277803737u;
         state = state * 747796405u + 2891336453u;
         return ((word >> 22) ^ word);

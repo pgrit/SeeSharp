@@ -62,6 +62,9 @@ public class FrameBuffer : IDisposable {
     public int CurIteration { get => curIter; protected set => curIter = value; }
     int curIter = 0;
 
+    public DateTime StartTime;
+    public DateTime WriteTime;
+
     /// <summary>
     /// The full path to the final rendered image file, but without the extension. Can be used to
     /// generate adequate names for auxiliary files and debug data.
@@ -108,6 +111,10 @@ public class FrameBuffer : IDisposable {
     private record ErrorMetric(long TimeMS, float MSE, float RelMSE, float RelMSE_Outlier);
     private List<ErrorMetric> Errors = new();
 
+    public record NaNWarning(Pixel Pixel, int Iteration, string StackTrace) { }
+
+    public List<NaNWarning> NaNWarnings;
+
     /// <param name="width">Width in pixels</param>
     /// <param name="height">Height in pixels</param>
     /// <param name="filename">
@@ -138,9 +145,15 @@ public class FrameBuffer : IDisposable {
 
         // Catch invalid values in long running Release mode renderings.
         // Ideally can be reproduced with a single sample from a correctly seeded RNG.
-        Debug.Assert(float.IsFinite(value.Average));
         if (!float.IsFinite(value.Average)) {
-            Logger.Warning($"NaN or Inf written to frame buffer! Iteration: {CurIteration}, Pixel: ({col},{row})");
+            if ((NaNWarnings?.Count ?? 0) < 10)
+                Logger.Warning($"NaN or Inf written to frame buffer. Iteration: {CurIteration}, Pixel: ({col},{row}). " +
+                    $"See FrameBuffer.NaNWarnings (also in .json) for a stack trace, or re-render starting at iteration {CurIteration}.");
+            else if ((NaNWarnings?.Count ?? 0) == 10)
+                Logger.Warning($"NaN or Inf written to frame buffer. Iteration: {CurIteration}, Pixel: ({col},{row}). " +
+                    "Too many NaN / Inf, disabling this warning. Use FrameBuffer.NaNWarnings (also in .json) to see all.");
+            NaNWarnings ??= new();
+            NaNWarnings.Add(new(new Pixel(col, row), CurIteration, Environment.StackTrace));
         }
     }
 
@@ -189,6 +202,7 @@ public class FrameBuffer : IDisposable {
         if (CurIteration == 0) {
             Initialize();
             MetaData["NumIterations"] = 0;
+            StartTime = DateTime.Now;
         }
 
         CurIteration++;
@@ -256,7 +270,9 @@ public class FrameBuffer : IDisposable {
     /// </summary>
     /// <param name="fname">The desired file name. If not given, uses the final image name.</param>
     public void WriteToFile(string fname = null) {
-        if (fname == null) fname = filename;
+        WriteTime = DateTime.Now;
+
+        fname ??= filename;
 
         string dir = Path.GetDirectoryName(fname);
         string fileBase = Path.GetFileNameWithoutExtension(fname);
@@ -282,9 +298,15 @@ public class FrameBuffer : IDisposable {
         if (Errors.Count > 0)
             MetaData["ErrorMetrics"] = Errors;
 
+        if (NaNWarnings != null)
+            MetaData["NaNWarnings"] = NaNWarnings;
+
+        MetaData["RenderStartTime"] = StartTime.ToString("dd/M/yyyy HH:mm:ss");
+        MetaData["RenderWriteTime"] = WriteTime.ToString("dd/M/yyyy HH:mm:ss");
+
         // Write the metadata as json
-        string json = System.Text.Json.JsonSerializer.Serialize(MetaData, options: new() {
-            WriteIndented = true
+        string json = JsonSerializer.Serialize(MetaData, options: new() {
+            WriteIndented = true,
         });
         File.WriteAllText(basename + ".json", json);
     }

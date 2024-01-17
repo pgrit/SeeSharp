@@ -11,6 +11,11 @@ public class PhotonMapper : Integrator {
     public int NumIterations = 2;
 
     /// <summary>
+    /// Maximum number of nearest neighbor photons to search for.
+    /// </summary>
+    public int MaxNumPhotons = 10;
+
+    /// <summary>
     /// Number of light paths in each iteration.
     /// </summary>
     public int NumLightPaths = 0;
@@ -122,7 +127,8 @@ public class PhotonMapper : Integrator {
         radius = MathF.Min(footprint, radius);
 
         RgbColor estimate = RgbColor.Black;
-        photonMap.ForAllNearest(hit.Position, int.MaxValue, radius, (position, idx, distance) => {
+        photonMap.ForAllNearest(hit.Position, int.MaxValue, radius, (position, idx, distance, numFound, maxDist) => {
+            float radiusSquared = numFound == MaxNumPhotons ? maxDist * maxDist : radius * radius;
             estimate += Merge(radius, hit, -ray.Direction, photons[idx].PathIndex, photons[idx].VertexIndex,
                 distance * distance, radius * radius);
         });

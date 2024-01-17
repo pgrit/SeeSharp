@@ -13,6 +13,11 @@ public class VertexConnectionAndMerging : VertexCacheBidir {
     /// </summary>
     public bool EnableMerging = true;
 
+    /// <summary>
+    /// Maximum number of nearest neighbor photons to search for.
+    /// </summary>
+    public int MaxNumPhotons = 8;
+
     TechPyramid techPyramidRaw;
     TechPyramid techPyramidWeighted;
 
@@ -29,7 +34,7 @@ public class VertexConnectionAndMerging : VertexCacheBidir {
     /// <summary>
     /// Acceleration structure to query photons in the scene.
     /// </summary>
-    protected TinyEmbree.NearestNeighborSearch photonMap;
+    protected NearestNeighborSearch photonMap;
 
     /// <summary>
     /// Initializes the radius for photon mapping. The default implementation samples three rays
@@ -242,9 +247,10 @@ public class VertexConnectionAndMerging : VertexCacheBidir {
         float localRadius = ComputeLocalMergeRadius(path.Distances[0]);
 
         RgbColor estimate = RgbColor.Black;
-        photonMap.ForAllNearest(hit.Position, int.MaxValue, localRadius, (position, idx, distance) => {
+        photonMap.ForAllNearest(hit.Position, MaxNumPhotons, localRadius, (position, idx, distance, numFound, maxDist) => {
+            float radiusSquared = numFound == MaxNumPhotons ? maxDist * maxDist : localRadius * localRadius;
             estimate += Merge((path, cameraJacobian), hit, -ray.Direction, photons[idx].PathIndex,
-                photons[idx].VertexIndex, distance * distance, localRadius * localRadius);
+                photons[idx].VertexIndex, distance * distance, radiusSquared);
         });
         return estimate;
     }

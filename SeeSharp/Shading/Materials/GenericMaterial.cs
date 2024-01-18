@@ -113,8 +113,17 @@ public class GenericMaterial : Material {
         return result;
     }
 
+    ThreadLocal<GenericMaterialContext> contextCache = new(() => new());
+
+    public override void PopulateContext(ref ShadingContext context) {
+        context.ShaderData = MakeContext(context);
+    }
+
     GenericMaterialContext MakeContext(in ShadingContext shadingContext) {
-        GenericMaterialContext context = new();
+        if (shadingContext.ShaderData != null)
+            return (GenericMaterialContext)shadingContext.ShaderData;
+
+        var context = contextCache.Value;
         context.ShadingContext = shadingContext;
         context.LocalParameters = ComputeLocalParams(shadingContext.Point.TextureCoordinates);
         context.SelectionWeightsForward = ComputeSelectWeights(context.LocalParameters, shadingContext.OutDir);
@@ -123,6 +132,7 @@ public class GenericMaterial : Material {
         context.DiffuseTransmitComponent = new DiffuseTransmission(context.LocalParameters.baseColor * MaterialParameters.DiffuseTransmittance);
         context.MicroReflectComponent = new MicrofacetReflection<DisneyFresnel>(context.LocalParameters.microfacetDistrib, context.LocalParameters.fresnel, context.LocalParameters.specularTint);
         context.MicroTransmitComponent = new MicrofacetTransmission(context.LocalParameters.specularTransmittance, context.LocalParameters.transmissionDistribution, 1, MaterialParameters.IndexOfRefraction);
+
         return context;
     }
 
@@ -365,7 +375,7 @@ public class GenericMaterial : Material {
         public float Trans;
     }
 
-    struct GenericMaterialContext {
+    class GenericMaterialContext {
         public ShadingContext ShadingContext;
         public Vector3 InDirShadingSpace;
         public Vector3 OutDirShadingSpace => ShadingContext.OutDir;

@@ -25,21 +25,24 @@ public struct ShadingContext {
 
     public Vector3 WorldToShading(in Vector3 dir) => ShadingSpace.WorldToShading(Normal, Tangent, Binormal, dir);
     public Vector3 ShadingToWorld(in Vector3 dir) => ShadingSpace.ShadingToWorld(Normal, Tangent, Binormal, dir);
+
+    public object ShaderData;
 }
 
 /// <summary>
 /// Precomputes the relevant context information to evaluate or sample a material at a surface point,
 /// given an outgoing ray direction.
 /// </summary>
-public readonly struct SurfaceShader {
+public struct SurfaceShader {
     readonly Material material;
 
-    public readonly ShadingContext Context;
+    public ShadingContext Context;
     public SurfacePoint Point => Context.Point;
 
     public SurfaceShader(in SurfacePoint point, in Vector3 outDir, bool isOnLightSubpath) {
         material = point.Material;
         Context = new(point, outDir, isOnLightSubpath);
+        material.PopulateContext(ref Context);
     }
 
     /// <summary>
@@ -129,6 +132,8 @@ public abstract class Material {
         public int NumComponents;
         public int NumComponentsReverse;
     }
+
+    public virtual void PopulateContext(ref ShadingContext context) { }
 
     /// <summary>
     /// Computes the surface roughness, a value between 0 and 1.

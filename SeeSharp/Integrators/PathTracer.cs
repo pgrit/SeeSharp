@@ -74,7 +74,7 @@ public class PathTracer : Integrator {
     /// <summary>
     /// Called whenever direct illumination was estimated via next event estimation
     /// </summary>
-    protected virtual void OnNextEventResult(in Ray ray, in SurfacePoint point, PathState state,
+    protected virtual void OnNextEventResult(in SurfaceShader shader, PathState state,
                                              float misWeight, RgbColor estimate) { }
 
     /// <summary>
@@ -287,8 +287,10 @@ public class PathTracer : Integrator {
 
             OnHit(ray, hit, state);
 
+            SurfaceShader shader = new(hit, -ray.Direction, false);
+
             if (state.Depth == 1 && EnableDenoiser) {
-                var albedo = ((SurfacePoint)hit).Material.GetScatterStrength(hit);
+                var albedo = shader.GetScatterStrength();
                 denoiseBuffers.LogPrimaryHit(state.Pixel, albedo, hit.ShadingNormal);
             }
 
@@ -307,14 +309,14 @@ public class PathTracer : Integrator {
             if (state.Depth + 1 >= MinDepth) {
                 RgbColor nextEventContrib = RgbColor.Black;
                 for (int i = 0; i < NumShadowRays; ++i) {
-                    nextEventContrib += PerformBackgroundNextEvent(ray, hit, state);
-                    nextEventContrib += PerformNextEventEstimation(ray, hit, state);
+                    nextEventContrib += PerformBackgroundNextEvent(shader, state);
+                    nextEventContrib += PerformNextEventEstimation(shader, state);
                 }
                 radianceEstimate += state.PrefixWeight * nextEventContrib / survivalProb;
             }
 
             // Sample a direction to continue the random walk
-            (ray, float bsdfPdf, var bsdfSampleWeight, var approxReflectance) = SampleDirection(ray, hit, state);
+            (ray, float bsdfPdf, var bsdfSampleWeight, var approxReflectance) = SampleDirection(shader, state);
             if (bsdfPdf == 0 || bsdfSampleWeight == RgbColor.Black)
                 break;
 
@@ -347,8 +349,7 @@ public class PathTracer : Integrator {
         return misWeight * emission;
     }
 
-    protected virtual RgbColor OnLightHit(in Ray ray, in SurfacePoint hit, PathState state,
-                                                   Emitter light) {
+    protected virtual RgbColor OnLightHit(in Ray ray, in SurfacePoint hit, PathState state, Emitter light) {
         float misWeight = 1.0f;
         float pdfNextEvt;
         if (state.Depth > 1) { // directly visible emitters are not explicitely connected
@@ -369,15 +370,14 @@ public class PathTracer : Integrator {
         return misWeight * emission;
     }
 
-    protected virtual RgbColor PerformBackgroundNextEvent(in Ray ray, in SurfacePoint hit, PathState state) {
+    protected virtual RgbColor PerformBackgroundNextEvent(in SurfaceShader shader, PathState state) {
         if (scene.Background == null)
             return RgbColor.Black; // There is no background
 
         var sample = scene.Background.SampleDirection(state.Rng.NextFloat2D());
-        if (scene.Raytracer.LeavesScene(hit, sample.Direction)) {
-            var bsdfTimesCosine = hit.Material.EvaluateWithCosine(
-                hit, -ray.Direction, sample.Direction, false);
-            var pdfBsdf = DirectionPdf(hit, -ray.Direction, sample.Direction, state);
+        if (scene.Raytracer.LeavesScene(shader.Point, sample.Direction)) {
+            var bsdfTimesCosine = shader.EvaluateWithCosine(sample.Direction);
+            var pdfBsdf = DirectionPdf(shader, sample.Direction, state);
 
             // Prevent NaN / Inf
             if (pdfBsdf == 0 || sample.Pdf == 0)
@@ -391,13 +391,13 @@ public class PathTracer : Integrator {
             Debug.Assert(float.IsFinite(misWeight));
 
             RegisterSample(state.Pixel, contrib * state.PrefixWeight, misWeight, state.Depth + 1, true);
-            OnNextEventResult(ray, hit, state, misWeight, contrib);
+            OnNextEventResult(shader, state, misWeight, contrib);
             return misWeight * contrib;
         }
         return RgbColor.Black;
     }
 
-    protected virtual RgbColor PerformNextEventEstimation(in Ray ray, in SurfacePoint hit, PathState state) {
+    protected virtual RgbColor PerformNextEventEstimation(in SurfaceShader shader, PathState state) {
         if (scene.Emitters.Count == 0)
             return RgbColor.Black;
 
@@ -408,19 +408,19 @@ public class PathTracer : Integrator {
 
         // Sample a point on the light source
         var lightSample = light.SampleUniformArea(state.Rng.NextFloat2D());
-        Vector3 lightToSurface = Vector3.Normalize(hit.Position - lightSample.Point.Position);
+        Vector3 lightToSurface = Vector3.Normalize(shader.Point.Position - lightSample.Point.Position);
 
-        if (!scene.Raytracer.IsOccluded(hit, lightSample.Point)) {
+        if (!scene.Raytracer.IsOccluded(shader.Point, lightSample.Point)) {
             var emission = light.EmittedRadiance(lightSample.Point, lightToSurface);
 
             // Compute the jacobian for surface area -> solid angle
             // (Inverse of the jacobian for solid angle pdf -> surface area pdf)
-            float jacobian = SampleWarp.SurfaceAreaToSolidAngle(hit, lightSample.Point);
-            var bsdfCos = hit.Material.EvaluateWithCosine(hit, -ray.Direction, -lightToSurface, false);
+            float jacobian = SampleWarp.SurfaceAreaToSolidAngle(shader.Point, lightSample.Point);
+            var bsdfCos = shader.EvaluateWithCosine(-lightToSurface);
 
             // Compute surface area PDFs
             float pdfNextEvt = lightSample.Pdf * lightSelectProb * NumShadowRays;
-            float pdfBsdfSolidAngle = DirectionPdf(hit, -ray.Direction, -lightToSurface, state);
+            float pdfBsdfSolidAngle = DirectionPdf(shader, -lightToSurface, state);
             float pdfBsdf = pdfBsdfSolidAngle * jacobian;
 
             // Avoid Inf / NaN
@@ -435,7 +435,7 @@ public class PathTracer : Integrator {
             var pdf = lightSample.Pdf / jacobian * lightSelectProb * NumShadowRays;
             RegisterSample(state.Pixel, emission / pdf * bsdfCos * state.PrefixWeight, misWeight,
                 state.Depth + 1, true);
-            OnNextEventResult(ray, hit, state, misWeight, emission / pdf * bsdfCos);
+            OnNextEventResult(shader, state, misWeight, emission / pdf * bsdfCos);
             return misWeight * emission / pdf * bsdfCos;
         }
         return RgbColor.Black;
@@ -444,20 +444,18 @@ public class PathTracer : Integrator {
     /// <summary>
     /// Computes the solid angle pdf that <see cref="SampleDirection"/> is using
     /// </summary>
-    /// <param name="hit">The surface point</param>
-    /// <param name="outDir">Direction the path was coming from</param>
+    /// <param name="shader">Shading context at the hit point where the path is resumed</param>
     /// <param name="sampledDir">Direction that could have been sampled</param>
     /// <param name="state">The current state of the path</param>
     /// <returns>Pdf of sampling "sampledDir" when coming from "outDir".</returns>
-    protected virtual float DirectionPdf(in SurfacePoint hit, Vector3 outDir, Vector3 sampledDir,
+    protected virtual float DirectionPdf(in SurfaceShader shader, Vector3 sampledDir,
                                          PathState state)
-    => hit.Material.Pdf(hit, outDir, sampledDir, false).Item1;
+    => shader.Pdf(sampledDir).Item1;
 
     /// <summary>
     /// Samples a direction to continue the path
     /// </summary>
-    /// <param name="ray">Previous ray</param>
-    /// <param name="hit">Current hit point</param>
+    /// <param name="shader">Shading context at the hit point where the path is resumed</param>
     /// <param name="state">Current state of the path</param>
     /// <returns>
     /// The next ray, its pdf, and the contribution (bsdf * cosine / pdf).
@@ -466,11 +464,10 @@ public class PathTracer : Integrator {
     /// BSDF importance sampling is perfect, this is BSDF_value / BSDF_pdf. This is returned here so the
     /// integrator does not have to recompute the BSDF pdf. Useful for path guiding applications.
     /// </returns>
-    protected virtual (Ray, float, RgbColor, RgbColor) SampleDirection(in Ray ray, in SurfacePoint hit,
-                                                                       PathState state) {
+    protected virtual (Ray, float, RgbColor, RgbColor) SampleDirection(in SurfaceShader shader, PathState state) {
         var primary = state.Rng.NextFloat2D();
-        var bsdfSample = hit.Material.Sample(hit, -ray.Direction, false, primary);
-        var bsdfRay = Raytracer.SpawnRay(hit, bsdfSample.Direction);
+        var bsdfSample = shader.Sample(primary);
+        var bsdfRay = Raytracer.SpawnRay(shader.Point, bsdfSample.Direction);
         return (bsdfRay, bsdfSample.Pdf, bsdfSample.Weight, bsdfSample.Weight);
     }
 }

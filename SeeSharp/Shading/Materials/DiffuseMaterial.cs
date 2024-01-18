@@ -1,6 +1,4 @@
-﻿using SeeSharp.Shading.Bsdfs;
-
-namespace SeeSharp.Shading.Materials;
+﻿namespace SeeSharp.Shading.Materials;
 
 /// <summary>
 /// A simple Lambertian material that either only reflects or only transmits.
@@ -40,21 +38,17 @@ public class DiffuseMaterial : Material {
     => MaterialParameters.BaseColor.Lookup(hit.TextureCoordinates);
 
     /// <returns>1/pi * baseColor, or zero if the directions are not in the right hemispheres</returns>
-    public override RgbColor Evaluate(in SurfacePoint hit, Vector3 outDir, Vector3 inDir, bool isOnLightSubpath) {
+    public override RgbColor Evaluate(in ShadingContext context, Vector3 inDir) {
         ShadingStats.NotifyEvaluate();
 
-        bool shouldReflect = ShouldReflect(hit, outDir, inDir);
+        bool shouldReflect = ShouldReflect(context.Point, context.OutDirWorld, inDir);
+        inDir = context.WorldToShading(inDir);
 
-        // Transform directions to shading space and normalize
-        var normal = hit.ShadingNormal;
-        outDir = WorldToShading(normal, outDir);
-        inDir = WorldToShading(normal, inDir);
-
-        var baseColor = MaterialParameters.BaseColor.Lookup(hit.TextureCoordinates);
+        var baseColor = MaterialParameters.BaseColor.Lookup(context.Point.TextureCoordinates);
         if (MaterialParameters.Transmitter && !shouldReflect) {
-            return new DiffuseTransmission(baseColor).Evaluate(outDir, inDir, isOnLightSubpath);
+            return new DiffuseTransmission(baseColor).Evaluate(context.OutDir, inDir, context.IsOnLightSubpath);
         } else if (shouldReflect) {
-            return new DiffuseBsdf(baseColor).Evaluate(outDir, inDir, isOnLightSubpath);
+            return new DiffuseBsdf(baseColor).Evaluate(context.OutDir, inDir, context.IsOnLightSubpath);
         } else
             return RgbColor.Black;
     }
@@ -62,42 +56,37 @@ public class DiffuseMaterial : Material {
     /// <summary>
     /// Importance samples the cosine hemisphere
     /// </summary>
-    public override BsdfSample Sample(in SurfacePoint hit, Vector3 outDir, bool isOnLightSubpath,
-                                      Vector2 primarySample, ref ComponentWeights componentWeights) {
+    public override BsdfSample Sample(in ShadingContext context, Vector2 primarySample, ref ComponentWeights componentWeights) {
         ShadingStats.NotifySample();
 
-        var normal = hit.ShadingNormal;
-        outDir = WorldToShading(normal, outDir);
-
-        var baseColor = MaterialParameters.BaseColor.Lookup(hit.TextureCoordinates);
+        var baseColor = MaterialParameters.BaseColor.Lookup(context.Point.TextureCoordinates);
         Vector3? sample;
         if (MaterialParameters.Transmitter) {
             // Pick either transmission or reflection
             if (primarySample.X < 0.5f) {
                 var remapped = primarySample;
                 remapped.X = Math.Min(primarySample.X / 0.5f, 1);
-                sample = new DiffuseTransmission(baseColor).Sample(outDir, isOnLightSubpath, remapped);
+                sample = new DiffuseTransmission(baseColor).Sample(context.OutDir, context.IsOnLightSubpath, remapped);
             } else {
                 var remapped = primarySample;
                 remapped.X = Math.Min((primarySample.X - 0.5f) / 0.5f, 1);
-                sample = new DiffuseBsdf(baseColor).Sample(outDir, isOnLightSubpath, remapped);
+                sample = new DiffuseBsdf(baseColor).Sample(context.OutDir, context.IsOnLightSubpath, remapped);
             }
         } else {
-            sample = new DiffuseBsdf(baseColor).Sample(outDir, isOnLightSubpath, primarySample);
+            sample = new DiffuseBsdf(baseColor).Sample(context.OutDir, context.IsOnLightSubpath, primarySample);
         }
 
         // Terminate if no valid direction was sampled
         if (!sample.HasValue)
             return BsdfSample.Invalid;
 
-        var sampledDir = ShadingToWorld(normal, sample.Value);
+        var sampledDir = ShadingToWorld(context.Normal, sample.Value);
 
         // Evaluate all components
-        var outWorld = ShadingToWorld(normal, outDir);
-        var value = EvaluateWithCosine(hit, outWorld, sampledDir, isOnLightSubpath);
+        var value = EvaluateWithCosine(context, sampledDir);
 
         // Compute all pdfs
-        var (pdfFwd, pdfRev) = Pdf(hit, outWorld, sampledDir, isOnLightSubpath, ref componentWeights);
+        var (pdfFwd, pdfRev) = Pdf(context, sampledDir, ref componentWeights);
         if (pdfFwd == 0)
             return BsdfSample.Invalid;
 
@@ -111,19 +100,15 @@ public class DiffuseMaterial : Material {
     }
 
     /// <returns>PDF value used by <see cref="Sample"/></returns>
-    public override (float, float) Pdf(in SurfacePoint hit, Vector3 outDir, Vector3 inDir, bool isOnLightSubpath,
-                                       ref ComponentWeights componentWeights) {
+    public override (float, float) Pdf(in ShadingContext context, Vector3 inDir, ref ComponentWeights componentWeights) {
         ShadingStats.NotifyPdfCompute();
 
-        // Transform directions to shading space and normalize
-        var normal = hit.ShadingNormal;
-        outDir = WorldToShading(normal, outDir);
-        inDir = WorldToShading(normal, inDir);
+        inDir = context.WorldToShading(inDir);
 
-        var baseColor = MaterialParameters.BaseColor.Lookup(hit.TextureCoordinates);
-        var reflectPdf = new DiffuseBsdf(baseColor).Pdf(outDir, inDir, isOnLightSubpath);
+        var baseColor = MaterialParameters.BaseColor.Lookup(context.Point.TextureCoordinates);
+        var reflectPdf = new DiffuseBsdf(baseColor).Pdf(context.OutDir, inDir, context.IsOnLightSubpath);
         if (MaterialParameters.Transmitter) {
-            var transmitPdf = new DiffuseTransmission(baseColor).Pdf(outDir, inDir, isOnLightSubpath);
+            var transmitPdf = new DiffuseTransmission(baseColor).Pdf(context.OutDir, inDir, context.IsOnLightSubpath);
             float pdfFwd = (reflectPdf.Item1 + transmitPdf.Item1) * 0.5f;
             float pdfRev = (reflectPdf.Item2 + transmitPdf.Item2) * 0.5f;
 

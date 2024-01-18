@@ -84,15 +84,15 @@ public class GenericMaterial : Material {
     => MaterialParameters.BaseColor.Lookup(hit.TextureCoordinates);
 
     /// <returns>BSDF value</returns>
-    public override RgbColor Evaluate(in SurfacePoint hit, Vector3 outDir, Vector3 inDir, bool isOnLightSubpath) {
-        var context = MakeContext(hit, outDir, inDir);
-        return Evaluate(context, isOnLightSubpath);
+    public override RgbColor Evaluate(in ShadingContext context, Vector3 inDir) {
+        return Evaluate(MakeContext(context, inDir));
     }
 
-    RgbColor Evaluate(in ShadingContext context, bool isOnLightSubpath) {
+    RgbColor Evaluate(in GenericMaterialContext context) {
         ShadingStats.NotifyEvaluate();
 
         // Evaluate all components
+        bool isOnLightSubpath = context.ShadingContext.IsOnLightSubpath;
         var result = RgbColor.Black;
         if (context.LocalParameters.diffuseWeight > 0 && context.SameHemisphere) {
             result += context.DiffuseComponent.Evaluate(context.OutDirShadingSpace, context.InDirShadingSpace, isOnLightSubpath);
@@ -113,13 +113,11 @@ public class GenericMaterial : Material {
         return result;
     }
 
-    ShadingContext MakeContext(in SurfacePoint hit, Vector3 outDir) {
-        ShadingContext context = new();
-        context.Normal = hit.ShadingNormal;
-        ComputeBasisVectors(context.Normal, out context.Tangent, out context.Binormal);
-        context.OutDirShadingSpace = WorldToShading(context.Normal, context.Tangent, context.Binormal, outDir);
-        context.LocalParameters = ComputeLocalParams(hit.TextureCoordinates);
-        context.SelectionWeightsForward = ComputeSelectWeights(context.LocalParameters, context.OutDirShadingSpace);
+    GenericMaterialContext MakeContext(in ShadingContext shadingContext) {
+        GenericMaterialContext context = new();
+        context.ShadingContext = shadingContext;
+        context.LocalParameters = ComputeLocalParams(shadingContext.Point.TextureCoordinates);
+        context.SelectionWeightsForward = ComputeSelectWeights(context.LocalParameters, shadingContext.OutDir);
         context.RetroComponent = new DisneyRetroReflection(context.LocalParameters.retroReflectance, context.LocalParameters.roughness);
         context.DiffuseComponent = new DisneyDiffuse(context.LocalParameters.diffuseReflectance);
         context.DiffuseTransmitComponent = new DiffuseTransmission(context.LocalParameters.baseColor * MaterialParameters.DiffuseTransmittance);
@@ -128,21 +126,21 @@ public class GenericMaterial : Material {
         return context;
     }
 
-    ShadingContext MakeContext(in SurfacePoint hit, Vector3 outDir, Vector3 inDir) {
-        var context = MakeContext(hit, outDir);
-        context.InDirShadingSpace = WorldToShading(context.Normal, context.Tangent, context.Binormal, inDir);
-        var (_, r) = ComputeSelectWeights(context.LocalParameters, context.OutDirShadingSpace, context.InDirShadingSpace);
+    GenericMaterialContext MakeContext(in ShadingContext shadingContext, Vector3 inDir) {
+        var context = MakeContext(shadingContext);
+        context.InDirShadingSpace = shadingContext.WorldToShading(inDir);
+        var (_, r) = ComputeSelectWeights(context.LocalParameters, shadingContext.OutDir, context.InDirShadingSpace);
         context.SelectionWeightsReverse = r;
-        context.SameHemisphere = ShouldReflect(hit, outDir, inDir);
+        context.SameHemisphere = ShouldReflect(shadingContext.Point, shadingContext.OutDirWorld, inDir);
         return context;
     }
 
     /// <summary>Crudely importance samples the combined BSDFs</summary>
-    public override BsdfSample Sample(in SurfacePoint hit, Vector3 outDir, bool isOnLightSubpath,
-                                      Vector2 primarySample, ref ComponentWeights componentWeights) {
+    public override BsdfSample Sample(in ShadingContext shadingContext, Vector2 primarySample, ref ComponentWeights componentWeights) {
         ShadingStats.NotifySample();
 
-        var context = MakeContext(hit, outDir);
+        var context = MakeContext(shadingContext);
+        bool isOnLightSubpath = context.ShadingContext.IsOnLightSubpath;
 
         // Select a component to sample from
         // TODO this can be done in a loop if the selection probs are in an array
@@ -180,14 +178,14 @@ public class GenericMaterial : Material {
         if (!sample.HasValue) return BsdfSample.Invalid;
 
         context.InDirShadingSpace = sample.Value;
-        var sampledDir = ShadingToWorld(context.Normal, context.Tangent, context.Binormal, sample.Value);
-        context.SameHemisphere = ShouldReflect(hit, outDir, sampledDir);
+        var sampledDir = context.ShadingContext.ShadingToWorld(sample.Value);
+        context.SameHemisphere = ShouldReflect(context.ShadingContext.Point, context.OutDirShadingSpace, sampledDir);
         var (_, r) = ComputeSelectWeights(context.LocalParameters, context.OutDirShadingSpace, context.InDirShadingSpace);
         context.SelectionWeightsReverse = r;
 
-        var value = Evaluate(context, isOnLightSubpath) * AbsCosTheta(context.InDirShadingSpace);
+        var value = Evaluate(context) * AbsCosTheta(context.InDirShadingSpace);
 
-        var (pdfFwd, pdfRev) = Pdf(context, isOnLightSubpath, ref componentWeights);
+        var (pdfFwd, pdfRev) = Pdf(context, ref componentWeights);
         if (pdfFwd == 0) return BsdfSample.Invalid;
 
         Debug.Assert(float.IsFinite(value.Average / pdfFwd) && pdfFwd > 0);
@@ -202,8 +200,9 @@ public class GenericMaterial : Material {
         };
     }
 
-    (float, float) Pdf(in ShadingContext context, bool isOnLightSubpath, ref ComponentWeights components) {
+    (float, float) Pdf(in GenericMaterialContext context, ref ComponentWeights components) {
         ShadingStats.NotifyPdfCompute();
+        bool isOnLightSubpath = context.ShadingContext.IsOnLightSubpath;
 
         // Compute the sum of all pdf values
         float pdfFwd = 0, pdfRev = 0;
@@ -282,9 +281,8 @@ public class GenericMaterial : Material {
         return (pdfFwd, pdfRev);
     }
 
-    public override (float, float) Pdf(in SurfacePoint hit, Vector3 outDir, Vector3 inDir,
-                                       bool isOnLightSubpath, ref ComponentWeights components) {
-        return Pdf(MakeContext(hit, outDir, inDir), isOnLightSubpath, ref components);
+    public override (float, float) Pdf(in ShadingContext context, Vector3 inDir, ref ComponentWeights components) {
+        return Pdf(MakeContext(context, inDir), ref components);
     }
 
     public override int MaxSamplingComponents => 5;
@@ -367,15 +365,14 @@ public class GenericMaterial : Material {
         public float Trans;
     }
 
-    struct ShadingContext {
+    struct GenericMaterialContext {
+        public ShadingContext ShadingContext;
+        public Vector3 InDirShadingSpace;
+        public Vector3 OutDirShadingSpace => ShadingContext.OutDir;
         public SelectionWeights SelectionWeightsForward;
         public SelectionWeights SelectionWeightsReverse;
         public LocalParams LocalParameters;
-        public Vector3 OutDirShadingSpace;
-        public Vector3 InDirShadingSpace;
-        public Vector3 Normal, Tangent, Binormal;
         public bool SameHemisphere;
-
         public DisneyDiffuse DiffuseComponent;
         public DisneyRetroReflection RetroComponent;
         public MicrofacetTransmission MicroTransmitComponent;

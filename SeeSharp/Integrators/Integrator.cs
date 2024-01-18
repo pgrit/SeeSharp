@@ -5,9 +5,9 @@
 /// </summary>
 public abstract class Integrator {
     /// <summary>
-    /// Maximum path length for global illumination algorithms. Default is 5.
+    /// Maximum path length for global illumination algorithms. Default is 100.
     /// </summary>
-    public int MaxDepth { get; set; } = 5;
+    public int MaxDepth { get; set; } = 100;
 
     /// <summary>
     /// Minimum length (in edges) of a path that can contribute to the image. If set to 2, e.g., directly

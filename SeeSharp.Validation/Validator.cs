@@ -66,12 +66,12 @@ class Validator {
                 { "PathTracer", new PathTracer() {
                    TotalSpp = sceneFactory.SamplesPerPixel,
                    MaxDepth = sceneFactory.MaxDepth,
-                   MinDepth = 1
+                   RenderTechniquePyramid = false,
                 }},
                 { "ClassicBidir", new ClassicBidir() {
                     NumIterations = sceneFactory.SamplesPerPixel / 2,
                     MaxDepth = sceneFactory.MaxDepth,
-                    RenderTechniquePyramid = false
+                    RenderTechniquePyramid = false,
                 }},
                 { "Vcm", new VertexConnectionAndMerging() {
                     NumIterations = sceneFactory.SamplesPerPixel / 2,

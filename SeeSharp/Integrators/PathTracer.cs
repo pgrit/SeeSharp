@@ -92,7 +92,7 @@ public class PathTracer : Integrator {
     /// <summary>
     /// Called after a path has finished tracing and its contribution was added to the corresponding pixel.
     /// </summary>
-    protected virtual void OnFinishedPath(in RadianceEstimate estimate, PathState state) { }
+    protected virtual void OnFinishedPath(RgbColor estimate, PathState state) { }
 
     /// <summary> Called after the scene was submitted, before rendering starts. </summary>
     protected virtual void OnPrepareRender() { }
@@ -138,7 +138,13 @@ public class PathTracer : Integrator {
         /// <summary>
         /// Product of BSDF terms and cosines, divided by sampling pdfs, along the path so far.
         /// </summary>
-        public RgbColor Throughput { get; set; }
+        public RgbColor PrefixWeight { get; set; }
+
+        /// <summary>
+        /// Product of (approximated) surface reflectances along the path so far. Useful for Russian roulette.
+        /// (Without path guiding, this is usually the same as the PrefixWeight)
+        /// </summary>
+        public RgbColor ApproxThroughput { get; set; }
 
         /// <summary>
         /// Number of edges (rays) that have been sampled so far
@@ -154,36 +160,6 @@ public class PathTracer : Integrator {
         /// The solid angle pdf of the last ray that was sampled (required for MIS)
         /// </summary>
         public float PreviousPdf { get; set; }
-    }
-
-    /// <summary>
-    /// Outgoing radiance estimate at a shading point, split into multiple components
-    /// </summary>
-    protected struct RadianceEstimate {
-        /// <summary>
-        /// Emitted radiance L_e
-        /// </summary>
-        public RgbColor Emitted { get; init; }
-
-        /// <summary>
-        /// Reflected radiance (integral over all directions of incident radiance times BSDF and cosine)
-        /// </summary>
-        public RgbColor Reflected { get; init; }
-
-        /// <summary>
-        /// The pdf of computing the direct illumination contribution via next event estimation.
-        /// </summary>
-        public float NextEventPdf { get; init; }
-
-        /// <summary>
-        /// The full outgoing radiance estimate
-        /// </summary>
-        public RgbColor Outgoing => Emitted + Reflected;
-
-        /// <summary>
-        /// Initializes the structure for a fully black, zero-radiance estimate
-        /// </summary>
-        public static RadianceEstimate Absorbed => new();
     }
 
     /// <summary>
@@ -260,6 +236,21 @@ public class PathTracer : Integrator {
     protected virtual PathState MakePathState() => new PathState();
 
     /// <summary>
+    /// Decides the Russian roulette probability. The default uses a naive mix of minimum depth and current
+    /// path throughput.
+    /// </summary>
+    /// <param name="ray">The last ray</param>
+    /// <param name="point">The current hit point</param>
+    /// <param name="state">State of the path (contains throughput, length, etc.)</param>
+    /// <returns>Probability with which to continue the path. Must be in [0, 1]</returns>
+    protected virtual float ComputeSurvivalProbability(in Ray ray, in SurfacePoint point, PathState state) {
+        if (state.Depth > 4)
+            return Math.Clamp(state.ApproxThroughput.Average, 0.0f, 0.95f);
+        else
+            return 1.0f;
+    }
+
+    /// <summary>
     /// Updates the estimate of one pixel. Called once per iteration for every pixel.
     /// </summary>
     protected virtual void RenderPixel(uint row, uint col, RNG rng) {
@@ -271,95 +262,79 @@ public class PathTracer : Integrator {
         var state = MakePathState();
         state.Pixel = new((int)col, (int)row);
         state.Rng = rng;
-        state.Throughput = RgbColor.White;
+        state.PrefixWeight = RgbColor.White;
         state.Depth = 1;
 
         OnStartPath(state);
         var estimate = EstimateIncidentRadiance(primaryRay, state);
         OnFinishedPath(estimate, state);
 
-        scene.FrameBuffer.Splat(state.Pixel, estimate.Outgoing);
+        scene.FrameBuffer.Splat(state.Pixel, estimate);
     }
 
-    protected virtual RadianceEstimate EstimateIncidentRadiance(in Ray ray, PathState state) {
-        // Trace the next ray
-        if (state.Depth > MaxDepth)
-            return RadianceEstimate.Absorbed;
-        var hit = scene.Raytracer.Trace(ray);
+    protected virtual RgbColor EstimateIncidentRadiance(Ray ray, PathState state) {
+        RgbColor radianceEstimate = RgbColor.Black;
 
-        RgbColor directHitContrib = RgbColor.Black;
-        float nextEventPdf = 0;
+        while (state.Depth <= MaxDepth) {
+            var hit = scene.Raytracer.Trace(ray);
 
-        if (!hit && state.Depth >= MinDepth) {
-            (directHitContrib, nextEventPdf) = OnBackgroundHit(ray, state);
-            return new RadianceEstimate {
-                Emitted = directHitContrib,
-                NextEventPdf = nextEventPdf
-            };
-        } else if (!hit) {
-            return RadianceEstimate.Absorbed;
-        }
-
-        OnHit(ray, hit, state);
-
-        if (state.Depth == 1 && EnableDenoiser) {
-            var albedo = ((SurfacePoint)hit).Material.GetScatterStrength(hit);
-            denoiseBuffers.LogPrimaryHit(state.Pixel, albedo, hit.ShadingNormal);
-        }
-
-        // Check if a light source was hit.
-        Emitter light = scene.QueryEmitter(hit);
-        if (light != null && state.Depth >= MinDepth) {
-            (directHitContrib, nextEventPdf) = OnLightHit(ray, hit, state, light);
-        }
-
-        RgbColor nextEventContrib = RgbColor.Black;
-        // Perform next event estimation
-        if (state.Depth + 1 >= MinDepth && state.Depth < MaxDepth) {
-            for (int i = 0; i < NumShadowRays; ++i) {
-                nextEventContrib += PerformBackgroundNextEvent(ray, hit, state);
-                nextEventContrib += PerformNextEventEstimation(ray, hit, state);
+            // Did the ray leave the scene?
+            if (!hit) {
+                if (state.Depth >= MinDepth)
+                    radianceEstimate += state.PrefixWeight * OnBackgroundHit(ray, state);
+                break;
             }
+
+            OnHit(ray, hit, state);
+
+            if (state.Depth == 1 && EnableDenoiser) {
+                var albedo = ((SurfacePoint)hit).Material.GetScatterStrength(hit);
+                denoiseBuffers.LogPrimaryHit(state.Pixel, albedo, hit.ShadingNormal);
+            }
+
+            // Check if a light source was hit.
+            Emitter light = scene.QueryEmitter(hit);
+            if (light != null && state.Depth >= MinDepth) {
+                radianceEstimate += state.PrefixWeight * OnLightHit(ray, hit, state, light);
+            }
+
+            // Path termination with Russian roulette
+            float survivalProb = ComputeSurvivalProbability(ray, hit, state);
+            if (state.Rng.NextFloat() > survivalProb || state.Depth == MaxDepth)
+                break;
+
+            // Perform next event estimation
+            if (state.Depth + 1 >= MinDepth) {
+                RgbColor nextEventContrib = RgbColor.Black;
+                for (int i = 0; i < NumShadowRays; ++i) {
+                    nextEventContrib += PerformBackgroundNextEvent(ray, hit, state);
+                    nextEventContrib += PerformNextEventEstimation(ray, hit, state);
+                }
+                radianceEstimate += state.PrefixWeight * nextEventContrib / survivalProb;
+            }
+
+            // Sample a direction to continue the random walk
+            (ray, float bsdfPdf, var bsdfSampleWeight, var approxReflectance) = SampleDirection(ray, hit, state);
+            if (bsdfPdf == 0 || bsdfSampleWeight == RgbColor.Black)
+                break;
+
+            // Recursively estimate the incident radiance and log the result
+            state.PrefixWeight *= bsdfSampleWeight / survivalProb;
+            state.ApproxThroughput *= approxReflectance;
+            state.Depth++;
+            state.PreviousHit = hit;
+            state.PreviousPdf = bsdfPdf * survivalProb;
         }
 
-        // Terminate early if this is the last desired bounce
-        if (state.Depth >= MaxDepth) {
-            return new RadianceEstimate {
-                Emitted = directHitContrib,
-                NextEventPdf = nextEventPdf,
-                Reflected = nextEventContrib
-            };
-        }
-
-        // Sample a direction to continue the random walk
-        (var bsdfRay, float bsdfPdf, var bsdfSampleWeight) = SampleDirection(ray, hit, state);
-        if (bsdfPdf == 0 || bsdfSampleWeight == RgbColor.Black)
-            return new RadianceEstimate {
-                Emitted = directHitContrib,
-                NextEventPdf = nextEventPdf,
-                Reflected = nextEventContrib
-            };
-
-        // Recursively estimate the incident radiance and log the result
-        state.Throughput *= bsdfSampleWeight;
-        state.Depth += 1;
-        state.PreviousHit = hit;
-        state.PreviousPdf = bsdfPdf;
-        var nested = EstimateIncidentRadiance(bsdfRay, state);
-
-        return new RadianceEstimate {
-            Emitted = directHitContrib,
-            NextEventPdf = nextEventPdf,
-            Reflected = nextEventContrib + nested.Outgoing * bsdfSampleWeight
-        };
+        return radianceEstimate;
     }
 
-    protected virtual (RgbColor, float) OnBackgroundHit(in Ray ray, PathState state) {
+    protected virtual RgbColor OnBackgroundHit(in Ray ray, PathState state) {
         if (scene.Background == null || !EnableBsdfDI)
-            return (RgbColor.Black, 0);
+            return RgbColor.Black;
 
         float misWeight = 1.0f;
-        float pdfNextEvent = 0;
+        float pdfNextEvent;
         if (state.Depth > 1) {
             // Compute the balance heuristic MIS weight
             pdfNextEvent = scene.Background.DirectionPdf(ray.Direction) * NumShadowRays;
@@ -367,15 +342,15 @@ public class PathTracer : Integrator {
         }
 
         var emission = scene.Background.EmittedRadiance(ray.Direction);
-        RegisterSample(state.Pixel, emission * state.Throughput, misWeight, state.Depth, false);
+        RegisterSample(state.Pixel, emission * state.PrefixWeight, misWeight, state.Depth, false);
         OnHitLightResult(ray, state, misWeight, emission, true);
-        return (misWeight * emission, pdfNextEvent);
+        return misWeight * emission;
     }
 
-    protected virtual (RgbColor, float) OnLightHit(in Ray ray, in SurfacePoint hit, PathState state,
+    protected virtual RgbColor OnLightHit(in Ray ray, in SurfacePoint hit, PathState state,
                                                    Emitter light) {
         float misWeight = 1.0f;
-        float pdfNextEvt = 0;
+        float pdfNextEvt;
         if (state.Depth > 1) { // directly visible emitters are not explicitely connected
                                // Compute the solid angle pdf of next event
             var jacobian = SampleWarp.SurfaceAreaToSolidAngle(state.PreviousHit.Value, hit);
@@ -389,9 +364,9 @@ public class PathTracer : Integrator {
         }
 
         var emission = light.EmittedRadiance(hit, -ray.Direction);
-        RegisterSample(state.Pixel, emission * state.Throughput, misWeight, state.Depth, false);
+        RegisterSample(state.Pixel, emission * state.PrefixWeight, misWeight, state.Depth, false);
         OnHitLightResult(ray, state, misWeight, emission, false);
-        return (misWeight * emission, pdfNextEvt);
+        return misWeight * emission;
     }
 
     protected virtual RgbColor PerformBackgroundNextEvent(in Ray ray, in SurfacePoint hit, PathState state) {
@@ -415,7 +390,7 @@ public class PathTracer : Integrator {
             Debug.Assert(float.IsFinite(contrib.Average));
             Debug.Assert(float.IsFinite(misWeight));
 
-            RegisterSample(state.Pixel, contrib * state.Throughput, misWeight, state.Depth + 1, true);
+            RegisterSample(state.Pixel, contrib * state.PrefixWeight, misWeight, state.Depth + 1, true);
             OnNextEventResult(ray, hit, state, misWeight, contrib);
             return misWeight * contrib;
         }
@@ -458,7 +433,7 @@ public class PathTracer : Integrator {
             // Compute the final sample weight, account for the change of variables from light source area
             // to the hemisphere about the shading point.
             var pdf = lightSample.Pdf / jacobian * lightSelectProb * NumShadowRays;
-            RegisterSample(state.Pixel, emission / pdf * bsdfCos * state.Throughput, misWeight,
+            RegisterSample(state.Pixel, emission / pdf * bsdfCos * state.PrefixWeight, misWeight,
                 state.Depth + 1, true);
             OnNextEventResult(ray, hit, state, misWeight, emission / pdf * bsdfCos);
             return misWeight * emission / pdf * bsdfCos;
@@ -487,12 +462,15 @@ public class PathTracer : Integrator {
     /// <returns>
     /// The next ray, its pdf, and the contribution (bsdf * cosine / pdf).
     /// If sampling was not successful, the pdf will be zero and the path should be terminated.
+    /// The last value returned is an approximation of the surface reflectance. Under the assumption that
+    /// BSDF importance sampling is perfect, this is BSDF_value / BSDF_pdf. This is returned here so the
+    /// integrator does not have to recompute the BSDF pdf. Useful for path guiding applications.
     /// </returns>
-    protected virtual (Ray, float, RgbColor) SampleDirection(in Ray ray, in SurfacePoint hit,
-                                                             PathState state) {
+    protected virtual (Ray, float, RgbColor, RgbColor) SampleDirection(in Ray ray, in SurfacePoint hit,
+                                                                       PathState state) {
         var primary = state.Rng.NextFloat2D();
         var bsdfSample = hit.Material.Sample(hit, -ray.Direction, false, primary);
         var bsdfRay = Raytracer.SpawnRay(hit, bsdfSample.Direction);
-        return (bsdfRay, bsdfSample.Pdf, bsdfSample.Weight);
+        return (bsdfRay, bsdfSample.Pdf, bsdfSample.Weight, bsdfSample.Weight);
     }
 }

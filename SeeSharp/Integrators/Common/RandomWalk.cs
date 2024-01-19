@@ -62,11 +62,11 @@ public class RandomWalk {
         return estimate + ContinueWalk(ray, hit, pdfNext, initialWeight * weight, 2);
     }
 
-    protected virtual RgbColor OnInvalidHit(Ray ray, float pdfFromAncestor, RgbColor throughput, int depth) {
+    protected virtual RgbColor OnInvalidHit(Ray ray, float pdfFromAncestor, RgbColor prefixWeight, int depth) {
         return RgbColor.Black;
     }
 
-    protected virtual RgbColor OnHit(in SurfaceShader shader, float pdfFromAncestor, RgbColor throughput,
+    protected virtual RgbColor OnHit(in SurfaceShader shader, float pdfFromAncestor, RgbColor prefixWeight,
                                      int depth, float toAncestorJacobian) {
         return RgbColor.Black;
     }
@@ -75,10 +75,13 @@ public class RandomWalk {
 
     protected virtual void OnTerminate() { }
 
+    RgbColor ApproxThroughput = RgbColor.White;
+
     protected virtual (float, float, RgbColor, Vector3) SampleNextDirection(in SurfaceShader shader,
-                                                                            RgbColor throughput,
+                                                                            RgbColor prefixWeight,
                                                                             int depth) {
         var bsdfSample = shader.Sample(rng.NextFloat2D());
+        ApproxThroughput *= bsdfSample.Weight;
         return (
             bsdfSample.Pdf,
             bsdfSample.PdfReverse,
@@ -87,15 +90,19 @@ public class RandomWalk {
         );
     }
 
-    protected virtual float ComputeSurvivalProbability(SurfacePoint hit, Ray ray, RgbColor throughput, int depth)
-    => 1.0f;
+    protected virtual float ComputeSurvivalProbability(SurfacePoint hit, Ray ray, RgbColor prefixWeight, int depth) {
+        if (depth > 4)
+            return Math.Clamp(ApproxThroughput.Average, 0.0f, 0.95f);
+        else
+            return 1.0f;
+    }
 
-    RgbColor ContinueWalk(Ray ray, SurfacePoint previousPoint, float pdfDirection, RgbColor throughput, int depth) {
+    RgbColor ContinueWalk(Ray ray, SurfacePoint previousPoint, float pdfDirection, RgbColor prefixWeight, int depth) {
         RgbColor estimate = RgbColor.Black;
         while (depth < maxDepth) {
             var hit = scene.Raytracer.Trace(ray);
             if (!hit) {
-                estimate += OnInvalidHit(ray, pdfDirection, throughput, depth);
+                estimate += OnInvalidHit(ray, pdfDirection, prefixWeight, depth);
                 break;
             }
 
@@ -109,19 +116,19 @@ public class RandomWalk {
             if (pdfFromAncestor == 0) break;
 
             float jacobian = SampleWarp.SurfaceAreaToSolidAngle(hit, previousPoint);
-            estimate += OnHit(shader, pdfFromAncestor, throughput, depth, jacobian);
+            estimate += OnHit(shader, pdfFromAncestor, prefixWeight, depth, jacobian);
 
             // Don't sample continuations if we are going to terminate anyway
             if (depth + 1 >= maxDepth)
                 break;
 
             // Terminate with Russian roulette
-            float survivalProb = ComputeSurvivalProbability(hit, ray, throughput, depth);
+            float survivalProb = ComputeSurvivalProbability(hit, ray, prefixWeight, depth);
             if (rng.NextFloat() > survivalProb)
                 break;
 
             // Sample the next direction and convert the reverse pdf
-            var (pdfNext, pdfReverse, weight, direction) = SampleNextDirection(shader, throughput, depth);
+            var (pdfNext, pdfReverse, weight, direction) = SampleNextDirection(shader, prefixWeight, depth);
             float pdfToAncestor = pdfReverse * SampleWarp.SurfaceAreaToSolidAngle(hit, previousPoint);
 
             OnContinue(pdfToAncestor, depth);
@@ -130,7 +137,7 @@ public class RandomWalk {
                 break;
 
             // Continue the path with the next ray
-            throughput *= weight / survivalProb;
+            prefixWeight *= weight / survivalProb;
             depth++;
             pdfDirection = pdfNext * survivalProb;
             previousPoint = hit;

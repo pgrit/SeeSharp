@@ -146,14 +146,15 @@ public class FrameBuffer : IDisposable {
         // Catch invalid values in long running Release mode renderings.
         // Ideally can be reproduced with a single sample from a correctly seeded RNG.
         if (!float.IsFinite(value.Average)) {
-            if ((NaNWarnings?.Count ?? 0) < 10)
-                Logger.Warning($"NaN or Inf written to frame buffer. Iteration: {CurIteration}, Pixel: ({col},{row}). " +
-                    $"See FrameBuffer.NaNWarnings (also in .json) for a stack trace, or re-render starting at iteration {CurIteration}.");
-            else if ((NaNWarnings?.Count ?? 0) == 10)
-                Logger.Warning($"NaN or Inf written to frame buffer. Iteration: {CurIteration}, Pixel: ({col},{row}). " +
-                    "Too many NaN / Inf, disabling this warning. Use FrameBuffer.NaNWarnings (also in .json) to see all.");
-            NaNWarnings ??= new();
-            NaNWarnings.Add(new(new Pixel(col, row), CurIteration, Environment.StackTrace));
+            lock (NaNWarnings) {
+                if (NaNWarnings.Count < 4)
+                    Logger.Warning($"NaN or Inf written to frame buffer. Iteration: {CurIteration}, Pixel: ({col},{row}). " +
+                        $"See FrameBuffer.NaNWarnings (also in .json) for a stack trace, or re-render starting at iteration {CurIteration}.");
+                else if (NaNWarnings.Count == 4)
+                    Logger.Warning($"NaN or Inf written to frame buffer. Iteration: {CurIteration}, Pixel: ({col},{row}). " +
+                        "Too many NaN / Inf, disabling this warning. Use FrameBuffer.NaNWarnings (also in .json) to see all.");
+                NaNWarnings.Add(new(new Pixel(col, row), CurIteration, Environment.StackTrace));
+            }
         }
     }
 
@@ -203,6 +204,7 @@ public class FrameBuffer : IDisposable {
             Initialize();
             MetaData["NumIterations"] = 0;
             StartTime = DateTime.Now;
+            NaNWarnings = new();
         }
 
         CurIteration++;

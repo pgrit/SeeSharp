@@ -12,7 +12,6 @@ public class PathCache {
     /// <param name="expectedPathLength">The (expected) average number of vertices along each path</param>
     public PathCache(int numPaths, int expectedPathLength) {
         vertices = new PathVertex[numPaths * expectedPathLength];
-        // next = new int[numPaths];
         pathEndpoints = new int[numPaths];
         pathLengths = new int[numPaths];
     }
@@ -30,11 +29,9 @@ public class PathCache {
             while (offset > 0) {
                 idx = vertices[idx].AncestorId;
                 offset--;
-                // TODO handle dropped vertices?
             }
             return ref vertices[idx];
         }
-        // get => ref vertices[pathIdx * pathCapacity + vertexIdx];
     }
 
     /// <summary>
@@ -60,8 +57,6 @@ public class PathCache {
     /// Deletes all paths
     /// </summary>
     public void Clear() {
-        // int overflow = nextIdx - vertices.Length;
-
         if (overflow > 0) {
             Logger.Warning($"Path cache overflow. Resizing to fit {overflow * 2} additional vertices.");
             vertices = new PathVertex[vertices.Length + overflow * 2];
@@ -88,18 +83,16 @@ public class PathCache {
             this.overflow += overflow;
             totalUnused += unused;
         }
-
-        // Array.Sort(vertices, 0, nextIdx, new VertexOrder());
-        // nextIdx -= totalUnused;
-
-        // for (int i = 0; i < vertices.Length; ++i) {
-        //     if (vertices[i].AncestorId >= 0) vertices[i].AncestorId = i - 1;
-        // }
+        // TODO compact the holes after flushing incomplete caches
     }
 
     /// <param name="index">Index of a path</param>
     /// <returns>The number of vertices along the path</returns>
-    public int Length(int index) => pathLengths[index];
+    public int Length(int index) {
+        if (pathEndpoints[index] > vertices.Length)
+            return 0;
+        return pathLengths[index];
+    }
 
     /// <summary>
     /// The number of paths the cache can store
@@ -122,7 +115,7 @@ public class PathCache {
         int next = 0;
         int insertPos = -1;
         PathVertex[] batch = new PathVertex[BatchSize];
-        public const int BatchSize = 100;
+        public const int BatchSize = 32;
 
         public (int Start, int Num, int Unused, int Overflow) Flush(PathVertex[] vertices) {
             if (insertPos < 0) return (0, 0, 0, 0); // Cache is empty
@@ -131,12 +124,11 @@ public class PathCache {
             int overflow = next - (vertices.Length - insertPos);
             if (overflow > 0) next -= overflow;
 
-            for (int i = 0; i < next; ++i)
-                vertices[insertPos + i] = batch[i];
+            Array.ConstrainedCopy(batch, 0, vertices, insertPos, next);
 
             // For uncompleted batches, add a guard
             int unused = overflow > 0 ? 0 : (BatchSize - next);
-            for (int i = next; i < next + unused; ++i) {
+            for (int i = next; i < next + unused && insertPos + i < vertices.Length; ++i) {
                 vertices[insertPos + i].PathId = -1;
             }
             int start = insertPos;
@@ -145,7 +137,7 @@ public class PathCache {
             next = 0;
             insertPos = -1;
 
-            return (start, num, unused, overflow);
+            return (start, num, unused, overflow > 0 ? overflow : 0);
         }
 
         void Reserve(PathVertex[] vertices, ref int globalNext) {

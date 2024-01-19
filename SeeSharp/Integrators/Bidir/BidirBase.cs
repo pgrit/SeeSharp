@@ -518,8 +518,9 @@ public abstract class BidirBase : Integrator {
         // Compute connection direction
         var dirFromCamToLight = Vector3.Normalize(vertex.Point.Position - shader.Point.Position);
 
-        var bsdfWeightLight = vertex.Point.Material.EvaluateWithCosine(vertex.Point, dirToAncestor,
-            -dirFromCamToLight, true);
+        SurfaceShader lightShader = new(vertex.Point, dirToAncestor, true);
+
+        var bsdfWeightLight = lightShader.EvaluateWithCosine(-dirFromCamToLight);
         var bsdfWeightCam = shader.EvaluateWithCosine(dirFromCamToLight);
 
         if (bsdfWeightCam == RgbColor.Black || bsdfWeightLight == RgbColor.Black)
@@ -532,8 +533,7 @@ public abstract class BidirBase : Integrator {
 
         if (pdfCameraToLight == 0) return RgbColor.Black; // TODO figure out how this can happen!
 
-        var (pdfLightToCamera, pdfLightReverse) =
-            vertex.Point.Material.Pdf(vertex.Point, dirToAncestor, -dirFromCamToLight, true);
+        var (pdfLightToCamera, pdfLightReverse) = lightShader.Pdf(-dirFromCamToLight);
         if (ancestor.Point.Mesh != null) // not when from background
             pdfLightReverse *= SampleWarp.SurfaceAreaToSolidAngle(vertex.Point, ancestor.Point);
         pdfLightToCamera *= SampleWarp.SurfaceAreaToSolidAngle(vertex.Point, shader.Point);

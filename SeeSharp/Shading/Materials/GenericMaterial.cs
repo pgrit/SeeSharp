@@ -86,7 +86,7 @@ public class GenericMaterial : Material {
     /// <returns>BSDF value</returns>
     public override RgbColor Evaluate(in ShadingContext context, Vector3 inDir) {
         var ctx = MakeContext(context);
-        var evalCtx = MakeEvalContext(context, inDir);
+        var evalCtx = MakeEvalContext(context, ctx, inDir);
         return Evaluate(ctx, evalCtx);
     }
 
@@ -132,8 +132,7 @@ public class GenericMaterial : Material {
         return context;
     }
 
-    EvalContext MakeEvalContext(in ShadingContext shadingContext, Vector3 inDir) {
-        var context = MakeContext(shadingContext);
+    EvalContext MakeEvalContext(in ShadingContext shadingContext, in GenericMaterialContext context, Vector3 inDir) {
         EvalContext evalContext = new() {
             InDirWorldSpace = inDir,
             InDirShadingSpace = shadingContext.WorldToShading(inDir)
@@ -186,7 +185,7 @@ public class GenericMaterial : Material {
 
         if (!sample.HasValue) return BsdfSample.Invalid;
 
-        var evalContext = MakeEvalContext(context.ShadingContext, context.ShadingContext.ShadingToWorld(sample.Value));
+        var evalContext = MakeEvalContext(context.ShadingContext, context, context.ShadingContext.ShadingToWorld(sample.Value));
         var value = Evaluate(context, evalContext) * AbsCosTheta(evalContext.InDirShadingSpace);
 
         var (pdfFwd, pdfRev) = Pdf(context, evalContext, ref componentWeights);
@@ -287,7 +286,7 @@ public class GenericMaterial : Material {
 
     public override (float, float) Pdf(in ShadingContext context, Vector3 inDir, ref ComponentWeights components) {
         var ctx = MakeContext(context);
-        var evalCtx = MakeEvalContext(context, inDir);
+        var evalCtx = MakeEvalContext(context, ctx, inDir);
         return Pdf(ctx, evalCtx, ref components);
     }
 

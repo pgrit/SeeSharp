@@ -36,6 +36,26 @@ public class VertexConnectionAndMerging : VertexCacheBidir {
     /// </summary>
     protected NearestNeighborSearch photonMap;
 
+    long TotalCameraPathLength = 0;
+    long TotalMergeOperations = 0;
+    long TotalMergePhotons = 0;
+
+    /// <summary>
+    /// Average number of edges along the camera subpaths
+    /// </summary>
+    public float AverageCameraPathLength { get; private set; } = 0;
+
+    /// <summary>
+    /// Average number of edges along the light subpaths
+    /// </summary>
+    public float AverageLightPathLength { get; private set; } = 0;
+
+    /// <summary>
+    /// Average number of photons found by each merging operation. Depends on the average light path length
+    /// and the total number of light subpaths.
+    /// </summary>
+    public float AveragePhotonsPerQuery { get; private set; } = 0;
+
     /// <summary>
     /// Initializes the radius for photon mapping. The default implementation samples three rays
     /// on the diagonal of the image. The average pixel footprints at these positions are used to compute
@@ -89,6 +109,40 @@ public class VertexConnectionAndMerging : VertexCacheBidir {
     /// <inheritdoc />
     protected override void OnEndIteration(uint iteration) {
         ShrinkRadius(iteration);
+
+        float numPixels = Scene.FrameBuffer.Width * Scene.FrameBuffer.Height;
+        AverageCameraPathLength = TotalCameraPathLength / numPixels;
+        AveragePhotonsPerQuery = TotalMergeOperations == 0 ? 0 : TotalMergePhotons / (float)TotalMergeOperations;
+        AverageLightPathLength = ComputeAverageLightPathLength();
+    }
+
+    protected override void OnAfterRender() {
+        base.OnAfterRender();
+        Scene.FrameBuffer.MetaData["AverageCameraPathLength"] = AverageCameraPathLength;
+        Scene.FrameBuffer.MetaData["AverageLightPathLength"] = AverageLightPathLength;
+        Scene.FrameBuffer.MetaData["AveragePhotonsPerQuery"] = AveragePhotonsPerQuery;
+    }
+
+    protected override void OnStartIteration(uint iteration) {
+        base.OnStartIteration(iteration);
+
+        // Reset statistics
+        TotalCameraPathLength = 0;
+        TotalMergeOperations = 0;
+        TotalMergePhotons = 0;
+    }
+
+    protected override void OnCameraPathTerminate(CameraPath path)
+    => Interlocked.Add(ref TotalCameraPathLength, path.Vertices.Count);
+
+    private float ComputeAverageLightPathLength() {
+        float average = 0;
+        if (LightPaths == null) return 0;
+        for (int i = 0; i < LightPaths.NumPaths; ++i) {
+            int length = LightPaths.PathCache.Length(i);
+            average = (length + i * average) / (i + 1);
+        }
+        return average;
     }
 
     /// <summary>Splats all non-zero samples into the technique pyramid, if enabled.</summary>
@@ -170,7 +224,8 @@ public class VertexConnectionAndMerging : VertexCacheBidir {
     /// </param>
     protected virtual void OnMergeSample(RgbColor weight, float kernelWeight, float misWeight,
                                          CameraPath cameraPath, PathVertex lightVertex, float pdfCameraReverse,
-                                         float pdfLightReverse, float pdfNextEvent) { }
+                                         float pdfLightReverse, float pdfNextEvent)
+    => Interlocked.Increment(ref TotalMergePhotons);
 
     /// <summary>
     /// Called after each full photon mapping operation is finished, i.e., after all nearby photons
@@ -182,7 +237,8 @@ public class VertexConnectionAndMerging : VertexCacheBidir {
     /// <param name="cameraJacobian">Geometry term used to turn a PDF over outgoing directions into a surface area density.</param>
     /// <param name="estimate">The computed photon mapping contribution</param>
     protected virtual void OnCombinedMergeSample(in SurfaceShader shader, RNG rng, CameraPath path,
-                                                 float cameraJacobian, RgbColor estimate) { }
+                                                 float cameraJacobian, RgbColor estimate)
+    => Interlocked.Increment(ref TotalMergeOperations);
 
     protected virtual RgbColor Merge((CameraPath path, float cameraJacobian) userData, in SurfaceShader shader,
                                      int vertexIdx, float distSqr, float radiusSquared) {

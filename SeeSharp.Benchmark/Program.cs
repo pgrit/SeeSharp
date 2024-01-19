@@ -1,30 +1,39 @@
 ﻿using System;
-using SeeSharp;
 using SeeSharp.Benchmark;
 using SeeSharp.Experiments;
+using SeeSharp.Integrators;
+using SeeSharp.Integrators.Bidir;
 
-// Measure PT performance. Start with a dry run to give JIT a chance to do its magic
-var scene = Scene.LoadFromFile("Data/Scenes/CornellBox/CornellBox.json");
-// var scene = SceneRegistry.LoadScene("StillLife").MakeScene();
+SceneRegistry.AddSourceRelativeToScript("../data/scenes");
 
-scene.FrameBuffer = new(512, 512, "");
-scene.Prepare();
-new SeeSharp.Integrators.PathTracer(){
-    TotalSpp = 32
-}.Render(scene);
+BenchRender("PathTracer - 16spp", new PathTracer() {
+    TotalSpp = 16,
+});
 
-int num = 2;
-long total = 0;
-for (int i = 0; i < num; ++i) {
+BenchRender("BidirPathTracer - 8spp", new VertexConnectionAndMerging() {
+    NumIterations = 8,
+});
+
+void BenchRender(string name, Integrator integrator) {
+    var scene =
+        // SceneRegistry.LoadScene("StillLife").MakeScene();
+        SceneRegistry.LoadScene("CornellBox").MakeScene();
+
+    // Dry run to eliminate JIT overhead
     scene.FrameBuffer = new(512, 512, "");
-    new SeeSharp.Integrators.PathTracer() {
-        TotalSpp = 32
-    }.Render(scene);
-    total += scene.FrameBuffer.RenderTimeMs;
-}
-Console.WriteLine(total / (double)num);
+    scene.Prepare();
+    integrator.Render(scene);
+    scene.FrameBuffer.WriteToFile(name + ".exr");
 
-// scene.FrameBuffer.WriteToFile("test.exr");
+    int num = 2;
+    long total = 0;
+    for (int i = 0; i < num; ++i) {
+        scene.FrameBuffer = new(512, 512, "");
+        integrator.Render(scene);
+        total += scene.FrameBuffer.RenderTimeMs;
+    }
+    Console.WriteLine($"{name}: {total / (double)num}");
+}
 
 GenericMaterial_Sampling.QuickTest();
 

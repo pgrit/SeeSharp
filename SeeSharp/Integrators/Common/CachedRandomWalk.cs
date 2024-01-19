@@ -21,6 +21,11 @@ public class CachedRandomWalk : RandomWalk {
 
     float nextReversePdf = 0.0f;
 
+    float maxRoughness = 0.0f;
+
+
+    protected SurfacePoint FirstPoint, SecondPoint;
+
     /// <summary>
     /// Prepares an object that can be used to perform one random walk.
     /// </summary>
@@ -31,13 +36,14 @@ public class CachedRandomWalk : RandomWalk {
     /// <param name="pathIdx">Index of this path in the cache</param>
     public CachedRandomWalk(Scene scene, RNG rng, int maxDepth, PathCache cache, int pathIdx)
         : base(scene, rng, maxDepth) {
-        this.Cache = cache;
-        this.PathIdx = pathIdx;
+        Cache = cache;
+        PathIdx = pathIdx;
     }
 
     /// <inheritdoc />
     public override RgbColor StartFromEmitter(EmitterSample emitterSample, RgbColor initialWeight) {
         nextReversePdf = 0.0f;
+        maxRoughness = 0.0f;
         // Add the vertex on the light source
         LastId = Cache.AddVertex(new PathVertex {
             // TODO are any of these actually useful? Only the point right now, but only because we do not pre-compute
@@ -47,45 +53,55 @@ public class CachedRandomWalk : RandomWalk {
             PdfReverseAncestor = 0.0f, // unused
             Weight = RgbColor.Black, // the first known weight is that at the first hit point
             AncestorId = -1,
+            PathId = PathIdx,
             Depth = 0,
             MaximumRoughness = 0
-        }, PathIdx);
+        });
+        FirstPoint = emitterSample.Point;
         return base.StartFromEmitter(emitterSample, initialWeight);
     }
 
     /// <inheritdoc />
     public override RgbColor StartFromBackground(Ray ray, RgbColor initialWeight, float pdf) {
         nextReversePdf = 0.0f;
+        FirstPoint = new SurfacePoint { Position = ray.Origin };
         // Add the vertex on the light source
         LastId = Cache.AddVertex(new PathVertex {
             // TODO are any of these actually useful? Only the point right now, but only because we do not pre-compute
             //      the next event weight (which would be more efficient to begin with)
-            Point = new SurfacePoint { Position = ray.Origin },
+            Point = FirstPoint,
             PdfFromAncestor = 0.0f, // unused
             PdfReverseAncestor = 0.0f, // unused
             Weight = RgbColor.Black, // the first known weight is that at the first hit point
             AncestorId = -1,
+            PathId = PathIdx,
             Depth = 0,
             MaximumRoughness = 0
-        }, PathIdx);
+        });
         return base.StartFromBackground(ray, initialWeight, pdf);
     }
 
     /// <inheritdoc />
     protected override RgbColor OnHit(in SurfaceShader shader, float pdfFromAncestor, RgbColor throughput,
                                       int depth, float toAncestorJacobian) {
-        // Add the next vertex
-        float lastRougness = Cache[PathIdx, LastId].MaximumRoughness;
+        return OnHit(shader, pdfFromAncestor, throughput, depth, toAncestorJacobian, 0);
+    }
+
+    protected RgbColor OnHit(in SurfaceShader shader, float pdfFromAncestor, RgbColor throughput,
+                             int depth, float toAncestorJacobian, float pdfNextEventAncestor) {
         float roughness = shader.GetRoughness();
+        if (depth == 1) SecondPoint = shader.Point;
         LastId = Cache.AddVertex(new PathVertex {
             Point = shader.Point,
             PdfFromAncestor = pdfFromAncestor,
             PdfReverseAncestor = nextReversePdf,
-            Weight = throughput,
             AncestorId = LastId,
+            PathId = PathIdx,
+            Weight = throughput,
             Depth = (byte)depth,
-            MaximumRoughness = MathF.Max(roughness, lastRougness)
-        }, PathIdx);
+            PdfNextEventAncestor = pdfNextEventAncestor,
+            MaximumRoughness = MathF.Max(roughness, maxRoughness)
+        });
         return RgbColor.Black;
     }
 

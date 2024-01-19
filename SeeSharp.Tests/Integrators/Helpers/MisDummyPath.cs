@@ -43,7 +43,7 @@ namespace SeeSharp.Tests.Integrators.Helpers {
                 AncestorId = -1,
                 Depth = 0
             };
-            int emVertexId = pathCache.AddVertex(emitterVertex, 0);
+            int emVertexId = pathCache.AddVertex(emitterVertex);
 
             // Add all intermediate surface vertices
             var prevLightVertex = emitterVertex;
@@ -81,7 +81,7 @@ namespace SeeSharp.Tests.Integrators.Helpers {
                     lastNee = 0.0f;
                 }
 
-                int lightVertexIndex = pathCache.AddVertex(surfaceVertex, 0);
+                int lightVertexIndex = pathCache.AddVertex(surfaceVertex);
 
                 prevLightVertex = surfaceVertex;
                 prevLightVertexIdx = lightVertexIndex;

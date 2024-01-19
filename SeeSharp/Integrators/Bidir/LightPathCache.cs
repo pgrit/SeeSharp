@@ -134,10 +134,10 @@ public class LightPathCache {
     /// </param>
     public virtual void TraceAllPaths(uint iter, NextEventPdfCallback nextEventPdfCallback) {
         if (PathCache == null)
-            PathCache = new PathCache(NumPaths, MaxDepth);
+            PathCache = new PathCache(NumPaths, Math.Min(MaxDepth, 10));
         else if (NumPaths != PathCache.NumPaths) {
             // The size of the path cache needs to change -> simply create a new one
-            PathCache = new PathCache(NumPaths, MaxDepth);
+            PathCache = new PathCache(NumPaths, Math.Min(MaxDepth, 10));
         } else {
             PathCache.Clear();
         }
@@ -146,6 +146,8 @@ public class LightPathCache {
             var rng = new RNG(BaseSeed, (uint)idx, iter);
             TraceLightPath(rng, nextEventPdfCallback, idx);
         });
+
+        PathCache.Prepare();
     }
 
     /// <summary>
@@ -155,7 +157,7 @@ public class LightPathCache {
     /// <param name="primary">First vertex intersected in the scene</param>
     /// <param name="nextDirection">Direction towards the next vertex</param>
     /// <returns>Next event pdf to sample the same edge</returns>
-    public delegate float NextEventPdfCallback(PathVertex origin, PathVertex primary, Vector3 nextDirection);
+    public delegate float NextEventPdfCallback(SurfacePoint origin, SurfacePoint primary, Vector3 nextDirection);
 
     protected class NotifyingCachedWalk : CachedRandomWalk {
         public NextEventPdfCallback callback;
@@ -165,19 +167,12 @@ public class LightPathCache {
 
         protected override RgbColor OnHit(in SurfaceShader shader, float pdfFromAncestor,
                                           RgbColor throughput, int depth, float toAncestorJacobian) {
-            // Call the base first, so the vertex gets created
-            Debug.Assert(pdfFromAncestor > 0);
-            var weight = base.OnHit(shader, pdfFromAncestor, throughput, depth, toAncestorJacobian);
-
             // The next event pdf is computed once the path has three vertices
-            if (depth == 2 && callback != null) {
-                ref var vertex = ref Cache[PathIdx, LastId];
-                var primary = Cache[PathIdx, vertex.AncestorId];
-                var origin = Cache[PathIdx, primary.AncestorId];
-                vertex.PdfNextEventAncestor = callback(origin, primary, -shader.Context.OutDirWorld);
-            }
+            float pdfNextEventAncestor = 0.0f;
+            if (depth == 2 && callback != null && LastId >= 0)
+                pdfNextEventAncestor = callback(FirstPoint, SecondPoint, -shader.Context.OutDirWorld);
 
-            return weight;
+            return OnHit(shader, pdfFromAncestor, throughput, depth, toAncestorJacobian, pdfNextEventAncestor);
         }
     }
 
@@ -199,26 +194,25 @@ public class LightPathCache {
     /// <summary>
     /// Callback that is invoked for each vertex along a path
     /// </summary>
-    /// <param name="pathIdx">Index of the full path in the cache</param>
     /// <param name="vertex">Reference to the vertex</param>
     /// <param name="ancestor">Reference to the vertex's ancestor</param>
     /// <param name="dirToAncestor">Normalized direction from the vertex to the ancestor</param>
-    public delegate void ProcessVertex(int pathIdx, in PathVertex vertex, in PathVertex ancestor,
-        Vector3 dirToAncestor);
+    public delegate void ProcessVertex(in PathVertex vertex, in PathVertex ancestor, Vector3 dirToAncestor);
 
     /// <summary>
     /// Utility function that iterates over a light path, starting on the end point, excluding the point on the light itself.
     /// </summary>
-    /// <param name="index">Index of the light path to iterate over</param>
     /// <param name="func">Delegate invoked on each vertex</param>
-    public void ForEachVertex(int index, ProcessVertex func) {
-        int n = PathCache?.Length(index) ?? 0;
-        for (int i = 1; i < n; ++i) {
-            var ancestor = PathCache[index, i - 1];
-            var vertex = PathCache[index, i];
+    public void ForEachVertex(ProcessVertex func) {
+        int n = PathCache?.NumVertices ?? 0;
+        Parallel.For(0, n, i => {
+            var vertex = PathCache[i];
+            if (vertex.AncestorId < 0 || vertex.PathId < 0)
+                return;
+            var ancestor = PathCache[vertex.AncestorId];
             var dirToAncestor = Vector3.Normalize(ancestor.Point.Position - vertex.Point.Position);
-            func(index, vertex, ancestor, dirToAncestor);
-        }
+            func(vertex, ancestor, dirToAncestor);
+        });
     }
 
     protected int TraceEmitterPath(RNG rng, Emitter emitter, float selectProb,

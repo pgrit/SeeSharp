@@ -139,16 +139,11 @@ public class VertexConnectionAndMerging : VertexCacheBidir {
         base.ProcessPathCache();
 
         if (EnableMerging) {
-            int index = 0;
-            photons.Clear();
             photonMap.Clear();
-            for (int i = 0; i < LightPaths.NumPaths; ++i) {
-                for (int k = 1; k < LightPaths.PathCache.Length(i); ++k) {
-                    var vertex = LightPaths.PathCache[i, k];
-                    if (vertex.Depth >= 1 && vertex.Weight != RgbColor.Black) {
-                        photonMap.AddPoint(vertex.Point.Position, index++);
-                        photons.Add((i, k));
-                    }
+            for (int i = 0; i < LightPaths.PathCache.NumVertices; ++i) {
+                var vertex = LightPaths.PathCache[i];
+                if (vertex.PathId >= 0 && vertex.Depth >= 1 && vertex.Weight != RgbColor.Black) {
+                    photonMap.AddPoint(vertex.Point.Position, i);
                 }
             }
             photonMap.Build();
@@ -190,8 +185,8 @@ public class VertexConnectionAndMerging : VertexCacheBidir {
                                                  float cameraJacobian, RgbColor estimate) { }
 
     protected virtual RgbColor Merge((CameraPath path, float cameraJacobian) userData, in SurfaceShader shader,
-                                     int pathIdx, int vertexIdx, float distSqr, float radiusSquared) {
-        var photon = LightPaths.PathCache[pathIdx, vertexIdx];
+                                     int vertexIdx, float distSqr, float radiusSquared) {
+        var photon = LightPaths.PathCache[vertexIdx];
         CameraPath path = userData.path;
         float cameraJacobian = userData.cameraJacobian;
 
@@ -201,7 +196,7 @@ public class VertexConnectionAndMerging : VertexCacheBidir {
             return RgbColor.Black;
 
         // Compute the contribution of the photon
-        var ancestor = LightPaths.PathCache[pathIdx, photon.AncestorId];
+        var ancestor = LightPaths.PathCache[photon.AncestorId];
         var dirToAncestor = Vector3.Normalize(ancestor.Point.Position - shader.Point.Position);
         var bsdfValue = shader.Evaluate(dirToAncestor);
         var photonContrib = photon.Weight * bsdfValue / NumLightPaths.Value;
@@ -261,8 +256,7 @@ public class VertexConnectionAndMerging : VertexCacheBidir {
         RgbColor estimate = RgbColor.Black;
         photonMap.ForAllNearest(shader.Point.Position, MaxNumPhotons, localRadius, (position, idx, distance, numFound, maxDist) => {
             float radiusSquared = numFound == MaxNumPhotons ? maxDist * maxDist : localRadius * localRadius;
-            estimate += Merge((path, cameraJacobian), shader, photons[idx].PathIndex,
-                photons[idx].VertexIndex, distance * distance, radiusSquared);
+            estimate += Merge((path, cameraJacobian), shader, idx, distance * distance, radiusSquared);
         });
         OnCombinedMergeSample(shader, rng, path, cameraJacobian, estimate);
         return estimate;

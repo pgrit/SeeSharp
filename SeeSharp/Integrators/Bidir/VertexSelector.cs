@@ -4,11 +4,10 @@
 /// Helper class to select random vertices from a path vertex cache.
 /// Ignores the first vertices of all light paths (the ones on the lights).
 /// </summary>
-public class VertexSelector {
+public struct VertexSelector {
     /// <param name="cache">The light subpath cache</param>
     public VertexSelector(PathCache cache) {
         this.cache = cache;
-        Prepare();
     }
 
     /// <summary>
@@ -18,25 +17,13 @@ public class VertexSelector {
     /// <returns>Index of the path, index of the vertex along the path</returns>
     public (int, int) Select(RNG rng) {
         int idx = rng.NextInt(Count);
-        var (pathIdx, vertIdx) = vertices[idx];
-        return (pathIdx, vertIdx);
+        return (-1, idx);
     }
 
     /// <summary>
     /// Number of light subpath vertices that can be connected to
     /// </summary>
-    public int Count => vertices.Count;
-
-    void Prepare() {
-        vertices.Clear();
-        for (int pathIdx = 0; pathIdx < cache.NumPaths; ++pathIdx) {
-            int num = cache.Length(pathIdx);
-            for (int vertIdx = 1; vertIdx < num; ++vertIdx) {
-                vertices.Add((pathIdx, vertIdx));
-            }
-        }
-    }
+    public int Count => cache.NumVertices;
 
     PathCache cache;
-    List<(int, int)> vertices = new();
 }

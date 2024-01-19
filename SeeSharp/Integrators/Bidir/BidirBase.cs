@@ -215,7 +215,7 @@ public abstract class BidirBase : Integrator {
 
                 lightTracerTimer.Start();
                 LightPaths.TraceAllPaths(iter,
-                    (origin, primary, nextDirection) => NextEventPdf(primary.Point, origin.Point));
+                    (origin, primary, nextDirection) => NextEventPdf(primary, origin));
                 ProcessPathCache();
                 lightTracerTimer.Stop();
                 pathTracerTimer.Start();
@@ -408,13 +408,10 @@ public abstract class BidirBase : Integrator {
     /// Connects all vertices along all light paths to the camera via shadow rays ("light tracing").
     /// </summary>
     protected void SplatLightVertices() {
-        Parallel.For(0, LightPaths.NumPaths, idx => {
-            ConnectLightPathToCamera(idx);
-        });
+        LightPaths.ForEachVertex(ConnectLightVertexToCamera);
     }
 
-    void ConnectLightVertexToCamera(int pathIdx, in PathVertex vertex, in PathVertex ancestor,
-                                    Vector3 dirToAncestor) {
+    void ConnectLightVertexToCamera(in PathVertex vertex, in PathVertex ancestor, Vector3 dirToAncestor) {
         if (vertex.Depth + 1 < MinDepth) return;
 
         // Compute image plane location
@@ -457,14 +454,6 @@ public abstract class BidirBase : Integrator {
         RegisterSample(weight, misWeight, response.Pixel, 0, vertex.Depth, vertex.Depth + 1);
         OnLightTracerSample(weight, misWeight, response.Pixel, vertex, response.PdfEmit, pdfReverse,
             pdfNextEvent, distToCam);
-    }
-
-    /// <summary>
-    /// Connects the vertices of the i-th path to the camera ("light tracing")
-    /// </summary>
-    /// <param name="pathIdx">Index of the path in the cache</param>
-    protected virtual void ConnectLightPathToCamera(int pathIdx) {
-        LightPaths.ForEachVertex(pathIdx, ConnectLightVertexToCamera);
     }
 
     /// <summary>
@@ -593,14 +582,12 @@ public abstract class BidirBase : Integrator {
             SelectBidirPath(shader.Point, shader.Context.OutDirWorld, path.Pixel, rng);
 
         if (lightVertIdx > 0) {
-            if (lightVertIdx >= LightPaths.PathCache.Length(lightPathIdx)) {
-                // Path of length 0 selected
-                return result;
-            }
-
             // specific vertex selected
-            var vertex = LightPaths.PathCache[lightPathIdx, lightVertIdx];
-            var ancestor = LightPaths.PathCache[lightPathIdx, lightVertIdx - 1];
+            var vertex = LightPaths.PathCache[lightVertIdx];
+            if (vertex.AncestorId < 0 || vertex.PathId < 0)
+                return result;
+
+            var ancestor = LightPaths.PathCache[vertex.AncestorId];
             var dirToAncestor = Vector3.Normalize(ancestor.Point.Position - vertex.Point.Position);
             result += Connect(shader, vertex, ancestor, dirToAncestor, path, reversePdfJacobian, lightVertexProb);
         } else if (lightPathIdx >= 0) {

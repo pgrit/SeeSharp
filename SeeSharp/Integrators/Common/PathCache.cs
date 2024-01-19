@@ -9,36 +9,50 @@ public class PathCache {
     /// Initializes the cache
     /// </summary>
     /// <param name="numPaths">The number of paths to store</param>
-    /// <param name="pathCapacity">The (expected) maximum number of vertices along each path</param>
-    public PathCache(int numPaths, int pathCapacity) {
-        vertices = new PathVertex[numPaths * pathCapacity];
-        next = new int[numPaths];
-        this.numPaths = numPaths;
-        this.pathCapacity = pathCapacity;
+    /// <param name="expectedPathLength">The (expected) average number of vertices along each path</param>
+    public PathCache(int numPaths, int expectedPathLength) {
+        vertices = new PathVertex[numPaths * expectedPathLength];
+        // next = new int[numPaths];
+        pathEndpoints = new int[numPaths];
+        pathLengths = new int[numPaths];
     }
 
     /// <summary>
     /// By-reference access to a vertex stored in the cache
     /// </summary>
     /// <param name="pathIdx">0-based index of the path</param>
-    /// <param name="vertexId">0-based index of the vertex along the path</param>
+    /// <param name="vertexIdx">0-based index of the vertex along the path</param>
     /// <returns>Reference to the path vertex</returns>
-    public ref PathVertex this[int pathIdx, int vertexId] {
-        get => ref vertices[pathIdx * pathCapacity + vertexId];
+    public ref PathVertex this[int pathIdx, int vertexIdx] {
+        get {
+            var idx = pathEndpoints[pathIdx];
+            int offset = pathLengths[pathIdx] - vertexIdx - 1;
+            while (offset > 0) {
+                idx = vertices[idx].AncestorId;
+                offset--;
+                // TODO handle dropped vertices?
+            }
+            return ref vertices[idx];
+        }
+        // get => ref vertices[pathIdx * pathCapacity + vertexIdx];
     }
+
+    /// <summary>
+    /// Direct acces to an arbitrary vertex in the cache, independent of path structure
+    /// </summary>
+    /// <param name="vertexIdx">Global index of the vertex</param>
+    /// <returns>The requested path vertex</returns>
+    public ref PathVertex this[int vertexIdx] => ref vertices[Math.Clamp(vertexIdx, 0, vertices.Length - 1)];
 
     /// <summary>
     /// Extends a path by adding a new vertex
     /// </summary>
     /// <param name="vertex">The next vertex</param>
-    /// <param name="pathIdx">Index of the path to extend</param>
     /// <returns>Index of the new vertex along the path</returns>
-    public int AddVertex(PathVertex vertex, int pathIdx) {
-        int idx = next[pathIdx]++;
-        if (idx >= pathCapacity)
-            return -1;
-        vertices[pathIdx * pathCapacity + idx] = vertex;
-        vertices[pathIdx * pathCapacity + idx].PathId = pathIdx;
+    public int AddVertex(in PathVertex vertex) {
+        int idx = threadCaches.Value.AddVertex(vertex, vertices, ref nextIdx);
+        pathEndpoints[vertex.PathId] = idx;
+        pathLengths[vertex.PathId]++;
         return idx;
     }
 
@@ -46,29 +60,111 @@ public class PathCache {
     /// Deletes all paths
     /// </summary>
     public void Clear() {
-        int overflow = 0;
-        for (int i = 0; i < numPaths; ++i) {
-            overflow = Math.Max(next[i] - pathCapacity, overflow);
-            next[i] = 0;
-        }
+        // int overflow = nextIdx - vertices.Length;
 
         if (overflow > 0) {
             Logger.Warning($"Path cache overflow. Resizing to fit {overflow * 2} additional vertices.");
-            pathCapacity += overflow * 2;
-            vertices = new PathVertex[numPaths * pathCapacity];
+            vertices = new PathVertex[vertices.Length + overflow * 2];
         }
+
+        nextIdx = 0;
+        overflow = 0;
+        pathEndpoints = new int[pathEndpoints.Length];
+        pathLengths = new int[pathEndpoints.Length];
+    }
+
+    int overflow = 0;
+
+    class VertexOrder : IComparer<PathVertex> {
+        public int Compare(PathVertex x, PathVertex y) {
+            return (x.PathId, x.Depth).CompareTo((y.PathId, y.Depth));
+        }
+    }
+
+    public void Prepare() {
+        int totalUnused = 0;
+        foreach (var c in threadCaches.Values) {
+            (int start, int num, int unused, int overflow) = c.Flush(vertices);
+            this.overflow += overflow;
+            totalUnused += unused;
+        }
+
+        // Array.Sort(vertices, 0, nextIdx, new VertexOrder());
+        // nextIdx -= totalUnused;
+
+        // for (int i = 0; i < vertices.Length; ++i) {
+        //     if (vertices[i].AncestorId >= 0) vertices[i].AncestorId = i - 1;
+        // }
     }
 
     /// <param name="index">Index of a path</param>
     /// <returns>The number of vertices along the path</returns>
-    public int Length(int index) => Math.Min(next[index], pathCapacity);
+    public int Length(int index) => pathLengths[index];
 
     /// <summary>
     /// The number of paths the cache can store
     /// </summary>
-    public int NumPaths => numPaths;
+    public int NumPaths => pathEndpoints.Length;
+
+    /// <summary>
+    /// The total number of path vertices stored in the cache
+    /// </summary>
+    public int NumVertices => nextIdx;
 
     PathVertex[] vertices;
-    int[] next;
-    int numPaths, pathCapacity;
+    int nextIdx;
+    int[] pathEndpoints;
+    int[] pathLengths;
+
+    ThreadLocal<ThreadCache> threadCaches = new(() => new(), true);
+
+    class ThreadCache {
+        int next = 0;
+        int insertPos = -1;
+        PathVertex[] batch = new PathVertex[BatchSize];
+        public const int BatchSize = 100;
+
+        public (int Start, int Num, int Unused, int Overflow) Flush(PathVertex[] vertices) {
+            if (insertPos < 0) return (0, 0, 0, 0); // Cache is empty
+
+            // Drop the overflowing vertices
+            int overflow = next - (vertices.Length - insertPos);
+            if (overflow > 0) next -= overflow;
+
+            for (int i = 0; i < next; ++i)
+                vertices[insertPos + i] = batch[i];
+
+            // For uncompleted batches, add a guard
+            int unused = overflow > 0 ? 0 : (BatchSize - next);
+            for (int i = next; i < next + unused; ++i) {
+                vertices[insertPos + i].PathId = -1;
+            }
+            int start = insertPos;
+            int num = next;
+
+            next = 0;
+            insertPos = -1;
+
+            return (start, num, unused, overflow);
+        }
+
+        void Reserve(PathVertex[] vertices, ref int globalNext) {
+            if (next == BatchSize)
+                Flush(vertices);
+
+            if (insertPos == -1) {
+                int rangeEnd = Interlocked.Add(ref globalNext, BatchSize);
+                insertPos = rangeEnd - BatchSize;
+                next = 0;
+            }
+        }
+
+        public int AddVertex(in PathVertex vertex, PathVertex[] vertices, ref int globalNext) {
+            Reserve(vertices, ref globalNext);
+
+            int idx = next++;
+            batch[idx] = vertex;
+            return idx + insertPos;
+        }
+    }
 }

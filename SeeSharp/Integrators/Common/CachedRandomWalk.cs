@@ -72,13 +72,13 @@ public class CachedRandomWalk : RandomWalk {
     }
 
     /// <inheritdoc />
-    protected override RgbColor OnHit(Ray ray, SurfacePoint hit, float pdfFromAncestor, RgbColor throughput,
+    protected override RgbColor OnHit(in SurfaceShader shader, float pdfFromAncestor, RgbColor throughput,
                                       int depth, float toAncestorJacobian) {
         // Add the next vertex
         float lastRougness = Cache[PathIdx, LastId].MaximumRoughness;
-        float roughness = hit.Material.GetRoughness(hit);
+        float roughness = shader.GetRoughness();
         LastId = Cache.AddVertex(new PathVertex {
-            Point = hit,
+            Point = shader.Point,
             PdfFromAncestor = pdfFromAncestor,
             PdfReverseAncestor = nextReversePdf,
             Weight = throughput,

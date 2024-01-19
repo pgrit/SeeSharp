@@ -53,7 +53,7 @@ public class PathCache {
         }
 
         if (overflow > 0) {
-            System.Console.WriteLine($"Overflow detected. Resizing to fit {overflow * 2} additional vertices.");
+            Logger.Warning($"Path cache overflow. Resizing to fit {overflow * 2} additional vertices.");
             pathCapacity += overflow * 2;
             vertices = new PathVertex[numPaths * pathCapacity];
         }
@@ -61,7 +61,7 @@ public class PathCache {
 
     /// <param name="index">Index of a path</param>
     /// <returns>The number of vertices along the path</returns>
-    public int Length(int index) => next[index];
+    public int Length(int index) => Math.Min(next[index], pathCapacity);
 
     /// <summary>
     /// The number of paths the cache can store

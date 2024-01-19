@@ -429,12 +429,14 @@ public abstract class BidirBase : Integrator {
         float distToCam = dirToCam.Length();
         dirToCam /= distToCam;
 
-        var bsdfValue = vertex.Point.Material.Evaluate(vertex.Point, dirToCam, dirToAncestor, false);
+        SurfaceShader shader = new(vertex.Point, dirToCam, false);
+
+        var bsdfValue = shader.Evaluate(dirToAncestor);
         if (bsdfValue == RgbColor.Black)
             return;
 
         // Compute the surface area pdf of sampling the previous vertex instead
-        var (pdfReverse, _) = vertex.Point.Material.Pdf(vertex.Point, dirToCam, dirToAncestor, false);
+        var (pdfReverse, _) = shader.Pdf(dirToAncestor);
         if (ancestor.Point.Mesh != null)
             pdfReverse *= SampleWarp.SurfaceAreaToSolidAngle(vertex.Point, ancestor.Point);
 
@@ -513,11 +515,67 @@ public abstract class BidirBase : Integrator {
         return (pixelIndex, -1, 1.0f);
     }
 
+    RgbColor Connect(in SurfaceShader shader, PathVertex vertex, PathVertex ancestor, Vector3 dirToAncestor,
+                     in CameraPath path, float reversePdfJacobian, float lightVertexProb) {
+        // Only allow connections that do not exceed the maximum total path length
+        int depth = vertex.Depth + path.Vertices.Count + 1;
+        if (depth > MaxDepth || depth < MinDepth)
+            return RgbColor.Black;
+
+        // Trace shadow ray
+        if (Scene.Raytracer.IsOccluded(vertex.Point, shader.Point))
+            return RgbColor.Black;
+
+        // Compute connection direction
+        var dirFromCamToLight = Vector3.Normalize(vertex.Point.Position - shader.Point.Position);
+
+        var bsdfWeightLight = vertex.Point.Material.EvaluateWithCosine(vertex.Point, dirToAncestor,
+            -dirFromCamToLight, true);
+        var bsdfWeightCam = shader.EvaluateWithCosine(dirFromCamToLight);
+
+        if (bsdfWeightCam == RgbColor.Black || bsdfWeightLight == RgbColor.Black)
+            return RgbColor.Black;
+
+        // Compute the missing pdfs
+        var (pdfCameraToLight, pdfCameraReverse) = shader.Pdf(dirFromCamToLight);
+        pdfCameraReverse *= reversePdfJacobian;
+        pdfCameraToLight *= SampleWarp.SurfaceAreaToSolidAngle(shader.Point, vertex.Point);
+
+        if (pdfCameraToLight == 0) return RgbColor.Black; // TODO figure out how this can happen!
+
+        var (pdfLightToCamera, pdfLightReverse) =
+            vertex.Point.Material.Pdf(vertex.Point, dirToAncestor, -dirFromCamToLight, true);
+        if (ancestor.Point.Mesh != null) // not when from background
+            pdfLightReverse *= SampleWarp.SurfaceAreaToSolidAngle(vertex.Point, ancestor.Point);
+        pdfLightToCamera *= SampleWarp.SurfaceAreaToSolidAngle(vertex.Point, shader.Point);
+
+        float pdfNextEvent = 0.0f;
+        if (vertex.Depth == 1) {
+            pdfNextEvent = NextEventPdf(vertex.Point, ancestor.Point);
+        }
+
+        float misWeight = BidirConnectMis(path, vertex, pdfCameraReverse, pdfCameraToLight,
+            pdfLightReverse, pdfLightToCamera, pdfNextEvent);
+        float distanceSqr = (shader.Point.Position - vertex.Point.Position).LengthSquared();
+
+        // Avoid NaNs in rare cases
+        if (distanceSqr == 0)
+            return RgbColor.Black;
+
+        RgbColor weight = vertex.Weight * bsdfWeightLight * bsdfWeightCam / distanceSqr / lightVertexProb;
+
+        RegisterSample(weight * path.Throughput, misWeight, path.Pixel,
+                        path.Vertices.Count, vertex.Depth, depth);
+        OnBidirConnectSample(weight * path.Throughput, misWeight, path, vertex, pdfCameraReverse,
+            pdfCameraToLight, pdfLightReverse, pdfLightToCamera, pdfNextEvent);
+
+        return misWeight * weight;
+    }
+
     /// <summary>
     /// Computes the contribution of inner path connections at the given camera path vertex
     /// </summary>
-    /// <param name="cameraPoint">The last vertex of the camera path</param>
-    /// <param name="outDir">Direction from the camera vertex towards its ancestor</param>
+    /// <param name="shader">Shading info at the last vertex of the camera path</param>
     /// <param name="rng">Random number generator</param>
     /// <param name="path">The camera path</param>
     /// <param name="reversePdfJacobian">
@@ -525,73 +583,14 @@ public abstract class BidirBase : Integrator {
     /// ancestor vertex.
     /// </param>
     /// <returns>The sum of all MIS weighted contributions for inner path connections</returns>
-    protected virtual RgbColor BidirConnections(SurfacePoint cameraPoint, Vector3 outDir, RNG rng,
-                                                CameraPath path, float reversePdfJacobian) {
+    protected virtual RgbColor BidirConnections(in SurfaceShader shader, RNG rng,
+                                                in CameraPath path, float reversePdfJacobian) {
         RgbColor result = RgbColor.Black;
         if (NumLightPaths == 0) return result;
 
         // Select a path to connect to (based on pixel index)
-        int row = Math.Min(path.Pixel.Row, Scene.FrameBuffer.Height - 1);
-        int col = Math.Min(path.Pixel.Col, Scene.FrameBuffer.Width - 1);
-        int pixelIndex = row * Scene.FrameBuffer.Width + col;
         (int lightPathIdx, int lightVertIdx, float lightVertexProb) =
-            SelectBidirPath(cameraPoint, outDir, new(col, row), rng);
-
-        void Connect(PathVertex vertex, PathVertex ancestor, Vector3 dirToAncestor) {
-            // Only allow connections that do not exceed the maximum total path length
-            int depth = vertex.Depth + path.Vertices.Count + 1;
-            if (depth > MaxDepth || depth < MinDepth) return;
-
-            // Trace shadow ray
-            if (Scene.Raytracer.IsOccluded(vertex.Point, cameraPoint))
-                return;
-
-            // Compute connection direction
-            var dirFromCamToLight = Vector3.Normalize(vertex.Point.Position - cameraPoint.Position);
-
-            var bsdfWeightLight = vertex.Point.Material.EvaluateWithCosine(vertex.Point, dirToAncestor,
-                -dirFromCamToLight, true);
-            var bsdfWeightCam = cameraPoint.Material.EvaluateWithCosine(cameraPoint, outDir,
-                dirFromCamToLight, false);
-
-            if (bsdfWeightCam == RgbColor.Black || bsdfWeightLight == RgbColor.Black)
-                return;
-
-            // Compute the missing pdfs
-            var (pdfCameraToLight, pdfCameraReverse) =
-                cameraPoint.Material.Pdf(cameraPoint, outDir, dirFromCamToLight, false);
-            pdfCameraReverse *= reversePdfJacobian;
-            pdfCameraToLight *= SampleWarp.SurfaceAreaToSolidAngle(cameraPoint, vertex.Point);
-
-            if (pdfCameraToLight == 0) return; // TODO figure out how this can happen!
-
-            var (pdfLightToCamera, pdfLightReverse) =
-                vertex.Point.Material.Pdf(vertex.Point, dirToAncestor, -dirFromCamToLight, true);
-            if (ancestor.Point.Mesh != null) // not when from background
-                pdfLightReverse *= SampleWarp.SurfaceAreaToSolidAngle(vertex.Point, ancestor.Point);
-            pdfLightToCamera *= SampleWarp.SurfaceAreaToSolidAngle(vertex.Point, cameraPoint);
-
-            float pdfNextEvent = 0.0f;
-            if (vertex.Depth == 1) {
-                pdfNextEvent = NextEventPdf(vertex.Point, ancestor.Point);
-            }
-
-            float misWeight = BidirConnectMis(path, vertex, pdfCameraReverse, pdfCameraToLight,
-                pdfLightReverse, pdfLightToCamera, pdfNextEvent);
-            float distanceSqr = (cameraPoint.Position - vertex.Point.Position).LengthSquared();
-
-            // Avoid NaNs in rare cases
-            if (distanceSqr == 0)
-                return;
-
-            RgbColor weight = vertex.Weight * bsdfWeightLight * bsdfWeightCam / distanceSqr / lightVertexProb;
-            result += misWeight * weight;
-
-            RegisterSample(weight * path.Throughput, misWeight, path.Pixel,
-                           path.Vertices.Count, vertex.Depth, depth);
-            OnBidirConnectSample(weight * path.Throughput, misWeight, path, vertex, pdfCameraReverse,
-                pdfCameraToLight, pdfLightReverse, pdfLightToCamera, pdfNextEvent);
-        }
+            SelectBidirPath(shader.Point, shader.Context.OutDirWorld, path.Pixel, rng);
 
         if (lightVertIdx > 0) {
             if (lightVertIdx >= LightPaths.PathCache.Length(lightPathIdx)) {
@@ -603,7 +602,7 @@ public abstract class BidirBase : Integrator {
             var vertex = LightPaths.PathCache[lightPathIdx, lightVertIdx];
             var ancestor = LightPaths.PathCache[lightPathIdx, lightVertIdx - 1];
             var dirToAncestor = Vector3.Normalize(ancestor.Point.Position - vertex.Point.Position);
-            Connect(vertex, ancestor, dirToAncestor);
+            result += Connect(shader, vertex, ancestor, dirToAncestor, path, reversePdfJacobian, lightVertexProb);
         } else if (lightPathIdx >= 0) {
             // Connect with all vertices along the path
             int n = LightPaths.PathCache.Length(lightPathIdx);
@@ -611,7 +610,7 @@ public abstract class BidirBase : Integrator {
                 var ancestor = LightPaths.PathCache[lightPathIdx, i - 1];
                 var vertex = LightPaths.PathCache[lightPathIdx, i];
                 var dirToAncestor = Vector3.Normalize(ancestor.Point.Position - vertex.Point.Position);
-                Connect(vertex, ancestor, dirToAncestor);
+                result += Connect(shader, vertex, ancestor, dirToAncestor, path, reversePdfJacobian, lightVertexProb);
             }
         }
 
@@ -678,8 +677,7 @@ public abstract class BidirBase : Integrator {
     /// <summary>
     /// Performs next event estimation at the end point of a camera path
     /// </summary>
-    /// <param name="ray">The last ray that was traced</param>
-    /// <param name="hit">The hit point of that ray, i.e., the position where NEE should be done</param>
+    /// <param name="shader">Surface shading context at the last camera vertex</param>
     /// <param name="rng">Random number generator</param>
     /// <param name="path">The camera path</param>
     /// <param name="reversePdfJacobian">
@@ -687,9 +685,9 @@ public abstract class BidirBase : Integrator {
     /// solid angle to surface area.
     /// </param>
     /// <returns>MIS weighted next event contribution</returns>
-    protected virtual RgbColor PerformNextEventEstimation(Ray ray, SurfacePoint hit, RNG rng,
-                                                          CameraPath path, float reversePdfJacobian) {
-        float backgroundProbability = ComputeNextEventBackgroundProbability(/*hit*/);
+    protected virtual RgbColor PerformNextEventEstimation(in SurfaceShader shader, RNG rng,
+                                                          in CameraPath path, float reversePdfJacobian) {
+        float backgroundProbability = ComputeNextEventBackgroundProbability();
         if (rng.NextFloat() < backgroundProbability) { // Connect to the background
             if (Scene.Background == null)
                 return RgbColor.Black; // There is no background
@@ -701,20 +699,18 @@ public abstract class BidirBase : Integrator {
             if (sample.Pdf == 0) // Prevent NaN
                 return RgbColor.Black;
 
-            if (Scene.Raytracer.LeavesScene(hit, sample.Direction)) {
-                var bsdfTimesCosine = hit.Material.EvaluateWithCosine(hit, -ray.Direction,
-                    sample.Direction, false);
+            if (Scene.Raytracer.LeavesScene(shader.Point, sample.Direction)) {
+                var bsdfTimesCosine = shader.EvaluateWithCosine(sample.Direction);
 
                 // Compute the reverse BSDF sampling pdf
-                var (bsdfForwardPdf, bsdfReversePdf) = hit.Material.Pdf(hit, -ray.Direction,
-                    sample.Direction, false);
+                var (bsdfForwardPdf, bsdfReversePdf) = shader.Pdf(sample.Direction);
                 bsdfReversePdf *= reversePdfJacobian;
 
                 if (bsdfForwardPdf == 0 || bsdfReversePdf == 0 || bsdfTimesCosine == RgbColor.Black)
                     return RgbColor.Black;
 
                 // Compute emission pdf
-                float pdfEmit = LightPaths.ComputeBackgroundPdf(hit.Position, -sample.Direction);
+                float pdfEmit = LightPaths.ComputeBackgroundPdf(shader.Point.Position, -sample.Direction);
 
                 // Compute the mis weight
                 float misWeight = NextEventMis(path, pdfEmit, sample.Pdf, bsdfForwardPdf, bsdfReversePdf);
@@ -725,7 +721,7 @@ public abstract class BidirBase : Integrator {
                                path.Vertices.Count, 0, path.Vertices.Count + 1);
                 OnNextEventSample(weight * path.Throughput, misWeight, path, pdfEmit, sample.Pdf,
                     bsdfForwardPdf, bsdfReversePdf, null, -sample.Direction,
-                    new() { Position = hit.Position });
+                    new() { Position = shader.Point.Position });
                 return misWeight * weight;
             }
         } else { // Connect to an emissive surface
@@ -733,39 +729,37 @@ public abstract class BidirBase : Integrator {
                 return RgbColor.Black;
 
             // Sample a point on the light source
-            var (light, lightSample) = SampleNextEvent(hit, rng);
+            var (light, lightSample) = SampleNextEvent(shader.Point, rng);
             lightSample.Pdf *= (1 - backgroundProbability);
 
             if (lightSample.Pdf == 0) // Prevent NaN
                 return RgbColor.Black;
 
-            if (!Scene.Raytracer.IsOccluded(hit, lightSample.Point)) {
-                Vector3 lightToSurface = Vector3.Normalize(hit.Position - lightSample.Point.Position);
+            if (!Scene.Raytracer.IsOccluded(shader.Point, lightSample.Point)) {
+                Vector3 lightToSurface = Vector3.Normalize(shader.Point.Position - lightSample.Point.Position);
                 var emission = light.EmittedRadiance(lightSample.Point, lightToSurface);
                 if (emission == RgbColor.Black)
                     return RgbColor.Black;
 
-                var bsdfTimesCosine =
-                    hit.Material.EvaluateWithCosine(hit, -ray.Direction, -lightToSurface, false);
+                var bsdfTimesCosine = shader.EvaluateWithCosine(-lightToSurface);
                 if (bsdfTimesCosine == RgbColor.Black)
                     return RgbColor.Black;
 
                 // Compute the jacobian for surface area -> solid angle
                 // (Inverse of the jacobian for solid angle pdf -> surface area pdf)
-                float jacobian = SampleWarp.SurfaceAreaToSolidAngle(hit, lightSample.Point);
+                float jacobian = SampleWarp.SurfaceAreaToSolidAngle(shader.Point, lightSample.Point);
                 if (jacobian == 0) return RgbColor.Black;
 
                 // Compute the missing pdf terms
-                var (bsdfForwardPdf, bsdfReversePdf) =
-                    hit.Material.Pdf(hit, -ray.Direction, -lightToSurface, false);
-                bsdfForwardPdf *= SampleWarp.SurfaceAreaToSolidAngle(hit, lightSample.Point);
+                var (bsdfForwardPdf, bsdfReversePdf) = shader.Pdf(-lightToSurface);
+                bsdfForwardPdf *= SampleWarp.SurfaceAreaToSolidAngle(shader.Point, lightSample.Point);
                 bsdfReversePdf *= reversePdfJacobian;
 
                 if (bsdfForwardPdf == 0 || bsdfReversePdf == 0 || bsdfTimesCosine == RgbColor.Black)
                     return RgbColor.Black;
 
                 float pdfEmit = LightPaths.ComputeEmitterPdf(light, lightSample.Point, lightToSurface,
-                    SampleWarp.SurfaceAreaToSolidAngle(lightSample.Point, hit));
+                    SampleWarp.SurfaceAreaToSolidAngle(lightSample.Point, shader.Point));
 
                 float misWeight =
                     NextEventMis(path, pdfEmit, lightSample.Pdf, bsdfForwardPdf, bsdfReversePdf);
@@ -799,26 +793,25 @@ public abstract class BidirBase : Integrator {
     /// </summary>
     /// <param name="emitter">The emitter that was hit</param>
     /// <param name="hit">The hit point on the emitter</param>
-    /// <param name="ray">The last ray of the camera path</param>
+    /// <param name="outDir">Direction from the illuminated surface towards the point on the light</param>
     /// <param name="path">The camera path</param>
     /// <param name="reversePdfJacobian">
     /// Geometry term to convert a solid angle density on the emitter to a surface area density for
     /// sampling the previous point along the camera path
     /// </param>
     /// <returns>MIS weighted contribution of the emitter</returns>
-    protected virtual RgbColor OnEmitterHit(Emitter emitter, SurfacePoint hit, Ray ray,
+    protected virtual RgbColor OnEmitterHit(Emitter emitter, SurfacePoint hit, Vector3 outDir,
                                             CameraPath path, float reversePdfJacobian) {
-        var emission = emitter.EmittedRadiance(hit, -ray.Direction);
+        var emission = emitter.EmittedRadiance(hit, outDir);
 
         // Compute pdf values
-        float pdfEmit = LightPaths.ComputeEmitterPdf(emitter, hit, -ray.Direction, reversePdfJacobian);
+        float pdfEmit = LightPaths.ComputeEmitterPdf(emitter, hit, outDir, reversePdfJacobian);
         float pdfNextEvent = NextEventPdf(new SurfacePoint(), hit); // TODO get the actual previous point!
 
         float misWeight = EmitterHitMis(path, pdfEmit, pdfNextEvent);
         RegisterSample(emission * path.Throughput, misWeight, path.Pixel,
                        path.Vertices.Count, 0, path.Vertices.Count);
-        OnEmitterHitSample(emission * path.Throughput, misWeight, path, pdfEmit, pdfNextEvent, emitter,
-            -ray.Direction, hit);
+        OnEmitterHitSample(emission * path.Throughput, misWeight, path, pdfEmit, pdfNextEvent, emitter, outDir, hit);
         return misWeight * emission;
     }
 
@@ -854,8 +847,7 @@ public abstract class BidirBase : Integrator {
     /// </summary>
     /// <param name="path">The camera path</param>
     /// <param name="rng">Random number generator</param>
-    /// <param name="ray">The last ray of the camera path</param>
-    /// <param name="hit">The next surface hit point</param>
+    /// <param name="shader">The surface shading context data (normals, material, ...)</param>
     /// <param name="pdfFromAncestor">Solid angle pdf at the previous vertex to sample this ray</param>
     /// <param name="throughput">
     /// Product of geometry terms and BSDFs along the path, divided by sampling pdfs.
@@ -866,7 +858,7 @@ public abstract class BidirBase : Integrator {
     /// sampling its ancestor.
     /// </param>
     /// <returns>Sum of MIS weighted contributions for all sampling techniques performed here</returns>
-    protected abstract RgbColor OnCameraHit(CameraPath path, RNG rng, Ray ray, SurfacePoint hit,
+    protected abstract RgbColor OnCameraHit(CameraPath path, RNG rng, in SurfaceShader shader,
                                             float pdfFromAncestor, RgbColor throughput, int depth,
                                             float toAncestorJacobian);
 
@@ -899,11 +891,11 @@ public abstract class BidirBase : Integrator {
             return integrator.OnBackgroundHit(ray, path);
         }
 
-        protected override RgbColor OnHit(Ray ray, SurfacePoint hit, float pdfFromAncestor,
+        protected override RgbColor OnHit(in SurfaceShader shader, float pdfFromAncestor,
                                           RgbColor throughput, int depth, float toAncestorJacobian) {
             if (depth == 1 && integrator.EnableDenoiser) {
-                var albedo = ((SurfacePoint)hit).Material.GetScatterStrength(hit);
-                integrator.DenoiseBuffers.LogPrimaryHit(path.Pixel, albedo, hit.ShadingNormal);
+                var albedo = shader.GetScatterStrength();
+                integrator.DenoiseBuffers.LogPrimaryHit(path.Pixel, albedo, shader.Context.Normal);
             }
 
             path.Vertices.Add(new PathPdfPair {
@@ -911,18 +903,16 @@ public abstract class BidirBase : Integrator {
                 PdfToAncestor = 0
             });
             path.Throughput = throughput;
-            path.Distances.Add(hit.Distance);
+            path.Distances.Add(shader.Point.Distance);
 
             path.MaximumPriorRoughness = MathF.Max(path.CurrentRoughness, path.MaximumPriorRoughness);
-            path.CurrentRoughness = ((SurfacePoint)hit).Material.GetRoughness(hit);
+            path.CurrentRoughness = shader.GetRoughness();
 
-            return integrator.OnCameraHit(path, rng, ray, hit, pdfFromAncestor, throughput, depth,
-                toAncestorJacobian);
+            return integrator.OnCameraHit(path, rng, shader, pdfFromAncestor, throughput, depth, toAncestorJacobian);
         }
 
         protected override void OnContinue(float pdfToAncestor, int depth) {
             // Update the reverse pdf of the previous vertex.
-            // TODO this currently assumes that no splitting is happening!
             var lastVert = path.Vertices[^1];
             path.Vertices[^1] = new PathPdfPair {
                 PdfFromAncestor = lastVert.PdfFromAncestor,

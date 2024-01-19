@@ -37,14 +37,16 @@ public class RandomWalk {
         if (!hit)
             return OnInvalidHit(ray, pdf, initialWeight, 1);
 
+        SurfaceShader shader = new(hit, -ray.Direction, isOnLightSubpath);
+
         // Sample the next direction (required to know the reverse pdf)
-        var (pdfNext, pdfReverse, weight, direction) = SampleNextDirection(hit, ray, initialWeight, 1);
+        var (pdfNext, pdfReverse, weight, direction) = SampleNextDirection(shader, initialWeight, 1);
 
         // Both pdfs have unit sr-1
         float pdfFromAncestor = pdf;
         float pdfToAncestor = pdfReverse;
 
-        RgbColor estimate = OnHit(ray, hit, pdfFromAncestor, initialWeight, 1, 1.0f);
+        RgbColor estimate = OnHit(shader, pdfFromAncestor, initialWeight, 1, 1.0f);
         OnContinue(pdfToAncestor, 1);
 
         // Terminate if the maximum depth has been reached
@@ -60,23 +62,11 @@ public class RandomWalk {
         return estimate + ContinueWalk(ray, hit, pdfNext, initialWeight * weight, 2);
     }
 
-    public RgbColor StartOnSurface(Ray ray, SurfacePoint hit, RgbColor throughput, int initialDepth,
-                                   bool isOnLightSubpath) {
-        this.isOnLightSubpath = isOnLightSubpath;
-        var (pdfNext, pdfReverse, weight, direction) = SampleNextDirection(hit, ray, throughput, initialDepth);
-
-        // Avoid NaNs if the surface is not reflective, or an invalid sample was generated.
-        if (pdfNext == 0.0f || weight == RgbColor.Black)
-            return RgbColor.Black;
-
-        return ContinueWalk(ray, hit, pdfNext, throughput, initialDepth + 1);
-    }
-
     protected virtual RgbColor OnInvalidHit(Ray ray, float pdfFromAncestor, RgbColor throughput, int depth) {
         return RgbColor.Black;
     }
 
-    protected virtual RgbColor OnHit(Ray ray, SurfacePoint hit, float pdfFromAncestor, RgbColor throughput,
+    protected virtual RgbColor OnHit(in SurfaceShader shader, float pdfFromAncestor, RgbColor throughput,
                                      int depth, float toAncestorJacobian) {
         return RgbColor.Black;
     }
@@ -85,11 +75,10 @@ public class RandomWalk {
 
     protected virtual void OnTerminate() { }
 
-    protected virtual (float, float, RgbColor, Vector3) SampleNextDirection(SurfacePoint hit, Ray ray,
+    protected virtual (float, float, RgbColor, Vector3) SampleNextDirection(in SurfaceShader shader,
                                                                             RgbColor throughput,
                                                                             int depth) {
-        // Sample the next direction from the BSDF
-        var bsdfSample = hit.Material.Sample(hit, -ray.Direction, isOnLightSubpath, rng.NextFloat2D());
+        var bsdfSample = shader.Sample(rng.NextFloat2D());
         return (
             bsdfSample.Pdf,
             bsdfSample.PdfReverse,
@@ -98,75 +87,57 @@ public class RandomWalk {
         );
     }
 
-    protected virtual int ComputeSplitFactor(SurfacePoint hit, Ray ray, RgbColor throughput, int depth)
-    => 1;
-    protected virtual float ComputeSurvivalProbability(SurfacePoint hit, Ray ray, RgbColor throughput,
-                                                       int depth)
+    protected virtual float ComputeSurvivalProbability(SurfacePoint hit, Ray ray, RgbColor throughput, int depth)
     => 1.0f;
 
-    RgbColor ContinueWalk(Ray ray, SurfacePoint previousPoint, float pdfDirection, RgbColor throughput,
-                          int depth) {
-        // Terminate if the maximum depth has been reached
-        if (depth >= maxDepth) {
-            OnTerminate();
-            return RgbColor.Black;
-        }
+    RgbColor ContinueWalk(Ray ray, SurfacePoint previousPoint, float pdfDirection, RgbColor throughput, int depth) {
+        RgbColor estimate = RgbColor.Black;
+        while (depth < maxDepth) {
+            var hit = scene.Raytracer.Trace(ray);
+            if (!hit) {
+                estimate += OnInvalidHit(ray, pdfDirection, throughput, depth);
+                break;
+            }
 
-        var hit = scene.Raytracer.Trace(ray);
-        if (!hit) {
-            var result = OnInvalidHit(ray, pdfDirection, throughput, depth);
-            OnTerminate();
-            return result;
-        }
+            SurfaceShader shader = new(hit, -ray.Direction, isOnLightSubpath);
 
-        // Convert the PDF of the previous hemispherical sample to surface area
-        float pdfFromAncestor = pdfDirection * SampleWarp.SurfaceAreaToSolidAngle(previousPoint, hit);
+            // Convert the PDF of the previous hemispherical sample to surface area
+            float pdfFromAncestor = pdfDirection * SampleWarp.SurfaceAreaToSolidAngle(previousPoint, hit);
 
-        // Geometry term might be zero due to, e.g., shading normal issues
-        // Avoid NaNs in that case by terminating early
-        if (pdfFromAncestor == 0) {
-            OnTerminate();
-            return RgbColor.Black;
-        }
+            // Geometry term might be zero due to, e.g., shading normal issues
+            // Avoid NaNs in that case by terminating early
+            if (pdfFromAncestor == 0) break;
 
-        RgbColor estimate = OnHit(ray, hit, pdfFromAncestor, throughput, depth,
-                                  SampleWarp.SurfaceAreaToSolidAngle(hit, previousPoint));
+            float jacobian = SampleWarp.SurfaceAreaToSolidAngle(hit, previousPoint);
+            estimate += OnHit(shader, pdfFromAncestor, throughput, depth, jacobian);
 
-        // Don't sample continuations if we are going to terminate anyway
-        if (depth + 1 >= maxDepth) {
-            OnTerminate();
-            return estimate;
-        }
+            // Don't sample continuations if we are going to terminate anyway
+            if (depth + 1 >= maxDepth)
+                break;
 
-        // Terminate with Russian roulette
-        float survivalProb = ComputeSurvivalProbability(hit, ray, throughput, depth);
-        if (rng.NextFloat() > survivalProb) {
-            OnTerminate();
-            return estimate;
-        }
+            // Terminate with Russian roulette
+            float survivalProb = ComputeSurvivalProbability(hit, ray, throughput, depth);
+            if (rng.NextFloat() > survivalProb)
+                break;
 
-        // Continue based on the splitting factor
-        int numSplits = ComputeSplitFactor(hit, ray, throughput, depth);
-        for (int i = 0; i < numSplits; ++i) {
             // Sample the next direction and convert the reverse pdf
-            var (pdfNext, pdfReverse, weight, direction) = SampleNextDirection(hit, ray, throughput, depth);
+            var (pdfNext, pdfReverse, weight, direction) = SampleNextDirection(shader, throughput, depth);
             float pdfToAncestor = pdfReverse * SampleWarp.SurfaceAreaToSolidAngle(hit, previousPoint);
 
             OnContinue(pdfToAncestor, depth);
 
-            if (pdfNext == 0 || weight == RgbColor.Black) {
-                OnTerminate();
-                continue;
-            }
-
-            // Account for splitting and roulette in the weight
-            weight *= 1.0f / (survivalProb * numSplits);
+            if (pdfNext == 0 || weight == RgbColor.Black)
+                break;
 
             // Continue the path with the next ray
-            var nextRay = Raytracer.SpawnRay(hit, direction);
-            estimate += ContinueWalk(nextRay, hit, pdfNext, throughput * weight, depth + 1);
+            throughput *= weight / survivalProb;
+            depth++;
+            pdfDirection = pdfNext * survivalProb;
+            previousPoint = hit;
+            ray = Raytracer.SpawnRay(hit, direction);
         }
 
+        OnTerminate();
         return estimate;
     }
 

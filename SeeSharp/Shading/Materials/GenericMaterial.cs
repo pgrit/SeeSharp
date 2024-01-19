@@ -85,27 +85,29 @@ public class GenericMaterial : Material {
 
     /// <returns>BSDF value</returns>
     public override RgbColor Evaluate(in ShadingContext context, Vector3 inDir) {
-        return Evaluate(MakeContext(context, inDir));
+        var ctx = MakeContext(context);
+        var evalCtx = MakeEvalContext(context, inDir);
+        return Evaluate(ctx, evalCtx);
     }
 
-    RgbColor Evaluate(in GenericMaterialContext context) {
+    RgbColor Evaluate(in GenericMaterialContext context, in EvalContext evalContext) {
         ShadingStats.NotifyEvaluate();
 
         // Evaluate all components
         bool isOnLightSubpath = context.ShadingContext.IsOnLightSubpath;
         var result = RgbColor.Black;
-        if (context.LocalParameters.diffuseWeight > 0 && context.SameHemisphere) {
-            result += context.DiffuseComponent.Evaluate(context.OutDirShadingSpace, context.InDirShadingSpace, isOnLightSubpath);
-            result += context.RetroComponent.Evaluate(context.OutDirShadingSpace, context.InDirShadingSpace, isOnLightSubpath);
+        if (context.LocalParameters.diffuseWeight > 0 && evalContext.SameHemisphere) {
+            result += context.DiffuseComponent.Evaluate(context.OutDirShadingSpace, evalContext.InDirShadingSpace, isOnLightSubpath);
+            result += context.RetroComponent.Evaluate(context.OutDirShadingSpace, evalContext.InDirShadingSpace, isOnLightSubpath);
         }
-        if (MaterialParameters.SpecularTransmittance > 0 && !context.SameHemisphere) {
-            result += context.MicroTransmitComponent.Evaluate(context.OutDirShadingSpace, context.InDirShadingSpace, isOnLightSubpath);
+        if (MaterialParameters.SpecularTransmittance > 0 && !evalContext.SameHemisphere) {
+            result += context.MicroTransmitComponent.Evaluate(context.OutDirShadingSpace, evalContext.InDirShadingSpace, isOnLightSubpath);
         }
-        if (MaterialParameters.Thin && !context.SameHemisphere) {
-            result += context.DiffuseTransmitComponent.Evaluate(context.OutDirShadingSpace, context.InDirShadingSpace, isOnLightSubpath);
+        if (MaterialParameters.Thin && !evalContext.SameHemisphere) {
+            result += context.DiffuseTransmitComponent.Evaluate(context.OutDirShadingSpace, evalContext.InDirShadingSpace, isOnLightSubpath);
         }
-        if (context.SameHemisphere) {
-            result += context.MicroReflectComponent.Evaluate(context.OutDirShadingSpace, context.InDirShadingSpace, isOnLightSubpath);
+        if (evalContext.SameHemisphere) {
+            result += context.MicroReflectComponent.Evaluate(context.OutDirShadingSpace, evalContext.InDirShadingSpace, isOnLightSubpath);
         }
 
         Debug.Assert(float.IsFinite(result.Average) && result.Average >= 0);
@@ -113,17 +115,11 @@ public class GenericMaterial : Material {
         return result;
     }
 
-    ThreadLocal<GenericMaterialContext> contextCache = new(() => new());
-
     public override void PopulateContext(ref ShadingContext context) {
-        context.ShaderData = MakeContext(context);
     }
 
     GenericMaterialContext MakeContext(in ShadingContext shadingContext) {
-        if (shadingContext.ShaderData != null)
-            return (GenericMaterialContext)shadingContext.ShaderData;
-
-        var context = contextCache.Value;
+        GenericMaterialContext context = new();
         context.ShadingContext = shadingContext;
         context.LocalParameters = ComputeLocalParams(shadingContext.Point.TextureCoordinates);
         context.SelectionWeightsForward = ComputeSelectWeights(context.LocalParameters, shadingContext.OutDir);
@@ -136,13 +132,16 @@ public class GenericMaterial : Material {
         return context;
     }
 
-    GenericMaterialContext MakeContext(in ShadingContext shadingContext, Vector3 inDir) {
+    EvalContext MakeEvalContext(in ShadingContext shadingContext, Vector3 inDir) {
         var context = MakeContext(shadingContext);
-        context.InDirShadingSpace = shadingContext.WorldToShading(inDir);
-        var (_, r) = ComputeSelectWeights(context.LocalParameters, shadingContext.OutDir, context.InDirShadingSpace);
-        context.SelectionWeightsReverse = r;
-        context.SameHemisphere = ShouldReflect(shadingContext.Point, shadingContext.OutDirWorld, inDir);
-        return context;
+        EvalContext evalContext = new() {
+            InDirWorldSpace = inDir,
+            InDirShadingSpace = shadingContext.WorldToShading(inDir)
+        };
+        var (_, r) = ComputeSelectWeights(context.LocalParameters, shadingContext.OutDir, evalContext.InDirShadingSpace);
+        evalContext.SelectionWeightsReverse = r;
+        evalContext.SameHemisphere = ShouldReflect(shadingContext.Point, shadingContext.OutDirWorld, inDir);
+        return evalContext;
     }
 
     /// <summary>Crudely importance samples the combined BSDFs</summary>
@@ -187,15 +186,10 @@ public class GenericMaterial : Material {
 
         if (!sample.HasValue) return BsdfSample.Invalid;
 
-        context.InDirShadingSpace = sample.Value;
-        var sampledDir = context.ShadingContext.ShadingToWorld(sample.Value);
-        context.SameHemisphere = ShouldReflect(context.ShadingContext.Point, context.OutDirShadingSpace, sampledDir);
-        var (_, r) = ComputeSelectWeights(context.LocalParameters, context.OutDirShadingSpace, context.InDirShadingSpace);
-        context.SelectionWeightsReverse = r;
+        var evalContext = MakeEvalContext(context.ShadingContext, context.ShadingContext.ShadingToWorld(sample.Value));
+        var value = Evaluate(context, evalContext) * AbsCosTheta(evalContext.InDirShadingSpace);
 
-        var value = Evaluate(context) * AbsCosTheta(context.InDirShadingSpace);
-
-        var (pdfFwd, pdfRev) = Pdf(context, ref componentWeights);
+        var (pdfFwd, pdfRev) = Pdf(context, evalContext, ref componentWeights);
         if (pdfFwd == 0) return BsdfSample.Invalid;
 
         Debug.Assert(float.IsFinite(value.Average / pdfFwd) && pdfFwd > 0);
@@ -206,11 +200,11 @@ public class GenericMaterial : Material {
             Pdf = pdfFwd,
             PdfReverse = pdfRev,
             Weight = value / pdfFwd,
-            Direction = sampledDir
+            Direction = evalContext.InDirWorldSpace
         };
     }
 
-    (float, float) Pdf(in GenericMaterialContext context, ref ComponentWeights components) {
+    (float, float) Pdf(in GenericMaterialContext context, in EvalContext evalContext, ref ComponentWeights components) {
         ShadingStats.NotifyPdfCompute();
         bool isOnLightSubpath = context.ShadingContext.IsOnLightSubpath;
 
@@ -219,67 +213,67 @@ public class GenericMaterial : Material {
         float fwd, rev;
         int idxFwd = 0;
         int idxRev = 0;
-        if (context.SelectionWeightsForward.Diff > 0 || context.SelectionWeightsReverse.Diff > 0) {
-            (fwd, rev) = context.DiffuseComponent.Pdf(context.OutDirShadingSpace, context.InDirShadingSpace, isOnLightSubpath);
+        if (context.SelectionWeightsForward.Diff > 0 || evalContext.SelectionWeightsReverse.Diff > 0) {
+            (fwd, rev) = context.DiffuseComponent.Pdf(context.OutDirShadingSpace, evalContext.InDirShadingSpace, isOnLightSubpath);
             pdfFwd += fwd * context.SelectionWeightsForward.Diff;
-            pdfRev += rev * context.SelectionWeightsReverse.Diff;
+            pdfRev += rev * evalContext.SelectionWeightsReverse.Diff;
 
             if (context.SelectionWeightsForward.Diff > 0) {
                 if (components.Pdfs != null) components.Pdfs[idxFwd] = fwd;
                 if (components.Weights != null) components.Weights[idxFwd] = context.SelectionWeightsForward.Diff;
                 idxFwd++;
             }
-            if (context.SelectionWeightsReverse.Diff > 0) {
+            if (evalContext.SelectionWeightsReverse.Diff > 0) {
                 if (components.PdfsReverse != null) components.PdfsReverse[idxRev] = rev;
-                if (components.WeightsReverse != null) components.WeightsReverse[idxRev] = context.SelectionWeightsReverse.Diff;
+                if (components.WeightsReverse != null) components.WeightsReverse[idxRev] = evalContext.SelectionWeightsReverse.Diff;
                 idxRev++;
             }
         }
-        if (context.SelectionWeightsForward.Trans > 0 || context.SelectionWeightsReverse.Trans > 0) {
-            (fwd, rev) = context.MicroTransmitComponent.Pdf(context.OutDirShadingSpace, context.InDirShadingSpace, isOnLightSubpath);
+        if (context.SelectionWeightsForward.Trans > 0 || evalContext.SelectionWeightsReverse.Trans > 0) {
+            (fwd, rev) = context.MicroTransmitComponent.Pdf(context.OutDirShadingSpace, evalContext.InDirShadingSpace, isOnLightSubpath);
             pdfFwd += fwd * context.SelectionWeightsForward.Trans;
-            pdfRev += rev * context.SelectionWeightsReverse.Trans;
+            pdfRev += rev * evalContext.SelectionWeightsReverse.Trans;
 
             if (context.SelectionWeightsForward.Trans > 0) {
                 if (components.Pdfs != null) components.Pdfs[idxFwd] = fwd;
                 if (components.Weights != null) components.Weights[idxFwd] = context.SelectionWeightsForward.Trans;
                 idxFwd++;
             }
-            if (context.SelectionWeightsReverse.Trans > 0) {
+            if (evalContext.SelectionWeightsReverse.Trans > 0) {
                 if (components.PdfsReverse != null) components.PdfsReverse[idxRev] = rev;
-                if (components.WeightsReverse != null) components.WeightsReverse[idxRev] = context.SelectionWeightsReverse.Trans;
+                if (components.WeightsReverse != null) components.WeightsReverse[idxRev] = evalContext.SelectionWeightsReverse.Trans;
                 idxRev++;
             }
         }
-        if (context.SelectionWeightsForward.DiffTrans > 0 || context.SelectionWeightsReverse.DiffTrans > 0) {
-            (fwd, rev) = context.DiffuseTransmitComponent.Pdf(context.OutDirShadingSpace, context.InDirShadingSpace, isOnLightSubpath);
+        if (context.SelectionWeightsForward.DiffTrans > 0 || evalContext.SelectionWeightsReverse.DiffTrans > 0) {
+            (fwd, rev) = context.DiffuseTransmitComponent.Pdf(context.OutDirShadingSpace, evalContext.InDirShadingSpace, isOnLightSubpath);
             pdfFwd += fwd * context.SelectionWeightsForward.DiffTrans;
-            pdfRev += rev * context.SelectionWeightsReverse.DiffTrans;
+            pdfRev += rev * evalContext.SelectionWeightsReverse.DiffTrans;
 
             if (context.SelectionWeightsForward.DiffTrans > 0) {
                 if (components.Pdfs != null) components.Pdfs[idxFwd] = fwd;
                 if (components.Weights != null) components.Weights[idxFwd] = context.SelectionWeightsForward.DiffTrans;
                 idxFwd++;
             }
-            if (context.SelectionWeightsReverse.DiffTrans > 0) {
+            if (evalContext.SelectionWeightsReverse.DiffTrans > 0) {
                 if (components.PdfsReverse != null) components.PdfsReverse[idxRev] = rev;
-                if (components.WeightsReverse != null) components.WeightsReverse[idxRev] = context.SelectionWeightsReverse.DiffTrans;
+                if (components.WeightsReverse != null) components.WeightsReverse[idxRev] = evalContext.SelectionWeightsReverse.DiffTrans;
                 idxRev++;
             }
         }
-        if (context.SelectionWeightsForward.Reflect > 0 || context.SelectionWeightsReverse.Reflect > 0) {
-            (fwd, rev) = context.MicroReflectComponent.Pdf(context.OutDirShadingSpace, context.InDirShadingSpace, isOnLightSubpath);
+        if (context.SelectionWeightsForward.Reflect > 0 || evalContext.SelectionWeightsReverse.Reflect > 0) {
+            (fwd, rev) = context.MicroReflectComponent.Pdf(context.OutDirShadingSpace, evalContext.InDirShadingSpace, isOnLightSubpath);
             pdfFwd += fwd * context.SelectionWeightsForward.Reflect;
-            pdfRev += rev * context.SelectionWeightsReverse.Reflect;
+            pdfRev += rev * evalContext.SelectionWeightsReverse.Reflect;
 
             if (context.SelectionWeightsForward.Reflect > 0) {
                 if (components.Pdfs != null) components.Pdfs[idxFwd] = fwd;
                 if (components.Weights != null) components.Weights[idxFwd] = context.SelectionWeightsForward.Reflect;
                 idxFwd++;
             }
-            if (context.SelectionWeightsReverse.Reflect > 0) {
+            if (evalContext.SelectionWeightsReverse.Reflect > 0) {
                 if (components.PdfsReverse != null) components.PdfsReverse[idxRev] = rev;
-                if (components.WeightsReverse != null) components.WeightsReverse[idxRev] = context.SelectionWeightsReverse.Reflect;
+                if (components.WeightsReverse != null) components.WeightsReverse[idxRev] = evalContext.SelectionWeightsReverse.Reflect;
                 idxRev++;
             }
         }
@@ -292,7 +286,9 @@ public class GenericMaterial : Material {
     }
 
     public override (float, float) Pdf(in ShadingContext context, Vector3 inDir, ref ComponentWeights components) {
-        return Pdf(MakeContext(context, inDir), ref components);
+        var ctx = MakeContext(context);
+        var evalCtx = MakeEvalContext(context, inDir);
+        return Pdf(ctx, evalCtx, ref components);
     }
 
     public override int MaxSamplingComponents => 5;
@@ -375,19 +371,23 @@ public class GenericMaterial : Material {
         public float Trans;
     }
 
-    class GenericMaterialContext {
+    struct GenericMaterialContext {
         public ShadingContext ShadingContext;
-        public Vector3 InDirShadingSpace;
         public Vector3 OutDirShadingSpace => ShadingContext.OutDir;
         public SelectionWeights SelectionWeightsForward;
-        public SelectionWeights SelectionWeightsReverse;
         public LocalParams LocalParameters;
-        public bool SameHemisphere;
         public DisneyDiffuse DiffuseComponent;
         public DisneyRetroReflection RetroComponent;
         public MicrofacetTransmission MicroTransmitComponent;
         public DiffuseTransmission DiffuseTransmitComponent;
         public MicrofacetReflection<DisneyFresnel> MicroReflectComponent;
+    }
+
+    struct EvalContext {
+        public Vector3 InDirShadingSpace;
+        public Vector3 InDirWorldSpace;
+        public bool SameHemisphere;
+        public SelectionWeights SelectionWeightsReverse;
     }
 
     (SelectionWeights, SelectionWeights) ComputeSelectWeights(LocalParams p, Vector3 outDir, Vector3 inDir) {

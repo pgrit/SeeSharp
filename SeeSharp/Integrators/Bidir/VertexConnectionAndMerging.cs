@@ -181,41 +181,41 @@ public class VertexConnectionAndMerging : VertexCacheBidir {
     /// Called after each full photon mapping operation is finished, i.e., after all nearby photons
     /// have been found and merged wtih
     /// </summary>
-    /// <param name="ray">The last ray of the camera path</param>
-    /// <param name="hit">Shading point / last vertex of the camera path</param>
+    /// <param name="shader">Shading info at the merge position</param>
     /// <param name="rng">Current RNG state</param>
     /// <param name="path">The camera prefix path</param>
     /// <param name="cameraJacobian">Geometry term used to turn a PDF over outgoing directions into a surface area density.</param>
     /// <param name="estimate">The computed photon mapping contribution</param>
-    protected virtual void OnCombinedMergeSample(Ray ray, SurfacePoint hit, RNG rng, CameraPath path,
+    protected virtual void OnCombinedMergeSample(in SurfaceShader shader, RNG rng, CameraPath path,
                                                  float cameraJacobian, RgbColor estimate) { }
 
-    protected virtual RgbColor Merge((CameraPath path, float cameraJacobian) userData, SurfacePoint hit,
-                                     Vector3 outDir, int pathIdx, int vertexIdx, float distSqr, float radiusSquared) {
+    protected virtual RgbColor Merge((CameraPath path, float cameraJacobian) userData, in SurfaceShader shader,
+                                     int pathIdx, int vertexIdx, float distSqr, float radiusSquared) {
         var photon = LightPaths.PathCache[pathIdx, vertexIdx];
         CameraPath path = userData.path;
         float cameraJacobian = userData.cameraJacobian;
 
         // Check that the path does not exceed the maximum length
         var depth = path.Vertices.Count + photon.Depth;
-        if (depth > MaxDepth || depth < MinDepth) return RgbColor.Black;
+        if (depth > MaxDepth || depth < MinDepth)
+            return RgbColor.Black;
 
         // Compute the contribution of the photon
         var ancestor = LightPaths.PathCache[pathIdx, photon.AncestorId];
-        var dirToAncestor = Vector3.Normalize(ancestor.Point.Position - hit.Position);
-        var bsdfValue = hit.Material.Evaluate(hit, outDir, dirToAncestor, false);
+        var dirToAncestor = Vector3.Normalize(ancestor.Point.Position - shader.Point.Position);
+        var bsdfValue = shader.Evaluate(dirToAncestor);
         var photonContrib = photon.Weight * bsdfValue / NumLightPaths.Value;
 
         // Early exit + prevent NaN / Inf
         if (photonContrib == RgbColor.Black) return RgbColor.Black;
         // Prevent outliers du to numerical issues with photons arriving almost parallel to the surface
-        if (Math.Abs(Vector3.Dot(dirToAncestor, hit.Normal)) < 1e-4f) return RgbColor.Black;
+        if (Math.Abs(Vector3.Dot(dirToAncestor, shader.Point.Normal)) < 1e-4f) return RgbColor.Black;
 
         // Compute the missing pdf terms and the MIS weight
-        var (pdfLightReverse, pdfCameraReverse) = hit.Material.Pdf(hit, outDir, dirToAncestor, false);
+        var (pdfLightReverse, pdfCameraReverse) = shader.Pdf(dirToAncestor);
         pdfCameraReverse *= cameraJacobian;
-        pdfLightReverse *= SampleWarp.SurfaceAreaToSolidAngle(hit, ancestor.Point);
-        float pdfNextEvent = (photon.Depth == 1) ? NextEventPdf(hit, ancestor.Point) : 0;
+        pdfLightReverse *= SampleWarp.SurfaceAreaToSolidAngle(shader.Point, ancestor.Point);
+        float pdfNextEvent = (photon.Depth == 1) ? NextEventPdf(shader.Point, ancestor.Point) : 0;
         float misWeight = MergeMis(path, photon, pdfCameraReverse, pdfLightReverse, pdfNextEvent);
 
         // Prevent NaNs in corner cases
@@ -246,26 +246,25 @@ public class VertexConnectionAndMerging : VertexCacheBidir {
     /// <summary>
     ///
     /// </summary>
-    /// <param name="ray">Last ray along the camera path</param>
-    /// <param name="hit">Last hit point along the camera path</param>
+    /// <param name="shader">Surface shading info at the last camera path vertex</param>
     /// <param name="rng">Random number generator for random decisions required during merging</param>
     /// <param name="path">The camera subpath data</param>
     /// <param name="cameraJacobian">
     ///     Geometry term used to turn a PDF over outgoing directions into a surface area density.
     /// </param>
     /// <returns>MIS weighted contribution due to merging</returns>
-    protected virtual RgbColor PerformMerging(Ray ray, SurfacePoint hit, RNG rng, CameraPath path, float cameraJacobian) {
+    protected virtual RgbColor PerformMerging(SurfaceShader shader, RNG rng, CameraPath path, float cameraJacobian) {
         if (path.Vertices.Count == 1 && !MergePrimary) return RgbColor.Black;
         if (!EnableMerging) return RgbColor.Black;
         float localRadius = ComputeLocalMergeRadius(path.Distances[0]);
 
         RgbColor estimate = RgbColor.Black;
-        photonMap.ForAllNearest(hit.Position, MaxNumPhotons, localRadius, (position, idx, distance, numFound, maxDist) => {
+        photonMap.ForAllNearest(shader.Point.Position, MaxNumPhotons, localRadius, (position, idx, distance, numFound, maxDist) => {
             float radiusSquared = numFound == MaxNumPhotons ? maxDist * maxDist : localRadius * localRadius;
-            estimate += Merge((path, cameraJacobian), hit, -ray.Direction, photons[idx].PathIndex,
+            estimate += Merge((path, cameraJacobian), shader, photons[idx].PathIndex,
                 photons[idx].VertexIndex, distance * distance, radiusSquared);
         });
-        OnCombinedMergeSample(ray, hit, rng, path, cameraJacobian, estimate);
+        OnCombinedMergeSample(shader, rng, path, cameraJacobian, estimate);
         return estimate;
     }
 
@@ -275,28 +274,28 @@ public class VertexConnectionAndMerging : VertexCacheBidir {
     }
 
     /// <inheritdoc />
-    protected override RgbColor OnCameraHit(CameraPath path, RNG rng, Ray ray, SurfacePoint hit,
+    protected override RgbColor OnCameraHit(CameraPath path, RNG rng, in SurfaceShader shader,
                                             float pdfFromAncestor, RgbColor throughput, int depth,
                                             float toAncestorJacobian) {
         RgbColor value = RgbColor.Black;
 
         // Was a light hit?
-        Emitter light = Scene.QueryEmitter(hit);
+        Emitter light = Scene.QueryEmitter(shader.Point);
         if (light != null && (EnableHitting || depth == 1) && depth >= MinDepth) {
-            value += throughput * OnEmitterHit(light, hit, ray, path, toAncestorJacobian);
+            value += throughput * OnEmitterHit(light, shader.Point, shader.Context.OutDirWorld, path, toAncestorJacobian);
         }
 
         // Perform connections and merging if the maximum depth has not yet been reached
         if (depth < MaxDepth) {
             for (int i = 0; i < NumConnections; ++i) {
-                value += throughput * BidirConnections(hit, -ray.Direction, rng, path, toAncestorJacobian);
+                value += throughput * BidirConnections(shader, rng, path, toAncestorJacobian);
             }
-            value += throughput * PerformMerging(ray, hit, rng, path, toAncestorJacobian);
+            value += throughput * PerformMerging(shader, rng, path, toAncestorJacobian);
         }
 
         if (depth < MaxDepth && depth + 1 >= MinDepth) {
             for (int i = 0; i < NumShadowRays; ++i) {
-                value += throughput * PerformNextEventEstimation(ray, hit, rng, path, toAncestorJacobian);
+                value += throughput * PerformNextEventEstimation(shader, rng, path, toAncestorJacobian);
             }
         }
 

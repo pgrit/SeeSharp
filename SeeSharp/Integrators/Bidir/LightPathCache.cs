@@ -163,18 +163,18 @@ public class LightPathCache {
             : base(scene, rng, maxDepth, cache, pathIdx) {
         }
 
-        protected override RgbColor OnHit(Ray ray, SurfacePoint hit, float pdfFromAncestor,
+        protected override RgbColor OnHit(in SurfaceShader shader, float pdfFromAncestor,
                                           RgbColor throughput, int depth, float toAncestorJacobian) {
             // Call the base first, so the vertex gets created
             Debug.Assert(pdfFromAncestor > 0);
-            var weight = base.OnHit(ray, hit, pdfFromAncestor, throughput, depth, toAncestorJacobian);
+            var weight = base.OnHit(shader, pdfFromAncestor, throughput, depth, toAncestorJacobian);
 
             // The next event pdf is computed once the path has three vertices
             if (depth == 2 && callback != null) {
                 ref var vertex = ref Cache[PathIdx, LastId];
                 var primary = Cache[PathIdx, vertex.AncestorId];
                 var origin = Cache[PathIdx, primary.AncestorId];
-                vertex.PdfNextEventAncestor = callback(origin, primary, ray.Direction);
+                vertex.PdfNextEventAncestor = callback(origin, primary, -shader.Context.OutDirWorld);
             }
 
             return weight;

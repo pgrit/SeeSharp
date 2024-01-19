@@ -72,10 +72,10 @@ public class ClassicBidir : BidirBase {
 
         // Store the technique pyramids
         if (RenderTechniquePyramid) {
-            string pathRaw = System.IO.Path.Join(scene.FrameBuffer.Basename, "techs-raw");
+            string pathRaw = Path.Join(scene.FrameBuffer.Basename, "techs-raw");
             techPyramidRaw.WriteToFiles(pathRaw);
 
-            string pathWeighted = System.IO.Path.Join(scene.FrameBuffer.Basename, "techs-weighted");
+            string pathWeighted = Path.Join(scene.FrameBuffer.Basename, "techs-weighted");
             techPyramidWeighted.WriteToFiles(pathWeighted);
         }
     }
@@ -86,25 +86,24 @@ public class ClassicBidir : BidirBase {
     }
 
     /// <inheritdoc />
-    protected override RgbColor OnCameraHit(CameraPath path, RNG rng, Ray ray, SurfacePoint hit,
+    protected override RgbColor OnCameraHit(CameraPath path, RNG rng, in SurfaceShader shader,
                                             float pdfFromAncestor, RgbColor throughput, int depth,
                                             float toAncestorJacobian) {
         RgbColor value = RgbColor.Black;
 
         // Was a light hit?
-        Emitter light = Scene.QueryEmitter(hit);
+        Emitter light = Scene.QueryEmitter(shader.Point);
         if (light != null && depth >= MinDepth) {
-            value += throughput * OnEmitterHit(light, hit, ray, path, toAncestorJacobian);
+            value += throughput * OnEmitterHit(light, shader.Point, shader.Context.OutDirWorld, path, toAncestorJacobian);
         }
 
         // Perform connections if the maximum depth has not yet been reached
         if (depth < MaxDepth && EnableConnections)
-            value += throughput *
-                BidirConnections(hit, -ray.Direction, rng, path, toAncestorJacobian);
+            value += throughput * BidirConnections(shader, rng, path, toAncestorJacobian);
 
         if (depth < MaxDepth && depth + 1 >= MinDepth) {
             for (int i = 0; i < NumShadowRays; ++i) {
-                value += throughput * PerformNextEventEstimation(ray, hit, rng, path, toAncestorJacobian);
+                value += throughput * PerformNextEventEstimation(shader, rng, path, toAncestorJacobian);
             }
         }
 

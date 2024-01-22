@@ -1,5 +1,8 @@
 ﻿namespace SeeSharp.Integrators.Bidir;
 
+
+using Walk = RandomWalk<LightPathCache.LightPathPayload>;
+
 /// <summary>
 /// Samples a given number of light paths via random walks through a scene.
 /// The paths are stored in a <see cref="Common.PathCache"/>
@@ -125,6 +128,8 @@ public class LightPathCache {
         return Scene.Background.SampleRay(primaryPos, primaryDir);
     }
 
+    LightPathWalk walkModifier;
+
     /// <summary>
     /// Resets the path cache and populates it with a new set of light paths.
     /// </summary>
@@ -132,7 +137,7 @@ public class LightPathCache {
     /// <param name="nextEventPdfCallback">
     /// Delegate that is invoked to compute the next event sampling density
     /// </param>
-    public virtual void TraceAllPaths(uint iter, NextEventPdfCallback nextEventPdfCallback) {
+    public virtual void TraceAllPaths(uint iter, LightPathWalk.NextEventPdfCallback nextEventPdfCallback) {
         if (PathCache == null)
             PathCache = new PathCache(NumPaths, Math.Min(MaxDepth, 10));
         else if (NumPaths != PathCache.NumPaths) {
@@ -142,38 +147,14 @@ public class LightPathCache {
             PathCache.Clear();
         }
 
+        walkModifier = new LightPathWalk(PathCache, nextEventPdfCallback);
+
         Parallel.For(0, NumPaths, idx => {
             var rng = new RNG(BaseSeed, (uint)idx, iter);
-            TraceLightPath(rng, nextEventPdfCallback, idx);
+            TraceLightPath(rng, idx);
         });
 
         PathCache.Prepare();
-    }
-
-    /// <summary>
-    /// Computes the next event sampling pdf
-    /// </summary>
-    /// <param name="origin">Initial vertex on the light source or background</param>
-    /// <param name="primary">First vertex intersected in the scene</param>
-    /// <param name="nextDirection">Direction towards the next vertex</param>
-    /// <returns>Next event pdf to sample the same edge</returns>
-    public delegate float NextEventPdfCallback(SurfacePoint origin, SurfacePoint primary, Vector3 nextDirection);
-
-    protected class NotifyingCachedWalk : CachedRandomWalk {
-        public NextEventPdfCallback callback;
-        public NotifyingCachedWalk(Scene scene, RNG rng, int maxDepth, PathCache cache, int pathIdx)
-            : base(scene, rng, maxDepth, cache, pathIdx) {
-        }
-
-        protected override RgbColor OnHit(in SurfaceShader shader, float pdfFromAncestor,
-                                          RgbColor throughput, int depth, float toAncestorJacobian) {
-            // The next event pdf is computed once the path has three vertices
-            float pdfNextEventAncestor = 0.0f;
-            if (depth == 2 && callback != null && LastId >= 0)
-                pdfNextEventAncestor = callback(FirstPoint, SecondPoint, -shader.Context.OutDirWorld);
-
-            return OnHit(shader, pdfFromAncestor, throughput, depth, toAncestorJacobian, pdfNextEventAncestor);
-        }
     }
 
     /// <summary>
@@ -182,13 +163,13 @@ public class LightPathCache {
     /// <returns>
     /// The index of the last vertex along the path.
     /// </returns>
-    public virtual int TraceLightPath(RNG rng, NextEventPdfCallback nextEvtCallback, int idx) {
+    public virtual int TraceLightPath(RNG rng, int idx) {
         // Select an emitter or the background
         var (emitter, prob) = SelectLight(rng.NextFloat());
         if (emitter != null)
-            return TraceEmitterPath(rng, emitter, prob, nextEvtCallback, idx);
+            return TraceEmitterPath(rng, emitter, prob, idx);
         else
-            return TraceBackgroundPath(rng, prob, nextEvtCallback, idx);
+            return TraceBackgroundPath(rng, prob, idx);
     }
 
     /// <summary>
@@ -215,22 +196,18 @@ public class LightPathCache {
         });
     }
 
-    protected int TraceEmitterPath(RNG rng, Emitter emitter, float selectProb,
-                         NextEventPdfCallback nextEventPdfCallback, int idx) {
+    protected int TraceEmitterPath(RNG rng, Emitter emitter, float selectProb, int idx) {
         var emitterSample = SampleEmitter(rng, emitter);
 
         // Account for the light selection probability in the MIS weights
         emitterSample.Pdf *= selectProb;
 
-        // Perform a random walk through the scene, storing all vertices along the path
-        var walker = new NotifyingCachedWalk(Scene, rng, MaxDepth, PathCache, idx) {
-            callback = nextEventPdfCallback
-        };
-        walker.StartFromEmitter(emitterSample, emitterSample.Weight / selectProb);
-        return walker.LastId;
+        var walk = new Walk(Scene, MaxDepth, walkModifier);
+        walk.StartFromEmitter(rng, emitterSample, emitterSample.Weight / selectProb, new() { PathIdx = idx });
+        return walk.Payload.LastId;
     }
 
-    protected int TraceBackgroundPath(RNG rng, float selectProb, NextEventPdfCallback nextEventPdfCallback, int idx) {
+    protected int TraceBackgroundPath(RNG rng, float selectProb, int idx) {
         var (ray, weight, pdf) = SampleBackground(rng);
 
         // Account for the light selection probability
@@ -242,10 +219,110 @@ public class LightPathCache {
 
         Debug.Assert(float.IsFinite(weight.Average));
 
-        // Perform a random walk through the scene, storing all vertices along the path
-        var walker = new NotifyingCachedWalk(Scene, rng, MaxDepth, PathCache, idx);
-        walker.callback = nextEventPdfCallback;
-        walker.StartFromBackground(ray, weight, pdf);
-        return walker.LastId;
+        var walk = new Walk(Scene, MaxDepth, walkModifier);
+        walk.StartFromBackground(rng, ray, weight, pdf, new() { PathIdx = idx });
+        return walk.Payload.LastId;
+    }
+
+    public struct LightPathPayload {
+        /// <summary>
+        /// Index of the last vertex along the path that was generated
+        /// </summary>
+        public int LastId;
+
+        /// <summary>
+        /// Index of the generated path in the cache
+        /// </summary>
+        public int PathIdx;
+
+        public float nextReversePdf;
+
+        public float maxRoughness;
+
+        public SurfacePoint FirstPoint, SecondPoint;
+    }
+
+    /// <summary>
+    /// Performs a random walk and stores all vertices along the path in a <see cref="PathCache" />.
+    /// </summary>
+    public class LightPathWalk : Walk.RandomWalkModifier {
+        /// <summary>
+        /// The cache storing the generated path
+        /// </summary>
+        public readonly PathCache Cache;
+
+        /// <summary>
+        /// Computes the next event sampling pdf
+        /// </summary>
+        /// <param name="origin">Initial vertex on the light source or background</param>
+        /// <param name="primary">First vertex intersected in the scene</param>
+        /// <param name="nextDirection">Direction towards the next vertex</param>
+        /// <returns>Next event pdf to sample the same edge</returns>
+        public delegate float NextEventPdfCallback(SurfacePoint origin, SurfacePoint primary, Vector3 nextDirection);
+
+        public NextEventPdfCallback ComputeNextEventPdf;
+
+        /// <summary>
+        /// Prepares an object that can be used to perform one random walk.
+        /// </summary>
+        /// <param name="cache">The cache to store the path in</param>
+        /// <param name="nextEventPdf">Callback that computes the next event sampling PDF once the first two vertices are known</param>
+        public LightPathWalk(PathCache cache, NextEventPdfCallback nextEventPdf) {
+            Cache = cache;
+            ComputeNextEventPdf = nextEventPdf;
+        }
+
+        public override void OnStartEmitter(ref Walk walk, EmitterSample emitterSample, RgbColor initialWeight) {
+            walk.Payload.nextReversePdf = 0.0f;
+            walk.Payload.maxRoughness = 0.0f;
+
+            walk.Payload.LastId = Cache.AddVertex(new PathVertex {
+                Point = emitterSample.Point,
+                AncestorId = -1,
+                PathId = walk.Payload.PathIdx,
+                Depth = 0,
+            });
+            walk.Payload.FirstPoint = emitterSample.Point;
+        }
+
+        public override void OnStartBackground(ref Walk walk, Ray ray, RgbColor initialWeight, float pdf) {
+            walk.Payload.nextReversePdf = 0.0f;
+            walk.Payload.FirstPoint = new SurfacePoint { Position = ray.Origin };
+
+            walk.Payload.LastId = Cache.AddVertex(new PathVertex {
+                Point = walk.Payload.FirstPoint,
+                AncestorId = -1,
+                PathId = walk.Payload.PathIdx,
+                Depth = 0,
+            });
+        }
+
+        public override RgbColor OnHit(ref Walk walk, in SurfaceShader shader, float pdfFromAncestor,
+                                    RgbColor throughput, int depth, float toAncestorJacobian) {
+            float roughness = shader.GetRoughness();
+            if (depth == 1) walk.Payload.SecondPoint = shader.Point;
+
+            // The next event pdf is computed once the path has three vertices
+            float pdfNextEventAncestor = 0.0f;
+            if (depth == 2 && ComputeNextEventPdf != null && walk.Payload.LastId >= 0)
+                pdfNextEventAncestor = ComputeNextEventPdf(walk.Payload.FirstPoint, walk.Payload.SecondPoint, -shader.Context.OutDirWorld);
+
+            walk.Payload.LastId = Cache.AddVertex(new PathVertex {
+                Point = shader.Point,
+                PdfFromAncestor = pdfFromAncestor,
+                PdfReverseAncestor = walk.Payload.nextReversePdf,
+                AncestorId = walk.Payload.LastId,
+                PathId = walk.Payload.PathIdx,
+                Weight = throughput,
+                Depth = (byte)depth,
+                PdfNextEventAncestor = pdfNextEventAncestor,
+                MaximumRoughness = MathF.Max(roughness, walk.Payload.maxRoughness)
+            });
+            return RgbColor.Black;
+        }
+
+        public override void OnContinue(ref Walk walk, float pdfToAncestor, int depth) {
+            walk.Payload.nextReversePdf = pdfToAncestor;
+        }
     }
 }

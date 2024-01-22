@@ -1,4 +1,5 @@
-﻿namespace SeeSharp.Integrators.Bidir;
+﻿
+namespace SeeSharp.Integrators.Bidir;
 
 /// <summary>
 /// Basis for many bidirectional algorithms. Splits rendering into multiple iterations. Each iteration
@@ -136,18 +137,6 @@ public abstract class BidirBase : Integrator {
     protected virtual float SelectLightPmf(in SurfacePoint from, Emitter em) => 1.0f / Scene.Emitters.Count;
 
     /// <summary>
-    /// Called once for each pixel per iteration. Expected to perform some sort of path tracing,
-    /// possibly connecting vertices with those from the light path cache.
-    /// </summary>
-    /// <returns>The estimated pixel value.</returns>
-    protected virtual RgbColor EstimatePixelValue(in SurfacePoint cameraPoint, Pixel pixel,
-                                                  in Ray primaryRay, float pdfFromCamera,
-                                                  RgbColor initialWeight, RNG rng) {
-        var walk = new CameraRandomWalk(rng, pixel, this);
-        return walk.StartFromCamera(pixel, cameraPoint, pdfFromCamera, primaryRay, initialWeight);
-    }
-
-    /// <summary>
     /// Called once after the end of each rendering iteration (one sample per pixel)
     /// </summary>
     /// <param name="iteration">The 0-based index of the iteration that just finished</param>
@@ -248,23 +237,28 @@ public abstract class BidirBase : Integrator {
     }
 
     private void TraceAllCameraPaths(uint iter) {
+        CameraRandomWalk walkMod = new(this);
+
         Parallel.For(0, Scene.FrameBuffer.Height, row => {
             for (uint col = 0; col < Scene.FrameBuffer.Width; ++col) {
                 uint pixelIndex = (uint)(row * Scene.FrameBuffer.Width + col);
                 var rng = new RNG(BaseSeedCamera, pixelIndex, iter);
-                RenderPixel((uint)row, col, rng);
+                RenderPixel((uint)row, col, rng, walkMod);
             }
         });
     }
 
-    protected virtual void RenderPixel(uint row, uint col, RNG rng) {
-        // Sample a ray from the camera
+    protected virtual void RenderPixel(uint row, uint col, RNG rng, CameraRandomWalk walkMod) {
+        Pixel pixel = new((int)col, (int)row);
+
         var offset = rng.NextFloat2D();
         var filmSample = new Vector2(col, row) + offset;
         var cameraRay = Scene.Camera.GenerateRay(filmSample, rng);
-        var value = EstimatePixelValue(cameraRay.Point, new((int)col, (int)row), cameraRay.Ray,
-                                       cameraRay.PdfRay, cameraRay.Weight, rng);
-        Scene.FrameBuffer.Splat((int)col, (int)row, value);
+
+        RandomWalk<CameraPath> walk = new(Scene, MaxDepth + 1, walkMod);
+        var value = walk.StartFromCamera(rng, cameraRay, pixel, new CameraPath());
+
+        Scene.FrameBuffer.Splat(pixel, value);
     }
 
     /// <summary>
@@ -480,7 +474,7 @@ public abstract class BidirBase : Integrator {
     /// edge via next event estimation at the last light path vertex. Otherwise zero.
     /// </param>
     /// <returns>MIS weight for the connection</returns>
-    public abstract float BidirConnectMis(CameraPath cameraPath, PathVertex lightVertex,
+    public abstract float BidirConnectMis(in CameraPath cameraPath, PathVertex lightVertex,
                                           float pdfCameraReverse, float pdfCameraToLight,
                                           float pdfLightReverse, float pdfLightToCamera,
                                           float pdfNextEvent);
@@ -622,7 +616,7 @@ public abstract class BidirBase : Integrator {
     /// Surface area pdf of sampling the second-to-last camera path vertex when tracing a light path
     /// </param>
     /// <returns>MIS weight</returns>
-    public abstract float NextEventMis(CameraPath cameraPath, float pdfEmit, float pdfNextEvent,
+    public abstract float NextEventMis(in CameraPath cameraPath, float pdfEmit, float pdfNextEvent,
                                        float pdfHit, float pdfReverse);
 
     /// <summary>
@@ -775,7 +769,7 @@ public abstract class BidirBase : Integrator {
     /// </param>
     /// <param name="pdfNextEvent">Surface area pdf of sampling the point on the emitter via next event</param>
     /// <returns>MIS weight</returns>
-    public abstract float EmitterHitMis(CameraPath cameraPath, float pdfEmit, float pdfNextEvent);
+    public abstract float EmitterHitMis(in CameraPath cameraPath, float pdfEmit, float pdfNextEvent);
 
     /// <summary>
     /// Called when a camera path directly intersected an emitter
@@ -810,7 +804,7 @@ public abstract class BidirBase : Integrator {
     /// <param name="ray">The last ray of the camera path that intersected nothing</param>
     /// <param name="path">The camera path</param>
     /// <returns>MIS weighted contribution from the background</returns>
-    protected virtual RgbColor OnBackgroundHit(Ray ray, CameraPath path) {
+    protected virtual RgbColor OnBackgroundHit(Ray ray, in CameraPath path) {
         if (Scene.Background == null)
             return RgbColor.Black;
 
@@ -847,7 +841,7 @@ public abstract class BidirBase : Integrator {
     /// sampling its ancestor.
     /// </param>
     /// <returns>Sum of MIS weighted contributions for all sampling techniques performed here</returns>
-    protected abstract RgbColor OnCameraHit(CameraPath path, RNG rng, in SurfaceShader shader,
+    protected abstract RgbColor OnCameraHit(in CameraPath path, RNG rng, in SurfaceShader shader,
                                             float pdfFromAncestor, RgbColor throughput, int depth,
                                             float toAncestorJacobian);
 
@@ -855,62 +849,63 @@ public abstract class BidirBase : Integrator {
     /// Called for each termination of the camera path
     /// </summary>
     /// <param name="path">The camera path</param>
-    protected virtual void OnCameraPathTerminate(CameraPath path) { }
+    protected virtual void OnCameraPathTerminate(in CameraPath path) { }
 
-    class CameraRandomWalk : RandomWalk {
+    protected class CameraRandomWalk : RandomWalk<CameraPath>.RandomWalkModifier {
         BidirBase integrator;
-        CameraPath path;
 
-        public CameraRandomWalk(RNG rng, Pixel pixel, BidirBase integrator)
-            : base(integrator.Scene, rng, integrator.MaxDepth + 1) {
+        public CameraRandomWalk(BidirBase integrator) {
             this.integrator = integrator;
-            path.Vertices = new List<PathPdfPair>(integrator.MaxDepth);
-            path.Distances = new List<float>(integrator.MaxDepth);
-            path.Pixel = pixel;
         }
 
-        protected override RgbColor OnInvalidHit(Ray ray, float pdfFromAncestor, RgbColor throughput,
-                                                 int depth) {
-            path.Vertices.Add(new PathPdfPair {
+        public override void OnStartCamera(ref RandomWalk<CameraPath> walk, CameraRaySample cameraRay, Pixel filmPosition) {
+            walk.Payload.Vertices = new List<PathPdfPair>(integrator.MaxDepth);
+            walk.Payload.Distances = new List<float>(integrator.MaxDepth);
+            walk.Payload.Pixel = filmPosition;
+        }
+
+        public override RgbColor OnInvalidHit(ref RandomWalk<CameraPath> walk, Ray ray, float pdfFromAncestor,
+                                              RgbColor throughput, int depth) {
+            walk.Payload.Vertices.Add(new PathPdfPair {
                 PdfFromAncestor = pdfFromAncestor,
                 PdfToAncestor = 0
             });
-            path.Throughput = throughput;
-            path.Distances.Add(float.PositiveInfinity);
-            return integrator.OnBackgroundHit(ray, path);
+            walk.Payload.Throughput = throughput;
+            walk.Payload.Distances.Add(float.PositiveInfinity);
+            return integrator.OnBackgroundHit(ray, walk.Payload);
         }
 
-        protected override RgbColor OnHit(in SurfaceShader shader, float pdfFromAncestor,
-                                          RgbColor throughput, int depth, float toAncestorJacobian) {
+        public override RgbColor OnHit(ref RandomWalk<CameraPath> walk, in SurfaceShader shader, float pdfFromAncestor,
+                                       RgbColor throughput, int depth, float toAncestorJacobian) {
             if (depth == 1 && integrator.EnableDenoiser) {
                 var albedo = shader.GetScatterStrength();
-                integrator.DenoiseBuffers.LogPrimaryHit(path.Pixel, albedo, shader.Context.Normal);
+                integrator.DenoiseBuffers.LogPrimaryHit(walk.Payload.Pixel, albedo, shader.Context.Normal);
             }
 
-            path.Vertices.Add(new PathPdfPair {
+            walk.Payload.Vertices.Add(new PathPdfPair {
                 PdfFromAncestor = pdfFromAncestor,
                 PdfToAncestor = 0
             });
-            path.Throughput = throughput;
-            path.Distances.Add(shader.Point.Distance);
+            walk.Payload.Throughput = throughput;
+            walk.Payload.Distances.Add(shader.Point.Distance);
 
-            path.MaximumPriorRoughness = MathF.Max(path.CurrentRoughness, path.MaximumPriorRoughness);
-            path.CurrentRoughness = shader.GetRoughness();
+            walk.Payload.MaximumPriorRoughness = MathF.Max(walk.Payload.CurrentRoughness, walk.Payload.MaximumPriorRoughness);
+            walk.Payload.CurrentRoughness = shader.GetRoughness();
 
-            return integrator.OnCameraHit(path, rng, shader, pdfFromAncestor, throughput, depth, toAncestorJacobian);
+            return integrator.OnCameraHit(walk.Payload, walk.rng, shader, pdfFromAncestor, throughput, depth, toAncestorJacobian);
         }
 
-        protected override void OnContinue(float pdfToAncestor, int depth) {
+        public override void OnContinue(ref RandomWalk<CameraPath> walk, float pdfToAncestor, int depth) {
             // Update the reverse pdf of the previous vertex.
-            var lastVert = path.Vertices[^1];
-            path.Vertices[^1] = new PathPdfPair {
+            var lastVert = walk.Payload.Vertices[^1];
+            walk.Payload.Vertices[^1] = new PathPdfPair {
                 PdfFromAncestor = lastVert.PdfFromAncestor,
                 PdfToAncestor = pdfToAncestor
             };
         }
 
-        protected override void OnTerminate() {
-            integrator.OnCameraPathTerminate(path);
+        public override void OnTerminate(ref RandomWalk<CameraPath> walk) {
+            integrator.OnCameraPathTerminate(walk.Payload);
         }
     }
 }

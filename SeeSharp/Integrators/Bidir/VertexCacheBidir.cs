@@ -118,7 +118,7 @@ public class VertexCacheBidir : BidirBase {
     }
 
     /// <inheritdoc />
-    protected override RgbColor OnCameraHit(CameraPath path, RNG rng, in SurfaceShader shader,
+    protected override RgbColor OnCameraHit(in CameraPath path, RNG rng, in SurfaceShader shader,
                                             float pdfFromAncestor, RgbColor throughput, int depth,
                                             float toAncestorJacobian) {
         RgbColor value = RgbColor.Black;
@@ -146,7 +146,7 @@ public class VertexCacheBidir : BidirBase {
     }
 
     /// <inheritdoc />
-    public override float EmitterHitMis(CameraPath cameraPath, float pdfEmit, float pdfNextEvent) {
+    public override float EmitterHitMis(in CameraPath cameraPath, float pdfEmit, float pdfNextEvent) {
         int numPdfs = cameraPath.Vertices.Count;
         int lastCameraVertexIdx = numPdfs - 1;
         Span<float> camToLight = stackalloc float[numPdfs];
@@ -196,7 +196,7 @@ public class VertexCacheBidir : BidirBase {
     }
 
     /// <inheritdoc />
-    public override float BidirConnectMis(CameraPath cameraPath, PathVertex lightVertex,
+    public override float BidirConnectMis(in CameraPath cameraPath, PathVertex lightVertex,
                                           float pdfCameraReverse, float pdfCameraToLight,
                                           float pdfLightReverse, float pdfLightToCamera,
                                           float pdfNextEvent) {
@@ -228,7 +228,7 @@ public class VertexCacheBidir : BidirBase {
     }
 
     /// <inheritdoc />
-    public override float NextEventMis(CameraPath cameraPath, float pdfEmit, float pdfNextEvent,
+    public override float NextEventMis(in CameraPath cameraPath, float pdfEmit, float pdfNextEvent,
                                        float pdfHit, float pdfReverse) {
         int numPdfs = cameraPath.Vertices.Count + 1;
         int lastCameraVertexIdx = numPdfs - 2;

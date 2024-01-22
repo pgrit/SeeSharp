@@ -1,98 +1,143 @@
 ﻿namespace SeeSharp.Integrators.Common;
 
 /// <summary>
-/// Performs a recursive random walk, invoking virtual callbacks for events along the path.
+/// Performs a random walk, invoking virtual callbacks for events along the path. The state of the walk is
+/// tracked in this object, so it can only be used for one walk at a time.
 /// </summary>
-public class RandomWalk {
+public ref struct RandomWalk<PayloadType> where PayloadType : new(){
+    public record struct DirectionSample(
+        float PdfForward,
+        float PdfReverse,
+        RgbColor Weight,
+        Vector3 Direction,
+        RgbColor ApproxReflectance
+    ) {}
+
+    public abstract class RandomWalkModifier {
+        public virtual RgbColor OnInvalidHit(ref RandomWalk<PayloadType> walk, Ray ray, float pdfFromAncestor,
+                                             RgbColor prefixWeight, int depth)
+        => RgbColor.Black;
+
+        public virtual RgbColor OnHit(ref RandomWalk<PayloadType> walk, in SurfaceShader shader, float pdfFromAncestor,
+                                      RgbColor prefixWeight, int depth, float toAncestorJacobian)
+        => RgbColor.Black;
+
+        public virtual void OnContinue(ref RandomWalk<PayloadType> walk, float pdfToAncestor, int depth) {}
+
+        public virtual void OnTerminate(ref RandomWalk<PayloadType> walk) {}
+
+        public virtual void OnStartCamera(ref RandomWalk<PayloadType> walk, CameraRaySample cameraRay, Pixel filmPosition) {}
+        public virtual void OnStartEmitter(ref RandomWalk<PayloadType> walk, EmitterSample emitterSample, RgbColor initialWeight) {}
+        public virtual void OnStartBackground(ref RandomWalk<PayloadType> walk, Ray ray, RgbColor initialWeight, float pdf) {}
+
+        public virtual DirectionSample SampleNextDirection(ref RandomWalk<PayloadType> walk, in SurfaceShader shader,
+                                                           RgbColor prefixWeight, int depth)
+        => walk.SampleBsdf(shader);
+
+        public virtual float ComputeSurvivalProbability(ref RandomWalk<PayloadType> walk, in SurfacePoint hit, in Ray ray,
+                                                        RgbColor prefixWeight, int depth)
+        => walk.ComputeSurvivalProbability(depth);
+    }
+
+    public readonly RandomWalkModifier Modifier;
+    public readonly Scene scene;
+    public readonly int maxDepth;
+
+    public Pixel FilmPosition;
+    public bool isOnLightSubpath;
+    public RNG rng;
+    public PayloadType Payload;
+
+    /// <summary>
+    /// Tracks the product of (approximated) surface reflectances along the path. This is a more reliable
+    /// quantity to use for Russian roulette than the prefix weight.
+    /// </summary>
+    public RgbColor ApproxThroughput = RgbColor.White;
+
     /// <summary>
     /// Initializes a new random walk
     /// </summary>
     /// <param name="scene">The scene</param>
-    /// <param name="rng">RNG used to sample the walk</param>
     /// <param name="maxDepth">Maximum number of edges along the path</param>
-    public RandomWalk(Scene scene, RNG rng, int maxDepth) {
+    public RandomWalk(Scene scene, int maxDepth, RandomWalkModifier modifier = null) {
         this.scene = scene;
-        this.rng = rng;
         this.maxDepth = maxDepth;
+        Modifier = modifier;
     }
 
-    // TODO replace parameter list by a single CameraRaySample object
-    public virtual RgbColor StartFromCamera(Pixel filmPosition, SurfacePoint cameraPoint,
-                                            float pdfFromCamera, Ray primaryRay, RgbColor initialWeight) {
+    public RgbColor StartFromCamera(RNG rng, CameraRaySample cameraRay, Pixel filmPosition, PayloadType payload) {
         isOnLightSubpath = false;
-        return ContinueWalk(primaryRay, cameraPoint, pdfFromCamera, initialWeight, 1);
+        this.rng = rng;
+        FilmPosition = filmPosition;
+        Payload = payload;
+        Modifier?.OnStartCamera(ref this, cameraRay, filmPosition);
+
+        return ContinueWalk(cameraRay.Ray, cameraRay.Point, cameraRay.PdfRay, cameraRay.Weight, 1);
     }
 
-    public virtual RgbColor StartFromEmitter(EmitterSample emitterSample, RgbColor initialWeight) {
+    public RgbColor StartFromEmitter(RNG rng, EmitterSample emitterSample, RgbColor initialWeight, PayloadType payload) {
         isOnLightSubpath = true;
+        this.rng = rng;
+        Payload = payload;
+        Modifier?.OnStartEmitter(ref this, emitterSample, initialWeight);
+
         Ray ray = Raytracer.SpawnRay(emitterSample.Point, emitterSample.Direction);
         return ContinueWalk(ray, emitterSample.Point, emitterSample.Pdf, initialWeight, 1);
     }
 
-    public virtual RgbColor StartFromBackground(Ray ray, RgbColor initialWeight, float pdf) {
+    public RgbColor StartFromBackground(RNG rng, Ray ray, RgbColor initialWeight, float pdf, PayloadType payload) {
         isOnLightSubpath = true;
+        this.rng = rng;
+        Payload = payload;
+        Modifier?.OnStartBackground(ref this, ray, initialWeight, pdf);
 
         // Find the first actual hitpoint on scene geometry
         var hit = scene.Raytracer.Trace(ray);
         if (!hit)
-            return OnInvalidHit(ray, pdf, initialWeight, 1);
+            return Modifier?.OnInvalidHit(ref this, ray, pdf, initialWeight, 1) ?? RgbColor.Black;
 
         SurfaceShader shader = new(hit, -ray.Direction, isOnLightSubpath);
 
         // Sample the next direction (required to know the reverse pdf)
-        var (pdfNext, pdfReverse, weight, direction) = SampleNextDirection(shader, initialWeight, 1);
+        //  = SampleNextDirection(shader, initialWeight, 1);
+        var dirSample = Modifier?.SampleNextDirection(ref this, shader, initialWeight, 1)
+            ?? SampleBsdf(shader);
+        ApproxThroughput *= dirSample.ApproxReflectance;
 
         // Both pdfs have unit sr-1
         float pdfFromAncestor = pdf;
-        float pdfToAncestor = pdfReverse;
+        float pdfToAncestor = dirSample.PdfReverse;
 
-        RgbColor estimate = OnHit(shader, pdfFromAncestor, initialWeight, 1, 1.0f);
-        OnContinue(pdfToAncestor, 1);
+        RgbColor estimate = Modifier?.OnHit(ref this, shader, pdfFromAncestor, initialWeight, 1, 1.0f) ?? RgbColor.Black;
+        Modifier?.OnContinue(ref this, pdfToAncestor, 1);
 
         // Terminate if the maximum depth has been reached
         if (maxDepth <= 1)
             return estimate;
 
         // Terminate absorbed paths and invalid samples
-        if (pdfNext == 0 || weight == RgbColor.Black)
+        if (dirSample.PdfForward == 0 || dirSample.Weight == RgbColor.Black)
             return estimate;
 
         // Continue the path with the next ray
-        ray = Raytracer.SpawnRay(hit, direction);
-        return estimate + ContinueWalk(ray, hit, pdfNext, initialWeight * weight, 2);
+        ray = Raytracer.SpawnRay(hit, dirSample.Direction);
+        return estimate + ContinueWalk(ray, hit, dirSample.PdfForward, initialWeight * dirSample.Weight, 2);
     }
 
-    protected virtual RgbColor OnInvalidHit(Ray ray, float pdfFromAncestor, RgbColor prefixWeight, int depth) {
-        return RgbColor.Black;
-    }
-
-    protected virtual RgbColor OnHit(in SurfaceShader shader, float pdfFromAncestor, RgbColor prefixWeight,
-                                     int depth, float toAncestorJacobian) {
-        return RgbColor.Black;
-    }
-
-    protected virtual void OnContinue(float pdfToAncestor, int depth) { }
-
-    protected virtual void OnTerminate() { }
-
-    RgbColor ApproxThroughput = RgbColor.White;
-
-    protected virtual (float, float, RgbColor, Vector3) SampleNextDirection(in SurfaceShader shader,
-                                                                            RgbColor prefixWeight,
-                                                                            int depth) {
+    public DirectionSample SampleBsdf(in SurfaceShader shader) {
         var bsdfSample = shader.Sample(rng.NextFloat2D());
-        ApproxThroughput *= bsdfSample.Weight;
-        return (
+        return new(
             bsdfSample.Pdf,
             bsdfSample.PdfReverse,
             bsdfSample.Weight,
-            bsdfSample.Direction
+            bsdfSample.Direction,
+            bsdfSample.Weight
         );
     }
 
-    protected virtual float ComputeSurvivalProbability(SurfacePoint hit, Ray ray, RgbColor prefixWeight, int depth) {
+    public float ComputeSurvivalProbability(int depth) {
         if (depth > 4)
-            return Math.Clamp(ApproxThroughput.Average, 0.0f, 0.95f);
+            return Math.Clamp(ApproxThroughput.Average, 0.05f, 0.95f);
         else
             return 1.0f;
     }
@@ -102,7 +147,7 @@ public class RandomWalk {
         while (depth < maxDepth) {
             var hit = scene.Raytracer.Trace(ray);
             if (!hit) {
-                estimate += OnInvalidHit(ray, pdfDirection, prefixWeight, depth);
+                estimate += Modifier?.OnInvalidHit(ref this, ray, pdfDirection, prefixWeight, depth) ?? RgbColor.Black;
                 break;
             }
 
@@ -116,40 +161,38 @@ public class RandomWalk {
             if (pdfFromAncestor == 0) break;
 
             float jacobian = SampleWarp.SurfaceAreaToSolidAngle(hit, previousPoint);
-            estimate += OnHit(shader, pdfFromAncestor, prefixWeight, depth, jacobian);
+            estimate += Modifier?.OnHit(ref this, shader, pdfFromAncestor, prefixWeight, depth, jacobian) ?? RgbColor.Black;
 
             // Don't sample continuations if we are going to terminate anyway
             if (depth + 1 >= maxDepth)
                 break;
 
             // Terminate with Russian roulette
-            float survivalProb = ComputeSurvivalProbability(hit, ray, prefixWeight, depth);
+            float survivalProb = Modifier?.ComputeSurvivalProbability(ref this, hit, ray, prefixWeight, depth)
+                ?? ComputeSurvivalProbability(depth);
             if (rng.NextFloat() > survivalProb)
                 break;
 
             // Sample the next direction and convert the reverse pdf
-            var (pdfNext, pdfReverse, weight, direction) = SampleNextDirection(shader, prefixWeight, depth);
-            float pdfToAncestor = pdfReverse * SampleWarp.SurfaceAreaToSolidAngle(hit, previousPoint);
+            // var (pdfNext, pdfReverse, weight, direction) = SampleNextDirection(shader, prefixWeight, depth);
+            var dirSample = Modifier?.SampleNextDirection(ref this, shader, prefixWeight, depth) ?? SampleBsdf(shader);
+            ApproxThroughput *= dirSample.ApproxReflectance;
+            float pdfToAncestor = dirSample.PdfReverse * SampleWarp.SurfaceAreaToSolidAngle(hit, previousPoint);
 
-            OnContinue(pdfToAncestor, depth);
+            Modifier?.OnContinue(ref this, pdfToAncestor, depth);
 
-            if (pdfNext == 0 || weight == RgbColor.Black)
+            if (dirSample.PdfForward == 0 || dirSample.Weight == RgbColor.Black)
                 break;
 
             // Continue the path with the next ray
-            prefixWeight *= weight / survivalProb;
+            prefixWeight *= dirSample.Weight / survivalProb;
             depth++;
-            pdfDirection = pdfNext * survivalProb;
+            pdfDirection = dirSample.PdfForward * survivalProb;
             previousPoint = hit;
-            ray = Raytracer.SpawnRay(hit, direction);
+            ray = Raytracer.SpawnRay(hit, dirSample.Direction);
         }
 
-        OnTerminate();
+        Modifier?.OnTerminate(ref this);
         return estimate;
     }
-
-    protected readonly Scene scene;
-    protected readonly RNG rng;
-    protected readonly int maxDepth;
-    protected bool isOnLightSubpath;
 }

@@ -138,7 +138,7 @@ public class VertexConnectionAndMerging : VertexCacheBidir {
         TotalMergePhotons = 0;
     }
 
-    protected override void OnCameraPathTerminate(CameraPath path)
+    protected override void OnCameraPathTerminate(in CameraPath path)
     => Interlocked.Add(ref TotalCameraPathLength, path.Vertices.Count);
 
     private float ComputeAverageLightPathLength() {
@@ -333,13 +333,13 @@ public class VertexConnectionAndMerging : VertexCacheBidir {
         return estimate;
     }
 
-    protected override RgbColor OnBackgroundHit(Ray ray, CameraPath path) {
+    protected override RgbColor OnBackgroundHit(Ray ray, in CameraPath path) {
         if (!EnableHitting && path.Vertices.Count > 1) return RgbColor.Black;
         return base.OnBackgroundHit(ray, path);
     }
 
     /// <inheritdoc />
-    protected override RgbColor OnCameraHit(CameraPath path, RNG rng, in SurfaceShader shader,
+    protected override RgbColor OnCameraHit(in CameraPath path, RNG rng, in SurfaceShader shader,
                                             float pdfFromAncestor, RgbColor throughput, int depth,
                                             float toAncestorJacobian) {
         RgbColor value = RgbColor.Black;
@@ -422,7 +422,7 @@ public class VertexConnectionAndMerging : VertexCacheBidir {
     }
 
     /// <inheritdoc />
-    public override float EmitterHitMis(CameraPath cameraPath, float pdfEmit, float pdfNextEvent) {
+    public override float EmitterHitMis(in CameraPath cameraPath, float pdfEmit, float pdfNextEvent) {
         int numPdfs = cameraPath.Vertices.Count;
         int lastCameraVertexIdx = numPdfs - 1;
         Span<float> camToLight = stackalloc float[numPdfs];
@@ -477,7 +477,7 @@ public class VertexConnectionAndMerging : VertexCacheBidir {
     }
 
     /// <inheritdoc />
-    public override float BidirConnectMis(CameraPath cameraPath, PathVertex lightVertex,
+    public override float BidirConnectMis(in CameraPath cameraPath, PathVertex lightVertex,
                                           float pdfCameraReverse, float pdfCameraToLight,
                                           float pdfLightReverse, float pdfLightToCamera,
                                           float pdfNextEvent) {
@@ -510,7 +510,7 @@ public class VertexConnectionAndMerging : VertexCacheBidir {
     }
 
     /// <inheritdoc />
-    public override float NextEventMis(CameraPath cameraPath, float pdfEmit, float pdfNextEvent,
+    public override float NextEventMis(in CameraPath cameraPath, float pdfEmit, float pdfNextEvent,
                                        float pdfHit, float pdfReverse) {
         int numPdfs = cameraPath.Vertices.Count + 1;
         int lastCameraVertexIdx = numPdfs - 2;

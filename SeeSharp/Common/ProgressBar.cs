@@ -32,9 +32,25 @@ public class ProgressBar {
 
     string curText = "";
     int activeBlocks;
-    readonly bool supportsRewrite;
+    readonly static bool supportsRewrite;
 
     public static bool Silent = false;
+
+    static ProgressBar() {
+        // Check if the console / output stream supports altering previous output
+        // e.g., not (always) the case if its forwarded to a file or the VS Code Debug Console is used.
+        try {
+            (int left, int top) = Console.GetCursorPosition();
+            Console.SetCursorPosition(left, top);
+
+            if (Console.WindowHeight == 0 || Console.WindowWidth == 0)
+                supportsRewrite = false;
+            else
+                supportsRewrite = true;
+        } catch (Exception) {
+            supportsRewrite = false;
+        }
+    }
 
     /// <summary>
     /// Initializes a new progress bar for a given amount of work. The amount of work should be specified
@@ -54,20 +70,6 @@ public class ProgressBar {
         watcher = new(Console.Out);
         Console.SetOut(watcher);
         watcher.WriteCharEvent += OnOtherOutput;
-
-        // Check if the console / output stream supports altering previous output
-        // e.g., not (always) the case if its forwarded to a file or the VS Code Debug Console is used.
-        try {
-            (int left, int top) = Console.GetCursorPosition();
-            Console.SetCursorPosition(left, top);
-
-            if (Console.WindowHeight == 0 || Console.WindowWidth == 0)
-                supportsRewrite = false;
-            else
-                supportsRewrite = true;
-        } catch (Exception) {
-            supportsRewrite = false;
-        }
     }
 
     /// <summary>

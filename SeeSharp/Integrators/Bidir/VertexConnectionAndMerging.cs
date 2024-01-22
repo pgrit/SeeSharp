@@ -309,13 +309,13 @@ public class VertexConnectionAndMerging : VertexCacheBidir {
     struct MergeState {
         public RgbColor Estimate;
         public readonly float CameraJacobian;
-        public float LocalRadius;
+        public float LocalRadiusSquared;
         public CameraPath CameraPath;
         public SurfaceShader Shader;
 
         public MergeState(float cameraJacobian, float localRadius, in CameraPath path, in SurfaceShader shader) {
             CameraJacobian = cameraJacobian;
-            LocalRadius = localRadius;
+            LocalRadiusSquared = localRadius;
             CameraPath = path;
             Shader = shader;
         }
@@ -337,7 +337,7 @@ public class VertexConnectionAndMerging : VertexCacheBidir {
         if (!MergePrimary && path.Depth == 1) return RgbColor.Black;
         float localRadius = ComputeLocalMergeRadius(path.Distances[0]);
 
-        var state = new MergeState(cameraJacobian, localRadius, path, shader);
+        var state = new MergeState(cameraJacobian, localRadius * localRadius, path, shader);
         photonMap.ForAllNearest(shader.Point.Position, MaxNumPhotons, localRadius, MergeHelper, ref state);
         OnCombinedMergeSample(shader, ref rng, path, cameraJacobian, state.Estimate);
         return state.Estimate;
@@ -346,7 +346,7 @@ public class VertexConnectionAndMerging : VertexCacheBidir {
     void MergeHelper(Vector3 position, int idx, float distance, int numFound, float distToFurthest, ref MergeState userData) {
         float radiusSquared = numFound == MaxNumPhotons
             ? distToFurthest * distToFurthest
-            : userData.LocalRadius * userData.LocalRadius;
+            : userData.LocalRadiusSquared;
         userData.Estimate += Merge(userData.CameraPath, userData.CameraJacobian, userData.Shader, idx, distance * distance, radiusSquared);
     }
 

@@ -58,7 +58,9 @@ public ref struct RandomWalk<PayloadType> where PayloadType : new(){
     /// Initializes a new random walk
     /// </summary>
     /// <param name="scene">The scene</param>
+    /// <param name="rng">Reference to the random number generator that is used to sample the path</param>
     /// <param name="maxDepth">Maximum number of edges along the path</param>
+    /// <param name="modifier">Defines callbacks to be invoked at the scattering events</param>
     public RandomWalk(Scene scene, ref RNG rng, int maxDepth, RandomWalkModifier modifier = null) {
         this.scene = scene;
         this.maxDepth = maxDepth;
@@ -185,7 +187,7 @@ public ref struct RandomWalk<PayloadType> where PayloadType : new(){
             // Continue the path with the next ray
             prefixWeight *= dirSample.Weight / survivalProb;
             depth++;
-            pdfDirection = dirSample.PdfForward * survivalProb;
+            pdfDirection = dirSample.PdfForward;
             previousPoint = hit;
             ray = Raytracer.SpawnRay(hit, dirSample.Direction);
         }

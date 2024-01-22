@@ -10,7 +10,11 @@ BenchRender("PathTracer - 16spp", new PathTracer() {
     TotalSpp = 16,
 });
 
-BenchRender("BidirPathTracer - 8spp", new VertexConnectionAndMerging() {
+BenchRender("BDPT - 8spp", new VertexCacheBidir() {
+    NumIterations = 8,
+});
+
+BenchRender("VCM - 8spp", new VertexConnectionAndMerging() {
     NumIterations = 8,
 });
 
@@ -23,7 +27,6 @@ void BenchRender(string name, Integrator integrator) {
     scene.FrameBuffer = new(512, 512, "");
     scene.Prepare();
     integrator.Render(scene);
-    scene.FrameBuffer.WriteToFile(name + ".exr");
 
     int num = 2;
     long total = 0;
@@ -33,6 +36,8 @@ void BenchRender(string name, Integrator integrator) {
         total += scene.FrameBuffer.RenderTimeMs;
     }
     Console.WriteLine($"{name}: {total / (double)num}");
+
+    scene.FrameBuffer.WriteToFile(name + ".exr");
 }
 
 GenericMaterial_Sampling.QuickTest();

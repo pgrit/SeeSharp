@@ -108,6 +108,8 @@ public abstract class BidirBase : Integrator {
         /// Roughness of the material at the currently last vertex of the path.
         /// </summary>
         public float CurrentRoughness;
+
+        public int Depth => Vertices.Count;
     }
 
     /// <summary>

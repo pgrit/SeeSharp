@@ -83,6 +83,8 @@ public class PathCache {
             this.overflow += overflow;
             totalUnused += unused;
         }
+        threadCaches.Values.Clear();
+
         // TODO compact the holes after flushing incomplete caches
     }
 
@@ -124,7 +126,8 @@ public class PathCache {
             int overflow = next - (vertices.Length - insertPos);
             if (overflow > 0) next -= overflow;
 
-            Array.ConstrainedCopy(batch, 0, vertices, insertPos, next);
+            if (next > 0)
+                Array.ConstrainedCopy(batch, 0, vertices, insertPos, next);
 
             // For uncompleted batches, add a guard
             int unused = overflow > 0 ? 0 : (BatchSize - next);

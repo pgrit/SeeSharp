@@ -121,6 +121,12 @@ public class VertexConnectionAndMerging : VertexCacheBidir {
         Scene.FrameBuffer.MetaData["AverageCameraPathLength"] = AverageCameraPathLength;
         Scene.FrameBuffer.MetaData["AverageLightPathLength"] = AverageLightPathLength;
         Scene.FrameBuffer.MetaData["AveragePhotonsPerQuery"] = AveragePhotonsPerQuery;
+        Scene.FrameBuffer.MetaData["MergeAccelBuildTime"] = mergeBuildTimer.ElapsedMilliseconds;
+    }
+
+    protected override void OnBeforeRender() {
+        base.OnBeforeRender();
+        mergeBuildTimer = new();
     }
 
     protected override void OnStartIteration(uint iteration) {
@@ -137,7 +143,9 @@ public class VertexConnectionAndMerging : VertexCacheBidir {
 
     private float ComputeAverageLightPathLength() {
         float average = 0;
-        if (LightPaths == null) return 0;
+        if (LightPaths == null)
+            return 0;
+
         for (int i = 0; i < LightPaths.NumPaths; ++i) {
             int length = LightPaths.PathCache.Length(i);
             average = (length + i * average) / (i + 1);
@@ -186,6 +194,8 @@ public class VertexConnectionAndMerging : VertexCacheBidir {
         photonMap = null;
     }
 
+    Stopwatch mergeBuildTimer;
+
     /// <summary>
     /// Generates the acceleration structure for merging
     /// </summary>
@@ -193,6 +203,8 @@ public class VertexConnectionAndMerging : VertexCacheBidir {
         base.ProcessPathCache();
 
         if (EnableMerging) {
+            mergeBuildTimer.Start();
+
             photonMap.Clear();
             for (int i = 0; i < LightPaths.PathCache.NumVertices; ++i) {
                 var vertex = LightPaths.PathCache[i];
@@ -201,6 +213,8 @@ public class VertexConnectionAndMerging : VertexCacheBidir {
                 }
             }
             photonMap.Build();
+
+            mergeBuildTimer.Stop();
         }
     }
 
@@ -307,6 +321,7 @@ public class VertexConnectionAndMerging : VertexCacheBidir {
     protected virtual RgbColor PerformMerging(SurfaceShader shader, RNG rng, CameraPath path, float cameraJacobian) {
         if (path.Vertices.Count == 1 && !MergePrimary) return RgbColor.Black;
         if (!EnableMerging) return RgbColor.Black;
+        if (!MergePrimary && path.Depth == 1) return RgbColor.Black;
         float localRadius = ComputeLocalMergeRadius(path.Distances[0]);
 
         RgbColor estimate = RgbColor.Black;

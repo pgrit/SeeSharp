@@ -89,6 +89,8 @@ namespace SeeSharp.Tests.Integrators.Helpers {
 
             lightEndpointIdx = prevLightVertexIdx;
 
+            pathCache.Prepare();
+
             // Create the camera path
             cameraVertices = new PathPdfPair[positions.Length];
 

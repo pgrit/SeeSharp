@@ -250,15 +250,13 @@ public class VertexConnectionAndMerging : VertexCacheBidir {
     /// <param name="path">The camera prefix path</param>
     /// <param name="cameraJacobian">Geometry term used to turn a PDF over outgoing directions into a surface area density.</param>
     /// <param name="estimate">The computed photon mapping contribution</param>
-    protected virtual void OnCombinedMergeSample(in SurfaceShader shader, RNG rng, CameraPath path,
+    protected virtual void OnCombinedMergeSample(in SurfaceShader shader, RNG rng, in CameraPath path,
                                                  float cameraJacobian, RgbColor estimate)
     => Interlocked.Increment(ref TotalMergeOperations);
 
-    protected virtual RgbColor Merge((CameraPath path, float cameraJacobian) userData, in SurfaceShader shader,
+    protected virtual RgbColor Merge(in CameraPath path, float cameraJacobian, in SurfaceShader shader,
                                      int vertexIdx, float distSqr, float radiusSquared) {
         var photon = LightPaths.PathCache[vertexIdx];
-        CameraPath path = userData.path;
-        float cameraJacobian = userData.cameraJacobian;
 
         // Check that the path does not exceed the maximum length
         var depth = path.Vertices.Count + photon.Depth;
@@ -308,6 +306,21 @@ public class VertexConnectionAndMerging : VertexCacheBidir {
         return MathF.Min(footprint, MaximumRadius);
     }
 
+    struct MergeState {
+        public RgbColor Estimate;
+        public readonly float CameraJacobian;
+        public float LocalRadius;
+        public CameraPath CameraPath;
+        public SurfaceShader Shader;
+
+        public MergeState(float cameraJacobian, float localRadius, in CameraPath path, in SurfaceShader shader) {
+            CameraJacobian = cameraJacobian;
+            LocalRadius = localRadius;
+            CameraPath = path;
+            Shader = shader;
+        }
+    }
+
     /// <summary>
     ///
     /// </summary>
@@ -318,19 +331,23 @@ public class VertexConnectionAndMerging : VertexCacheBidir {
     ///     Geometry term used to turn a PDF over outgoing directions into a surface area density.
     /// </param>
     /// <returns>MIS weighted contribution due to merging</returns>
-    protected virtual RgbColor PerformMerging(SurfaceShader shader, RNG rng, CameraPath path, float cameraJacobian) {
+    protected virtual RgbColor PerformMerging(in SurfaceShader shader, RNG rng, in CameraPath path, float cameraJacobian) {
         if (path.Vertices.Count == 1 && !MergePrimary) return RgbColor.Black;
         if (!EnableMerging) return RgbColor.Black;
         if (!MergePrimary && path.Depth == 1) return RgbColor.Black;
         float localRadius = ComputeLocalMergeRadius(path.Distances[0]);
 
-        RgbColor estimate = RgbColor.Black;
-        photonMap.ForAllNearest(shader.Point.Position, MaxNumPhotons, localRadius, (position, idx, distance, numFound, maxDist) => {
-            float radiusSquared = numFound == MaxNumPhotons ? maxDist * maxDist : localRadius * localRadius;
-            estimate += Merge((path, cameraJacobian), shader, idx, distance * distance, radiusSquared);
-        });
-        OnCombinedMergeSample(shader, rng, path, cameraJacobian, estimate);
-        return estimate;
+        var state = new MergeState(cameraJacobian, localRadius, path, shader);
+        photonMap.ForAllNearest(shader.Point.Position, MaxNumPhotons, localRadius, MergeHelper, ref state);
+        OnCombinedMergeSample(shader, rng, path, cameraJacobian, state.Estimate);
+        return state.Estimate;
+    }
+
+    void MergeHelper(Vector3 position, int idx, float distance, int numFound, float distToFurthest, ref MergeState userData) {
+        float radiusSquared = numFound == MaxNumPhotons
+            ? distToFurthest * distToFurthest
+            : userData.LocalRadius * userData.LocalRadius;
+        userData.Estimate += Merge(userData.CameraPath, userData.CameraJacobian, userData.Shader, idx, distance * distance, radiusSquared);
     }
 
     protected override RgbColor OnBackgroundHit(Ray ray, in CameraPath path) {
@@ -382,7 +399,7 @@ public class VertexConnectionAndMerging : VertexCacheBidir {
     /// If the light subpath consists of only one edge: the surface area PDF of next event estimation
     /// </param>
     /// <returns>MIS weight (classic balance heuristic)</returns>
-    public virtual float MergeMis(CameraPath cameraPath, PathVertex lightVertex, float pdfCameraReverse,
+    public virtual float MergeMis(in CameraPath cameraPath, in PathVertex lightVertex, float pdfCameraReverse,
                                   float pdfLightReverse, float pdfNextEvent) {
         int numPdfs = cameraPath.Vertices.Count + lightVertex.Depth;
         int lastCameraVertexIdx = cameraPath.Vertices.Count - 1;

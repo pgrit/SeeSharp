@@ -26,7 +26,7 @@ public struct ShadingContext {
     public Vector3 WorldToShading(in Vector3 dir) => ShadingSpace.WorldToShading(Normal, Tangent, Binormal, dir);
     public Vector3 ShadingToWorld(in Vector3 dir) => ShadingSpace.ShadingToWorld(Normal, Tangent, Binormal, dir);
 
-    public object ShaderData;
+    // public object ShaderData;
 }
 
 /// <summary>

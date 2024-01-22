@@ -36,7 +36,7 @@ public class LightProbeCamera : Camera {
     /// <param name="filmPos">Position (in pixels) on the image</param>
     /// <param name="rng">Unused, can be null</param>
     /// <returns>The chosen ray and associated weights</returns>
-    public override CameraRaySample GenerateRay(Vector2 filmPos, RNG rng) {
+    public override CameraRaySample GenerateRay(Vector2 filmPos, ref RNG rng) {
         Debug.Assert(width != 0 && height != 0);
 
         // Convert image position to spherical coordinates
@@ -68,7 +68,7 @@ public class LightProbeCamera : Camera {
     /// <param name="scenePoint">A point on a scene surface</param>
     /// <param name="rng">Unused, can be null</param>
     /// <returns>Contribution, pixel, and sampling PDFs</returns>
-    public override CameraResponseSample SampleResponse(SurfacePoint scenePoint, RNG rng) {
+    public override CameraResponseSample SampleResponse(SurfacePoint scenePoint, ref RNG rng) {
         var filmPoint = WorldToFilm(scenePoint.Position);
 
         float jacobian = SolidAngleToPixelJacobian(scenePoint.Position);

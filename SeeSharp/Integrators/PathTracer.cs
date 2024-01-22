@@ -139,7 +139,7 @@ public class PathTracerBase<PayloadType> : Integrator {
         /// <summary>
         /// Current state of the random number generator
         /// </summary>
-        public RNG Rng { get; set; }
+        public ref RNG Rng;
 
         /// <summary>
         /// Product of BSDF terms and cosines, divided by sampling pdfs, along the path so far.
@@ -212,7 +212,7 @@ public class PathTracerBase<PayloadType> : Integrator {
                 for (uint col = 0; col < scene.FrameBuffer.Width; ++col) {
                     uint pixelIndex = (uint)(row * scene.FrameBuffer.Width + col);
                     RNG rng = new(BaseSeed, pixelIndex, sampleIndex);
-                    RenderPixel((uint)row, col, rng);
+                    RenderPixel((uint)row, col, ref rng);
                 }
             });
             OnPostIteration(sampleIndex);
@@ -251,7 +251,7 @@ public class PathTracerBase<PayloadType> : Integrator {
     /// <returns>Probability with which to continue the path. Must be in [0, 1]</returns>
     protected virtual float ComputeSurvivalProbability(in Ray ray, in SurfacePoint point, in PathState state) {
         if (state.Depth > 4)
-            return Math.Clamp(state.ApproxThroughput.Average, 0.0f, 0.95f);
+            return Math.Clamp(state.ApproxThroughput.Average, 0.05f, 0.95f);
         else
             return 1.0f;
     }
@@ -259,16 +259,17 @@ public class PathTracerBase<PayloadType> : Integrator {
     /// <summary>
     /// Updates the estimate of one pixel. Called once per iteration for every pixel.
     /// </summary>
-    protected virtual void RenderPixel(uint row, uint col, RNG rng) {
+    protected virtual void RenderPixel(uint row, uint col, ref RNG rng) {
         // Sample a ray from the camera
         var offset = rng.NextFloat2D();
         var pixel = new Vector2(col, row) + offset;
-        Ray primaryRay = scene.Camera.GenerateRay(pixel, rng).Ray;
+        Ray primaryRay = scene.Camera.GenerateRay(pixel, ref rng).Ray;
 
         PathState state = new() {
             Pixel = new((int)col, (int)row),
-            Rng = rng,
+            Rng = ref rng,
             PrefixWeight = RgbColor.White,
+            ApproxThroughput = RgbColor.White,
             Depth = 1
         };
 
@@ -329,7 +330,7 @@ public class PathTracerBase<PayloadType> : Integrator {
 
             // Recursively estimate the incident radiance and log the result
             state.PrefixWeight *= bsdfSampleWeight / survivalProb;
-            state.ApproxThroughput *= approxReflectance;
+            state.ApproxThroughput *= approxReflectance / survivalProb;
             state.Depth++;
             state.PreviousHit = hit;
             state.PreviousPdf = bsdfPdf * survivalProb;

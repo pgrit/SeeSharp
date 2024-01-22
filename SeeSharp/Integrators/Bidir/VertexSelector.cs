@@ -15,7 +15,7 @@ public struct VertexSelector {
     /// </summary>
     /// <param name="rng">RNG to use</param>
     /// <returns>Index of the path, index of the vertex along the path</returns>
-    public (int, int) Select(RNG rng) {
+    public (int, int) Select(ref RNG rng) {
         int idx = rng.NextInt(Count);
         return (-1, idx);
     }

@@ -4,7 +4,7 @@ namespace SeeSharp.Sampling;
 /// Uniform random number generator. Uses PCG and FNV hashing to efficiently generate random numbers
 /// even with highly correlated seeds (e.g., consecutive numbers).
 /// </summary>
-public class RNG {
+public struct RNG {
     uint state;
 
     /// <summary>

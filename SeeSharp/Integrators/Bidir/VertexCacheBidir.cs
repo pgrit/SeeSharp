@@ -46,17 +46,17 @@ public class VertexCacheBidir : BidirBase {
     }
 
     /// <inheritdoc />
-    protected override (Emitter, SurfaceSample) SampleNextEvent(SurfacePoint from, RNG rng) {
-        var (light, sample) = base.SampleNextEvent(from, rng);
+    protected override (Emitter, SurfaceSample) SampleNextEvent(SurfacePoint from, ref RNG rng) {
+        var (light, sample) = base.SampleNextEvent(from, ref rng);
         sample.Pdf *= NumShadowRays;
         return (light, sample);
     }
 
     /// <inheritdoc />
     protected override (int, int, float) SelectBidirPath(SurfacePoint cameraPoint, Vector3 outDir,
-                                                         Pixel pixel, RNG rng) {
+                                                         Pixel pixel, ref RNG rng) {
         // Select a single vertex from the entire cache at random
-        var (path, vertex) = vertexSelector.Select(rng);
+        var (path, vertex) = vertexSelector.Select(ref rng);
         return (path, vertex, BidirSelectDensity(pixel));
     }
 
@@ -118,7 +118,7 @@ public class VertexCacheBidir : BidirBase {
     }
 
     /// <inheritdoc />
-    protected override RgbColor OnCameraHit(in CameraPath path, RNG rng, in SurfaceShader shader,
+    protected override RgbColor OnCameraHit(in CameraPath path, ref RNG rng, in SurfaceShader shader,
                                             float pdfFromAncestor, RgbColor throughput, int depth,
                                             float toAncestorJacobian) {
         RgbColor value = RgbColor.Black;
@@ -132,13 +132,13 @@ public class VertexCacheBidir : BidirBase {
         // Perform connections if the maximum depth has not yet been reached
         if (depth < MaxDepth) {
             for (int i = 0; i < NumConnections; ++i) {
-                value += throughput * BidirConnections(shader, rng, path, toAncestorJacobian);
+                value += throughput * BidirConnections(shader, ref rng, path, toAncestorJacobian);
             }
         }
 
         if (depth < MaxDepth && depth + 1 >= MinDepth) {
             for (int i = 0; i < NumShadowRays; ++i) {
-                value += throughput * PerformNextEventEstimation(shader, rng, path, toAncestorJacobian);
+                value += throughput * PerformNextEventEstimation(shader, ref rng, path, toAncestorJacobian);
             }
         }
 

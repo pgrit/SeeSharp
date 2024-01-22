@@ -54,7 +54,7 @@ public abstract class Camera {
     /// <param name="filmPos">Position on the image in pixel coordinates</param>
     /// <param name="rng">Random number generator</param>
     /// <returns>The sampled ray, pdf, and importance weight</returns>
-    public abstract CameraRaySample GenerateRay(Vector2 filmPos, RNG rng);
+    public abstract CameraRaySample GenerateRay(Vector2 filmPos, ref RNG rng);
 
     /// <summary>
     /// Computes a Monte Carlo estimate of the contribution a scene point makes to the camera film
@@ -62,7 +62,7 @@ public abstract class Camera {
     /// <param name="scenePoint">A point on a surface, visible to the camera</param>
     /// <param name="rng">Random number generator</param>
     /// <returns>Importance estimate, sampled pixel coordinates, and pdf</returns>
-    public abstract CameraResponseSample SampleResponse(SurfacePoint scenePoint, RNG rng);
+    public abstract CameraResponseSample SampleResponse(SurfacePoint scenePoint, ref RNG rng);
 
     /// <summary>
     /// Computes the change of area when mapping the hemisphere of directions around the camera onto

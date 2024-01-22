@@ -115,7 +115,7 @@ public class PhotonMapper : Integrator {
     /// <param name="weight">Contribution of the ray to the image, multiplied with the radiance</param>
     /// <param name="rng">Random number generator</param>
     /// <returns>Pixel value estimate</returns>
-    protected virtual RgbColor EstimatePixelValue(Vector2 pixel, Ray ray, RgbColor weight, RNG rng) {
+    protected virtual RgbColor EstimatePixelValue(Vector2 pixel, Ray ray, RgbColor weight, ref RNG rng) {
         // Trace the primary ray into the scene
         var hit = scene.Raytracer.Trace(ray);
         if (!hit)
@@ -142,12 +142,12 @@ public class PhotonMapper : Integrator {
         return estimate;
     }
 
-    private void RenderPixel(uint row, uint col, RNG rng) {
+    private void RenderPixel(uint row, uint col, ref RNG rng) {
         // Sample a ray from the camera
         var offset = rng.NextFloat2D();
         var filmSample = new Vector2(col, row) + offset;
-        var cameraRay = scene.Camera.GenerateRay(filmSample, rng);
-        var value = EstimatePixelValue(filmSample, cameraRay.Ray, cameraRay.Weight, rng);
+        var cameraRay = scene.Camera.GenerateRay(filmSample, ref rng);
+        var value = EstimatePixelValue(filmSample, cameraRay.Ray, cameraRay.Weight, ref rng);
         scene.FrameBuffer.Splat((int)col, (int)row, value);
     }
 
@@ -156,7 +156,7 @@ public class PhotonMapper : Integrator {
             row => {
                 var rng = new RNG(BaseSeedCamera, (uint)row, iter);
                 for (uint col = 0; col < scene.FrameBuffer.Width; ++col) {
-                    RenderPixel((uint)row, col, rng);
+                    RenderPixel((uint)row, col, ref rng);
                 }
             }
         );

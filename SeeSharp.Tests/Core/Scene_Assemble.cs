@@ -52,9 +52,10 @@ public class Scene_Assemble {
         var scene = MakeDummyScene();
 
         scene.Prepare();
+        RNG rng = new();
         var hit = scene.Raytracer.Trace(scene.Camera.GenerateRay(
             new Vector2(0.5f, 0.5f),
-            new RNG()
+            ref rng
         ).Ray);
 
         Assert.True(hit);

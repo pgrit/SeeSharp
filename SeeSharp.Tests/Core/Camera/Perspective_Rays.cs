@@ -22,7 +22,8 @@ namespace SeeSharp.Tests.Core.Camera {
             var cam = MakeTestCamera();
 
             // top left corner
-            var ray = cam.GenerateRay(new Vector2(0, 0), new RNG()).Ray;
+            RNG rng = new();
+            var ray = cam.GenerateRay(new Vector2(0, 0), ref rng).Ray;
 
             Assert.Equal(0, ray.Origin.X);
             Assert.Equal(0, ray.Origin.Y);
@@ -42,7 +43,8 @@ namespace SeeSharp.Tests.Core.Camera {
             var cam = MakeTestCamera();
 
             // image center
-            var ray = cam.GenerateRay(new Vector2(1.5f, 1.5f), new RNG()).Ray;
+            RNG rng = new();
+            var ray = cam.GenerateRay(new Vector2(1.5f, 1.5f), ref rng).Ray;
 
             Assert.Equal(0, ray.Origin.X);
             Assert.Equal(0, ray.Origin.Y);
@@ -61,7 +63,8 @@ namespace SeeSharp.Tests.Core.Camera {
             var cam = MakeTestCamera();
 
             // left center
-            var ray = cam.GenerateRay(new Vector2(0, 1.5f), new RNG()).Ray;
+            RNG rng = new();
+            var ray = cam.GenerateRay(new Vector2(0, 1.5f), ref rng).Ray;
 
             Assert.Equal(0, ray.Origin.X);
             Assert.Equal(0, ray.Origin.Y);
@@ -81,7 +84,8 @@ namespace SeeSharp.Tests.Core.Camera {
             var cam = MakeTestCamera();
 
             // left center
-            var ray = cam.GenerateRay(new Vector2(3, 1.5f), new RNG()).Ray;
+            RNG rng = new();
+            var ray = cam.GenerateRay(new Vector2(3, 1.5f), ref rng).Ray;
 
             Assert.Equal(0, ray.Origin.X);
             Assert.Equal(0, ray.Origin.Y);
@@ -101,7 +105,8 @@ namespace SeeSharp.Tests.Core.Camera {
             var cam = MakeTestCamera();
 
             // bottom left corner
-            var ray = cam.GenerateRay(new Vector2(3, 3), new RNG()).Ray;
+            RNG rng = new();
+            var ray = cam.GenerateRay(new Vector2(3, 3), ref rng).Ray;
 
             Assert.Equal(0, ray.Origin.X);
             Assert.Equal(0, ray.Origin.Y);

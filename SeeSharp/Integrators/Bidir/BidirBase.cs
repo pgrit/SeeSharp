@@ -125,7 +125,7 @@ public abstract class BidirBase : Integrator {
     /// <param name="from">A point on a surface where next event is performed</param>
     /// <param name="rng">Random number generator</param>
     /// <returns>The selected light and the discrete probability of selecting that light</returns>
-    protected virtual (Emitter, float) SelectLight(in SurfacePoint from, RNG rng) {
+    protected virtual (Emitter, float) SelectLight(in SurfacePoint from, ref RNG rng) {
         int idx = rng.NextInt(Scene.Emitters.Count);
         return (Scene.Emitters[idx], 1.0f / Scene.Emitters.Count);
     }
@@ -243,20 +243,20 @@ public abstract class BidirBase : Integrator {
             for (uint col = 0; col < Scene.FrameBuffer.Width; ++col) {
                 uint pixelIndex = (uint)(row * Scene.FrameBuffer.Width + col);
                 var rng = new RNG(BaseSeedCamera, pixelIndex, iter);
-                RenderPixel((uint)row, col, rng, walkMod);
+                RenderPixel((uint)row, col, ref rng, walkMod);
             }
         });
     }
 
-    protected virtual void RenderPixel(uint row, uint col, RNG rng, CameraRandomWalk walkMod) {
+    protected virtual void RenderPixel(uint row, uint col, ref RNG rng, CameraRandomWalk walkMod) {
         Pixel pixel = new((int)col, (int)row);
 
         var offset = rng.NextFloat2D();
         var filmSample = new Vector2(col, row) + offset;
-        var cameraRay = Scene.Camera.GenerateRay(filmSample, rng);
+        var cameraRay = Scene.Camera.GenerateRay(filmSample, ref rng);
 
-        RandomWalk<CameraPath> walk = new(Scene, MaxDepth + 1, walkMod);
-        var value = walk.StartFromCamera(rng, cameraRay, pixel, new CameraPath());
+        RandomWalk<CameraPath> walk = new(Scene, ref rng, MaxDepth + 1, walkMod);
+        var value = walk.StartFromCamera(cameraRay, pixel, new CameraPath());
 
         Scene.FrameBuffer.Splat(pixel, value);
     }
@@ -411,7 +411,8 @@ public abstract class BidirBase : Integrator {
         if (vertex.Depth + 1 < MinDepth) return;
 
         // Compute image plane location
-        var response = Scene.Camera.SampleResponse(vertex.Point, null); // TODO get an RNG in there for DOF!
+        RNG rng = new(); // TODO / FIXME this is not used atm, so we can pass a dummy. But must update once fancier cameras are implemented!
+        var response = Scene.Camera.SampleResponse(vertex.Point, ref rng);
         if (!response.IsValid)
             return;
 
@@ -493,7 +494,7 @@ public abstract class BidirBase : Integrator {
     /// of sampling that vertex.
     /// </returns>
     protected virtual (int, int, float) SelectBidirPath(SurfacePoint cameraPoint, Vector3 outDir,
-                                                        Pixel pixel, RNG rng) {
+                                                        Pixel pixel, ref RNG rng) {
         int row = Math.Min(pixel.Row, Scene.FrameBuffer.Height - 1);
         int col = Math.Min(pixel.Col, Scene.FrameBuffer.Width - 1);
         int pixelIndex = row * Scene.FrameBuffer.Width + col;
@@ -568,14 +569,14 @@ public abstract class BidirBase : Integrator {
     /// ancestor vertex.
     /// </param>
     /// <returns>The sum of all MIS weighted contributions for inner path connections</returns>
-    protected virtual RgbColor BidirConnections(in SurfaceShader shader, RNG rng,
+    protected virtual RgbColor BidirConnections(in SurfaceShader shader, ref RNG rng,
                                                 in CameraPath path, float reversePdfJacobian) {
         RgbColor result = RgbColor.Black;
         if (NumLightPaths == 0) return result;
 
         // Select a path to connect to (based on pixel index)
         (int lightPathIdx, int lightVertIdx, float lightVertexProb) =
-            SelectBidirPath(shader.Point, shader.Context.OutDirWorld, path.Pixel, rng);
+            SelectBidirPath(shader.Point, shader.Context.OutDirWorld, path.Pixel, ref rng);
 
         if (lightVertIdx > 0) {
             // specific vertex selected
@@ -625,8 +626,8 @@ public abstract class BidirBase : Integrator {
     /// <param name="from">The shading point</param>
     /// <param name="rng">Random number generator</param>
     /// <returns>The sampled emitter and point on the emitter</returns>
-    protected virtual (Emitter, SurfaceSample) SampleNextEvent(SurfacePoint from, RNG rng) {
-        var (light, lightProb) = SelectLight(from, rng);
+    protected virtual (Emitter, SurfaceSample) SampleNextEvent(SurfacePoint from, ref RNG rng) {
+        var (light, lightProb) = SelectLight(from, ref rng);
         var lightSample = light.SampleUniformArea(rng.NextFloat2D());
         lightSample.Pdf *= lightProb;
         return (light, lightSample);
@@ -668,7 +669,7 @@ public abstract class BidirBase : Integrator {
     /// solid angle to surface area.
     /// </param>
     /// <returns>MIS weighted next event contribution</returns>
-    protected virtual RgbColor PerformNextEventEstimation(in SurfaceShader shader, RNG rng,
+    protected virtual RgbColor PerformNextEventEstimation(in SurfaceShader shader, ref RNG rng,
                                                           in CameraPath path, float reversePdfJacobian) {
         float backgroundProbability = ComputeNextEventBackgroundProbability();
         if (rng.NextFloat() < backgroundProbability) { // Connect to the background
@@ -712,7 +713,7 @@ public abstract class BidirBase : Integrator {
                 return RgbColor.Black;
 
             // Sample a point on the light source
-            var (light, lightSample) = SampleNextEvent(shader.Point, rng);
+            var (light, lightSample) = SampleNextEvent(shader.Point, ref rng);
             lightSample.Pdf *= (1 - backgroundProbability);
 
             if (lightSample.Pdf == 0) // Prevent NaN
@@ -841,7 +842,7 @@ public abstract class BidirBase : Integrator {
     /// sampling its ancestor.
     /// </param>
     /// <returns>Sum of MIS weighted contributions for all sampling techniques performed here</returns>
-    protected abstract RgbColor OnCameraHit(in CameraPath path, RNG rng, in SurfaceShader shader,
+    protected abstract RgbColor OnCameraHit(in CameraPath path, ref RNG rng, in SurfaceShader shader,
                                             float pdfFromAncestor, RgbColor throughput, int depth,
                                             float toAncestorJacobian);
 
@@ -892,7 +893,7 @@ public abstract class BidirBase : Integrator {
             walk.Payload.MaximumPriorRoughness = MathF.Max(walk.Payload.CurrentRoughness, walk.Payload.MaximumPriorRoughness);
             walk.Payload.CurrentRoughness = shader.GetRoughness();
 
-            return integrator.OnCameraHit(walk.Payload, walk.rng, shader, pdfFromAncestor, throughput, depth, toAncestorJacobian);
+            return integrator.OnCameraHit(walk.Payload, ref walk.rng, shader, pdfFromAncestor, throughput, depth, toAncestorJacobian);
         }
 
         public override void OnContinue(ref RandomWalk<CameraPath> walk, float pdfToAncestor, int depth) {

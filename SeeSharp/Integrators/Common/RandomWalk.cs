@@ -45,7 +45,7 @@ public ref struct RandomWalk<PayloadType> where PayloadType : new(){
 
     public Pixel FilmPosition;
     public bool isOnLightSubpath;
-    public RNG rng;
+    public ref RNG rng;
     public PayloadType Payload;
 
     /// <summary>
@@ -59,15 +59,15 @@ public ref struct RandomWalk<PayloadType> where PayloadType : new(){
     /// </summary>
     /// <param name="scene">The scene</param>
     /// <param name="maxDepth">Maximum number of edges along the path</param>
-    public RandomWalk(Scene scene, int maxDepth, RandomWalkModifier modifier = null) {
+    public RandomWalk(Scene scene, ref RNG rng, int maxDepth, RandomWalkModifier modifier = null) {
         this.scene = scene;
         this.maxDepth = maxDepth;
+        this.rng = ref rng;
         Modifier = modifier;
     }
 
-    public RgbColor StartFromCamera(RNG rng, CameraRaySample cameraRay, Pixel filmPosition, PayloadType payload) {
+    public RgbColor StartFromCamera(CameraRaySample cameraRay, Pixel filmPosition, PayloadType payload) {
         isOnLightSubpath = false;
-        this.rng = rng;
         FilmPosition = filmPosition;
         Payload = payload;
         Modifier?.OnStartCamera(ref this, cameraRay, filmPosition);
@@ -75,9 +75,8 @@ public ref struct RandomWalk<PayloadType> where PayloadType : new(){
         return ContinueWalk(cameraRay.Ray, cameraRay.Point, cameraRay.PdfRay, cameraRay.Weight, 1);
     }
 
-    public RgbColor StartFromEmitter(RNG rng, EmitterSample emitterSample, RgbColor initialWeight, PayloadType payload) {
+    public RgbColor StartFromEmitter(EmitterSample emitterSample, RgbColor initialWeight, PayloadType payload) {
         isOnLightSubpath = true;
-        this.rng = rng;
         Payload = payload;
         Modifier?.OnStartEmitter(ref this, emitterSample, initialWeight);
 
@@ -85,9 +84,8 @@ public ref struct RandomWalk<PayloadType> where PayloadType : new(){
         return ContinueWalk(ray, emitterSample.Point, emitterSample.Pdf, initialWeight, 1);
     }
 
-    public RgbColor StartFromBackground(RNG rng, Ray ray, RgbColor initialWeight, float pdf, PayloadType payload) {
+    public RgbColor StartFromBackground(Ray ray, RgbColor initialWeight, float pdf, PayloadType payload) {
         isOnLightSubpath = true;
-        this.rng = rng;
         Payload = payload;
         Modifier?.OnStartBackground(ref this, ray, initialWeight, pdf);
 
@@ -176,7 +174,7 @@ public ref struct RandomWalk<PayloadType> where PayloadType : new(){
             // Sample the next direction and convert the reverse pdf
             // var (pdfNext, pdfReverse, weight, direction) = SampleNextDirection(shader, prefixWeight, depth);
             var dirSample = Modifier?.SampleNextDirection(ref this, shader, prefixWeight, depth) ?? SampleBsdf(shader);
-            ApproxThroughput *= dirSample.ApproxReflectance;
+            ApproxThroughput *= dirSample.ApproxReflectance / survivalProb;
             float pdfToAncestor = dirSample.PdfReverse * SampleWarp.SurfaceAreaToSolidAngle(hit, previousPoint);
 
             Modifier?.OnContinue(ref this, pdfToAncestor, depth);

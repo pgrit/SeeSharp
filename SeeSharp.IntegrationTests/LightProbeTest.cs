@@ -48,7 +48,7 @@ namespace SeeSharp.IntegrationTests {
                         pixel.X += col;
                         pixel.Y += row;
 
-                        var sample = camera.GenerateRay(pixel, rng);
+                        var sample = camera.GenerateRay(pixel, ref rng);
                         if (!raytracer.Trace(sample.Ray)) {
                             framebuffer.Splat(col, row, sample.Weight);
                         } else {
@@ -67,7 +67,8 @@ namespace SeeSharp.IntegrationTests {
             scene.FrameBuffer = new(512, 512, "CornellProbe.exr", Images.FrameBuffer.Flags.SendToTev);
             scene.Prepare();
 
-            var sample = scene.Camera.GenerateRay(new(250, 50), new());
+            RNG rng = new();
+            var sample = scene.Camera.GenerateRay(new(250, 50), ref rng);
             var point = scene.Raytracer.Trace(sample.Ray);
 
             // Make sure the normal is on the right side of the surface

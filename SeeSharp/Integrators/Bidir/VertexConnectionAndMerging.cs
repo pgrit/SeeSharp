@@ -74,7 +74,7 @@ public class VertexConnectionAndMerging : VertexCacheBidir {
         float averageArea = 0; int numHits = 0;
         RNG dummyRng = new RNG();
         for (int i = 0; i < primarySamples.Length; ++i) {
-            Ray ray = scene.Camera.GenerateRay(primarySamples[i] * resolution, dummyRng).Ray;
+            Ray ray = scene.Camera.GenerateRay(primarySamples[i] * resolution, ref dummyRng).Ray;
             var hit = scene.Raytracer.Trace(ray);
             if (!hit) continue;
 
@@ -250,7 +250,7 @@ public class VertexConnectionAndMerging : VertexCacheBidir {
     /// <param name="path">The camera prefix path</param>
     /// <param name="cameraJacobian">Geometry term used to turn a PDF over outgoing directions into a surface area density.</param>
     /// <param name="estimate">The computed photon mapping contribution</param>
-    protected virtual void OnCombinedMergeSample(in SurfaceShader shader, RNG rng, in CameraPath path,
+    protected virtual void OnCombinedMergeSample(in SurfaceShader shader, ref RNG rng, in CameraPath path,
                                                  float cameraJacobian, RgbColor estimate)
     => Interlocked.Increment(ref TotalMergeOperations);
 
@@ -331,7 +331,7 @@ public class VertexConnectionAndMerging : VertexCacheBidir {
     ///     Geometry term used to turn a PDF over outgoing directions into a surface area density.
     /// </param>
     /// <returns>MIS weighted contribution due to merging</returns>
-    protected virtual RgbColor PerformMerging(in SurfaceShader shader, RNG rng, in CameraPath path, float cameraJacobian) {
+    protected virtual RgbColor PerformMerging(in SurfaceShader shader, ref RNG rng, in CameraPath path, float cameraJacobian) {
         if (path.Vertices.Count == 1 && !MergePrimary) return RgbColor.Black;
         if (!EnableMerging) return RgbColor.Black;
         if (!MergePrimary && path.Depth == 1) return RgbColor.Black;
@@ -339,7 +339,7 @@ public class VertexConnectionAndMerging : VertexCacheBidir {
 
         var state = new MergeState(cameraJacobian, localRadius, path, shader);
         photonMap.ForAllNearest(shader.Point.Position, MaxNumPhotons, localRadius, MergeHelper, ref state);
-        OnCombinedMergeSample(shader, rng, path, cameraJacobian, state.Estimate);
+        OnCombinedMergeSample(shader, ref rng, path, cameraJacobian, state.Estimate);
         return state.Estimate;
     }
 
@@ -356,7 +356,7 @@ public class VertexConnectionAndMerging : VertexCacheBidir {
     }
 
     /// <inheritdoc />
-    protected override RgbColor OnCameraHit(in CameraPath path, RNG rng, in SurfaceShader shader,
+    protected override RgbColor OnCameraHit(in CameraPath path, ref RNG rng, in SurfaceShader shader,
                                             float pdfFromAncestor, RgbColor throughput, int depth,
                                             float toAncestorJacobian) {
         RgbColor value = RgbColor.Black;
@@ -370,14 +370,14 @@ public class VertexConnectionAndMerging : VertexCacheBidir {
         // Perform connections and merging if the maximum depth has not yet been reached
         if (depth < MaxDepth) {
             for (int i = 0; i < NumConnections; ++i) {
-                value += throughput * BidirConnections(shader, rng, path, toAncestorJacobian);
+                value += throughput * BidirConnections(shader, ref rng, path, toAncestorJacobian);
             }
-            value += throughput * PerformMerging(shader, rng, path, toAncestorJacobian);
+            value += throughput * PerformMerging(shader, ref rng, path, toAncestorJacobian);
         }
 
         if (depth < MaxDepth && depth + 1 >= MinDepth) {
             for (int i = 0; i < NumShadowRays; ++i) {
-                value += throughput * PerformNextEventEstimation(shader, rng, path, toAncestorJacobian);
+                value += throughput * PerformNextEventEstimation(shader, ref rng, path, toAncestorJacobian);
             }
         }
 

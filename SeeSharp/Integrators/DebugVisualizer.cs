@@ -49,7 +49,7 @@ public class DebugVisualizer : Integrator {
 
         // Sample a ray from the camera
         var offset = rng.NextFloat2D();
-        Ray primaryRay = scene.Camera.GenerateRay(new Vector2(col, row) + offset, rng).Ray;
+        Ray primaryRay = scene.Camera.GenerateRay(new Vector2(col, row) + offset, ref rng).Ray;
         var hit = scene.Raytracer.Trace(primaryRay);
 
         // Shade and splat

@@ -77,7 +77,7 @@ public class LightPathCache {
     /// <param name="rng">Random number generator</param>
     /// <param name="emitter">The emitter to sample from</param>
     /// <returns>Sampled ray, weights, and probabilities</returns>
-    public virtual EmitterSample SampleEmitter(RNG rng, Emitter emitter) {
+    public virtual EmitterSample SampleEmitter(ref RNG rng, Emitter emitter) {
         var primaryPos = rng.NextFloat2D();
         var primaryDir = rng.NextFloat2D();
         return emitter.SampleRay(primaryPos, primaryDir);
@@ -121,7 +121,7 @@ public class LightPathCache {
     /// </summary>
     /// <param name="rng">Random number generator</param>
     /// <returns>The sampled ray, its weight, and the sampling pdf</returns>
-    public virtual (Ray, RgbColor, float) SampleBackground(RNG rng) {
+    public virtual (Ray, RgbColor, float) SampleBackground(ref RNG rng) {
         // Sample a ray from the background towards the scene
         var primaryPos = rng.NextFloat2D();
         var primaryDir = rng.NextFloat2D();
@@ -151,7 +151,7 @@ public class LightPathCache {
 
         Parallel.For(0, NumPaths, idx => {
             var rng = new RNG(BaseSeed, (uint)idx, iter);
-            TraceLightPath(rng, idx);
+            TraceLightPath(ref rng, idx);
         });
 
         PathCache.Prepare();
@@ -163,13 +163,13 @@ public class LightPathCache {
     /// <returns>
     /// The index of the last vertex along the path.
     /// </returns>
-    public virtual int TraceLightPath(RNG rng, int idx) {
+    public virtual int TraceLightPath(ref RNG rng, int idx) {
         // Select an emitter or the background
         var (emitter, prob) = SelectLight(rng.NextFloat());
         if (emitter != null)
-            return TraceEmitterPath(rng, emitter, prob, idx);
+            return TraceEmitterPath(ref rng, emitter, prob, idx);
         else
-            return TraceBackgroundPath(rng, prob, idx);
+            return TraceBackgroundPath(ref rng, prob, idx);
     }
 
     /// <summary>
@@ -196,19 +196,19 @@ public class LightPathCache {
         });
     }
 
-    protected int TraceEmitterPath(RNG rng, Emitter emitter, float selectProb, int idx) {
-        var emitterSample = SampleEmitter(rng, emitter);
+    protected int TraceEmitterPath(ref RNG rng, Emitter emitter, float selectProb, int idx) {
+        var emitterSample = SampleEmitter(ref rng, emitter);
 
         // Account for the light selection probability in the MIS weights
         emitterSample.Pdf *= selectProb;
 
-        var walk = new Walk(Scene, MaxDepth, walkModifier);
-        walk.StartFromEmitter(rng, emitterSample, emitterSample.Weight / selectProb, new() { PathIdx = idx });
+        var walk = new Walk(Scene, ref rng, MaxDepth, walkModifier);
+        walk.StartFromEmitter(emitterSample, emitterSample.Weight / selectProb, new() { PathIdx = idx });
         return walk.Payload.LastId;
     }
 
-    protected int TraceBackgroundPath(RNG rng, float selectProb, int idx) {
-        var (ray, weight, pdf) = SampleBackground(rng);
+    protected int TraceBackgroundPath(ref RNG rng, float selectProb, int idx) {
+        var (ray, weight, pdf) = SampleBackground(ref rng);
 
         // Account for the light selection probability
         pdf *= selectProb;
@@ -219,8 +219,8 @@ public class LightPathCache {
 
         Debug.Assert(float.IsFinite(weight.Average));
 
-        var walk = new Walk(Scene, MaxDepth, walkModifier);
-        walk.StartFromBackground(rng, ray, weight, pdf, new() { PathIdx = idx });
+        var walk = new Walk(Scene, ref rng, MaxDepth, walkModifier);
+        walk.StartFromBackground(ray, weight, pdf, new() { PathIdx = idx });
         return walk.Payload.LastId;
     }
 

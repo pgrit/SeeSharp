@@ -42,7 +42,8 @@ namespace SeeSharp.Tests.Core.Camera {
         public void Direction_ShouldBeDown() {
             var camera = MakeCamera();
 
-            var sample = camera.GenerateRay(new(200, 255), new());
+            RNG rng = new();
+            var sample = camera.GenerateRay(new(200, 255), ref rng);
 
             Assert.Equal(0.0f, sample.Ray.Direction.X, 1);
             Assert.Equal(-1.0f, sample.Ray.Direction.Y, 2);
@@ -53,7 +54,8 @@ namespace SeeSharp.Tests.Core.Camera {
         public void Direction_ShouldBeUp() {
             var camera = MakeCamera();
 
-            var sample = camera.GenerateRay(new(200, 1), new());
+            RNG rng = new();
+            var sample = camera.GenerateRay(new(200, 1), ref rng);
 
             Assert.Equal(0.0f, sample.Ray.Direction.X, 1);
             Assert.Equal(1.0f, sample.Ray.Direction.Y, 2);

@@ -220,7 +220,8 @@ public class Scene : IDisposable {
     /// Convenience function to cast a ray through the center of a pixel and query its primary hit point.
     /// </summary>
     public SurfacePoint RayCast(Pixel pixel) {
-        var ray = Camera.GenerateRay(new Vector2(pixel.Col + 0.5f, pixel.Row + 0.5f), new()).Ray;
+        RNG rng = new();
+        var ray = Camera.GenerateRay(new Vector2(pixel.Col + 0.5f, pixel.Row + 0.5f), ref rng).Ray;
         return (SurfacePoint)Raytracer.Trace(ray);
     }
 }

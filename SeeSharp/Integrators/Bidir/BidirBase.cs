@@ -855,13 +855,19 @@ public abstract class BidirBase : Integrator {
     protected class CameraRandomWalk : RandomWalk<CameraPath>.RandomWalkModifier {
         BidirBase integrator;
 
+        ThreadLocal<List<PathPdfPair>> threadLocalVertices = new(() => new());
+        ThreadLocal<List<float>> threadLocalDistances = new(() => new());
+
         public CameraRandomWalk(BidirBase integrator) {
             this.integrator = integrator;
         }
 
         public override void OnStartCamera(ref RandomWalk<CameraPath> walk, CameraRaySample cameraRay, Pixel filmPosition) {
-            walk.Payload.Vertices = new List<PathPdfPair>(integrator.MaxDepth);
-            walk.Payload.Distances = new List<float>(integrator.MaxDepth);
+            threadLocalVertices.Value.Clear();
+            threadLocalDistances.Value.Clear();
+
+            walk.Payload.Vertices = threadLocalVertices.Value;
+            walk.Payload.Distances = threadLocalDistances.Value;
             walk.Payload.Pixel = filmPosition;
         }
 

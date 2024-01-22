@@ -1,9 +1,15 @@
 namespace SeeSharp.Integrators;
 
 /// <summary>
-/// A classic path tracer with next event estimation
+/// A classic path tracer with next event estimation and no extra user data in the path state.
 /// </summary>
-public class PathTracer : Integrator {
+public class PathTracer : PathTracerBase<byte> { }
+
+/// <summary>
+/// A classic path tracer with next event estimation. Additional per-path user data can be tracked via the
+/// generic type provided.
+/// </summary>
+public class PathTracerBase<PayloadType> : Integrator {
     /// <summary>
     /// Used to compute the seeds for all random samplers.
     /// </summary>
@@ -45,7 +51,7 @@ public class PathTracer : Integrator {
     TechPyramid techPyramidRaw;
     TechPyramid techPyramidWeighted;
 
-    protected Util.DenoiseBuffers denoiseBuffers;
+    protected DenoiseBuffers denoiseBuffers;
 
     /// <summary>
     /// The scene that is being rendered.
@@ -69,30 +75,30 @@ public class PathTracer : Integrator {
     /// <summary>
     /// Called for every surface hit, before any sampling takes place.
     /// </summary>
-    protected virtual void OnHit(in Ray ray, in Hit hit, PathState state) { }
+    protected virtual void OnHit(in Ray ray, in Hit hit, ref PathState state) { }
 
     /// <summary>
     /// Called whenever direct illumination was estimated via next event estimation
     /// </summary>
-    protected virtual void OnNextEventResult(in SurfaceShader shader, PathState state,
+    protected virtual void OnNextEventResult(in SurfaceShader shader, in PathState state,
                                              float misWeight, RgbColor estimate) { }
 
     /// <summary>
     /// Called whenever an emitter was intersected
     /// </summary>
-    protected virtual void OnHitLightResult(in Ray ray, PathState state, float misWeight,
+    protected virtual void OnHitLightResult(in Ray ray, in PathState state, float misWeight,
                                             RgbColor emission, bool isBackground) { }
 
     /// <summary>
     /// Called before a path is traced, after the initial camera ray was sampled
     /// </summary>
     /// <param name="state">Initial state of the path (only pixel and RNG are set)</param>
-    protected virtual void OnStartPath(PathState state) { }
+    protected virtual void OnStartPath(ref PathState state) { }
 
     /// <summary>
     /// Called after a path has finished tracing and its contribution was added to the corresponding pixel.
     /// </summary>
-    protected virtual void OnFinishedPath(RgbColor estimate, PathState state) { }
+    protected virtual void OnFinishedPath(RgbColor estimate, ref PathState state) { }
 
     /// <summary> Called after the scene was submitted, before rendering starts. </summary>
     protected virtual void OnPrepareRender() { }
@@ -124,7 +130,7 @@ public class PathTracer : Integrator {
     /// <summary>
     /// Tracks the current state of a path that is being traced
     /// </summary>
-    protected class PathState {
+    protected ref struct PathState {
         /// <summary>
         /// The pixel this path originated from
         /// </summary>
@@ -160,6 +166,11 @@ public class PathTracer : Integrator {
         /// The solid angle pdf of the last ray that was sampled (required for MIS)
         /// </summary>
         public float PreviousPdf { get; set; }
+
+        /// <summary>
+        /// Additional per-path data defined in a derived class.
+        /// </summary>
+        public PayloadType UserData { get; set; }
     }
 
     /// <summary>
@@ -172,9 +183,9 @@ public class PathTracer : Integrator {
 
         if (RenderTechniquePyramid) {
             techPyramidRaw = new TechPyramid(scene.FrameBuffer.Width, scene.FrameBuffer.Height,
-                (int)MinDepth, (int)MaxDepth, false, false, false);
+                MinDepth, MaxDepth, false, false, false);
             techPyramidWeighted = new TechPyramid(scene.FrameBuffer.Width, scene.FrameBuffer.Height,
-                (int)MinDepth, (int)MaxDepth, false, false, false);
+                MinDepth, MaxDepth, false, false, false);
         }
 
         // Add custom frame buffer layers
@@ -223,17 +234,12 @@ public class PathTracer : Integrator {
         OnAfterRender();
 
         if (RenderTechniquePyramid) {
-            string pathRaw = System.IO.Path.Join(scene.FrameBuffer.Basename, "techs-raw");
+            string pathRaw = Path.Join(scene.FrameBuffer.Basename, "techs-raw");
             techPyramidRaw.WriteToFiles(pathRaw);
-            string pathWeighted = System.IO.Path.Join(scene.FrameBuffer.Basename, "techs-weighted");
+            string pathWeighted = Path.Join(scene.FrameBuffer.Basename, "techs-weighted");
             techPyramidWeighted.WriteToFiles(pathWeighted);
         }
     }
-
-    /// <summary>
-    /// Factory function for new path states. Use this to augment the state in derived classes.
-    /// </summary>
-    protected virtual PathState MakePathState() => new PathState();
 
     /// <summary>
     /// Decides the Russian roulette probability. The default uses a naive mix of minimum depth and current
@@ -243,7 +249,7 @@ public class PathTracer : Integrator {
     /// <param name="point">The current hit point</param>
     /// <param name="state">State of the path (contains throughput, length, etc.)</param>
     /// <returns>Probability with which to continue the path. Must be in [0, 1]</returns>
-    protected virtual float ComputeSurvivalProbability(in Ray ray, in SurfacePoint point, PathState state) {
+    protected virtual float ComputeSurvivalProbability(in Ray ray, in SurfacePoint point, in PathState state) {
         if (state.Depth > 4)
             return Math.Clamp(state.ApproxThroughput.Average, 0.0f, 0.95f);
         else
@@ -259,20 +265,21 @@ public class PathTracer : Integrator {
         var pixel = new Vector2(col, row) + offset;
         Ray primaryRay = scene.Camera.GenerateRay(pixel, rng).Ray;
 
-        var state = MakePathState();
-        state.Pixel = new((int)col, (int)row);
-        state.Rng = rng;
-        state.PrefixWeight = RgbColor.White;
-        state.Depth = 1;
+        PathState state = new() {
+            Pixel = new((int)col, (int)row),
+            Rng = rng,
+            PrefixWeight = RgbColor.White,
+            Depth = 1
+        };
 
-        OnStartPath(state);
-        var estimate = EstimateIncidentRadiance(primaryRay, state);
-        OnFinishedPath(estimate, state);
+        OnStartPath(ref state);
+        var estimate = EstimateIncidentRadiance(primaryRay, ref state);
+        OnFinishedPath(estimate, ref state);
 
         scene.FrameBuffer.Splat(state.Pixel, estimate);
     }
 
-    protected virtual RgbColor EstimateIncidentRadiance(Ray ray, PathState state) {
+    protected virtual RgbColor EstimateIncidentRadiance(Ray ray, ref PathState state) {
         RgbColor radianceEstimate = RgbColor.Black;
 
         while (state.Depth <= MaxDepth) {
@@ -281,11 +288,11 @@ public class PathTracer : Integrator {
             // Did the ray leave the scene?
             if (!hit) {
                 if (state.Depth >= MinDepth)
-                    radianceEstimate += state.PrefixWeight * OnBackgroundHit(ray, state);
+                    radianceEstimate += state.PrefixWeight * OnBackgroundHit(ray, ref state);
                 break;
             }
 
-            OnHit(ray, hit, state);
+            OnHit(ray, hit, ref state);
 
             SurfaceShader shader = new(hit, -ray.Direction, false);
 
@@ -297,7 +304,7 @@ public class PathTracer : Integrator {
             // Check if a light source was hit.
             Emitter light = scene.QueryEmitter(hit);
             if (light != null && state.Depth >= MinDepth) {
-                radianceEstimate += state.PrefixWeight * OnLightHit(ray, hit, state, light);
+                radianceEstimate += state.PrefixWeight * OnLightHit(ray, hit, ref state, light);
             }
 
             // Path termination with Russian roulette
@@ -309,8 +316,8 @@ public class PathTracer : Integrator {
             if (state.Depth + 1 >= MinDepth) {
                 RgbColor nextEventContrib = RgbColor.Black;
                 for (int i = 0; i < NumShadowRays; ++i) {
-                    nextEventContrib += PerformBackgroundNextEvent(shader, state);
-                    nextEventContrib += PerformNextEventEstimation(shader, state);
+                    nextEventContrib += PerformBackgroundNextEvent(shader, ref state);
+                    nextEventContrib += PerformNextEventEstimation(shader, ref state);
                 }
                 radianceEstimate += state.PrefixWeight * nextEventContrib / survivalProb;
             }
@@ -331,7 +338,7 @@ public class PathTracer : Integrator {
         return radianceEstimate;
     }
 
-    protected virtual RgbColor OnBackgroundHit(in Ray ray, PathState state) {
+    protected virtual RgbColor OnBackgroundHit(in Ray ray, ref PathState state) {
         if (scene.Background == null || !EnableBsdfDI)
             return RgbColor.Black;
 
@@ -349,7 +356,7 @@ public class PathTracer : Integrator {
         return misWeight * emission;
     }
 
-    protected virtual RgbColor OnLightHit(in Ray ray, in SurfacePoint hit, PathState state, Emitter light) {
+    protected virtual RgbColor OnLightHit(in Ray ray, in SurfacePoint hit, ref PathState state, Emitter light) {
         float misWeight = 1.0f;
         float pdfNextEvt;
         if (state.Depth > 1) { // directly visible emitters are not explicitely connected
@@ -370,7 +377,7 @@ public class PathTracer : Integrator {
         return misWeight * emission;
     }
 
-    protected virtual RgbColor PerformBackgroundNextEvent(in SurfaceShader shader, PathState state) {
+    protected virtual RgbColor PerformBackgroundNextEvent(in SurfaceShader shader, ref PathState state) {
         if (scene.Background == null)
             return RgbColor.Black; // There is no background
 
@@ -397,7 +404,7 @@ public class PathTracer : Integrator {
         return RgbColor.Black;
     }
 
-    protected virtual RgbColor PerformNextEventEstimation(in SurfaceShader shader, PathState state) {
+    protected virtual RgbColor PerformNextEventEstimation(in SurfaceShader shader, ref PathState state) {
         if (scene.Emitters.Count == 0)
             return RgbColor.Black;
 
@@ -464,7 +471,7 @@ public class PathTracer : Integrator {
     /// BSDF importance sampling is perfect, this is BSDF_value / BSDF_pdf. This is returned here so the
     /// integrator does not have to recompute the BSDF pdf. Useful for path guiding applications.
     /// </returns>
-    protected virtual (Ray, float, RgbColor, RgbColor) SampleDirection(in SurfaceShader shader, PathState state) {
+    protected virtual (Ray, float, RgbColor, RgbColor) SampleDirection(in SurfaceShader shader, in PathState state) {
         var primary = state.Rng.NextFloat2D();
         var bsdfSample = shader.Sample(primary);
         var bsdfRay = Raytracer.SpawnRay(shader.Point, bsdfSample.Direction);

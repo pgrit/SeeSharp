@@ -10,7 +10,23 @@
             "request": "launch",
             "preLaunchTask": "build",
             // If you have changed target frameworks, make sure to update the program path.
-            "program": "${workspaceFolder}/SeeSharp.Validation/bin/Debug/net7.0/SeeSharp.Validation.dll",
+            "program": "${workspaceFolder}/SeeSharp.Validation/bin/Debug/net8.0/SeeSharp.Validation.dll",
+            "args": [],
+            "cwd": "${workspaceFolder}",
+            // For more information about the 'console' field, see https://aka.ms/VSCode-CS-LaunchJson-Console
+            "console": "internalConsole",
+            "stopAtEntry": false,
+            "logging": {
+                "moduleLoad": false
+            }
+        },
+        {
+            "name": "Benchmark",
+            "type": "coreclr",
+            "request": "launch",
+            "preLaunchTask": "build",
+            // If you have changed target frameworks, make sure to update the program path.
+            "program": "${workspaceFolder}/SeeSharp.Benchmark/bin/Debug/net8.0/SeeSharp.Benchmark.dll",
             "args": [],
             "cwd": "${workspaceFolder}",
             // For more information about the 'console' field, see https://aka.ms/VSCode-CS-LaunchJson-Console
@@ -26,7 +42,7 @@
             "request": "launch",
             "preLaunchTask": "build",
             // If you have changed target frameworks, make sure to update the program path.
-            "program": "${workspaceFolder}/SeeSharp.IntegrationTests/bin/Debug/net7.0/SeeSharp.IntegrationTests.dll",
+            "program": "${workspaceFolder}/SeeSharp.IntegrationTests/bin/Debug/net8.0/SeeSharp.IntegrationTests.dll",
             "args": [],
             "cwd": "${workspaceFolder}",
             // For more information about the 'console' field, see https://aka.ms/VSCode-CS-LaunchJson-Console
@@ -42,7 +58,7 @@
             "request": "launch",
             "preLaunchTask": "build",
             // If you have changed target frameworks, make sure to update the program path.
-            "program": "${workspaceFolder}/SeeSharp.Examples/bin/Debug/net7.0/SeeSharp.Examples.dll",
+            "program": "${workspaceFolder}/SeeSharp.Examples/bin/Debug/net8.0/SeeSharp.Examples.dll",
             "args": [],
             "cwd": "${workspaceFolder}",
             // For more information about the 'console' field, see https://aka.ms/VSCode-CS-LaunchJson-Console

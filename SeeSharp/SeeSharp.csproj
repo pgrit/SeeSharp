@@ -31,7 +31,9 @@
 
   <ItemGroup>
     <PackageReference Include="SimpleImageIO" Version="1.4.3" />
+    <!-- <ProjectReference Include="../../SimpleImageIO/SimpleImageIO/SimpleImageIO.csproj" /> -->
     <PackageReference Include="TinyEmbree" Version="0.8.0" />
+    <!-- <ProjectReference Include="../../TinyEmbree/TinyEmbree/TinyEmbree.csproj" /> -->
   </ItemGroup>
 
 </Project>

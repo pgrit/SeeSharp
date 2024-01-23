@@ -73,12 +73,12 @@ public class Benchmark {
                 scene.FrameBuffer.ReferenceImage = refImg;
 
             scene.Raytracer.ResetStats();
-            ShadingStats.Reset();
+            ShadingStatCounter.Reset();
 
             method.Integrator.Render(scene);
 
             scene.FrameBuffer.MetaData["RayStats"] = scene.Raytracer.Stats;
-            scene.FrameBuffer.MetaData["ShadeStats"] = ShadingStats.Current;
+            scene.FrameBuffer.MetaData["ShadeStats"] = ShadingStatCounter.Current;
             scene.FrameBuffer.WriteToFile();
 
             if (experiment.DeleteMethodAfterRun) {

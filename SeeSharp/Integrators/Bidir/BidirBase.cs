@@ -186,6 +186,8 @@ public abstract class BidirBase : Integrator {
         RenderTimer timer = new();
         Stopwatch lightTracerTimer = new();
         Stopwatch pathTracerTimer = new();
+        ShadingStatCounter.Reset();
+        scene.Raytracer.ResetStats();
         for (uint iter = 0; iter < NumIterations; ++iter) {
             long nextIterTime = timer.RenderTime + timer.PerIterationCost;
             if (MaximumRenderTimeMs.HasValue && nextIterTime > MaximumRenderTimeMs.Value) {
@@ -232,6 +234,8 @@ public abstract class BidirBase : Integrator {
         scene.FrameBuffer.MetaData["FrameBufferTime"] = timer.FrameBufferTime;
         scene.FrameBuffer.MetaData["PathTracerTime"] = pathTracerTimer.ElapsedMilliseconds;
         scene.FrameBuffer.MetaData["LightTracerTime"] = lightTracerTimer.ElapsedMilliseconds;
+        scene.FrameBuffer.MetaData["ShadingStats"] = ShadingStatCounter.Current;
+        scene.FrameBuffer.MetaData["RayTracerStats"] = scene.Raytracer.Stats;
 
         OnAfterRender();
     }

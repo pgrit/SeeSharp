@@ -39,7 +39,7 @@ public class DiffuseMaterial : Material {
 
     /// <returns>1/pi * baseColor, or zero if the directions are not in the right hemispheres</returns>
     public override RgbColor Evaluate(in ShadingContext context, Vector3 inDir) {
-        ShadingStats.NotifyEvaluate();
+        ShadingStatCounter.NotifyEvaluate();
 
         bool shouldReflect = ShouldReflect(context.Point, context.OutDirWorld, inDir);
         inDir = context.WorldToShading(inDir);
@@ -57,7 +57,7 @@ public class DiffuseMaterial : Material {
     /// Importance samples the cosine hemisphere
     /// </summary>
     public override BsdfSample Sample(in ShadingContext context, Vector2 primarySample, ref ComponentWeights componentWeights) {
-        ShadingStats.NotifySample();
+        ShadingStatCounter.NotifySample();
 
         var baseColor = MaterialParameters.BaseColor.Lookup(context.Point.TextureCoordinates);
         Vector3? sample;
@@ -101,7 +101,7 @@ public class DiffuseMaterial : Material {
 
     /// <returns>PDF value used by <see cref="Sample"/></returns>
     public override (float, float) Pdf(in ShadingContext context, Vector3 inDir, ref ComponentWeights componentWeights) {
-        ShadingStats.NotifyPdfCompute();
+        ShadingStatCounter.NotifyPdfCompute();
 
         inDir = context.WorldToShading(inDir);
 

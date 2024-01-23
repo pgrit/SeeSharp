@@ -91,7 +91,7 @@ public class GenericMaterial : Material {
     }
 
     RgbColor Evaluate(in GenericMaterialContext context, in EvalContext evalContext) {
-        ShadingStats.NotifyEvaluate();
+        ShadingStatCounter.NotifyEvaluate();
 
         // Evaluate all components
         bool isOnLightSubpath = context.ShadingContext.IsOnLightSubpath;
@@ -145,7 +145,7 @@ public class GenericMaterial : Material {
 
     /// <summary>Crudely importance samples the combined BSDFs</summary>
     public override BsdfSample Sample(in ShadingContext shadingContext, Vector2 primarySample, ref ComponentWeights componentWeights) {
-        ShadingStats.NotifySample();
+        ShadingStatCounter.NotifySample();
 
         var context = MakeContext(shadingContext);
         bool isOnLightSubpath = context.ShadingContext.IsOnLightSubpath;
@@ -204,7 +204,7 @@ public class GenericMaterial : Material {
     }
 
     (float, float) Pdf(in GenericMaterialContext context, in EvalContext evalContext, ref ComponentWeights components) {
-        ShadingStats.NotifyPdfCompute();
+        ShadingStatCounter.NotifyPdfCompute();
         bool isOnLightSubpath = context.ShadingContext.IsOnLightSubpath;
 
         // Compute the sum of all pdf values

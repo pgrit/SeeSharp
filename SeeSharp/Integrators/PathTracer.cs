@@ -195,6 +195,8 @@ public class PathTracerBase<PayloadType> : Integrator {
         ProgressBar progressBar = new(prefix: "Rendering...");
         progressBar.Start(TotalSpp);
         RenderTimer timer = new();
+        ShadingStatCounter.Reset();
+        scene.Raytracer.ResetStats();
         for (uint sampleIndex = 0; sampleIndex < TotalSpp; ++sampleIndex) {
             long nextIterTime = timer.RenderTime + timer.PerIterationCost;
             if (MaximumRenderTimeMs.HasValue && nextIterTime > MaximumRenderTimeMs.Value) {
@@ -230,6 +232,8 @@ public class PathTracerBase<PayloadType> : Integrator {
 
         scene.FrameBuffer.MetaData["RenderTime"] = timer.RenderTime;
         scene.FrameBuffer.MetaData["FrameBufferTime"] = timer.FrameBufferTime;
+        scene.FrameBuffer.MetaData["ShadingStats"] = ShadingStatCounter.Current;
+        scene.FrameBuffer.MetaData["RayTracerStats"] = scene.Raytracer.Stats;
 
         OnAfterRender();
 

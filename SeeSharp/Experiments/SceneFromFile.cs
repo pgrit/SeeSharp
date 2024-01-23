@@ -102,16 +102,11 @@ public class SceneFromFile : SceneConfig {
         refIntegrator.MaxDepth = MaxDepth;
         refIntegrator.MinDepth = MinDepth;
 
-        bool oldStatsState = ShadingStats.Enabled;
-        ShadingStats.Enabled = false;
-
         using Scene scn = MakeScene();
         scn.FrameBuffer = new(width, height, filename);
         scn.Prepare();
         refIntegrator.Render(scn);
         scn.FrameBuffer.WriteToFile();
-
-        ShadingStats.Enabled = oldStatsState;
 
         return scn.FrameBuffer.Image;
     }

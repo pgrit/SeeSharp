@@ -1,35 +1,33 @@
+using System.Linq;
+
 namespace SeeSharp.Shading;
 
-public class ShadingStats {
+public struct ShadingStats {
+    public ulong NumMaterialEval { get; set; }
+    public ulong NumMaterialSample { get; set; }
+    public ulong NumMaterialPdf { get; set; }
+}
+
+public class ShadingStatCounter {
+    static ShadingStatCounter currentCounter = new();
+
     public static void Reset() {
-        Current = new();
+        currentCounter = new();
     }
 
-    /// <summary>
-    /// If set to true, material operations will be counted using atomics.
-    /// Increases render time by about 10%, should be disabled for reference rendering.
-    /// </summary>
-    public static bool Enabled { get; set; } = false;
+    public static ShadingStats Current => new() {
+        NumMaterialEval = (ulong)currentCounter.numEval.Values.Sum(v => (long)v),
+        NumMaterialSample = (ulong)currentCounter.numSample.Values.Sum(v => (long)v),
+        NumMaterialPdf = (ulong)currentCounter.numPdf.Values.Sum(v => (long)v),
+    };
 
-    public static ShadingStats Current { get; private set; } = new();
+    readonly ThreadLocal<ulong> numEval = new(true);
+    readonly ThreadLocal<ulong> numSample = new(true);
+    readonly ThreadLocal<ulong> numPdf = new(true);
 
-    public uint NumMaterialEval => numEval;
-    public uint NumMaterialSample => numSample;
-    public uint NumMaterialPdf => numPdf;
+    public static void NotifyEvaluate() => currentCounter.numEval.Value++;
 
-    uint numEval;
-    uint numSample;
-    uint numPdf;
+    public static void NotifySample() => currentCounter.numSample.Value++;
 
-    public static void NotifyEvaluate() {
-        if (Enabled) Interlocked.Increment(ref Current.numEval);
-    }
-
-    public static void NotifySample() {
-        if (Enabled) Interlocked.Increment(ref Current.numSample);
-    }
-
-    public static void NotifyPdfCompute() {
-        if (Enabled) Interlocked.Increment(ref Current.numPdf);
-    }
+    public static void NotifyPdfCompute() => currentCounter.numPdf.Value++;
 }

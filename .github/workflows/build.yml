@@ -17,6 +17,10 @@ jobs:
       with:
         dotnet-version: '7.0.x'
 
+    - name: Build
+      working-directory: ${{github.workspace}}
+      run: dotnet build
+
     - name: Test
       working-directory: ${{github.workspace}}
       run: dotnet test

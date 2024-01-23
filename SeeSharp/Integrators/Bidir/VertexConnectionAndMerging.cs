@@ -1,4 +1,6 @@
-﻿namespace SeeSharp.Integrators.Bidir;
+﻿using System.Linq;
+
+namespace SeeSharp.Integrators.Bidir;
 
 /// <summary>
 /// Implements vertex connection and merging (VCM). An MIS combination of bidirectional path tracing
@@ -36,9 +38,13 @@ public class VertexConnectionAndMerging : VertexCacheBidir {
     /// </summary>
     protected NearestNeighborSearch photonMap;
 
-    long TotalCameraPathLength = 0;
-    long TotalMergeOperations = 0;
-    long TotalMergePhotons = 0;
+    ThreadLocal<ulong> totalCamPathLen;
+    ThreadLocal<ulong> totalMergeOps;
+    ThreadLocal<ulong> totalMergePhotons;
+
+    ulong TotalCameraPathLength => (ulong)totalCamPathLen.Values.Sum(v => (long)v);
+    ulong TotalMergeOperations => (ulong)totalMergeOps.Values.Sum(v => (long)v);
+    ulong TotalMergePhotons => (ulong)totalMergePhotons.Values.Sum(v => (long)v);
 
     /// <summary>
     /// Average number of edges along the camera subpaths
@@ -133,13 +139,13 @@ public class VertexConnectionAndMerging : VertexCacheBidir {
         base.OnStartIteration(iteration);
 
         // Reset statistics
-        TotalCameraPathLength = 0;
-        TotalMergeOperations = 0;
-        TotalMergePhotons = 0;
+        totalCamPathLen = new(true);
+        totalMergeOps = new(true);
+        totalMergePhotons = new(true);
     }
 
     protected override void OnCameraPathTerminate(in CameraPath path)
-    => Interlocked.Add(ref TotalCameraPathLength, path.Vertices.Count);
+    => totalCamPathLen.Value += (ulong)path.Vertices.Count;
 
     private float ComputeAverageLightPathLength() {
         float average = 0;
@@ -239,7 +245,7 @@ public class VertexConnectionAndMerging : VertexCacheBidir {
     protected virtual void OnMergeSample(RgbColor weight, float kernelWeight, float misWeight,
                                          CameraPath cameraPath, PathVertex lightVertex, float pdfCameraReverse,
                                          float pdfLightReverse, float pdfNextEvent)
-    => Interlocked.Increment(ref TotalMergePhotons);
+    => totalMergePhotons.Value++;
 
     /// <summary>
     /// Called after each full photon mapping operation is finished, i.e., after all nearby photons
@@ -252,7 +258,7 @@ public class VertexConnectionAndMerging : VertexCacheBidir {
     /// <param name="estimate">The computed photon mapping contribution</param>
     protected virtual void OnCombinedMergeSample(in SurfaceShader shader, ref RNG rng, in CameraPath path,
                                                  float cameraJacobian, RgbColor estimate)
-    => Interlocked.Increment(ref TotalMergeOperations);
+    => totalMergeOps.Value++;
 
     protected virtual RgbColor Merge(in CameraPath path, float cameraJacobian, in SurfaceShader shader,
                                      int vertexIdx, float distSqr, float radiusSquared) {

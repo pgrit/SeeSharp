@@ -1,3 +1,5 @@
+using System.Collections.Frozen;
+
 namespace SeeSharp;
 
 /// <summary>
@@ -131,16 +133,22 @@ public class Scene : IDisposable {
         Camera.UpdateResolution(FrameBuffer.Width, FrameBuffer.Height);
 
         // Build the mesh to emitter mapping
-        meshToEmitter.Clear();
+        Dictionary<Mesh, Dictionary<int, Emitter>> meshToEmitterTemp = [];
         foreach (var emitter in Emitters) {
-            if (!meshToEmitter.ContainsKey(emitter.Mesh))
-                meshToEmitter.Add(emitter.Mesh, new());
-            meshToEmitter[emitter.Mesh].Add(emitter.Triangle.FaceIndex, emitter);
+            if (!meshToEmitterTemp.ContainsKey(emitter.Mesh))
+                meshToEmitterTemp.Add(emitter.Mesh, new());
+            meshToEmitterTemp[emitter.Mesh].Add(emitter.Triangle.FaceIndex, emitter);
         }
+        Dictionary<Mesh, FrozenDictionary<int, Emitter>> frozenMeshes = [];
+        foreach (var kv in meshToEmitterTemp) {
+            frozenMeshes[kv.Key] = kv.Value.ToFrozenDictionary();
+        }
+        meshToEmitter = frozenMeshes.ToFrozenDictionary();
 
-        emitterToIdx.Clear();
+        Dictionary<Emitter, int> emitterToIdxTemp = [];
         for (int i = 0; i < Emitters.Count; ++i)
-            emitterToIdx.Add(Emitters[i], i);
+            emitterToIdxTemp.Add(Emitters[i], i);
+        emitterToIdx = emitterToIdxTemp.ToFrozenDictionary();
     }
 
     /// <summary>
@@ -213,8 +221,8 @@ public class Scene : IDisposable {
         Raytracer = null;
     }
 
-    readonly Dictionary<Mesh, Dictionary<int, Emitter>> meshToEmitter = new();
-    readonly Dictionary<Emitter, int> emitterToIdx = new();
+    FrozenDictionary<Mesh, FrozenDictionary<int, Emitter>> meshToEmitter;
+    FrozenDictionary<Emitter, int> emitterToIdx;
 
     /// <summary>
     /// Convenience function to cast a ray through the center of a pixel and query its primary hit point.

@@ -1,6 +1,6 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
-    <TargetFramework>net7.0</TargetFramework>
+    <TargetFramework>net8.0</TargetFramework>
 
     <Title>SeeSharp</Title>
     <Description>A flexibility-first framework for rapid prototyping of rendering algorithms.</Description>
@@ -31,7 +31,7 @@
 
   <ItemGroup>
     <PackageReference Include="SimpleImageIO" Version="1.4.3" />
-    <PackageReference Include="TinyEmbree" Version="0.7.1" />
+    <PackageReference Include="TinyEmbree" Version="0.8.0" />
   </ItemGroup>
 
 </Project>

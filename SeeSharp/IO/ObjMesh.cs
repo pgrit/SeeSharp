@@ -183,13 +183,13 @@ public class ObjMesh {
         };
 
         // Textures and materials will be relative to the .obj
-        string full = System.IO.Path.GetFullPath(filename);
-        mesh.BasePath = System.IO.Path.GetDirectoryName(full);
+        string full = Path.GetFullPath(filename);
+        mesh.BasePath = Path.GetDirectoryName(full);
 
         var watch = System.Diagnostics.Stopwatch.StartNew();
         Logger.Log($"Parsing {filename}...", Verbosity.Debug);
         // Parse the .obj itself
-        using (var file = new System.IO.StreamReader(filename))
+        using (var file = new StreamReader(filename))
             mesh.Errors.AddRange(mesh.ParseObjFile(file));
         watch.Stop();
         Logger.Log($"Done parsing .obj after {watch.ElapsedMilliseconds}ms.", Verbosity.Debug);
@@ -197,12 +197,12 @@ public class ObjMesh {
         // Parse all linked .mtl files
         foreach (string mtlFilename in mesh.Contents.MtlFiles) {
             // the mtl files are expected to be relative to the .obj itself
-            string mtlPath = System.IO.Path.Join(mesh.BasePath, mtlFilename);
+            string mtlPath = Path.Join(mesh.BasePath, mtlFilename);
 
             try {
-                using var file = new System.IO.StreamReader(mtlPath);
+                using var file = new StreamReader(mtlPath);
                 mesh.Errors.AddRange(mesh.ParseMtlFile(file));
-            } catch (System.IO.FileNotFoundException) {
+            } catch (FileNotFoundException) {
                 Logger.Log($".mtl not found: {mtlPath}", Verbosity.Debug);
             }
         }
@@ -210,7 +210,7 @@ public class ObjMesh {
         return mesh;
     }
 
-    private List<string> ParseObjFile(System.IO.StreamReader stream) {
+    private List<string> ParseObjFile(StreamReader stream) {
         // Add an empty object to the scene
         int cur_object = 0;
         Contents.Objects.Add(new Object(""));
@@ -375,7 +375,7 @@ public class ObjMesh {
     readonly Regex regexFloat = new(@"([+-]?([0-9]+([.][0-9]*)?|[.][0-9]+))", RegexOptions.Compiled);
     readonly Regex regexIndex = new(@"([+-]?[0-9]+)/?([+-]?[0-9]+)?/?([+-]?[0-9]+)?", RegexOptions.Compiled);
 
-    private List<string> ParseMtlFile(System.IO.StreamReader stream) {
+    private List<string> ParseMtlFile(StreamReader stream) {
         var errors = new List<string>();
         int cur_line = 0;
         string line;

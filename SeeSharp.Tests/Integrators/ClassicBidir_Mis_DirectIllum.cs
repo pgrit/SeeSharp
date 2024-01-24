@@ -39,7 +39,8 @@ public class ClassicBidir_Mis_DirectIllum {
             pdfEmit: dummyPath.pathCache[0, 1].PdfFromAncestor,
             pdfNextEvent: 1.0f / dummyPath.lightArea,
             pdfHit: dummyPath.cameraVertices[2].PdfFromAncestor,
-            pdfReverse: pdfReverse);
+            pdfReverse: pdfReverse,
+            isBackground: false);
     }
 
     float LightTracerWeight() {

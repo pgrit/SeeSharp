@@ -240,6 +240,8 @@ public class LightPathCache {
         public float maxRoughness;
 
         public SurfacePoint FirstPoint, SecondPoint;
+
+        public bool FromBackground;
     }
 
     /// <summary>
@@ -280,9 +282,11 @@ public class LightPathCache {
                 Point = emitterSample.Point,
                 AncestorId = -1,
                 PathId = walk.Payload.PathIdx,
+                FromBackground = false,
                 Depth = 0,
             });
             walk.Payload.FirstPoint = emitterSample.Point;
+            walk.Payload.FromBackground = false;
         }
 
         public override void OnStartBackground(ref Walk walk, Ray ray, RgbColor initialWeight, float pdf) {
@@ -293,8 +297,10 @@ public class LightPathCache {
                 Point = walk.Payload.FirstPoint,
                 AncestorId = -1,
                 PathId = walk.Payload.PathIdx,
+                FromBackground = true,
                 Depth = 0,
             });
+            walk.Payload.FromBackground = true;
         }
 
         public override RgbColor OnHit(ref Walk walk, in SurfaceShader shader, float pdfFromAncestor,
@@ -316,7 +322,8 @@ public class LightPathCache {
                 Weight = throughput,
                 Depth = (byte)depth,
                 PdfNextEventAncestor = pdfNextEventAncestor,
-                MaximumRoughness = MathF.Max(roughness, walk.Payload.maxRoughness)
+                MaximumRoughness = MathF.Max(roughness, walk.Payload.maxRoughness),
+                FromBackground = walk.Payload.FromBackground,
             });
             return RgbColor.Black;
         }

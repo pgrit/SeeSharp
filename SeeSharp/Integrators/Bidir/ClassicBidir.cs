@@ -194,7 +194,7 @@ public class ClassicBidir : BidirBase {
 
     /// <inheritdoc />
     public override float NextEventMis(in CameraPath cameraPath, float pdfEmit, float pdfNextEvent,
-                                       float pdfHit, float pdfReverse) {
+                                       float pdfHit, float pdfReverse, bool isBackground) {
         int numPdfs = cameraPath.Vertices.Count + 1;
         int lastCameraVertexIdx = numPdfs - 2;
         Span<float> camToLight = stackalloc float[numPdfs];
@@ -231,7 +231,7 @@ public class ClassicBidir : BidirBase {
     /// <param name="pdfs">The sampling pdfs along the path</param>
     /// <param name="pixel">The pixel that this sample contributes to</param>
     /// <returns>Sum of the pdfs of all other techniques divided by the current technique.</returns>
-    protected virtual float CameraPathReciprocals(int lastCameraVertexIdx, BidirPathPdfs pdfs, Pixel pixel) {
+    protected virtual float CameraPathReciprocals(int lastCameraVertexIdx, in BidirPathPdfs pdfs, Pixel pixel) {
         float sumReciprocals = 0.0f;
         float nextReciprocal = 1.0f;
         for (int i = lastCameraVertexIdx; i > 0; --i) { // all bidir connections
@@ -254,7 +254,7 @@ public class ClassicBidir : BidirBase {
     /// <param name="pdfs">The sampling pdfs along the path</param>
     /// <param name="pixel">The pixel that this sample contributes to</param>
     /// <returns>Sum of the pdfs of all other techniques divided by the current technique.</returns>
-    protected virtual float LightPathReciprocals(int lastCameraVertexIdx, BidirPathPdfs pdfs, Pixel pixel) {
+    protected virtual float LightPathReciprocals(int lastCameraVertexIdx, in BidirPathPdfs pdfs, Pixel pixel) {
         float sumReciprocals = 0.0f;
         float nextReciprocal = 1.0f;
         for (int i = lastCameraVertexIdx + 1; i < pdfs.NumPdfs; ++i) {

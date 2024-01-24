@@ -620,9 +620,10 @@ public abstract class BidirBase : Integrator {
     /// <param name="pdfReverse">
     /// Surface area pdf of sampling the second-to-last camera path vertex when tracing a light path
     /// </param>
+    /// <param name="isBackground">True if the path was connected to the background, false if its an area light</param>
     /// <returns>MIS weight</returns>
     public abstract float NextEventMis(in CameraPath cameraPath, float pdfEmit, float pdfNextEvent,
-                                       float pdfHit, float pdfReverse);
+                                       float pdfHit, float pdfReverse, bool isBackground);
 
     /// <summary>
     /// Samples an emitter and a point on its surface for next event estimation
@@ -701,7 +702,7 @@ public abstract class BidirBase : Integrator {
                 float pdfEmit = LightPaths.ComputeBackgroundPdf(shader.Point.Position, -sample.Direction);
 
                 // Compute the mis weight
-                float misWeight = NextEventMis(path, pdfEmit, sample.Pdf, bsdfForwardPdf, bsdfReversePdf);
+                float misWeight = NextEventMis(path, pdfEmit, sample.Pdf, bsdfForwardPdf, bsdfReversePdf, true);
 
                 // Compute and log the final sample weight
                 var weight = sample.Weight * bsdfTimesCosine;
@@ -750,7 +751,7 @@ public abstract class BidirBase : Integrator {
                     SampleWarp.SurfaceAreaToSolidAngle(lightSample.Point, shader.Point));
 
                 float misWeight =
-                    NextEventMis(path, pdfEmit, lightSample.Pdf, bsdfForwardPdf, bsdfReversePdf);
+                    NextEventMis(path, pdfEmit, lightSample.Pdf, bsdfForwardPdf, bsdfReversePdf, false);
 
                 var weight = emission * bsdfTimesCosine * (jacobian / lightSample.Pdf);
                 RegisterSample(weight * path.Throughput, misWeight, path.Pixel,

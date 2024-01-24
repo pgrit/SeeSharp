@@ -45,4 +45,9 @@ public struct PathVertex {
     /// Maximum roughness of the materials at any of the previous vertices and this one.
     /// </summary>
     public float MaximumRoughness;
+
+    /// <summary>
+    /// True if the path behind this vertex originated from the background rather than an emissive surface
+    /// </summary>
+    public bool FromBackground;
 }

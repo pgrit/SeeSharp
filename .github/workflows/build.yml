@@ -23,7 +23,7 @@ jobs:
 
     - name: Test
       working-directory: ${{github.workspace}}
-      run: dotnet test
+      run: dotnet test -l "console;verbosity=normal" --no-build --blame-hang
 
   validate:
     runs-on: ubuntu-latest

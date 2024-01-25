@@ -237,19 +237,9 @@ public class VertexConnectionAndMerging : VertexCacheBidir {
     /// <param name="misWeight">MIS weight that will be multiplied on the weight</param>
     /// <param name="cameraPath">The camera subpath</param>
     /// <param name="lightVertex">The last vertex of the light subpath</param>
-    /// <param name="pdfCameraReverse">
-    /// Surface area PDF to sample the previous vertex along the camera path when coming from the light
-    /// </param>
-    /// <param name="pdfLightReverse">
-    /// Surface are PDF to sample the previous vertex along the light subpath when coming from the camera
-    /// </param>
-    /// <param name="pdfNextEvent">
-    /// If the light vertex is the primary hit after the light source: the surface area PDF of next event
-    /// to sample the same edge. Otherwise zero.
-    /// </param>
+    /// <param name="pathPdfs">Surface area pdfs of all sampling techniques. </param>
     protected virtual void OnMergeSample(RgbColor weight, float kernelWeight, float misWeight,
-                                         CameraPath cameraPath, PathVertex lightVertex, float pdfCameraReverse,
-                                         float pdfLightReverse, float pdfNextEvent)
+                                         CameraPath cameraPath, PathVertex lightVertex, in BidirPathPdfs pathPdfs)
     => totalMergePhotons.Value++;
 
     /// <summary>
@@ -318,8 +308,7 @@ public class VertexConnectionAndMerging : VertexCacheBidir {
 
         RegisterSample(photonContrib * kernelWeight * path.Throughput, misWeight, path.Pixel, path.Vertices.Count,
             photon.Depth, depth);
-        OnMergeSample(photonContrib * path.Throughput, kernelWeight, misWeight, path, photon, pdfCameraReverse,
-            pdfLightReverse, pdfNextEvent);
+        OnMergeSample(photonContrib * path.Throughput, kernelWeight, misWeight, path, photon, pathPdfs);
 
         return photonContrib * kernelWeight * misWeight;
     }

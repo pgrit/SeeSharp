@@ -98,10 +98,12 @@ public class PathCache {
         }
         threadCaches.Values.Clear();
 
+        if (overflow > 0) return;
+
         if (deterministic)
-            SortPaths(totalUnused);
+            SortPaths(totalUnused); // sorting makes sure all connections are deterministic
         else if (gaps.Count > 0)
-            CompactVertices(gaps, totalUnused);
+            CompactVertices(gaps, totalUnused); // Removing gaps allows us to sample random light vertices more easily
     }
 
     void SortPaths(int totalUnused) {

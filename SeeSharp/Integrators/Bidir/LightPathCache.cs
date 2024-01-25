@@ -145,10 +145,10 @@ public class LightPathCache {
     /// </param>
     public virtual void TraceAllPaths(uint iter, LightPathWalk.NextEventPdfCallback nextEventPdfCallback) {
         if (PathCache == null)
-            PathCache = new PathCache(NumPaths, Math.Min(MaxDepth, 10));
+            PathCache = new PathCache(NumPaths, Math.Min(MaxDepth + 1, 10));
         else if (NumPaths != PathCache.NumPaths) {
             // The size of the path cache needs to change -> simply create a new one
-            PathCache = new PathCache(NumPaths, Math.Min(MaxDepth, 10));
+            PathCache = new PathCache(NumPaths, Math.Min(MaxDepth + 1, 10));
         } else {
             PathCache.Clear();
         }

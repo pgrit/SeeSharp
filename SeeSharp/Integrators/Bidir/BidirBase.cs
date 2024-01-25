@@ -286,21 +286,10 @@ public abstract class BidirBase : Integrator {
     /// <param name="misWeight">The MIS weight that will be multiplied on the sample weight</param>
     /// <param name="pixel">The pixel to which this sample contributes</param>
     /// <param name="lightVertex">The last vertex on the light path</param>
-    /// <param name="pdfCamToPrimary">
-    /// Surface area pdf of sampling the last light path vertex when starting from the camera
-    /// </param>
-    /// <param name="pdfReverse">
-    /// Surface area pdf of sampling the ancestor of the last light path vertex, when starting from the
-    /// camera.
-    /// </param>
-    /// <param name="pdfNextEvent">
-    /// Surface area pdf of sampling the ancestor of the last light path vertex via next event estimation.
-    /// Will be zero unless this is a direct illumination sample.
-    /// </param>
+    /// <param name="pathPdfs">Surface area pdfs of all sampling techniques. </param>
     /// <param name="distToCam">Distance of the last vertex to the camera</param>
     protected virtual void OnLightTracerSample(RgbColor weight, float misWeight, Pixel pixel,
-                                               PathVertex lightVertex, float pdfCamToPrimary, float pdfReverse,
-                                               float pdfNextEvent, float distToCam) { }
+                                               PathVertex lightVertex, in BidirPathPdfs pathPdfs, float distToCam) { }
 
     /// <summary>
     /// Called for each full path sample generated via next event estimation on a camera path.
@@ -308,25 +297,18 @@ public abstract class BidirBase : Integrator {
     /// <param name="weight">The sample contribution not yet weighted by MIS</param>
     /// <param name="misWeight">The MIS weight that will be multiplied on the sample weight</param>
     /// <param name="cameraPath">The camera path until the point where NEE was performed</param>
-    /// <param name="pdfEmit">
-    /// Surface area pdf of sampling the last camera vertex when starting at the light source.
-    /// This also includes the pdf of sampling the point on the light during emission.
-    /// </param>
     /// <param name="pdfNextEvent">Surface area pdf used for next event estimation</param>
     /// <param name="pdfHit">
     /// Surface area pdf of sampling the same light source point by continuing the path
     /// </param>
-    /// <param name="pdfReverse">
-    /// Surface area pdf of sampling the ancestor of the last camera vertex, when starting at the light
-    /// source.
-    /// </param>
+    /// <param name="pathPdfs">Surface area pdfs of all sampling techniques. </param>
     /// <param name="emitter">The emitter that was connected to</param>
     /// <param name="lightToSurface">
     /// Direction from the point on the light to the last camera vertex.
     /// </param>
     /// <param name="lightPoint">The point on the light</param>
     protected virtual void OnNextEventSample(RgbColor weight, float misWeight, CameraPath cameraPath,
-                                             float pdfEmit, float pdfNextEvent, float pdfHit, float pdfReverse,
+                                             float pdfNextEvent, float pdfHit, in BidirPathPdfs pathPdfs,
                                              Emitter emitter, Vector3 lightToSurface, SurfacePoint lightPoint) { }
 
     /// <summary>
@@ -336,10 +318,7 @@ public abstract class BidirBase : Integrator {
     /// <param name="weight">The sample contribution not yet weighted by MIS</param>
     /// <param name="misWeight">The MIS weight that will be multiplied on the sample weight</param>
     /// <param name="cameraPath">The camera path until the point where NEE was performed</param>
-    /// <param name="pdfEmit">
-    /// Surface area pdf of sampling the last camera vertex when starting at the light source.
-    /// This also includes the pdf of sampling the point on the light during emission.
-    /// </param>
+    /// <param name="pathPdfs">Surface area pdfs of all sampling techniques. </param>
     /// <param name="pdfNextEvent">
     /// Surface area pdf of sampling the same light source point via next event estimation instead.
     /// </param>
@@ -349,7 +328,7 @@ public abstract class BidirBase : Integrator {
     /// </param>
     /// <param name="lightPoint">The point on the light</param>
     protected virtual void OnEmitterHitSample(RgbColor weight, float misWeight, CameraPath cameraPath,
-                                              float pdfEmit, float pdfNextEvent, Emitter emitter,
+                                              float pdfNextEvent, in BidirPathPdfs pathPdfs, Emitter emitter,
                                               Vector3 lightToSurface, SurfacePoint lightPoint) { }
 
     /// <summary>
@@ -360,28 +339,9 @@ public abstract class BidirBase : Integrator {
     /// <param name="misWeight">The MIS weight that will be multiplied on the sample weight</param>
     /// <param name="cameraPath">The camera path until the point where NEE was performed</param>
     /// <param name="lightVertex">Last vertex of the camera sub-path that was connected to</param>
-    /// <param name="pdfCameraReverse">
-    /// Surface area pdf of sampling the ancestor of the last camera vertex when continuing the light
-    /// sub-path instead
-    /// </param>
-    /// <param name="pdfCameraToLight">
-    /// Surface area pdf of sampling the connecting edge by continuing the camera path instead
-    /// </param>
-    /// <param name="pdfLightReverse">
-    /// Surface area pdf of sampling the ancestor of the last light vertex when continuing the camera
-    /// sub-path instead
-    /// </param>
-    /// <param name="pdfLightToCamera">
-    /// Surface area pdf of sampling the connecting edge by continuing the light path instead
-    /// </param>
-    /// <param name="pdfNextEvent">
-    /// Zero if the light sub-path has more than one edge. Otherwise, the surface area pdf of sampling
-    /// that edge via next event estimation from the camera instead
-    /// </param>
+    /// <param name="pathPdfs">Surface area pdfs of all sampling techniques. </param>
     protected virtual void OnBidirConnectSample(RgbColor weight, float misWeight, CameraPath cameraPath,
-                                                PathVertex lightVertex, float pdfCameraReverse,
-                                                float pdfCameraToLight, float pdfLightReverse,
-                                                float pdfLightToCamera, float pdfNextEvent) { }
+                                                PathVertex lightVertex, in BidirPathPdfs pathPdfs) { }
 
     /// <summary>
     /// Computes the MIS weight of a light tracer sample, for example via the balance heuristic.
@@ -451,8 +411,7 @@ public abstract class BidirBase : Integrator {
 
         // Log the sample
         RegisterSample(weight, misWeight, response.Pixel, 0, vertex.Depth, vertex.Depth + 1);
-        OnLightTracerSample(weight, misWeight, response.Pixel, vertex, response.PdfEmit, pdfReverse,
-            pdfNextEvent, distToCam);
+        OnLightTracerSample(weight, misWeight, response.Pixel, vertex, pathPdfs, distToCam);
     }
 
     /// <summary>
@@ -553,8 +512,7 @@ public abstract class BidirBase : Integrator {
 
         RegisterSample(weight * path.Throughput, misWeight, path.Pixel,
                         path.Vertices.Count, vertex.Depth, depth);
-        OnBidirConnectSample(weight * path.Throughput, misWeight, path, vertex, pdfCameraReverse,
-            pdfCameraToLight, pdfLightReverse, pdfLightToCamera, pdfNextEvent);
+        OnBidirConnectSample(weight * path.Throughput, misWeight, path, vertex, pathPdfs);
 
         return misWeight * weight;
     }
@@ -712,8 +670,8 @@ public abstract class BidirBase : Integrator {
                 var weight = sample.Weight * bsdfTimesCosine;
                 RegisterSample(weight * path.Throughput, misWeight, path.Pixel,
                                path.Vertices.Count, 0, path.Vertices.Count + 1);
-                OnNextEventSample(weight * path.Throughput, misWeight, path, pdfEmit, sample.Pdf,
-                    bsdfForwardPdf, bsdfReversePdf, null, -sample.Direction,
+                OnNextEventSample(weight * path.Throughput, misWeight, path, sample.Pdf,
+                    bsdfForwardPdf, pathPdfs, null, -sample.Direction,
                     new() { Position = shader.Point.Position });
                 return misWeight * weight;
             }
@@ -763,8 +721,8 @@ public abstract class BidirBase : Integrator {
                 var weight = emission * bsdfTimesCosine * (jacobian / lightSample.Pdf);
                 RegisterSample(weight * path.Throughput, misWeight, path.Pixel,
                                path.Vertices.Count, 0, path.Vertices.Count + 1);
-                OnNextEventSample(weight * path.Throughput, misWeight, path, pdfEmit, lightSample.Pdf,
-                    bsdfForwardPdf, bsdfReversePdf, light, lightToSurface, lightSample.Point);
+                OnNextEventSample(weight * path.Throughput, misWeight, path, lightSample.Pdf,
+                    bsdfForwardPdf, pathPdfs, light, lightToSurface, lightSample.Point);
                 return misWeight * weight;
             }
         }
@@ -813,7 +771,7 @@ public abstract class BidirBase : Integrator {
         float misWeight = numPdfs == 1 ? 1.0f : EmitterHitMis(path, pdfNextEvent, pathPdfs);
         RegisterSample(emission * path.Throughput, misWeight, path.Pixel,
                        path.Vertices.Count, 0, path.Vertices.Count);
-        OnEmitterHitSample(emission * path.Throughput, misWeight, path, pdfEmit, pdfNextEvent, emitter, outDir, hit);
+        OnEmitterHitSample(emission * path.Throughput, misWeight, path, pdfNextEvent, pathPdfs, emitter, outDir, hit);
         return misWeight * emission;
     }
 
@@ -848,7 +806,7 @@ public abstract class BidirBase : Integrator {
         var emission = Scene.Background.EmittedRadiance(ray.Direction);
         RegisterSample(emission * path.Throughput, misWeight, path.Pixel,
                        path.Vertices.Count, 0, path.Vertices.Count);
-        OnEmitterHitSample(emission * path.Throughput, misWeight, path, pdfEmit, pdfNextEvent, null,
+        OnEmitterHitSample(emission * path.Throughput, misWeight, path, pdfNextEvent, pathPdfs, null,
             -ray.Direction, new() { Position = ray.Origin });
         return misWeight * emission * path.Throughput;
     }

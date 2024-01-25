@@ -35,6 +35,12 @@ public class LightPathCache {
     public PathCache PathCache { get; set; }
 
     /// <summary>
+    /// If set to true, the path vertices will be sorted such that equal seed => same path vertex cache
+    /// (This ensures that methods that randomly pick path vertices for connection remain deterministic)
+    /// </summary>
+    public bool UseDeterministicVertexCache { get; set; } = false;
+
+    /// <summary>
     /// Maps a primary space random number to an importance sampled emitter in the scene
     /// </summary>
     /// <param name="primary">Primary space random number in [0,1]</param>
@@ -154,7 +160,7 @@ public class LightPathCache {
             TraceLightPath(ref rng, idx);
         });
 
-        PathCache.Prepare();
+        PathCache.Prepare(UseDeterministicVertexCache);
     }
 
     /// <summary>

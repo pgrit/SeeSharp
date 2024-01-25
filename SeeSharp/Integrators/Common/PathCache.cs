@@ -1,3 +1,5 @@
+using System.Linq;
+
 namespace SeeSharp.Integrators.Common;
 
 /// <summary>
@@ -76,16 +78,98 @@ public class PathCache {
         }
     }
 
-    public void Prepare() {
+    /// <summary>
+    /// Prepares the path cache for usage during sampling
+    /// </summary>
+    /// <param name="deterministic">
+    /// If true, vertices will be sorted by path index and depth. Ensures that - given identical path sampling -
+    /// the rendering will be deterministic and unaffected by cache write order of different threads.
+    /// </param>
+    public void Prepare(bool deterministic) {
+        List<(int StartIndex, int Amount)> gaps = [];
         int totalUnused = 0;
         foreach (var c in threadCaches.Values) {
             (int start, int num, int unused, int overflow) = c.Flush(vertices);
             this.overflow += overflow;
             totalUnused += unused;
+
+            if (unused > 0)
+                gaps.Add((start, unused));
         }
         threadCaches.Values.Clear();
 
-        // TODO compact the holes after flushing incomplete caches
+        if (deterministic)
+            SortPaths(totalUnused);
+        else if (gaps.Count > 0)
+            CompactVertices(gaps, totalUnused);
+    }
+
+    void SortPaths(int totalUnused) {
+        var sortedVertices = new PathVertex[vertices.Length];
+
+        int offset = 0;
+        var offsets = new int[pathEndpoints.Length];
+        for (int pathIdx = 0; pathIdx < pathEndpoints.Length; ++pathIdx) {
+            offsets[pathIdx] = offset;
+            offset += pathLengths[pathIdx];
+        }
+
+        Parallel.For(0, pathEndpoints.Length, pathIdx => {
+            int idx = pathEndpoints[pathIdx];
+            for (int i = offsets[pathIdx] + pathLengths[pathIdx] - 1; i >= offsets[pathIdx]; --i) {
+                sortedVertices[i] = vertices[idx];
+                idx = vertices[idx].AncestorId;
+                sortedVertices[i].AncestorId = sortedVertices[i].AncestorId < 0 ? -1 : i - 1;
+            }
+            pathEndpoints[pathIdx] = offsets[pathIdx] + pathLengths[pathIdx] - 1;
+        });
+
+        vertices = sortedVertices;
+
+        nextIdx -= totalUnused;
+    }
+
+    void CompactVertices(IEnumerable<(int StartIndex, int Amount)> gaps, int totalUnused) {
+        var sortedGaps = gaps.OrderBy(gap => gap.StartIndex).ToList();
+
+        int offset = sortedGaps[0].Amount;
+        int nextGapIdx = 1;
+        for (int i = sortedGaps[0].StartIndex + ThreadCache.BatchSize; i < nextIdx; i += ThreadCache.BatchSize) {
+            Array.Copy(vertices, i, vertices, i - offset, ThreadCache.BatchSize);
+
+            if (nextGapIdx < sortedGaps.Count && i == sortedGaps[nextGapIdx].StartIndex) {
+                offset += sortedGaps[nextGapIdx].Amount;
+                nextGapIdx++;
+            }
+        }
+
+        nextIdx -= totalUnused;
+
+        // Update the ancestor links. We can safely assume that ancestor vertices are always before the current one.
+        for (int i = sortedGaps[0].StartIndex + ThreadCache.BatchSize - sortedGaps[0].Amount; i < nextIdx; ++i) {
+            if (vertices[i].AncestorId < 0) continue;
+            Debug.Assert(vertices[i].PathId >= 0);
+
+            // If this vertex pointed to another one behind a gap, need to shift it
+            int idxOffset = 0;
+            for (int j = 0; j < sortedGaps.Count; ++j) {
+                if (vertices[i].AncestorId < sortedGaps[j].StartIndex + ThreadCache.BatchSize)
+                    break;
+                idxOffset += sortedGaps[j].Amount;
+            }
+            vertices[i].AncestorId -= idxOffset;
+        }
+
+        // Correct the path endpoint links if the last vertex of a path got shifted
+        for (int i = 0; i < pathEndpoints.Length; ++i) {
+            int idxOffset = 0;
+            for (int j = 0; j < sortedGaps.Count; ++j) {
+                if (pathEndpoints[i] < sortedGaps[j].StartIndex + ThreadCache.BatchSize)
+                    break;
+                idxOffset += sortedGaps[j].Amount;
+            }
+            pathEndpoints[i] -= idxOffset;
+        }
     }
 
     /// <param name="index">Index of a path</param>
@@ -131,9 +215,8 @@ public class PathCache {
 
             // For uncompleted batches, add a guard
             int unused = overflow > 0 ? 0 : (BatchSize - next);
-            for (int i = next; i < next + unused && insertPos + i < vertices.Length; ++i) {
+            for (int i = next; i < next + unused && insertPos + i < vertices.Length; ++i)
                 vertices[insertPos + i].PathId = -1;
-            }
             int start = insertPos;
             int num = next;
 

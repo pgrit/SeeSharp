@@ -387,22 +387,11 @@ public abstract class BidirBase : Integrator {
     /// Computes the MIS weight of a light tracer sample, for example via the balance heuristic.
     /// </summary>
     /// <param name="lightVertex">The last vertex of the light sub-path</param>
-    /// <param name="pdfCamToPrimary">
-    /// Surface area pdf of sampling the last light path vertex when starting from the camera
-    /// </param>
-    /// <param name="pdfReverse">
-    /// Surface area pdf of sampling the ancestor of the last light path vertex, when starting from the
-    /// camera.
-    /// </param>
-    /// <param name="pdfNextEvent">
-    /// Surface area pdf of sampling the ancestor of the last light path vertex via next event estimation.
-    /// Will be zero unless this is a direct illumination sample.
-    /// </param>
+    /// <param name="pathPdfs">Surface area pdfs of all sampling techniques. </param>
     /// <param name="pixel">The pixel on the image the path contributes to</param>
     /// <param name="distToCam">Distance between the camera and the last light path vertex</param>
     /// <returns>MIS weight of the sampled path</returns>
-    public abstract float LightTracerMis(PathVertex lightVertex, float pdfCamToPrimary, float pdfReverse,
-                                         float pdfNextEvent, Pixel pixel, float distToCam);
+    public abstract float LightTracerMis(PathVertex lightVertex, in BidirPathPdfs pathPdfs, Pixel pixel, float distToCam);
 
     /// <summary>
     /// Connects all vertices along all light paths to the camera via shadow rays ("light tracing").
@@ -444,8 +433,17 @@ public abstract class BidirBase : Integrator {
             pdfNextEvent = NextEventPdf(vertex.Point, ancestor.Point);
         }
 
-        float misWeight =
-            LightTracerMis(vertex, response.PdfEmit, pdfReverse, pdfNextEvent, response.Pixel, distToCam);
+        // Gather the PDFs for MIS computation
+        int numPdfs = vertex.Depth + 1;
+        int lastCameraVertexIdx = -1;
+        Span<float> camToLight = stackalloc float[numPdfs];
+        Span<float> lightToCam = stackalloc float[numPdfs];
+        var pathPdfs = new BidirPathPdfs(LightPaths.PathCache, lightToCam, camToLight);
+        pathPdfs.GatherLightPdfs(vertex, lastCameraVertexIdx);
+        pathPdfs.PdfsCameraToLight[0] = response.PdfEmit;
+        pathPdfs.PdfsCameraToLight[1] = pdfReverse + pdfNextEvent;
+
+        float misWeight = LightTracerMis(vertex, pathPdfs, response.Pixel, distToCam);
 
         // Compute image contribution and splat
         RgbColor weight = vertex.Weight * bsdfValue * response.Weight / NumLightPaths.Value;
@@ -462,27 +460,9 @@ public abstract class BidirBase : Integrator {
     /// </summary>
     /// <param name="cameraPath">The camera path that was connected to a light vertex</param>
     /// <param name="lightVertex">The light vertex that was connected to</param>
-    /// <param name="pdfCameraReverse">
-    /// Surface area pdf of sampling the previous vertex along the camera path when coming from the light.
-    /// </param>
-    /// <param name="pdfCameraToLight">
-    /// Surface area pdf of sampling the light vertex by continuing the camera path instead.
-    /// </param>
-    /// <param name="pdfLightReverse">
-    /// Surface area pdf of sampling the previous vertex along the light path when coming from the camera
-    /// </param>
-    /// <param name="pdfLightToCamera">
-    /// Surface area pdf of sampling the last camera vertex by continuing the light path instead
-    /// </param>
-    /// <param name="pdfNextEvent">
-    /// If the light path consists of a single edge, this is the surface area pdf of sampling the same
-    /// edge via next event estimation at the last light path vertex. Otherwise zero.
-    /// </param>
+    /// <param name="pathPdfs">Surface area pdfs of all sampling techniques. </param>
     /// <returns>MIS weight for the connection</returns>
-    public abstract float BidirConnectMis(in CameraPath cameraPath, PathVertex lightVertex,
-                                          float pdfCameraReverse, float pdfCameraToLight,
-                                          float pdfLightReverse, float pdfLightToCamera,
-                                          float pdfNextEvent);
+    public abstract float BidirConnectMis(in CameraPath cameraPath, PathVertex lightVertex, in BidirPathPdfs pathPdfs);
 
     /// <summary>
     /// Called to importance sample a light path vertex to connect to. Can either select an entire light
@@ -544,8 +524,25 @@ public abstract class BidirBase : Integrator {
             pdfNextEvent = NextEventPdf(vertex.Point, ancestor.Point);
         }
 
-        float misWeight = BidirConnectMis(path, vertex, pdfCameraReverse, pdfCameraToLight,
-            pdfLightReverse, pdfLightToCamera, pdfNextEvent);
+        // Gather all PDFs for MIS compuation
+        int numPdfs = path.Vertices.Count + vertex.Depth + 1;
+        int lastCameraVertexIdx = path.Vertices.Count - 1;
+        Span<float> camToLight = stackalloc float[numPdfs];
+        Span<float> lightToCam = stackalloc float[numPdfs];
+
+        var pathPdfs = new BidirPathPdfs(LightPaths.PathCache, lightToCam, camToLight);
+        pathPdfs.GatherCameraPdfs(path, lastCameraVertexIdx);
+        pathPdfs.GatherLightPdfs(vertex, lastCameraVertexIdx);
+
+        // Set the pdf values that are unique to this combination of paths
+        if (lastCameraVertexIdx > 0) // only if this is not the primary hit point
+            pathPdfs.PdfsLightToCamera[lastCameraVertexIdx - 1] = pdfCameraReverse;
+        pathPdfs.PdfsCameraToLight[lastCameraVertexIdx] = path.Vertices[^1].PdfFromAncestor;
+        pathPdfs.PdfsLightToCamera[lastCameraVertexIdx] = pdfLightToCamera;
+        pathPdfs.PdfsCameraToLight[lastCameraVertexIdx + 1] = pdfCameraToLight;
+        pathPdfs.PdfsCameraToLight[lastCameraVertexIdx + 2] = pdfLightReverse + pdfNextEvent;
+
+        float misWeight = BidirConnectMis(path, vertex, pathPdfs);
         float distanceSqr = (shader.Point.Position - vertex.Point.Position).LengthSquared();
 
         // Avoid NaNs in rare cases
@@ -609,21 +606,15 @@ public abstract class BidirBase : Integrator {
     /// Computes the MIS weight for next event estimation along a camera path
     /// </summary>
     /// <param name="cameraPath">The camera path</param>
-    /// <param name="pdfEmit">
-    /// Product surface area density of sampling the next event edge (vertex on the light and last camera
-    /// path vertex) when emitting a light path.
-    /// </param>
     /// <param name="pdfNextEvent">Surface area pdf of sampling the light vertex via next event</param>
     /// <param name="pdfHit">
     /// Surface area pdf of sampling the light vertex by continuing the camera path instead
     /// </param>
-    /// <param name="pdfReverse">
-    /// Surface area pdf of sampling the second-to-last camera path vertex when tracing a light path
-    /// </param>
+    /// <param name="pathPdfs">Surface area pdfs of all sampling techniques. </param>
     /// <param name="isBackground">True if the path was connected to the background, false if its an area light</param>
     /// <returns>MIS weight</returns>
-    public abstract float NextEventMis(in CameraPath cameraPath, float pdfEmit, float pdfNextEvent,
-                                       float pdfHit, float pdfReverse, bool isBackground);
+    public abstract float NextEventMis(in CameraPath cameraPath, float pdfNextEvent, float pdfHit,
+                                       in BidirPathPdfs pathPdfs, bool isBackground);
 
     /// <summary>
     /// Samples an emitter and a point on its surface for next event estimation
@@ -676,6 +667,16 @@ public abstract class BidirBase : Integrator {
     /// <returns>MIS weighted next event contribution</returns>
     protected virtual RgbColor PerformNextEventEstimation(in SurfaceShader shader, ref RNG rng,
                                                           in CameraPath path, float reversePdfJacobian) {
+        // Gather the PDFs for next event computation (we do it first to avoid code duplication)
+        int numPdfs = path.Vertices.Count + 1;
+        int lastCameraVertexIdx = numPdfs - 2;
+        Span<float> camToLight = stackalloc float[numPdfs];
+        Span<float> lightToCam = stackalloc float[numPdfs];
+        var pathPdfs = new BidirPathPdfs(LightPaths.PathCache, lightToCam, camToLight);
+        pathPdfs.GatherCameraPdfs(path, lastCameraVertexIdx);
+        pathPdfs.PdfsCameraToLight[^2] = path.Vertices[^1].PdfFromAncestor;
+
+        // Decide between background and surface sampling
         float backgroundProbability = ComputeNextEventBackgroundProbability();
         if (rng.NextFloat() < backgroundProbability) { // Connect to the background
             if (Scene.Background == null)
@@ -702,7 +703,10 @@ public abstract class BidirBase : Integrator {
                 float pdfEmit = LightPaths.ComputeBackgroundPdf(shader.Point.Position, -sample.Direction);
 
                 // Compute the mis weight
-                float misWeight = NextEventMis(path, pdfEmit, sample.Pdf, bsdfForwardPdf, bsdfReversePdf, true);
+                pathPdfs.PdfsLightToCamera[^2] = pdfEmit;
+                if (numPdfs > 2) // not for direct illumination
+                    pathPdfs.PdfsLightToCamera[^3] = bsdfReversePdf;
+                float misWeight = NextEventMis(path, sample.Pdf, bsdfForwardPdf, pathPdfs, true);
 
                 // Compute and log the final sample weight
                 var weight = sample.Weight * bsdfTimesCosine;
@@ -750,8 +754,11 @@ public abstract class BidirBase : Integrator {
                 float pdfEmit = LightPaths.ComputeEmitterPdf(light, lightSample.Point, lightToSurface,
                     SampleWarp.SurfaceAreaToSolidAngle(lightSample.Point, shader.Point));
 
-                float misWeight =
-                    NextEventMis(path, pdfEmit, lightSample.Pdf, bsdfForwardPdf, bsdfReversePdf, false);
+                pathPdfs.PdfsLightToCamera[^2] = pdfEmit;
+                if (numPdfs > 2) // not for direct illumination
+                    pathPdfs.PdfsLightToCamera[^3] = bsdfReversePdf;
+
+                float misWeight = NextEventMis(path, lightSample.Pdf, bsdfForwardPdf, pathPdfs, false);
 
                 var weight = emission * bsdfTimesCosine * (jacobian / lightSample.Pdf);
                 RegisterSample(weight * path.Throughput, misWeight, path.Pixel,
@@ -769,13 +776,10 @@ public abstract class BidirBase : Integrator {
     /// Computes the MIS weight of randomly hitting an emitter
     /// </summary>
     /// <param name="cameraPath">The camera path that hit an emitter</param>
-    /// <param name="pdfEmit">
-    /// Product surface area pdf of sampling the last two vertices of the camera path via emitting a light
-    /// path instead.
-    /// </param>
     /// <param name="pdfNextEvent">Surface area pdf of sampling the point on the emitter via next event</param>
+    /// <param name="pathPdfs">Surface area pdfs of all sampling techniques. </param>
     /// <returns>MIS weight</returns>
-    public abstract float EmitterHitMis(in CameraPath cameraPath, float pdfEmit, float pdfNextEvent);
+    public abstract float EmitterHitMis(in CameraPath cameraPath, float pdfNextEvent, in BidirPathPdfs pathPdfs);
 
     /// <summary>
     /// Called when a camera path directly intersected an emitter
@@ -797,7 +801,16 @@ public abstract class BidirBase : Integrator {
         float pdfEmit = LightPaths.ComputeEmitterPdf(emitter, hit, outDir, reversePdfJacobian);
         float pdfNextEvent = NextEventPdf(new SurfacePoint(), hit); // TODO get the actual previous point!
 
-        float misWeight = EmitterHitMis(path, pdfEmit, pdfNextEvent);
+        int numPdfs = path.Vertices.Count;
+        int lastCameraVertexIdx = numPdfs - 1;
+        Span<float> camToLight = stackalloc float[numPdfs];
+        Span<float> lightToCam = stackalloc float[numPdfs];
+        var pathPdfs = new BidirPathPdfs(LightPaths.PathCache, lightToCam, camToLight);
+        pathPdfs.GatherCameraPdfs(path, lastCameraVertexIdx);
+        if (numPdfs > 1)
+            pathPdfs.PdfsLightToCamera[^2] = pdfEmit;
+
+        float misWeight = numPdfs == 1 ? 1.0f : EmitterHitMis(path, pdfNextEvent, pathPdfs);
         RegisterSample(emission * path.Throughput, misWeight, path.Pixel,
                        path.Vertices.Count, 0, path.Vertices.Count);
         OnEmitterHitSample(emission * path.Throughput, misWeight, path, pdfEmit, pdfNextEvent, emitter, outDir, hit);
@@ -822,7 +835,16 @@ public abstract class BidirBase : Integrator {
         float backgroundProbability = ComputeNextEventBackgroundProbability(/*hit*/);
         pdfNextEvent *= backgroundProbability;
 
-        float misWeight = EmitterHitMis(path, pdfEmit, pdfNextEvent);
+        int numPdfs = path.Vertices.Count;
+        int lastCameraVertexIdx = numPdfs - 1;
+        Span<float> camToLight = stackalloc float[numPdfs];
+        Span<float> lightToCam = stackalloc float[numPdfs];
+        var pathPdfs = new BidirPathPdfs(LightPaths.PathCache, lightToCam, camToLight);
+        pathPdfs.GatherCameraPdfs(path, lastCameraVertexIdx);
+        if (numPdfs > 1)
+            pathPdfs.PdfsLightToCamera[^2] = pdfEmit;
+
+        float misWeight = numPdfs == 1 ? 1.0f : EmitterHitMis(path, pdfNextEvent, pathPdfs);
         var emission = Scene.Background.EmittedRadiance(ray.Direction);
         RegisterSample(emission * path.Throughput, misWeight, path.Pixel,
                        path.Vertices.Count, 0, path.Vertices.Count);

@@ -290,7 +290,24 @@ public class VertexConnectionAndMerging : VertexCacheBidir {
         pdfCameraReverse *= cameraJacobian;
         pdfLightReverse *= SampleWarp.SurfaceAreaToSolidAngle(shader.Point, ancestor.Point);
         float pdfNextEvent = (photon.Depth == 1) ? NextEventPdf(shader.Point, ancestor.Point) : 0;
-        float misWeight = MergeMis(path, photon, pdfCameraReverse, pdfLightReverse, pdfNextEvent);
+
+        int numPdfs = path.Vertices.Count + photon.Depth;
+        int lastCameraVertexIdx = path.Vertices.Count - 1;
+        Span<float> camToLight = stackalloc float[numPdfs];
+        Span<float> lightToCam = stackalloc float[numPdfs];
+
+        var pathPdfs = new BidirPathPdfs(LightPaths.PathCache, lightToCam, camToLight);
+        pathPdfs.GatherCameraPdfs(path, lastCameraVertexIdx);
+        pathPdfs.GatherLightPdfs(photon, lastCameraVertexIdx - 1);
+
+        // Set the pdf values that are unique to this combination of paths
+        if (lastCameraVertexIdx > 0) // only if this is not the primary hit point
+            pathPdfs.PdfsLightToCamera[lastCameraVertexIdx - 1] = pdfCameraReverse;
+        pathPdfs.PdfsLightToCamera[lastCameraVertexIdx] = photon.PdfFromAncestor;
+        pathPdfs.PdfsCameraToLight[lastCameraVertexIdx] = path.Vertices[^1].PdfFromAncestor;
+        pathPdfs.PdfsCameraToLight[lastCameraVertexIdx + 1] = pdfLightReverse + pdfNextEvent;
+
+        float misWeight = MergeMis(path, photon, pathPdfs);
 
         // Prevent NaNs in corner cases
         if (pdfCameraReverse == 0 || pdfLightReverse == 0)
@@ -451,40 +468,17 @@ public class VertexConnectionAndMerging : VertexCacheBidir {
     /// </summary>
     /// <param name="cameraPath">The camera subpath</param>
     /// <param name="lightVertex">Last vertex of the light subpath</param>
-    /// <param name="pdfCameraReverse">
-    /// Surface area pdf to sample the previous vertex along the camera subpath when coming from the light
-    /// </param>
-    /// <param name="pdfLightReverse">
-    /// Surface area pdf to sample the previous vertex along the light subpath when coming from the camera
-    /// </param>
-    /// <param name="pdfNextEvent">
-    /// If the light subpath consists of only one edge: the surface area PDF of next event estimation
-    /// </param>
+    /// <param name="pathPdfs">Surface area pdfs of all sampling techniques. </param>
     /// <returns>MIS weight (classic balance heuristic)</returns>
-    public virtual float MergeMis(in CameraPath cameraPath, in PathVertex lightVertex, float pdfCameraReverse,
-                                  float pdfLightReverse, float pdfNextEvent) {
-        int numPdfs = cameraPath.Vertices.Count + lightVertex.Depth;
-        int lastCameraVertexIdx = cameraPath.Vertices.Count - 1;
-        Span<float> camToLight = stackalloc float[numPdfs];
-        Span<float> lightToCam = stackalloc float[numPdfs];
-
-        var pathPdfs = new BidirPathPdfs(LightPaths.PathCache, lightToCam, camToLight);
-        pathPdfs.GatherCameraPdfs(cameraPath, lastCameraVertexIdx);
-        pathPdfs.GatherLightPdfs(lightVertex, lastCameraVertexIdx - 1);
-
-        // Set the pdf values that are unique to this combination of paths
-        if (lastCameraVertexIdx > 0) // only if this is not the primary hit point
-            pathPdfs.PdfsLightToCamera[lastCameraVertexIdx - 1] = pdfCameraReverse;
-        pathPdfs.PdfsLightToCamera[lastCameraVertexIdx] = lightVertex.PdfFromAncestor;
-        pathPdfs.PdfsCameraToLight[lastCameraVertexIdx] = cameraPath.Vertices[^1].PdfFromAncestor;
-        pathPdfs.PdfsCameraToLight[lastCameraVertexIdx + 1] = pdfLightReverse + pdfNextEvent;
-
-        var correlRatio = new CorrelAwareRatios(pathPdfs, cameraPath.Distances[0], lightVertex.FromBackground);
+    public virtual float MergeMis(in CameraPath cameraPath, in PathVertex lightVertex, in BidirPathPdfs pathPdfs) {
 
         // Compute the acceptance probability approximation
+        int lastCameraVertexIdx = cameraPath.Vertices.Count - 1;
         float radius = ComputeLocalMergeRadius(cameraPath.Distances[0]);
         float mergeApproximation = pathPdfs.PdfsLightToCamera[lastCameraVertexIdx]
                                  * MathF.PI * radius * radius * NumLightPaths.Value;
+
+        var correlRatio = new CorrelAwareRatios(pathPdfs, cameraPath.Distances[0], lightVertex.FromBackground);
         if (!DisableCorrelAwareMIS) mergeApproximation *= correlRatio[lastCameraVertexIdx];
 
         if (mergeApproximation == 0.0f) return 0.0f;
@@ -506,58 +500,30 @@ public class VertexConnectionAndMerging : VertexCacheBidir {
     }
 
     /// <inheritdoc />
-    public override float EmitterHitMis(in CameraPath cameraPath, float pdfEmit, float pdfNextEvent) {
-        int numPdfs = cameraPath.Vertices.Count;
-        int lastCameraVertexIdx = numPdfs - 1;
-        Span<float> camToLight = stackalloc float[numPdfs];
-        Span<float> lightToCam = stackalloc float[numPdfs];
-
-        if (numPdfs == 1) return 1.0f; // sole technique for rendering directly visible lights.
-
-        var pathPdfs = new BidirPathPdfs(LightPaths.PathCache, lightToCam, camToLight);
-        pathPdfs.GatherCameraPdfs(cameraPath, lastCameraVertexIdx);
-
-        pathPdfs.PdfsLightToCamera[^2] = pdfEmit;
-
+    public override float EmitterHitMis(in CameraPath cameraPath, float pdfNextEvent, in BidirPathPdfs pathPdfs) {
         var correlRatio = new CorrelAwareRatios(pathPdfs, cameraPath.Distances[0], false);
 
-        float pdfThis = cameraPath.Vertices[^1].PdfFromAncestor;
-
-        // Compute the actual weight
         float sumReciprocals = 1.0f;
 
         // Next event estimation
+        float pdfThis = cameraPath.Vertices[^1].PdfFromAncestor;
         sumReciprocals += pdfNextEvent / pdfThis;
 
         // All connections along the camera path
         float radius = ComputeLocalMergeRadius(cameraPath.Distances[0]);
         sumReciprocals +=
-            CameraPathReciprocals(lastCameraVertexIdx - 1, pathPdfs, cameraPath.Pixel, radius, correlRatio)
+            CameraPathReciprocals(cameraPath.Vertices.Count - 2, pathPdfs, cameraPath.Pixel, radius, correlRatio)
             / pdfThis;
 
         return 1 / sumReciprocals;
     }
 
     /// <inheritdoc />
-    public override float LightTracerMis(PathVertex lightVertex, float pdfCamToPrimary, float pdfReverse,
-                                         float pdfNextEvent, Pixel pixel, float distToCam) {
-        int numPdfs = lightVertex.Depth + 1;
-        int lastCameraVertexIdx = -1;
-        Span<float> camToLight = stackalloc float[numPdfs];
-        Span<float> lightToCam = stackalloc float[numPdfs];
-
-        var pathPdfs = new BidirPathPdfs(LightPaths.PathCache, lightToCam, camToLight);
-
-        pathPdfs.GatherLightPdfs(lightVertex, lastCameraVertexIdx);
-
-        pathPdfs.PdfsCameraToLight[0] = pdfCamToPrimary;
-        pathPdfs.PdfsCameraToLight[1] = pdfReverse + pdfNextEvent;
-
+    public override float LightTracerMis(PathVertex lightVertex, in BidirPathPdfs pathPdfs, Pixel pixel, float distToCam) {
         var correlRatio = new CorrelAwareRatios(pathPdfs, distToCam, lightVertex.FromBackground);
 
-        // Compute the actual weight
         float radius = ComputeLocalMergeRadius(distToCam);
-        float sumReciprocals = LightPathReciprocals(lastCameraVertexIdx, pathPdfs, pixel, radius, correlRatio);
+        float sumReciprocals = LightPathReciprocals(-1, pathPdfs, pixel, radius, correlRatio);
         sumReciprocals /= NumLightPaths.Value;
         sumReciprocals += 1;
 
@@ -565,32 +531,12 @@ public class VertexConnectionAndMerging : VertexCacheBidir {
     }
 
     /// <inheritdoc />
-    public override float BidirConnectMis(in CameraPath cameraPath, PathVertex lightVertex,
-                                          float pdfCameraReverse, float pdfCameraToLight,
-                                          float pdfLightReverse, float pdfLightToCamera,
-                                          float pdfNextEvent) {
-        int numPdfs = cameraPath.Vertices.Count + lightVertex.Depth + 1;
-        int lastCameraVertexIdx = cameraPath.Vertices.Count - 1;
-        Span<float> camToLight = stackalloc float[numPdfs];
-        Span<float> lightToCam = stackalloc float[numPdfs];
-
-        var pathPdfs = new BidirPathPdfs(LightPaths.PathCache, lightToCam, camToLight);
-        pathPdfs.GatherCameraPdfs(cameraPath, lastCameraVertexIdx);
-        pathPdfs.GatherLightPdfs(lightVertex, lastCameraVertexIdx);
-
-        // Set the pdf values that are unique to this combination of paths
-        if (lastCameraVertexIdx > 0) // only if this is not the primary hit point
-            pathPdfs.PdfsLightToCamera[lastCameraVertexIdx - 1] = pdfCameraReverse;
-        pathPdfs.PdfsCameraToLight[lastCameraVertexIdx] = cameraPath.Vertices[^1].PdfFromAncestor;
-        pathPdfs.PdfsLightToCamera[lastCameraVertexIdx] = pdfLightToCamera;
-        pathPdfs.PdfsCameraToLight[lastCameraVertexIdx + 1] = pdfCameraToLight;
-        pathPdfs.PdfsCameraToLight[lastCameraVertexIdx + 2] = pdfLightReverse + pdfNextEvent;
-
+    public override float BidirConnectMis(in CameraPath cameraPath, PathVertex lightVertex, in BidirPathPdfs pathPdfs) {
         var correlRatio = new CorrelAwareRatios(pathPdfs, cameraPath.Distances[0], lightVertex.FromBackground);
 
-        // Compute reciprocals for hypothetical connections along the camera sub-path
         float radius = ComputeLocalMergeRadius(cameraPath.Distances[0]);
         float sumReciprocals = 1.0f;
+        int lastCameraVertexIdx = cameraPath.Vertices.Count - 1;
         sumReciprocals += CameraPathReciprocals(lastCameraVertexIdx, pathPdfs, cameraPath.Pixel, radius, correlRatio)
             / BidirSelectDensity(cameraPath.Pixel);
         sumReciprocals += LightPathReciprocals(lastCameraVertexIdx, pathPdfs, cameraPath.Pixel, radius, correlRatio)
@@ -600,25 +546,10 @@ public class VertexConnectionAndMerging : VertexCacheBidir {
     }
 
     /// <inheritdoc />
-    public override float NextEventMis(in CameraPath cameraPath, float pdfEmit, float pdfNextEvent,
-                                       float pdfHit, float pdfReverse, bool isBackground) {
-        int numPdfs = cameraPath.Vertices.Count + 1;
-        int lastCameraVertexIdx = numPdfs - 2;
-        Span<float> camToLight = stackalloc float[numPdfs];
-        Span<float> lightToCam = stackalloc float[numPdfs];
-
-        var pathPdfs = new BidirPathPdfs(LightPaths.PathCache, lightToCam, camToLight);
-
-        pathPdfs.GatherCameraPdfs(cameraPath, lastCameraVertexIdx);
-
-        pathPdfs.PdfsCameraToLight[^2] = cameraPath.Vertices[^1].PdfFromAncestor;
-        pathPdfs.PdfsLightToCamera[^2] = pdfEmit;
-        if (numPdfs > 2) // not for direct illumination
-            pathPdfs.PdfsLightToCamera[^3] = pdfReverse;
-
+    public override float NextEventMis(in CameraPath cameraPath, float pdfNextEvent, float pdfHit,
+                                       in BidirPathPdfs pathPdfs, bool isBackground) {
         var correlRatio = new CorrelAwareRatios(pathPdfs, cameraPath.Distances[0], isBackground);
 
-        // Compute the actual weight
         float sumReciprocals = 1.0f;
 
         // Hitting the light source
@@ -627,7 +558,7 @@ public class VertexConnectionAndMerging : VertexCacheBidir {
         // All bidirectional connections
         float radius = ComputeLocalMergeRadius(cameraPath.Distances[0]);
         sumReciprocals +=
-            CameraPathReciprocals(lastCameraVertexIdx, pathPdfs, cameraPath.Pixel, radius, correlRatio)
+            CameraPathReciprocals(cameraPath.Vertices.Count - 1, pathPdfs, cameraPath.Pixel, radius, correlRatio)
             / pdfNextEvent;
 
         return 1 / sumReciprocals;
@@ -690,8 +621,9 @@ public class VertexConnectionAndMerging : VertexCacheBidir {
             if (i < pdfs.NumPdfs - 2) // Connections to the emitter (next event) are treated separately
                 if (NumConnections > 0) sumReciprocals += nextReciprocal * BidirSelectDensity(pixel);
         }
-        if (EnableHitting || NumShadowRays != 0) sumReciprocals += nextReciprocal; // Next event and hitting the emitter directly
-                                                                                   // TODO / FIXME Bsdf and Nee can only be disabled jointly here: needs proper handling when assembling pdfs
+        if (EnableHitting || NumShadowRays != 0)
+            sumReciprocals += nextReciprocal; // Next event and hitting the emitter directly
+        // TODO / FIXME Bsdf and Nee can only be disabled jointly here: needs proper handling when assembling pdfs
         return sumReciprocals;
     }
 }

@@ -146,113 +146,41 @@ public class VertexCacheBidir : BidirBase {
     }
 
     /// <inheritdoc />
-    public override float EmitterHitMis(in CameraPath cameraPath, float pdfEmit, float pdfNextEvent) {
-        int numPdfs = cameraPath.Vertices.Count;
-        int lastCameraVertexIdx = numPdfs - 1;
-        Span<float> camToLight = stackalloc float[numPdfs];
-        Span<float> lightToCam = stackalloc float[numPdfs];
-
-        if (numPdfs == 1) return 1.0f; // sole technique for rendering directly visible lights.
-
-        var pathPdfs = new BidirPathPdfs(LightPaths.PathCache, lightToCam, camToLight);
-        pathPdfs.GatherCameraPdfs(cameraPath, lastCameraVertexIdx);
-
-        pathPdfs.PdfsLightToCamera[^2] = pdfEmit;
-
+    public override float EmitterHitMis(in CameraPath cameraPath, float pdfNextEvent, in BidirPathPdfs pathPdfs) {
         float pdfThis = cameraPath.Vertices[^1].PdfFromAncestor;
 
-        // Compute the actual weight
         float sumReciprocals = 1.0f;
-
-        // Next event estimation
         sumReciprocals += pdfNextEvent / pdfThis;
-
-        // All connections along the camera path
-        sumReciprocals += CameraPathReciprocals(lastCameraVertexIdx - 1, pathPdfs, cameraPath.Pixel) / pdfThis;
+        sumReciprocals +=
+            CameraPathReciprocals(cameraPath.Vertices.Count - 2, pathPdfs, cameraPath.Pixel) / pdfThis;
 
         return 1 / sumReciprocals;
     }
 
     /// <inheritdoc />
-    public override float LightTracerMis(PathVertex lightVertex, float pdfCamToPrimary, float pdfReverse,
-                                         float pdfNextEvent, Pixel pixel, float distToCam) {
-        int numPdfs = lightVertex.Depth + 1;
-        int lastCameraVertexIdx = -1;
-        Span<float> camToLight = stackalloc float[numPdfs];
-        Span<float> lightToCam = stackalloc float[numPdfs];
-
-        var pathPdfs = new BidirPathPdfs(LightPaths.PathCache, lightToCam, camToLight);
-
-        pathPdfs.GatherLightPdfs(lightVertex, lastCameraVertexIdx);
-
-        pathPdfs.PdfsCameraToLight[0] = pdfCamToPrimary;
-        pathPdfs.PdfsCameraToLight[1] = pdfReverse + pdfNextEvent;
-
-        // Compute the actual weight
-        float sumReciprocals = LightPathReciprocals(lastCameraVertexIdx, numPdfs, pathPdfs, pixel);
-        sumReciprocals /= NumLightPaths.Value;
-        sumReciprocals += 1;
+    public override float LightTracerMis(PathVertex lightVertex, in BidirPathPdfs pathPdfs, Pixel pixel, float distToCam) {
+        float sumReciprocals = 1 + LightPathReciprocals(-1, pathPdfs, pixel) / NumLightPaths.Value;
         return 1 / sumReciprocals;
     }
 
     /// <inheritdoc />
-    public override float BidirConnectMis(in CameraPath cameraPath, PathVertex lightVertex,
-                                          float pdfCameraReverse, float pdfCameraToLight,
-                                          float pdfLightReverse, float pdfLightToCamera,
-                                          float pdfNextEvent) {
-        int numPdfs = cameraPath.Vertices.Count + lightVertex.Depth + 1;
+    public override float BidirConnectMis(in CameraPath cameraPath, PathVertex lightVertex, in BidirPathPdfs pathPdfs) {
+        float sumReciprocals = 1.0f;
         int lastCameraVertexIdx = cameraPath.Vertices.Count - 1;
-        Span<float> camToLight = stackalloc float[numPdfs];
-        Span<float> lightToCam = stackalloc float[numPdfs];
-
-        var pathPdfs = new BidirPathPdfs(LightPaths.PathCache, lightToCam, camToLight);
-        pathPdfs.GatherCameraPdfs(cameraPath, lastCameraVertexIdx);
-        pathPdfs.GatherLightPdfs(lightVertex, lastCameraVertexIdx);
-
-        // Set the pdf values that are unique to this combination of paths
-        if (lastCameraVertexIdx > 0) // only if this is not the primary hit point
-            pathPdfs.PdfsLightToCamera[lastCameraVertexIdx - 1] = pdfCameraReverse;
-        pathPdfs.PdfsCameraToLight[lastCameraVertexIdx] = cameraPath.Vertices[^1].PdfFromAncestor;
-        pathPdfs.PdfsLightToCamera[lastCameraVertexIdx] = pdfLightToCamera;
-        pathPdfs.PdfsCameraToLight[lastCameraVertexIdx + 1] = pdfCameraToLight;
-        pathPdfs.PdfsCameraToLight[lastCameraVertexIdx + 2] = pdfLightReverse + pdfNextEvent;
-
-        // Compute reciprocals for hypothetical connections along the camera sub-path
-        float sumReciprocals = 1.0f;
         sumReciprocals += CameraPathReciprocals(lastCameraVertexIdx, pathPdfs, cameraPath.Pixel)
-            / BidirSelectDensity(cameraPath.Pixel);
-        sumReciprocals += LightPathReciprocals(lastCameraVertexIdx, numPdfs, pathPdfs, cameraPath.Pixel)
-            / BidirSelectDensity(cameraPath.Pixel);
-
+            / BidirSelectDensity(cameraPath.Pixel);;
+        sumReciprocals += LightPathReciprocals(lastCameraVertexIdx, pathPdfs, cameraPath.Pixel)
+            / BidirSelectDensity(cameraPath.Pixel);;
         return 1 / sumReciprocals;
     }
 
     /// <inheritdoc />
-    public override float NextEventMis(in CameraPath cameraPath, float pdfEmit, float pdfNextEvent,
-                                       float pdfHit, float pdfReverse, bool isBackground) {
-        int numPdfs = cameraPath.Vertices.Count + 1;
-        int lastCameraVertexIdx = numPdfs - 2;
-        Span<float> camToLight = stackalloc float[numPdfs];
-        Span<float> lightToCam = stackalloc float[numPdfs];
-
-        var pathPdfs = new BidirPathPdfs(LightPaths.PathCache, lightToCam, camToLight);
-
-        pathPdfs.GatherCameraPdfs(cameraPath, lastCameraVertexIdx);
-
-        pathPdfs.PdfsCameraToLight[^2] = cameraPath.Vertices[^1].PdfFromAncestor;
-        pathPdfs.PdfsLightToCamera[^2] = pdfEmit;
-        if (numPdfs > 2) // not for direct illumination
-            pathPdfs.PdfsLightToCamera[^3] = pdfReverse;
-
-        // Compute the actual weight
+    public override float NextEventMis(in CameraPath cameraPath, float pdfNextEvent, float pdfHit,
+                                       in BidirPathPdfs pathPdfs, bool isBackground) {
         float sumReciprocals = 1.0f;
-
-        // Hitting the light source
-        if (EnableHitting) sumReciprocals += pdfHit / pdfNextEvent;
-
-        // All bidirectional connections
-        sumReciprocals += CameraPathReciprocals(lastCameraVertexIdx, pathPdfs, cameraPath.Pixel) / pdfNextEvent;
-
+        sumReciprocals += pdfHit / pdfNextEvent;
+        sumReciprocals +=
+            CameraPathReciprocals(cameraPath.Vertices.Count - 1, pathPdfs, cameraPath.Pixel) / pdfNextEvent;
         return 1 / sumReciprocals;
     }
 
@@ -272,12 +200,12 @@ public class VertexCacheBidir : BidirBase {
     }
 
     /// <inheritdoc />
-    protected virtual float LightPathReciprocals(int lastCameraVertexIdx, int numPdfs, in BidirPathPdfs pdfs, Pixel pixel) {
+    protected virtual float LightPathReciprocals(int lastCameraVertexIdx, in BidirPathPdfs pdfs, Pixel pixel) {
         float sumReciprocals = 0.0f;
         float nextReciprocal = 1.0f;
-        for (int i = lastCameraVertexIdx + 1; i < numPdfs; ++i) {
+        for (int i = lastCameraVertexIdx + 1; i < pdfs.NumPdfs; ++i) {
             nextReciprocal *= pdfs.PdfsCameraToLight[i] / pdfs.PdfsLightToCamera[i];
-            if (i < numPdfs - 2 && NumConnections > 0) // Connections to the emitter (next event) are treated separately
+            if (i < pdfs.NumPdfs - 2 && NumConnections > 0) // Connections to the emitter (next event) are treated separately
                 sumReciprocals += nextReciprocal * BidirSelectDensity(pixel);
         }
         sumReciprocals += nextReciprocal; // Next event and hitting the emitter directly

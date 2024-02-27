@@ -111,6 +111,9 @@ public abstract class BidirBase : Integrator {
         public float CurrentRoughness;
 
         public int Depth => Vertices.Count;
+
+        public SurfacePoint CurrentPoint;
+        public SurfacePoint PreviousPoint;
     }
 
     /// <summary>
@@ -854,6 +857,7 @@ public abstract class BidirBase : Integrator {
             walk.Payload.Vertices = threadLocalVertices.Value;
             walk.Payload.Distances = threadLocalDistances.Value;
             walk.Payload.Pixel = filmPosition;
+            walk.Payload.CurrentPoint = cameraRay.Point;
         }
 
         public override RgbColor OnInvalidHit(ref RandomWalk<CameraPath> walk, Ray ray, float pdfFromAncestor,
@@ -884,6 +888,8 @@ public abstract class BidirBase : Integrator {
             walk.Payload.MaximumPriorRoughness = MathF.Max(walk.Payload.CurrentRoughness, walk.Payload.MaximumPriorRoughness);
             walk.Payload.CurrentRoughness = shader.GetRoughness();
 
+            walk.Payload.PreviousPoint = walk.Payload.CurrentPoint;
+            walk.Payload.CurrentPoint = shader.Point;
             return integrator.OnCameraHit(walk.Payload, ref walk.rng, shader, pdfFromAncestor, throughput, depth, toAncestorJacobian);
         }
 

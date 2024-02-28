@@ -198,7 +198,7 @@ public class ObjConverter : IMeshLoader {
                     emitters.TryGetValue(materialName, out emission);
 
                     IEnumerable<Emitter> emitter = null;
-                    if (emissionOverride.TryGetValue(materialName, out EmissionParameters e))
+                    if (emissionOverride?.TryGetValue(materialName, out EmissionParameters e) ?? false)
                         emitter = e.IsGlossy
                             ? GlossyEmitter.MakeFromMesh(m, e.Radiance, e.Exponent)
                             : DiffuseEmitter.MakeFromMesh(m, e.Radiance);

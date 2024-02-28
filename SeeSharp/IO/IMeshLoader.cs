@@ -19,5 +19,11 @@ public interface IMeshLoader {
     /// <param name="emissiveMaterials">All emissive materials in the scene</param>
     /// <exception cref="MeshLoadException">Thrown if the file is corrupted</exception>
     (IEnumerable<Mesh>, IEnumerable<Emitter>) LoadMesh(Dictionary<string, Material> namedMaterials,
-        Dictionary<string, RgbColor> emissiveMaterials, JsonElement jsonElement, string dirname);
+        Dictionary<string, EmissionParameters> emissiveMaterials, JsonElement jsonElement, string dirname);
+
+    struct EmissionParameters {
+        public RgbColor Radiance;
+        public bool IsGlossy;
+        public float Exponent;
+    }
 }

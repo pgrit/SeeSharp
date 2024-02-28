@@ -1,3 +1,5 @@
+using static SeeSharp.IO.IMeshLoader;
+
 namespace SeeSharp.IO;
 
 /// <summary>
@@ -14,7 +16,7 @@ public static class JsonScene {
 
     private static void ReadMeshes(string path, Scene resultScene, JsonElement root,
                                    Dictionary<string, Material> namedMaterials,
-                                   Dictionary<string, RgbColor> emissiveMaterials) {
+                                   Dictionary<string, EmissionParameters> emissiveMaterials) {
         var meshes = root.GetProperty("objects");
 
         ProgressBar progressBar = new(prefix: "Loading meshes...");
@@ -49,10 +51,10 @@ public static class JsonScene {
     }
 
     private static void ReadMaterials(string path, JsonElement root, out Dictionary<string, Material> namedMaterials,
-                                      out Dictionary<string, RgbColor> emissiveMaterials) {
+                                      out Dictionary<string, EmissionParameters> emissiveMaterials) {
 
         var namedMats = new Dictionary<string, Material>();
-        var emissiveMats = new Dictionary<string, RgbColor>();
+        var emissiveMats = new Dictionary<string, EmissionParameters>();
         if (root.TryGetProperty("materials", out var materials)) {
             ProgressBar progressBar = new(prefix: "Loading materials...");
             progressBar.Start(materials.GetArrayLength());
@@ -103,8 +105,16 @@ public static class JsonScene {
                 // Check if the material is emissive
                 if (m.TryGetProperty("emission", out elem)) {
                     RgbColor emission = JsonUtils.ReadRgbColor(elem);
-                    if (emission != RgbColor.Black)
-                        lock (emissiveMats) emissiveMats.Add(name, emission);
+                    if (emission != RgbColor.Black) {
+                        bool isGlossy = ReadOptionalBool("emissionIsGlossy", false);
+                        float exponent = ReadOptionalFloat("emissionExponent", 50);
+                        lock (emissiveMats)
+                            emissiveMats.Add(name, new() {
+                                Radiance = emission,
+                                IsGlossy = isGlossy,
+                                Exponent = exponent
+                            });
+                    }
                 }
 
                 lock (progressBar) progressBar.ReportDone(1);

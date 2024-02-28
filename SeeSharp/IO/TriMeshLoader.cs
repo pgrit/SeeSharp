@@ -1,10 +1,12 @@
+using static SeeSharp.IO.IMeshLoader;
+
 namespace SeeSharp.IO;
 
 internal class TriMeshLoader : IMeshLoader {
     public string Type => "trimesh";
 
     public (IEnumerable<Mesh>, IEnumerable<Emitter>) LoadMesh(Dictionary<string, Material> namedMaterials,
-                                                              Dictionary<string, RgbColor> emissiveMaterials,
+                                                              Dictionary<string, EmissionParameters> emissiveMaterials,
                                                               JsonElement jsonElement, string dirname) {
         string materialName = jsonElement.GetProperty("material").GetString();
         var material = namedMaterials[materialName];
@@ -50,7 +52,11 @@ internal class TriMeshLoader : IMeshLoader {
         var mesh = new Mesh(vertices, indices, normals, uvs) { Material = material };
 
         IEnumerable<Emitter> emitters = null;
-        if (jsonElement.TryGetProperty("emission", out var emissionJson)) {
+        if (emissiveMaterials != null && emissiveMaterials.TryGetValue(materialName, out var emission)) {
+            emitters = emission.IsGlossy
+                ? GlossyEmitter.MakeFromMesh(mesh, emission.Radiance, emission.Exponent)
+                : DiffuseEmitter.MakeFromMesh(mesh, emission.Radiance);
+        } else if (jsonElement.TryGetProperty("emission", out var emissionJson)) {
             emitters = DiffuseEmitter.MakeFromMesh(mesh, JsonUtils.ReadRgbColor(emissionJson));
         }
 

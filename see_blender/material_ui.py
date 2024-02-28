@@ -104,6 +104,9 @@ class SEESHARP_PT_material(MaterialButtonsPanel, Panel):
 
         layout.prop(mat, "emission_color")
         layout.prop(mat, "emission_strength")
+        layout.prop(mat, "emission_is_glossy")
+        if mat.emission_is_glossy == True:
+            layout.prop(mat, "emission_glossy_exponent")
 
 def register():
     bpy.utils.register_class(SEESHARP_PT_context_material)

@@ -1,4 +1,6 @@
-﻿namespace SeeSharp.IO;
+﻿using static SeeSharp.IO.IMeshLoader;
+
+namespace SeeSharp.IO;
 
 /// <summary>
 /// Converts our parsed wavefront .obj mesh representation into an actual mesh.
@@ -30,7 +32,7 @@ public class ObjConverter : IMeshLoader {
     /// </param>
     public static (IEnumerable<Mesh>, IEnumerable<Emitter>) CreateMeshes(ObjMesh mesh,
                                                                          Dictionary<string, Material> materialOverride,
-                                                                         Dictionary<string, RgbColor> emissionOverride = null) {
+                                                                         Dictionary<string, EmissionParameters> emissionOverride = null) {
         // Create a dummy constant texture color for incorrect texture references
         var dummyColor = new TextureRgb(RgbColor.White);
         var dummyMaterial = new GenericMaterial(new GenericMaterial.Parameters {
@@ -194,13 +196,17 @@ public class ObjConverter : IMeshLoader {
                     // Create an emitter if the obj material is emissive
                     RgbColor emission = RgbColor.Black;
                     emitters.TryGetValue(materialName, out emission);
-                    emissionOverride?.TryGetValue(materialName, out emission);
 
-                    if (emission != RgbColor.Black) {
-                        var emitter = DiffuseEmitter.MakeFromMesh(m, emission);
+                    IEnumerable<Emitter> emitter = null;
+                    if (emissionOverride.TryGetValue(materialName, out EmissionParameters e))
+                        emitter = e.IsGlossy
+                            ? GlossyEmitter.MakeFromMesh(m, e.Radiance, e.Exponent)
+                            : DiffuseEmitter.MakeFromMesh(m, e.Radiance);
+                    else if (emission != RgbColor.Black)
+                        emitter = DiffuseEmitter.MakeFromMesh(m, emission);
+
+                    if (emitter != null)
                         loadedEmitters.AddRange(emitter);
-                    }
-
                 }
             }
         }
@@ -209,7 +215,7 @@ public class ObjConverter : IMeshLoader {
     }
 
     public (IEnumerable<Mesh>, IEnumerable<Emitter>) LoadMesh(Dictionary<string, Material> namedMaterials,
-                                                              Dictionary<string, RgbColor> emissiveMaterials,
+                                                              Dictionary<string, EmissionParameters> emissiveMaterials,
                                                               JsonElement jsonElement, string dirname) {
         // The path is relative to this .json, we need to make it absolute / relative to the CWD
         string relpath = jsonElement.GetProperty("relativePath").GetString();

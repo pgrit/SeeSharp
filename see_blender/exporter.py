@@ -66,7 +66,9 @@ def material_to_json(material, out_dir):
             material.emission_color[0] * material.emission_strength,
             material.emission_color[1] * material.emission_strength,
             material.emission_color[2] * material.emission_strength
-        ))
+        )),
+        "emissionIsGlossy": material.emission_is_glossy,
+        "emissionExponent": material.emission_glossy_exponent
     }
 
 def export_materials(result, out_dir):

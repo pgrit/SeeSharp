@@ -78,6 +78,18 @@ class SeeSharpMaterial(bpy.types.PropertyGroup):
         default=0, min=0
     )
 
+    emission_is_glossy: BoolProperty(
+        name="Glossy Emission",
+        description="Emission profile is sharpened like a glossy material's reflectance",
+        default=False
+    )
+
+    emission_glossy_exponent: FloatProperty(
+        name="Glossy Emission Exponent",
+        description="Glossy Emission Exponent",
+        default=20
+    )
+
     @classmethod
     def register(cls):
         bpy.types.Material.seesharp = PointerProperty(

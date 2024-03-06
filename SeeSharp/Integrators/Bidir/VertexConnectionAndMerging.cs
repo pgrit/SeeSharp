@@ -278,7 +278,12 @@ public class VertexConnectionAndMerging : VertexCacheBidir {
         // Compute the missing pdf terms and the MIS weight
         var (pdfLightReverse, pdfCameraReverse) = shader.Pdf(dirToAncestor);
         pdfCameraReverse *= cameraJacobian;
-        pdfLightReverse *= SampleWarp.SurfaceAreaToSolidAngle(shader.Point, ancestor.Point);
+
+        // At the first hit from the background, the PDF remains in the spherical domain
+        float jacobian = photon.Depth == 1 && photon.FromBackground
+            ? 1.0f
+            : SampleWarp.SurfaceAreaToSolidAngle(shader.Point, ancestor.Point);
+        pdfLightReverse *= jacobian;
         float pdfNextEvent = (photon.Depth == 1) ? NextEventPdf(shader.Point, ancestor.Point) : 0;
 
         int numPdfs = path.Vertices.Count + photon.Depth;

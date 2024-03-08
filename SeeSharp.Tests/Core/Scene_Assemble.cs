@@ -114,6 +114,7 @@ public class Scene_Assemble {
         bool e = File.Exists(path);
         Assert.True(e);
 
+        ProgressBar.Silent = true;
         var scene = Scene.LoadFromFile(path);
 
         // No frame buffer is set after loading, so this should evaluate to false

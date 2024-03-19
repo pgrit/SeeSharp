@@ -30,9 +30,9 @@
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="SimpleImageIO" Version="1.5.1" />
+    <PackageReference Include="SimpleImageIO" Version="1.5.5" />
     <!-- <ProjectReference Include="../../SimpleImageIO/SimpleImageIO/SimpleImageIO.csproj" /> -->
-    <PackageReference Include="TinyEmbree" Version="1.0.2" />
+    <PackageReference Include="TinyEmbree" Version="1.0.3" />
     <!-- <ProjectReference Include="../../TinyEmbree/TinyEmbree/TinyEmbree.csproj" /> -->
   </ItemGroup>
 

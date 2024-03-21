@@ -8,6 +8,11 @@ namespace SeeSharp;
 /// </summary>
 public class Scene : IDisposable {
     /// <summary>
+    /// Name of the scene - if available. If loaded from file, this is the basename of the file.
+    /// </summary>
+    public string Name { get; set; }
+
+    /// <summary>
     /// The frame buffer that will receive the rendered image. Ownership of the framebuffer is
     /// transferred to this object, i.e., the framebuffer will be disposed along with this scene or
     /// when it is replaced.
@@ -81,6 +86,7 @@ public class Scene : IDisposable {
         cpy.Camera = Camera.Copy();
         cpy.FrameBuffer = null;
         cpy.Raytracer = null;
+        cpy.Name = Name;
         return cpy;
     }
 

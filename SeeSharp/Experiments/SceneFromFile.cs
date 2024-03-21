@@ -124,6 +124,7 @@ public class SceneFromFile : SceneConfig {
         this.maxDepth = maxDepth;
         this.minDepth = minDepth;
         this.name = name ?? Path.GetFileNameWithoutExtension(filename);
+        scene.Name = this.name;
     }
 
     /// <summary>

@@ -42,6 +42,12 @@ public abstract class Camera {
     }
 
     /// <summary>
+    /// Transformation from camera space to world space; inverse of <see cref="WorldToCamera" />.
+    /// Readonly, automatically computed when <see cref="WorldToCamera" /> is updated
+    /// </summary>
+    public Matrix4x4 CameraToWorld => cameraToWorld;
+
+    /// <summary>
     /// Updates camera parameters based on changed resolution in a frame buffer.
     /// </summary>
     /// <param name="width">The new width of the frame buffer in pixels</param>

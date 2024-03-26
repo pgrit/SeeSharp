@@ -193,6 +193,8 @@ public class PerspectiveCamera : Camera {
         return jacobian;
     }
 
+    public Matrix4x4 ViewToCamera => viewToCamera;
+
     Matrix4x4 cameraToView;
     Matrix4x4 viewToCamera;
     float aspectRatio;

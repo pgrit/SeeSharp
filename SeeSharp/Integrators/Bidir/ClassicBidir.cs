@@ -187,7 +187,7 @@ public class ClassicBidir : BidirBase {
                 sumReciprocals += nextReciprocal;
         }
         sumReciprocals += nextReciprocal; // Hitting the emitter directly
-        sumReciprocals += pdfs.PdfNextEvent / pdfs.PdfsLightToCamera[^1];
+        sumReciprocals += pdfs.PdfNextEvent * nextReciprocal / pdfs.PdfsCameraToLight[^1];
         return sumReciprocals;
     }
 }

@@ -111,11 +111,11 @@ public class ClassicBidir : BidirBase {
     }
 
     /// <inheritdoc />
-    public override float EmitterHitMis(in CameraPath cameraPath, float pdfNextEvent, in BidirPathPdfs pathPdfs) {
+    public override float EmitterHitMis(in CameraPath cameraPath, in BidirPathPdfs pathPdfs) {
         float pdfThis = cameraPath.Vertices[^1].PdfFromAncestor;
 
         float sumReciprocals = 1.0f;
-        sumReciprocals += pdfNextEvent / pdfThis;
+        sumReciprocals += pathPdfs.PdfNextEvent / pdfThis;
         sumReciprocals +=
             CameraPathReciprocals(cameraPath.Vertices.Count - 2, pathPdfs, cameraPath.Pixel) / pdfThis;
 
@@ -138,12 +138,11 @@ public class ClassicBidir : BidirBase {
     }
 
     /// <inheritdoc />
-    public override float NextEventMis(in CameraPath cameraPath, float pdfNextEvent, float pdfHit,
-                                       in BidirPathPdfs pathPdfs, bool isBackground) {
+    public override float NextEventMis(in CameraPath cameraPath, in BidirPathPdfs pathPdfs, bool isBackground) {
         float sumReciprocals = 1.0f;
-        sumReciprocals += pdfHit / pdfNextEvent;
+        sumReciprocals += pathPdfs.PdfsCameraToLight[^1] / pathPdfs.PdfNextEvent;
         sumReciprocals +=
-            CameraPathReciprocals(cameraPath.Vertices.Count - 1, pathPdfs, cameraPath.Pixel) / pdfNextEvent;
+            CameraPathReciprocals(cameraPath.Vertices.Count - 1, pathPdfs, cameraPath.Pixel) / pathPdfs.PdfNextEvent;
         return 1 / sumReciprocals;
     }
 
@@ -187,7 +186,8 @@ public class ClassicBidir : BidirBase {
             if (EnableConnections && i < pdfs.NumPdfs - 2) // Next event is treated separately
                 sumReciprocals += nextReciprocal;
         }
-        sumReciprocals += nextReciprocal; // Next event and hitting the emitter directly
+        sumReciprocals += nextReciprocal; // Hitting the emitter directly
+        sumReciprocals += pdfs.PdfNextEvent / pdfs.PdfsLightToCamera[^1];
         return sumReciprocals;
     }
 }

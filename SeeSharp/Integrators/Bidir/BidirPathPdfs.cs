@@ -29,6 +29,12 @@ public ref struct BidirPathPdfs {
     public readonly Span<float> PdfsCameraToLight;
 
     /// <summary>
+    /// PDF of doing next event estimation at the final vertex. Tracked separately so we can separately enable
+    /// or disable BSDF light hits and next event
+    /// </summary>
+    public float PdfNextEvent;
+
+    /// <summary>
     /// Prepares <see langword="this"/> object to compute the pdf values into two preallocated arrays.
     /// </summary>
     /// <param name="cache">The cached light paths</param>
@@ -68,7 +74,8 @@ public ref struct BidirPathPdfs {
         var nextVert = lightVertex;
         for (int i = lastCameraVertexIdx + 1; i < NumPdfs - 2; ++i) {
             PdfsLightToCamera[i] = nextVert.PdfFromAncestor;
-            PdfsCameraToLight[i + 2] = nextVert.PdfReverseAncestor + nextVert.PdfNextEventAncestor;
+            PdfsCameraToLight[i + 2] = nextVert.PdfReverseAncestor;
+            PdfNextEvent += nextVert.PdfNextEventAncestor; // All but one are zero, so we are lazy and add them up instead of picking the correct one
             nextVert = lightPathCache[nextVert.AncestorId];
         }
         PdfsLightToCamera[^2] = nextVert.PdfFromAncestor;

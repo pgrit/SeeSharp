@@ -146,11 +146,11 @@ public class VertexCacheBidir : BidirBase {
     }
 
     /// <inheritdoc />
-    public override float EmitterHitMis(in CameraPath cameraPath, float pdfNextEvent, in BidirPathPdfs pathPdfs) {
-        float pdfThis = cameraPath.Vertices[^1].PdfFromAncestor;
+    public override float EmitterHitMis(in CameraPath cameraPath, in BidirPathPdfs pathPdfs) {
+        float pdfThis = pathPdfs.PdfsCameraToLight[^1];
 
         float sumReciprocals = 1.0f;
-        sumReciprocals += pdfNextEvent / pdfThis;
+        sumReciprocals += pathPdfs.PdfNextEvent / pdfThis;
         sumReciprocals +=
             CameraPathReciprocals(cameraPath.Vertices.Count - 2, pathPdfs, cameraPath.Pixel) / pdfThis;
 
@@ -168,19 +168,19 @@ public class VertexCacheBidir : BidirBase {
         float sumReciprocals = 1.0f;
         int lastCameraVertexIdx = cameraPath.Vertices.Count - 1;
         sumReciprocals += CameraPathReciprocals(lastCameraVertexIdx, pathPdfs, cameraPath.Pixel)
-            / BidirSelectDensity(cameraPath.Pixel);;
+            / BidirSelectDensity(cameraPath.Pixel);
         sumReciprocals += LightPathReciprocals(lastCameraVertexIdx, pathPdfs, cameraPath.Pixel)
-            / BidirSelectDensity(cameraPath.Pixel);;
+            / BidirSelectDensity(cameraPath.Pixel);
         return 1 / sumReciprocals;
     }
 
     /// <inheritdoc />
-    public override float NextEventMis(in CameraPath cameraPath, float pdfNextEvent, float pdfHit,
-                                       in BidirPathPdfs pathPdfs, bool isBackground) {
+    public override float NextEventMis(in CameraPath cameraPath, in BidirPathPdfs pathPdfs, bool isBackground) {
         float sumReciprocals = 1.0f;
-        sumReciprocals += pdfHit / pdfNextEvent;
+        if (EnableHitting)
+            sumReciprocals += pathPdfs.PdfsCameraToLight[^1] / pathPdfs.PdfNextEvent;
         sumReciprocals +=
-            CameraPathReciprocals(cameraPath.Vertices.Count - 1, pathPdfs, cameraPath.Pixel) / pdfNextEvent;
+            CameraPathReciprocals(cameraPath.Vertices.Count - 1, pathPdfs, cameraPath.Pixel) / pathPdfs.PdfNextEvent;
         return 1 / sumReciprocals;
     }
 
@@ -208,7 +208,8 @@ public class VertexCacheBidir : BidirBase {
             if (i < pdfs.NumPdfs - 2 && NumConnections > 0) // Connections to the emitter (next event) are treated separately
                 sumReciprocals += nextReciprocal * BidirSelectDensity(pixel);
         }
-        sumReciprocals += nextReciprocal; // Next event and hitting the emitter directly
+        if (EnableHitting) sumReciprocals += nextReciprocal; // Hitting the emitter directly
+        sumReciprocals += pdfs.PdfNextEvent * nextReciprocal / pdfs.PdfsCameraToLight[^1];
         return sumReciprocals;
     }
 }

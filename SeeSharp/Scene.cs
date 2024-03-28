@@ -203,6 +203,13 @@ public class Scene : IDisposable {
         return emitter;
     }
 
+    public FrozenDictionary<int, Emitter> GetMeshEmitters(Mesh mesh) {
+        // TODO do we even want to support only _some_ triangles of a mesh being emissive?
+        if (!meshToEmitter.TryGetValue(mesh, out var meshEmitters))
+            return null;
+        return meshEmitters;
+    }
+
     /// <param name="emitter">An emitter object</param>
     /// <returns>Index of this emitter in the <see cref="Emitters"/> list</returns>
     public int GetEmitterIndex(Emitter emitter) => emitterToIdx[emitter];

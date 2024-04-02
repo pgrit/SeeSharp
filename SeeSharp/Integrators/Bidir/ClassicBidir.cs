@@ -134,6 +134,7 @@ public class ClassicBidir : BidirBase {
         int lastCameraVertexIdx = cameraPath.Vertices.Count - 1;
         sumReciprocals += CameraPathReciprocals(lastCameraVertexIdx, pathPdfs, cameraPath.Pixel);
         sumReciprocals += LightPathReciprocals(lastCameraVertexIdx, pathPdfs, cameraPath.Pixel);
+        Debug.Assert(float.IsFinite(sumReciprocals));
         return 1 / sumReciprocals;
     }
 
@@ -182,12 +183,13 @@ public class ClassicBidir : BidirBase {
         float sumReciprocals = 0.0f;
         float nextReciprocal = 1.0f;
         for (int i = lastCameraVertexIdx + 1; i < pdfs.NumPdfs; ++i) {
+            if (i == pdfs.NumPdfs - 1) // Next event
+                sumReciprocals += nextReciprocal * pdfs.PdfNextEvent / pdfs.PdfsLightToCamera[i];
             nextReciprocal *= pdfs.PdfsCameraToLight[i] / pdfs.PdfsLightToCamera[i];
-            if (EnableConnections && i < pdfs.NumPdfs - 2) // Next event is treated separately
+            if (EnableConnections && i < pdfs.NumPdfs - 2) // Connections
                 sumReciprocals += nextReciprocal;
         }
         sumReciprocals += nextReciprocal; // Hitting the emitter directly
-        sumReciprocals += pdfs.PdfNextEvent * nextReciprocal / pdfs.PdfsCameraToLight[^1];
         return sumReciprocals;
     }
 }

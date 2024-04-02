@@ -506,6 +506,9 @@ public abstract class BidirBase : Integrator {
 
         RgbColor weight = vertex.Weight * bsdfWeightLight * bsdfWeightCam / distanceSqr / lightVertexProb;
 
+        Debug.Assert(float.IsFinite(weight.Average));
+        Debug.Assert(float.IsFinite(misWeight));
+
         RegisterSample(weight * path.Throughput, misWeight, path.Pixel,
                         path.Vertices.Count, vertex.Depth, depth);
         OnBidirConnectSample(weight * path.Throughput, misWeight, path, vertex, pathPdfs);

@@ -601,6 +601,9 @@ public class VertexConnectionAndMerging : VertexCacheBidir {
         float sumReciprocals = 0.0f;
         float nextReciprocal = 1.0f;
         for (int i = lastCameraVertexIdx + 1; i < pdfs.NumPdfs; ++i) {
+             if (i == pdfs.NumPdfs - 1) // Next event
+                sumReciprocals += nextReciprocal * pdfs.PdfNextEvent / pdfs.PdfsLightToCamera[i];
+
             if (i < pdfs.NumPdfs - 1 && (MergePrimary || i > 0)) { // no merging on the emitter itself
                                                                    // Account for merging at this vertex
                 if (EnableMerging) {
@@ -617,7 +620,6 @@ public class VertexConnectionAndMerging : VertexCacheBidir {
                 if (NumConnections > 0) sumReciprocals += nextReciprocal * BidirSelectDensity(pixel);
         }
         if (EnableHitting) sumReciprocals += nextReciprocal; // Hitting the emitter directly
-        sumReciprocals += pdfs.PdfNextEvent * nextReciprocal / pdfs.PdfsCameraToLight[^1];
         return sumReciprocals;
     }
 }

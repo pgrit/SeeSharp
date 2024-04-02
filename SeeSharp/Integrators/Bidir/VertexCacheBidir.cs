@@ -204,12 +204,13 @@ public class VertexCacheBidir : BidirBase {
         float sumReciprocals = 0.0f;
         float nextReciprocal = 1.0f;
         for (int i = lastCameraVertexIdx + 1; i < pdfs.NumPdfs; ++i) {
+             if (i == pdfs.NumPdfs - 1) // Next event
+                sumReciprocals += nextReciprocal * pdfs.PdfNextEvent / pdfs.PdfsLightToCamera[i];
             nextReciprocal *= pdfs.PdfsCameraToLight[i] / pdfs.PdfsLightToCamera[i];
             if (i < pdfs.NumPdfs - 2 && NumConnections > 0) // Connections to the emitter (next event) are treated separately
                 sumReciprocals += nextReciprocal * BidirSelectDensity(pixel);
         }
         if (EnableHitting) sumReciprocals += nextReciprocal; // Hitting the emitter directly
-        sumReciprocals += pdfs.PdfNextEvent * nextReciprocal / pdfs.PdfsCameraToLight[^1];
         return sumReciprocals;
     }
 }

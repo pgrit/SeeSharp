@@ -108,7 +108,7 @@ public class FrameBuffer : IDisposable {
         EstimatePixelVariance = 8,
 
         /// <summary>
-        /// If set to true, NaN and Inf values will not be written to the frame buffer, and the offending code's
+        /// If set, NaN and Inf values will not be written to the frame buffer, and the offending code's
         /// stack trace, iteration number, and pixel position will not be logged.
         /// </summary>
         IgnoreNanAndInf = 16,

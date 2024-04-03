@@ -40,12 +40,6 @@ public class FrameBuffer : IDisposable {
     /// </summary>
     public readonly Dictionary<string, dynamic> MetaData = new();
 
-    /// <summary>
-    /// If set to true, NaN and Inf values will not be written to the frame buffer, and the offending code's
-    /// stack trace, iteration number, and pixel position will not be logged.
-    /// </summary>
-    public bool IgnoreNanAndInf = false;
-
     readonly Flags flags;
     TevIpc tevIpc;
     readonly string filename;
@@ -111,7 +105,13 @@ public class FrameBuffer : IDisposable {
         /// <summary>
         /// If set, adds a layer that approximates the pixel variance
         /// </summary>
-        EstimatePixelVariance = 8
+        EstimatePixelVariance = 8,
+
+        /// <summary>
+        /// If set to true, NaN and Inf values will not be written to the frame buffer, and the offending code's
+        /// stack trace, iteration number, and pixel position will not be logged.
+        /// </summary>
+        IgnoreNanAndInf = 16,
     }
 
     private record ErrorMetric(long TimeMS, float MSE, float RelMSE, float RelMSE_Outlier);
@@ -147,7 +147,7 @@ public class FrameBuffer : IDisposable {
     /// <param name="value">Color to add to the current value</param>
     public virtual void Splat(int col, int row, RgbColor value) {
         if (!float.IsFinite(value.Average)) {
-            if (IgnoreNanAndInf)
+            if (Behavior.HasFlag(Flags.IgnoreNanAndInf))
                 return;
 
             // Catch invalid values in long running Release mode renderings.

@@ -56,7 +56,9 @@ public abstract class Experiment {
     public virtual void OnStartScene(Scene scene, string dir, int minDepth, int maxDepth) { }
 
     /// <summary>
-    /// Called after all methods have been run on a test scene.
+    /// Called after all methods have been run on a test scene. The default implementation gathers all
+    /// rendered images, computes error images if a reference is available, and generates a static .html
+    /// overview page.
     /// </summary>
     /// <param name="scene">The scene that was rendered</param>
     /// <param name="dir">
@@ -71,36 +73,35 @@ public abstract class Experiment {
         RgbImage reference = File.Exists(refPath) ? new(refPath) : null;
 
         // Create a flip viewer with all the rendered images and the reference (if available)
-        var methodFlip = FlipBook.New.SetZoom(FlipBook.InitialZoom.Fit);
-        var errorFlip = FlipBook.New.SetZoom(FlipBook.InitialZoom.Fit);
-        var squaredErrorFlip = FlipBook.New.SetZoom(FlipBook.InitialZoom.Fit);
-        float maxValue = 0.0f;
+        var flip = FlipBook.New.SetZoom(FlipBook.InitialZoom.Fit);
+        float maxError = 0.0f;
         List<float> errors = [];
+        List<(string, Image)> errorImages = [];
+        List<(string, Image)> squaredErrorImages = [];
         foreach (string method in MethodNames) {
             RgbImage img = new($"{dir}/{method}.exr");
-            methodFlip.Add(method, img, FlipBook.DataType.Float16);
+            flip.Add(method, img, FlipBook.DataType.Float16);
 
             if (reference != null) {
-                errorFlip.Add(method, new MonochromeImage(img - reference), FlipBook.DataType.Float16);
+                errorImages.Add(("error " + method, new MonochromeImage(img - reference)));
+
                 var squaredError = Metrics.RelMSEImage(img, reference);
-                squaredErrorFlip.Add(method, squaredError, FlipBook.DataType.Float16);
-                maxValue = Math.Max(maxValue, new Histogram(squaredError).Quantile(0.9f));
+                maxError = Math.Max(maxError, new Histogram(squaredError).Quantile(0.9f));
                 errors.Add(Metrics.RelMSE_OutlierRejection(img, reference));
+                squaredErrorImages.Add(("relSE " + method, squaredError));
             }
         }
         if (reference != null) {
-            methodFlip.Add("Reference", reference);
+            flip.Add("Reference", reference);
 
-            // Red-green visualization of the signed error (for bias-spotting)
-            errorFlip.SetToneMapper(FlipBook.InitialTMO.GLSL("""
-            float avg = 100.0 * (rgb.x + rgb.y + rgb.z) / 3.0;
-            if (avg < 0.0)
-                rgb = -avg * vec3(1.0, 0.0, 0.0);
-            else
-                rgb = avg * vec3(0.0, 1.0, 0.0);
-            """));
-
-            squaredErrorFlip.SetToneMapper(FlipBook.InitialTMO.FalseColor(0.0f, maxValue));
+            flip.AddAll(squaredErrorImages, FlipBook.DataType.Float16, FlipBook.InitialTMO.FalseColor(0.0f, maxError));
+            flip.AddAll(errorImages, FlipBook.DataType.Float16, FlipBook.InitialTMO.GLSL("""
+                float avg = 100.0 * (rgb.x + rgb.y + rgb.z) / 3.0;
+                if (avg < 0.0)
+                    rgb = -avg * vec3(1.0, 0.0, 0.0);
+                else
+                    rgb = avg * vec3(0.0, 1.0, 0.0);
+                """));
         }
 
         // Read the render times and other stats of all methods
@@ -117,13 +118,14 @@ public abstract class Experiment {
             var renderTimeMs = (ulong)json["RenderTime"];
             var rayStats = json["RayStats"].Deserialize<RayTracerStats>();
             var shadeStats = json["ShadeStats"].Deserialize<ShadingStats>();
+            float error = errors.ElementAtOrDefault(idx);
 
-            float workNormError = errors[idx] * renderTimeMs;
+            float workNormError = error * renderTimeMs;
             if (!baseline.HasValue)
                 baseline = workNormError;
 
             tableRows.Add([
-                method, $"{errors[idx]:G3}", $"{renderTimeMs}", $"{workNormError:G3}", $"{baseline / workNormError:P0}", $"{numIter}",
+                method, $"{error:G3}", $"{renderTimeMs}", $"{workNormError:G3}", $"{baseline / workNormError:P0}", $"{numIter}",
                 $"{rayStats.NumRays:N0}", $"{rayStats.NumShadowRays:N0}",
                 $"{shadeStats.NumMaterialEval:N0}", $"{shadeStats.NumMaterialSample:N0}", $"{shadeStats.NumMaterialPdf:N0}",
             ]);
@@ -132,13 +134,8 @@ public abstract class Experiment {
         }
 
         // Assemble html code
-        methodFlip.SetToolVisibility(false);
-        string htmlBody = $"""<div style="display: flex;">{methodFlip.Resize(700,800)}""";
-        if (reference != null) {
-            errorFlip.SetToolVisibility(false);
-            squaredErrorFlip.SetToolVisibility(false);
-            htmlBody += $"""<div style="margin-left: 1em;">{errorFlip.Resize(500,400)}{squaredErrorFlip.Resize(500,400)}</div>""";
-        }
+        flip.SetToolVisibility(false);
+        string htmlBody = $"""<div style="display: flex;">{flip.Resize(900,800)}""";
         htmlBody += "</div>";
         htmlBody += "<h3>Statistics</h3>";
         htmlBody += HtmlUtil.MakeTable(tableRows, true);
@@ -169,7 +166,6 @@ public abstract class Experiment {
         File.WriteAllText($"{dir}/{scene.Name}.html", html);
 
         Logger.Log($"Assembling {dir}/{scene.Name}.html took {stopwatch.ElapsedMilliseconds}ms");
-
     }
 
     /// <summary>

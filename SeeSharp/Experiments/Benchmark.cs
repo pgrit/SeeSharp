@@ -51,8 +51,12 @@ public class Benchmark {
             refImg = sceneConfig.GetReferenceImage(width, height);
             refImg.WriteToFile(refFilename);
 
-            if (frameBufferFlags.HasFlag(FrameBuffer.Flags.SendToTev))
-                TevIpc.ShowImage(refFilename, refImg);
+            try {
+                if (frameBufferFlags.HasFlag(FrameBuffer.Flags.SendToTev))
+                    TevIpc.ShowImage(refFilename, refImg);
+            } catch(Exception) {
+                Logger.Error("Could not connect to tev on the default port - is it running?");
+            }
         }
 
         // Prepare a scene for rendering. We do it once to reduce overhead.

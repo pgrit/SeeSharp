@@ -34,22 +34,25 @@ public class Benchmark {
     /// If the reference images do not exist yet, they are also rendered. Each method's
     /// images are placed in a separate folder, using the method's name as the folder's name.
     /// </summary>
-    public void Run(string format = ".exr", bool skipReference = false) {
+    public void Run(bool skipReference = false) {
         experiment.OnStart(workingDirectory);
         foreach (SceneConfig scene in sceneConfigs)
-            RunScene(scene, format, skipReference);
+            RunScene(scene, skipReference);
         experiment.OnDone(workingDirectory);
     }
 
-    void RunScene(SceneConfig sceneConfig, string format, bool skipReference) {
+    void RunScene(SceneConfig sceneConfig, bool skipReference) {
         string dir = Path.Join(workingDirectory, sceneConfig.Name);
         Logger.Log($"Running scene '{sceneConfig.Name}'", Verbosity.Info);
 
         RgbImage refImg = null;
         if (!skipReference) {
-            string refFilename = Path.Join(dir, "Reference" + format);
+            string refFilename = Path.Join(dir, "Reference.exr");
             refImg = sceneConfig.GetReferenceImage(width, height);
             refImg.WriteToFile(refFilename);
+
+            if (frameBufferFlags.HasFlag(FrameBuffer.Flags.SendToTev))
+                TevIpc.ShowImage(refFilename, refImg);
         }
 
         // Prepare a scene for rendering. We do it once to reduce overhead.
@@ -62,10 +65,8 @@ public class Benchmark {
         for (int i = 0; i < methods.Count; ++i) {
             var method = methods[i];
 
-            string path = Path.Join(dir, method.Name);
-
             Logger.Log($"Rendering {sceneConfig.Name} with {method.Name}");
-            scene.FrameBuffer = MakeFrameBuffer(Path.Join(path, "Render" + format));
+            scene.FrameBuffer = MakeFrameBuffer(Path.Join(dir, $"{method.Name}.exr"));
             method.Integrator.MaxDepth = sceneConfig.MaxDepth;
             method.Integrator.MinDepth = sceneConfig.MinDepth;
 

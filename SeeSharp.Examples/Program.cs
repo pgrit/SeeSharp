@@ -11,11 +11,11 @@ SceneRegistry.AddSource("Data/Scenes");
 // at 512x512 resolution. Display images in tev during rendering (localhost, default port)
 Benchmark benchmark = new(new PathVsVcm(), new() {
     SceneRegistry.LoadScene("CornellBox", maxDepth: 5),
-    SceneRegistry.LoadScene("CornellBox", maxDepth: 2).WithName("CornellBoxDirectIllum")
+    // SceneRegistry.LoadScene("CornellBox", maxDepth: 2).WithName("CornellBoxDirectIllum")
 }, "Results/PathVsVcm", 512, 512, FrameBuffer.Flags.SendToTev);
 
 // Render the images
-benchmark.Run(format: ".exr");
+benchmark.Run();
 
 // Optional, but usually a good idea: assemble the rendering results in an overview
 // figure using a Python script.

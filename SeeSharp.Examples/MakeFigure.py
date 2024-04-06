@@ -10,17 +10,15 @@ def make_figure(dirname, method_names):
     Assumes the given directory contains a reference image and subdirectories for each method:
 
     - Reference.exr
-    - method_names[0]
-        - Render.exr
-    - method_names[1]
-        - Render.exr
+    - method_names[0].exr
+    - method_names[1].exr
     """
     names = ["Reference"]
     names.extend(method_names)
     return FullSizeWithCrops(
         reference_image=sio.read(os.path.join(dirname, "Reference.exr")),
         method_images=[
-            sio.read(os.path.join(dirname, name, "Render.exr"))
+            sio.read(os.path.join(dirname, f"{name}.exr"))
             for name in method_names
         ],
         method_names=names,
@@ -42,6 +40,9 @@ if __name__ == "__main__":
     for path in os.listdir(result_dir):
         if not os.path.isdir(os.path.join(result_dir, path)):
             continue
-        rows.extend(make_figure(os.path.join(result_dir, path), method_names))
+        try:
+            rows.extend(make_figure(os.path.join(result_dir, path), method_names))
+        except:
+            print(f"skipping scene with invalid data: {path}")
 
     figuregen.figure(rows, 18, os.path.join(result_dir, "Overview.pdf"))

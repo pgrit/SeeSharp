@@ -9,8 +9,8 @@ namespace SeeSharp.Examples;
 /// Renders a scene with a path tracer and with VCM.
 /// </summary>
 class PathVsVcm : Experiment {
-    public override List<Method> MakeMethods() => new() {
-        new("PathTracer", new PathTracer() { MaxDepth = 5, TotalSpp = 4 }),
-        new("Vcm", new VertexConnectionAndMerging() { MaxDepth = 5, NumIterations = 2 })
-    };
+    public override List<Method> MakeMethods() => [
+        new("PathTracer", new PathTracer() { TotalSpp = 4 }),
+        new("Vcm", new VertexConnectionAndMerging() { NumIterations = 2 })
+    ];
 }

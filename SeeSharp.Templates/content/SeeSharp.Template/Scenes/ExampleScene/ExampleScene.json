@@ -1,0 +1,424 @@
+{
+  "materials": [
+    {
+      "type": "generic",
+      "baseColor": {
+        "type": "rgb",
+        "value": [
+          1.0,
+          1.0,
+          1.0
+        ]
+      },
+      "roughness": 1.0,
+      "anisotropic": 0.0,
+      "diffuseTransmittance": 0.0,
+      "IOR": 1.4500000476837158,
+      "metallic": 0.0,
+      "specularTintStrength": 0.0,
+      "specularTransmittance": 0.0,
+      "thin": false,
+      "emission": {
+        "type": "rgb",
+        "value": [
+          0.0,
+          0.0,
+          0.0
+        ]
+      },
+      "emissionIsGlossy": false,
+      "emissionExponent": 20.0,
+      "name": "Dots Stroke"
+    },
+    {
+      "type": "generic",
+      "baseColor": {
+        "type": "rgb",
+        "value": [
+          0.8431711196899414,
+          0.7955026626586914,
+          0.7034096717834473
+        ]
+      },
+      "roughness": 1.0,
+      "anisotropic": 0.0,
+      "diffuseTransmittance": 0.0,
+      "IOR": 1.580434799194336,
+      "metallic": 0.0,
+      "specularTintStrength": 0.0,
+      "specularTransmittance": 0.0,
+      "thin": false,
+      "emission": {
+        "type": "rgb",
+        "value": [
+          0.0,
+          0.0,
+          0.0
+        ]
+      },
+      "emissionIsGlossy": false,
+      "emissionExponent": 20.0,
+      "name": "Floor"
+    },
+    {
+      "type": "generic",
+      "baseColor": {
+        "type": "rgb",
+        "value": [
+          1.0,
+          1.0,
+          1.0
+        ]
+      },
+      "roughness": 1.0,
+      "anisotropic": 0.0,
+      "diffuseTransmittance": 0.0,
+      "IOR": 1.4500000476837158,
+      "metallic": 0.0,
+      "specularTintStrength": 0.0,
+      "specularTransmittance": 0.0,
+      "thin": false,
+      "emission": {
+        "type": "rgb",
+        "value": [
+          0.0,
+          0.0,
+          0.0
+        ]
+      },
+      "emissionIsGlossy": false,
+      "emissionExponent": 20.0,
+      "name": "FrontWall"
+    },
+    {
+      "type": "generic",
+      "baseColor": {
+        "type": "rgb",
+        "value": [
+          0.01695714332163334,
+          0.02009124681353569,
+          0.021581411361694336
+        ]
+      },
+      "roughness": 0.18478262424468994,
+      "anisotropic": 0.0,
+      "diffuseTransmittance": 0.0,
+      "IOR": 1.4500000476837158,
+      "metallic": 0.782608687877655,
+      "specularTintStrength": 0.0,
+      "specularTransmittance": 0.0,
+      "thin": false,
+      "emission": {
+        "type": "rgb",
+        "value": [
+          0.0,
+          0.0,
+          0.0
+        ]
+      },
+      "emissionIsGlossy": false,
+      "emissionExponent": 20.0,
+      "name": "LampCord"
+    },
+    {
+      "type": "generic",
+      "baseColor": {
+        "type": "rgb",
+        "value": [
+          0.5240858793258667,
+          0.5479063987731934,
+          0.5901280641555786
+        ]
+      },
+      "roughness": 0.11956518888473511,
+      "anisotropic": 0.0,
+      "diffuseTransmittance": 0.0,
+      "IOR": 1.3195652961730957,
+      "metallic": 0.907608687877655,
+      "specularTintStrength": 0.0,
+      "specularTransmittance": 0.0,
+      "thin": false,
+      "emission": {
+        "type": "rgb",
+        "value": [
+          0.0,
+          0.0,
+          0.0
+        ]
+      },
+      "emissionIsGlossy": false,
+      "emissionExponent": 20.0,
+      "name": "LampShade"
+    },
+    {
+      "type": "generic",
+      "baseColor": {
+        "type": "rgb",
+        "value": [
+          0.11181189119815826,
+          0.4437788128852844,
+          0.6444829106330872
+        ]
+      },
+      "roughness": 1.0,
+      "anisotropic": 0.0,
+      "diffuseTransmittance": 0.0,
+      "IOR": 1.2978261709213257,
+      "metallic": 0.0,
+      "specularTintStrength": 0.0,
+      "specularTransmittance": 0.0,
+      "thin": false,
+      "emission": {
+        "type": "rgb",
+        "value": [
+          0.0,
+          0.0,
+          0.0
+        ]
+      },
+      "emissionIsGlossy": false,
+      "emissionExponent": 20.0,
+      "name": "LeftWall"
+    },
+    {
+      "type": "generic",
+      "baseColor": {
+        "type": "rgb",
+        "value": [
+          0.0,
+          0.0,
+          0.0
+        ]
+      },
+      "roughness": 1.0,
+      "anisotropic": 0.0,
+      "diffuseTransmittance": 0.0,
+      "IOR": 1.4500000476837158,
+      "metallic": 0.0,
+      "specularTintStrength": 0.0,
+      "specularTransmittance": 0.0,
+      "thin": false,
+      "emission": {
+        "type": "rgb",
+        "value": [
+          1000.0,
+          871.5412020683289,
+          627.8089284896851
+        ]
+      },
+      "emissionIsGlossy": false,
+      "emissionExponent": 20.0,
+      "name": "LightBulb"
+    },
+    {
+      "type": "generic",
+      "baseColor": {
+        "type": "rgb",
+        "value": [
+          0.8063408136367798,
+          0.31818580627441406,
+          0.04331871494650841
+        ]
+      },
+      "roughness": 1.0,
+      "anisotropic": 0.0,
+      "diffuseTransmittance": 0.0,
+      "IOR": 1.2760870456695557,
+      "metallic": 0.0,
+      "specularTintStrength": 0.0,
+      "specularTransmittance": 0.0,
+      "thin": false,
+      "emission": {
+        "type": "rgb",
+        "value": [
+          0.0,
+          0.0,
+          0.0
+        ]
+      },
+      "emissionIsGlossy": false,
+      "emissionExponent": 20.0,
+      "name": "RightWall"
+    },
+    {
+      "type": "generic",
+      "baseColor": {
+        "type": "rgb",
+        "value": [
+          0.5242688655853271,
+          0.39161431789398193,
+          0.06801436096429825
+        ]
+      },
+      "roughness": 0.04347825050354004,
+      "anisotropic": 0.0,
+      "diffuseTransmittance": 0.0,
+      "IOR": 1.4500000476837158,
+      "metallic": 1.0,
+      "specularTintStrength": 0.0,
+      "specularTransmittance": 0.0,
+      "thin": false,
+      "emission": {
+        "type": "rgb",
+        "value": [
+          0.0,
+          0.0,
+          0.0
+        ]
+      },
+      "emissionIsGlossy": false,
+      "emissionExponent": 20.0,
+      "name": "Ring"
+    },
+    {
+      "type": "generic",
+      "baseColor": {
+        "type": "rgb",
+        "value": [
+          1.0,
+          1.0,
+          1.0
+        ]
+      },
+      "roughness": 1.0,
+      "anisotropic": 0.0,
+      "diffuseTransmittance": 0.0,
+      "IOR": 1.4500000476837158,
+      "metallic": 0.0,
+      "specularTintStrength": 0.0,
+      "specularTransmittance": 0.0,
+      "thin": false,
+      "emission": {
+        "type": "rgb",
+        "value": [
+          0.0,
+          0.0,
+          0.0
+        ]
+      },
+      "emissionIsGlossy": false,
+      "emissionExponent": 20.0,
+      "name": "Roof"
+    },
+    {
+      "type": "generic",
+      "baseColor": {
+        "type": "rgb",
+        "value": [
+          0.6526120901107788,
+          0.20355242490768433,
+          0.06327579915523529
+        ]
+      },
+      "roughness": 0.907608687877655,
+      "anisotropic": 0.0,
+      "diffuseTransmittance": 0.0,
+      "IOR": 1.286956548690796,
+      "metallic": 0.1875,
+      "specularTintStrength": 0.0,
+      "specularTransmittance": 0.0,
+      "thin": false,
+      "emission": {
+        "type": "rgb",
+        "value": [
+          0.0,
+          0.0,
+          0.0
+        ]
+      },
+      "emissionIsGlossy": false,
+      "emissionExponent": 20.0,
+      "name": "Suzanne"
+    }
+  ],
+  "transforms": [
+    {
+      "name": "camera",
+      "position": [
+        -7.381510257720947,
+        2.691025495529175,
+        -5.706736087799072
+      ],
+      "rotation": [
+        -5.60854586077528,
+        231.31159806423486,
+        -0.00035797836860570066
+      ],
+      "scale": [
+        1.0,
+        1.0,
+        1.0
+      ]
+    }
+  ],
+  "cameras": [
+    {
+      "fov": 23.142760200926997,
+      "transform": "camera",
+      "name": "default",
+      "type": "perspective"
+    }
+  ],
+  "objects": [
+    {
+      "name": "Floor",
+      "type": "ply",
+      "material": "Floor",
+      "relativePath": "Meshes/Floor.0.ply"
+    },
+    {
+      "name": "Suzanne",
+      "type": "ply",
+      "material": "Suzanne",
+      "relativePath": "Meshes/Suzanne.0.ply"
+    },
+    {
+      "name": "RightWall",
+      "type": "ply",
+      "material": "RightWall",
+      "relativePath": "Meshes/RightWall.0.ply"
+    },
+    {
+      "name": "LeftWall",
+      "type": "ply",
+      "material": "LeftWall",
+      "relativePath": "Meshes/LeftWall.0.ply"
+    },
+    {
+      "name": "FrontWall",
+      "type": "ply",
+      "material": "FrontWall",
+      "relativePath": "Meshes/FrontWall.0.ply"
+    },
+    {
+      "name": "LightBulb",
+      "type": "ply",
+      "material": "LightBulb",
+      "relativePath": "Meshes/LightBulb.0.ply"
+    },
+    {
+      "name": "LampShade",
+      "type": "ply",
+      "material": "LampShade",
+      "relativePath": "Meshes/LampShade.0.ply"
+    },
+    {
+      "name": "Roof",
+      "type": "ply",
+      "material": "Roof",
+      "relativePath": "Meshes/Roof.0.ply"
+    },
+    {
+      "name": "LampCord",
+      "type": "ply",
+      "material": "LampCord",
+      "relativePath": "Meshes/LampCord.0.ply"
+    },
+    {
+      "name": "Ring",
+      "type": "ply",
+      "material": "Ring",
+      "relativePath": "Meshes/Ring.0.ply"
+    }
+  ]
+}

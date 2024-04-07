@@ -1,0 +1,25 @@
+{
+  "NumIterations": 32,
+  "RenderTime": 70240,
+  "FrameBufferTime": 813,
+  "PathTracerTime": 37208,
+  "LightTracerTime": 32915,
+  "ShadingStats": {
+    "NumMaterialEval": 350451267,
+    "NumMaterialSample": 150246650,
+    "NumMaterialPdf": 342831096
+  },
+  "RayTracerStats": {
+    "NumShadowRays": 200949734,
+    "NumRays": 205236503,
+    "NumOccluded": 122124712,
+    "NumRayHits": 163261642
+  },
+  "AverageCameraPathLength": 2.7713094,
+  "AverageLightPathLength": 4.178686,
+  "AveragePhotonsPerQuery": 2.725642,
+  "MergeAccelBuildTime": 13201,
+  "NaNWarnings": [],
+  "RenderStartTime": "07/4/2024 16:46:38",
+  "RenderWriteTime": "07/4/2024 16:47:50"
+}

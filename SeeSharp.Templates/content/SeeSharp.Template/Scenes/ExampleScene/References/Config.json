@@ -1,0 +1,26 @@
+{
+    "Name": "SeeSharp.Integrators.Bidir.VertexConnectionAndMerging",
+    "Settings": {
+  "MaximumRadius": 0,
+  "AverageCameraPathLength": 0,
+  "AverageLightPathLength": 0,
+  "AveragePhotonsPerQuery": 0,
+  "DisableCorrelAwareMIS": false,
+  "MergePrimary": false,
+  "EnableMerging": true,
+  "MaxNumPhotons": 8,
+  "NumConnections": 1,
+  "NumShadowRays": 1,
+  "EnableLightTracer": true,
+  "EnableHitting": true,
+  "RenderTechniquePyramid": false,
+  "NumIterations": 32,
+  "MaximumRenderTimeMs": null,
+  "NumLightPaths": null,
+  "BaseSeedCamera": 201523476,
+  "BaseSeedLight": 331415294,
+  "EnableDenoiser": true,
+  "MaxDepth": 100,
+  "MinDepth": 1
+}
+}

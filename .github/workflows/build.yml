@@ -12,10 +12,10 @@ jobs:
     steps:
     - uses: actions/checkout@v3
 
-    - name: Setup .NET Core SDK
+    - name: Setup .NET SDK
       uses: actions/setup-dotnet@v3
       with:
-        dotnet-version: '7.0.x'
+        dotnet-version: '8.0.x'
 
     - name: Build
       working-directory: ${{github.workspace}}
@@ -30,10 +30,10 @@ jobs:
     steps:
     - uses: actions/checkout@v3
 
-    - name: Setup .NET Core SDK
+    - name: Setup .NET SDK
       uses: actions/setup-dotnet@v3
       with:
-        dotnet-version: '7.0.x'
+        dotnet-version: '8.0.x'
 
     - name: Run validation
       working-directory: ${{github.workspace}}
@@ -46,22 +46,34 @@ jobs:
     steps:
     - uses: actions/checkout@v3
 
-    - name: Setup .NET Core SDK
+    - name: Setup .NET SDK
       uses: actions/setup-dotnet@v3
       with:
-        dotnet-version: '7.0.x'
+        dotnet-version: '8.0.x'
 
     - name: Pack
       run: dotnet pack -c Release
 
-    - name: Upload .nupkg
+    - name: Upload SeeSharp.nupkg
       uses: actions/upload-artifact@v3
       with:
         path: ${{github.workspace}}/SeeSharp/bin/**/*.nupkg
 
-    - name: Publish on version change
+    - name: Publish SeeSharp on version change
       uses: alirezanet/publish-nuget@v3.0.4
       with:
         PROJECT_FILE_PATH: SeeSharp/SeeSharp.csproj
+        NUGET_KEY: ${{secrets.NUGET_API_KEY}}
+        TAG_COMMIT: false
+
+    - name: Upload SeeSharp.Templates.nupkg
+      uses: actions/upload-artifact@v3
+      with:
+        path: ${{github.workspace}}/SeeSharp.Templates/bin/**/*.nupkg
+
+    - name: Publish SeeSharp.Templates on version change
+      uses: alirezanet/publish-nuget@v3.0.4
+      with:
+        PROJECT_FILE_PATH: SeeSharp.Templates/SeeSharp.Templates.csproj
         NUGET_KEY: ${{secrets.NUGET_API_KEY}}
         TAG_COMMIT: false

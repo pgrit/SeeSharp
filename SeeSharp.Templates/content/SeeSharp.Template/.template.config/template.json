@@ -1,0 +1,28 @@
+{
+    "$schema": "http://json.schemastore.org/template",
+    "author": "Pascal Grittmann",
+    "classifications": [ "Console" ],
+    "identity": "SeeSharp.Template",
+    "name": "SeeSharp experiment project",
+    "shortName": "seesharp",
+    "sourceName":"SeeSharp.Template",
+    "tags": {
+      "language": "C#",
+      "type": "project"
+    },
+    "sources": [
+      {
+        "modifiers": [
+          {
+            "exclude": [
+              "Results/**",
+              "Scenes/*/*.blend1"
+            ],
+            "copyOnly": [
+              "Scenes/**"
+            ]
+          }
+        ]
+      }
+    ]
+}

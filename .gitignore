@@ -30,12 +30,17 @@ src/examples/*/obj
 output.json
 see_blender.zip
 
+# Blender backup file
+*.blend1
+
 # Doxygen output
 docs/*
 !docs/doxyfile
 
-# Generated images of the validation test
+# Generated images of the tests and examples
 /SeeSharp.Validation/Results
+/SeeSharp.Templates/content/SeeSharp.Template/Results
+/SeeSharp.Example/Results
 /Results
 
 # Profiler output

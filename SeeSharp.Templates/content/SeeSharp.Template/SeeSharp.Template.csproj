@@ -6,7 +6,8 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\..\..\SeeSharp\SeeSharp.csproj" />
+    <!-- <ProjectReference Include="..\..\..\SeeSharp\SeeSharp.csproj" /> -->
+    <PackageReference Include="SeeSharp" Version="2.0.0" />
   </ItemGroup>
 
 </Project>

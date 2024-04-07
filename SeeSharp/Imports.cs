@@ -6,6 +6,7 @@ global using System.Threading.Tasks;
 global using System.Diagnostics;
 global using System.Numerics;
 global using System.Text.Json;
+global using System.Text.Json.Serialization;
 
 global using TinyEmbree;
 global using SimpleImageIO;

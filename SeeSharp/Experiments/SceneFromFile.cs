@@ -1,4 +1,5 @@
 using System.Linq;
+using System.Text.Json.Nodes;
 
 namespace SeeSharp.Experiments;
 
@@ -37,10 +38,15 @@ public class SceneFromFile : SceneConfig {
         return copy;
     }
 
-    static readonly Dictionary<string, Type> IntegratorNames = new() {
+    static readonly Dictionary<string, Type> LegacyIntegratorNames = new() {
         { "PathTracer", typeof(PathTracer) },
         { "VCM", typeof(VertexConnectionAndMerging) },
         { "ClassicBidir", typeof(ClassicBidir) },
+    };
+
+    static readonly JsonSerializerOptions refSerializerOptions = new() {
+        IncludeFields = true,
+        WriteIndented = true
     };
 
     /// <summary>
@@ -68,36 +74,48 @@ public class SceneFromFile : SceneConfig {
         }
 
         string referenceSpecs = Path.Join(refDir, "Config.json");
-        Integrator refIntegrator = null;
+        Integrator refIntegrator = DefaultReferenceIntegrator;
         if (File.Exists(referenceSpecs)) {
-            string json = File.ReadAllText(referenceSpecs);
+            var json = JsonNode.Parse(File.ReadAllText(referenceSpecs));
+            string name = (string)json["Name"];
 
-            using (JsonDocument doc = JsonDocument.Parse(json)) {
-                string name = doc.RootElement.GetProperty("Name").GetString();
-                string settings = doc.RootElement.GetProperty("Settings").GetRawText();
-
-                Type integratorType = IntegratorNames[name];
-                refIntegrator = JsonSerializer.Deserialize(settings, integratorType,
-                    new JsonSerializerOptions() {
-                        IncludeFields = true,
-                    }) as Integrator;
+            if (LegacyIntegratorNames.ContainsKey(name)) {
+                Logger.Warning($"Scene reference specs are using an old convention, {referenceSpecs} will be updated.");
+                refIntegrator = json["Settings"].Deserialize(LegacyIntegratorNames[name], refSerializerOptions) as Integrator;
+                goto IntegratorLoaded;
             }
 
+            // Find the integrator that is specified in the file
+            Type integratorType = null;
+            foreach (var a in AppDomain.CurrentDomain.GetAssemblies()) {
+                integratorType = a.GetType(name);
+                if (integratorType != null)
+                    break;
+            }
+            if (integratorType == null) {
+                Logger.Error($"No such integrator: {json["Name"]}");
+                goto IntegratorLoaded;
+            }
+            if (!integratorType.IsAssignableTo(typeof(Integrator))) {
+                Logger.Error($"The integrator '{json["Name"]}' was found, but is not a class derived from {nameof(Integrator)}");
+                goto IntegratorLoaded;
+            }
+
+            refIntegrator = json["Settings"].Deserialize(integratorType, refSerializerOptions) as Integrator;
+
             Logger.Log("Rendering reference based on Config.json");
-        } else {
-            refIntegrator = DefaultReferenceIntegrator;
-
-            string settingsJson = JsonSerializer.Serialize(refIntegrator, refIntegrator.GetType(),
-                new JsonSerializerOptions() {
-                    IncludeFields = true,
-                    WriteIndented = true
-                });
-            string name = IntegratorNames.FirstOrDefault(kv => kv.Value == refIntegrator.GetType()).Key;
-            string json = "{ \"Name\": \"" + name + "\", \"Settings\": " + settingsJson + "}";
-            File.WriteAllText(referenceSpecs, json);
-
-            Logger.Log("Rendering reference with default integrator");
         }
+
+IntegratorLoaded:
+        Logger.Log($"Rendering reference with {refIntegrator.GetType().Name}");
+
+        // Overwrite the reference specs in case they got updated (e.g., migrated to new format)
+        File.WriteAllText(referenceSpecs, $$"""
+        {
+            "Name": "{{refIntegrator.GetType().FullName}}",
+            "Settings": {{JsonSerializer.Serialize(refIntegrator, refIntegrator.GetType(), refSerializerOptions)}}
+        }
+        """);
 
         refIntegrator.MaxDepth = MaxDepth;
         refIntegrator.MinDepth = MinDepth;

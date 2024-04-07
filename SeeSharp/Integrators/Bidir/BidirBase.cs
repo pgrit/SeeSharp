@@ -1,5 +1,4 @@
-﻿
-namespace SeeSharp.Integrators.Bidir;
+﻿namespace SeeSharp.Integrators.Bidir;
 
 /// <summary>
 /// Basis for many bidirectional algorithms. Splits rendering into multiple iterations. Each iteration
@@ -38,17 +37,17 @@ public abstract class BidirBase : Integrator {
     /// Can be set to log some or all paths that have been sampled. It is up to the derived class to decide
     /// which paths to log and what data to associate with them.
     /// </summary>
-    public Util.PathLogger PathLogger;
+    [JsonIgnore] public PathLogger PathLogger;
 
     /// <summary>
     /// The scene that is currently being rendered
     /// </summary>
-    public Scene Scene;
+    [JsonIgnore] public Scene Scene;
 
     /// <summary>
     /// The current batch of light paths traced during the current iteration
     /// </summary>
-    public LightPathCache LightPaths;
+    [JsonIgnore] public LightPathCache LightPaths;
 
     /// <summary>
     /// If set to true (default) runs Intel Open Image Denoise after the end of the last rendering iteration

@@ -178,5 +178,6 @@ public abstract class Experiment {
     /// Called after the experiment run has finished for all scenes
     /// </summary>
     /// <param name="workingDirectory">Output directory</param>
-    public virtual void OnDone(string workingDirectory) { }
+    /// <param name="sceneNames">Names of all scenes that have been rendered (each is one directory in the working dir)</param>
+    public virtual void OnDone(string workingDirectory, IEnumerable<string> sceneNames) { }
 }

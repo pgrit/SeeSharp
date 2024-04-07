@@ -36,9 +36,12 @@ public class Benchmark {
     /// </summary>
     public void Run(bool skipReference = false) {
         experiment.OnStart(workingDirectory);
-        foreach (SceneConfig scene in sceneConfigs)
+        List<string> sceneNames = [];
+        foreach (SceneConfig scene in sceneConfigs) {
             RunScene(scene, skipReference);
-        experiment.OnDone(workingDirectory);
+            sceneNames.Add(scene.Name);
+        }
+        experiment.OnDone(workingDirectory, sceneNames);
     }
 
     void RunScene(SceneConfig sceneConfig, bool skipReference) {

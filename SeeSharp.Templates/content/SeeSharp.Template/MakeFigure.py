@@ -6,7 +6,15 @@ import figuregen as fig
 import simpleimageio as sio
 import sys, os, json
 
-def make_figure(dirname, method_names):
+colors = [
+    [232, 181, 88],
+    [5, 142, 78],
+    [94, 163, 188],
+    [181, 63, 106],
+    [255, 255, 255],
+]
+
+def make_figure(scene_name, dirname, method_names, exposure):
     """
     Creates the figure for one scene
     Assumes the given directory contains a reference image and subdirectories for each method:
@@ -30,11 +38,11 @@ def make_figure(dirname, method_names):
 
     grid = fig.Grid(1, len(names))
     for i in range(len(names)):
-        grid[0, i].image = fig.JPEG(sio.lin_to_srgb(images[i]), 95)
+        grid[0, i].image = fig.JPEG(sio.lin_to_srgb(sio.exposure(images[i], exposure)), 95)
 
     # Generate the column titles: method name and render time - if available: error values and speed-up
     if has_reference:
-        titles = ["\\textsc{Reference}\\vspace{1mm}\\\\relMSE, time (s)\\\\inefficiency"]
+        titles = ["Reference\\vspace{1mm}\\\\relMSE, time\\\\inefficiency"]
     else:
         titles = []
 
@@ -54,11 +62,12 @@ def make_figure(dirname, method_names):
             else:
                 speedup = f"${baseline / inefficiency:.3g}\\times$"
 
-            caption = f"\\textsc{{{names[i]}}}\\vspace{{1mm}}\\\\${error:.3g}$, ${time_sec:.3g}$s\\\\${inefficiency:.3g}$ ({speedup})"
+            caption = f"{names[i]}\\vspace{{1mm}}\\\\${error:.3g}$, ${time_sec:.3g}$s\\\\${inefficiency:.3g}$ ({speedup})"
         else:
-            caption = f"\\textsc{{{names[i]}}}\\vspace{{1mm}}\\\\${time_sec:.3g}$s"
+            caption = f"{names[i]}\\vspace{{1mm}}\\\\${time_sec:.3g}$s"
         titles.append(caption)
     grid.set_col_titles(fig.BOTTOM, titles)
+    grid.set_row_titles(fig.LEFT, [f"\\textsc{{{scene_name}}}"])
 
     num_lines = 3 if has_reference else 2
     fontsize = 8
@@ -77,8 +86,16 @@ if __name__ == "__main__":
 
     rows = []
     for path in scene_names:
+        # Support syntax like "MyScene;2.5" to optionally specify an exposure value
+        p = path.split(";", 1)
         try:
-            rows.extend(make_figure(os.path.join(result_dir, path), method_names))
+            exposure = float(p[1])
+            path = p[0]
+        except:
+            exposure = 0.0
+
+        try:
+            rows.extend(make_figure(path, os.path.join(result_dir, path), method_names, exposure))
         except Exception as exc:
             print(exc)
             print(f"skipping scene with invalid data: {path}")

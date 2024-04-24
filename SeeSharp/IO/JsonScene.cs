@@ -220,6 +220,9 @@ public static class JsonScene {
             ReadBackground(path, resultScene, root);
             ReadMaterials(path, root, out var namedMaterials, out var emissiveMaterials);
             ReadMeshes(path, resultScene, root, namedMaterials, emissiveMaterials);
+
+            if (root.TryGetProperty("exposure", out var exposure))
+                resultScene.RecommendedExposure = exposure.GetSingle();
         }
 
         return resultScene;

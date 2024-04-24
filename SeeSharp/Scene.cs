@@ -13,6 +13,12 @@ public class Scene : IDisposable {
     public string Name { get; set; }
 
     /// <summary>
+    /// The default exposure value, i.e., when mapped to LDR, pixel values of a rendered image of this
+    /// scene should be multiplied by 2^this by default.
+    /// </summary>
+    public float RecommendedExposure { get; set; }
+
+    /// <summary>
     /// The frame buffer that will receive the rendered image. Ownership of the framebuffer is
     /// transferred to this object, i.e., the framebuffer will be disposed along with this scene or
     /// when it is replaced.

@@ -60,18 +60,17 @@ public static class SceneRegistry {
     /// </summary>
     /// <param name="name">The name of the scene. We look for a file "[source]/name/name.json</param>
     /// <param name="variant">If given, load the "name/variant/name-variant.json" file instead</param>
-    /// <param name="maxDepth">If given, overrides the default maximum path length</param>
-    /// <param name="minDepth">If given, overrides the default minimum path length</param>
+    /// <param name="maxDepth">Maximum path length in edges (2 = direct illumination)</param>
+    /// <param name="minDepth">Minimum path length in edges (2 = direct illumination)</param>
     /// <returns>A <see cref="SceneFromFile"/> that represents the scene, if found, or null.</returns>
-    public static SceneFromFile LoadScene(string name, string variant = null, int? maxDepth = null,
-                                          int? minDepth = null) {
+    public static SceneFromFile LoadScene(string name, string variant = null, int maxDepth = 100, int minDepth = 1) {
         string candidate = null;
 
         lock (directories) {
             foreach (DirectoryInfo dir in directories) {
                 candidate = Path.Join(dir.FullName, name);
                 if (Directory.Exists(candidate)) {
-                    Logger.Log($"Using {name} scene from {dir.FullName}", Verbosity.Debug);
+                    Logger.Log($"Using {name} scene from {dir.FullName}", Verbosity.Info);
                     break;
                 }
                 candidate = null;
@@ -94,7 +93,7 @@ public static class SceneRegistry {
             ImportBlendFile(name, blendFile, sceneFile);
         }
 
-        return new SceneFromFile(sceneFile, minDepth ?? 1, maxDepth ?? 5, name + (variant ?? ""));
+        return new SceneFromFile(sceneFile, minDepth, maxDepth, name + (variant ?? ""));
     }
 
     public static IEnumerable<string> FindAvailableScenes() {

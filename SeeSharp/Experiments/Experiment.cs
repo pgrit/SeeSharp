@@ -73,7 +73,7 @@ public abstract class Experiment {
         RgbImage reference = File.Exists(refPath) ? new(refPath) : null;
 
         // Create a flip viewer with all the rendered images and the reference (if available)
-        var flip = FlipBook.New.SetZoom(FlipBook.InitialZoom.Fit);
+        var flip = FlipBook.New.SetZoom(FlipBook.InitialZoom.Fit).SetToneMapper(FlipBook.InitialTMO.Exposure(scene.RecommendedExposure));
         float maxError = 0.0f;
         List<float> errors = [];
         List<(string, Image)> errorImages = [];
@@ -106,7 +106,7 @@ public abstract class Experiment {
 
         // Read the render times and other stats of all methods
         List<string[]> tableRows = [[
-            "Method", "relMSE", "Time (ms)", "work-normalized relMSE", "speed-up", "# iterations",
+            "Method", "relMSE", "Time (ms)", "inefficiency (relMSE * time)", "speed-up", "# iterations",
             "# rays", "# shadow rays",
             "# BSDF eval", "# BSDF sample", "# BSDF pdf"
         ]];
@@ -120,12 +120,12 @@ public abstract class Experiment {
             var shadeStats = json["ShadeStats"].Deserialize<ShadingStats>();
             float error = errors.ElementAtOrDefault(idx);
 
-            float workNormError = error * renderTimeMs;
+            float inefficiency = error * renderTimeMs / 1000.0f;
             if (!baseline.HasValue)
-                baseline = workNormError;
+                baseline = inefficiency;
 
             tableRows.Add([
-                method, $"{error:G3}", $"{renderTimeMs}", $"{workNormError:G3}", $"{baseline / workNormError:P0}", $"{numIter}",
+                method, $"{error:G3}", $"{renderTimeMs}", $"{inefficiency:G3}", $"{baseline / inefficiency:P0}", $"{numIter}",
                 $"{rayStats.NumRays:N0}", $"{rayStats.NumShadowRays:N0}",
                 $"{shadeStats.NumMaterialEval:N0}", $"{shadeStats.NumMaterialSample:N0}", $"{shadeStats.NumMaterialPdf:N0}",
             ]);
@@ -179,5 +179,6 @@ public abstract class Experiment {
     /// </summary>
     /// <param name="workingDirectory">Output directory</param>
     /// <param name="sceneNames">Names of all scenes that have been rendered (each is one directory in the working dir)</param>
-    public virtual void OnDone(string workingDirectory, IEnumerable<string> sceneNames) { }
+    /// <param name="sceneExposures">Recommended LDR exposure levels for each rendered scene</param>
+    public virtual void OnDone(string workingDirectory, IEnumerable<string> sceneNames, IEnumerable<float> sceneExposures) { }
 }

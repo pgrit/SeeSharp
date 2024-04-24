@@ -37,14 +37,16 @@ public class Benchmark {
     public void Run(bool skipReference = false) {
         experiment.OnStart(workingDirectory);
         List<string> sceneNames = [];
+        List<float> sceneExposures = [];
         foreach (SceneConfig scene in sceneConfigs) {
-            RunScene(scene, skipReference);
+            float exposure = RunScene(scene, skipReference);
             sceneNames.Add(scene.Name);
+            sceneExposures.Add(exposure);
         }
-        experiment.OnDone(workingDirectory, sceneNames);
+        experiment.OnDone(workingDirectory, sceneNames, sceneExposures);
     }
 
-    void RunScene(SceneConfig sceneConfig, bool skipReference) {
+    float RunScene(SceneConfig sceneConfig, bool skipReference) {
         string dir = Path.Join(workingDirectory, sceneConfig.Name);
         Logger.Log($"Running scene '{sceneConfig.Name}'", Verbosity.Info);
 
@@ -95,6 +97,8 @@ public class Benchmark {
             }
         }
         experiment.OnDoneScene(scene, dir, sceneConfig.MinDepth, sceneConfig.MaxDepth);
+
+        return scene.RecommendedExposure;
     }
 
     /// <summary>

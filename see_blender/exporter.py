@@ -85,6 +85,26 @@ def export_background(result, out_dir, scene):
 
 def export_camera(result, scene):
     camera = scene.camera
+
+    if camera is None:
+        result["transforms"] = [
+            {
+                "name": "camera",
+                "position": [ 0, 0, 0 ],
+                "rotation": [ 0, 0, 0 ],
+                "scale": [ 1.0, 1.0, 1.0 ]
+            }
+        ]
+        result["cameras"] = [
+            {
+                "fov": 45,
+                "transform": "camera",
+                "name": "default",
+                "type": "perspective"
+            }
+        ]
+        return
+
     aspect_ratio = scene.render.resolution_y / scene.render.resolution_x
     result["transforms"] = [
         {
@@ -184,6 +204,8 @@ def export_scene(filepath, scene, depsgraph):
     export_camera(result, scene)
     export_background(result, os.path.dirname(filepath), scene)
     export_ply_meshes(result, depsgraph, filepath)
+
+    result["exposure"] = scene.view_settings.exposure
 
     # Write the result into the .json
     with open(filepath, 'w') as fp:

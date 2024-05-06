@@ -94,6 +94,10 @@ public abstract class Experiment {
         if (reference != null) {
             flip.Add("Reference", reference);
 
+            // Ensure valid .json if the error is NaN or Inf
+            if (!float.IsFinite(maxError))
+                maxError = 1.0f;
+
             flip.AddAll(squaredErrorImages, FlipBook.DataType.Float16, FlipBook.InitialTMO.FalseColor(0.0f, maxError));
             flip.AddAll(errorImages, FlipBook.DataType.Float16, FlipBook.InitialTMO.GLSL("""
                 float avg = 100.0 * (rgb.x + rgb.y + rgb.z) / 3.0;

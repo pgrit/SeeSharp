@@ -134,8 +134,6 @@ public class LightPathCache {
         return Scene.Background.SampleRay(primaryPos, primaryDir);
     }
 
-    LightPathWalk walkModifier;
-
     /// <summary>
     /// Resets the path cache and populates it with a new set of light paths.
     /// </summary>
@@ -153,11 +151,11 @@ public class LightPathCache {
             PathCache.Clear();
         }
 
-        walkModifier = new LightPathWalk(PathCache, nextEventPdfCallback);
+        LightPathWalk walkModifier = new(PathCache, nextEventPdfCallback);
 
         Parallel.For(0, NumPaths, idx => {
             var rng = new RNG(BaseSeed, (uint)idx, iter);
-            TraceLightPath(ref rng, idx);
+            TraceLightPath(ref rng, idx, walkModifier);
         });
 
         PathCache.Prepare(UseDeterministicVertexCache);
@@ -169,13 +167,13 @@ public class LightPathCache {
     /// <returns>
     /// The index of the last vertex along the path.
     /// </returns>
-    public virtual int TraceLightPath(ref RNG rng, int idx) {
+    public virtual int TraceLightPath(ref RNG rng, int idx, LightPathWalk walkModifier) {
         // Select an emitter or the background
         var (emitter, prob) = SelectLight(rng.NextFloat());
         if (emitter != null)
-            return TraceEmitterPath(ref rng, emitter, prob, idx);
+            return TraceEmitterPath(ref rng, emitter, prob, idx, walkModifier);
         else
-            return TraceBackgroundPath(ref rng, prob, idx);
+            return TraceBackgroundPath(ref rng, prob, idx, walkModifier);
     }
 
     /// <summary>
@@ -202,7 +200,7 @@ public class LightPathCache {
         });
     }
 
-    protected int TraceEmitterPath(ref RNG rng, Emitter emitter, float selectProb, int idx) {
+    protected int TraceEmitterPath(ref RNG rng, Emitter emitter, float selectProb, int idx, LightPathWalk walkModifier) {
         var emitterSample = SampleEmitter(ref rng, emitter);
 
         // Account for the light selection probability in the MIS weights
@@ -213,7 +211,7 @@ public class LightPathCache {
         return walk.Payload.LastId;
     }
 
-    protected int TraceBackgroundPath(ref RNG rng, float selectProb, int idx) {
+    protected int TraceBackgroundPath(ref RNG rng, float selectProb, int idx, LightPathWalk walkModifier) {
         var (ray, weight, pdf) = SampleBackground(ref rng);
 
         // Account for the light selection probability

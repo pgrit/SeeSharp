@@ -16,7 +16,7 @@ public class Benchmark {
     /// <param name="height">Height of the rendered images in pixels</param>
     /// <param name="frameBufferFlags">Flags for the frame buffer, e.g., to sync with tev</param>
     /// <param name="computeErrorMetrics">Compute error metrics when reference is available</param>
-    public Benchmark(Experiment experiment, List<SceneConfig> sceneConfigs,
+    public Benchmark(Experiment experiment, IEnumerable<SceneConfig> sceneConfigs,
                      string workingDirectory, int width, int height,
                      FrameBuffer.Flags frameBufferFlags = FrameBuffer.Flags.None,
                      bool computeErrorMetrics = false) {
@@ -119,7 +119,7 @@ public class Benchmark {
     protected Experiment experiment;
 
     readonly string workingDirectory;
-    readonly List<SceneConfig> sceneConfigs;
+    readonly IEnumerable<SceneConfig> sceneConfigs;
     readonly FrameBuffer.Flags frameBufferFlags;
     readonly bool computeErrorMetrics;
 }

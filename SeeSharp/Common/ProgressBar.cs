@@ -135,8 +135,9 @@ public class ProgressBar {
         int nextActiveBlocks = (int)(fractionDone * numBlocks);
         nextActiveBlocks = Math.Min(nextActiveBlocks, numBlocks);
 
-        // Only write the next line if we added a new block in the bar
-        if (!supportsRewrite && activeBlocks == nextActiveBlocks && curText.Length > 0)
+        // If rewriting is not possible, only write the next line if we added a new block in the bar
+        // or after the first work item was completed
+        if (!supportsRewrite && activeBlocks == nextActiveBlocks && done > 1 && curText.Length > 0)
             return;
 
         activeBlocks = nextActiveBlocks;

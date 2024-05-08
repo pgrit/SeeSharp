@@ -56,22 +56,16 @@ public class SceneFromFile : SceneConfig {
                     if (!float.IsFinite(image[col, row, chan])) {
                         float total = 0;
                         int num = 0;
-                        if (col > 0) {
-                            total += image[col - 1, row, chan];
-                            num++;
+                        void TryAdd(int c, int r) {
+                            if (c >= 0 && r >= 0 && c < image.Width && r < image.Height && float.IsFinite(image[c, r, chan])) {
+                                total += image[c, r, chan];
+                                num++;
+                            }
                         }
-                        if (col < image.Width - 1) {
-                            total += image[col + 1, row, chan];
-                            num++;
-                        }
-                        if (row > 0) {
-                            total += image[col, row - 1, chan];
-                            num++;
-                        }
-                        if (row < image.Height - 1) {
-                            total += image[col, row + 1, chan];
-                            num++;
-                        }
+                        TryAdd(col - 1, row);
+                        TryAdd(col + 1, row);
+                        TryAdd(col, row - 1);
+                        TryAdd(col, row + 1);
                         image[col, row, chan] = total / num;
                     }
                 }

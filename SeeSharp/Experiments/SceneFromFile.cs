@@ -49,6 +49,37 @@ public class SceneFromFile : SceneConfig {
         WriteIndented = true
     };
 
+    static T InpaintNaNs<T>(T image) where T : Image {
+        for (int row = 0; row < image.Height; ++row) {
+            for (int col = 0; col < image.Width; ++col) {
+                for (int chan = 0; chan < image.NumChannels; ++chan) {
+                    if (!float.IsFinite(image[col, row, chan])) {
+                        float total = 0;
+                        int num = 0;
+                        if (col > 0) {
+                            total += image[col - 1, row, chan];
+                            num++;
+                        }
+                        if (col < image.Width - 1) {
+                            total += image[col + 1, row, chan];
+                            num++;
+                        }
+                        if (row > 0) {
+                            total += image[col, row - 1, chan];
+                            num++;
+                        }
+                        if (row < image.Height - 1) {
+                            total += image[col, row + 1, chan];
+                            num++;
+                        }
+                        image[col, row, chan] = total / num;
+                    }
+                }
+            }
+        }
+        return image;
+    }
+
     /// <summary>
     /// Retrieves a cached reference image with the right resolution and maximum path length. If not
     /// available, a new reference is rendered and added to the cache.
@@ -69,19 +100,22 @@ public class SceneFromFile : SceneConfig {
         if (File.Exists(filename)) {
             // support legacy .exr files
             var layers = Layers.LoadFromFile(filename);
-            if (layers.ContainsKey("")) return layers[""] as RgbImage;
-            else return layers["default"] as RgbImage;
+            if (layers.TryGetValue("", out Image img)) return InpaintNaNs(img) as RgbImage;
+            else return InpaintNaNs(layers["default"]) as RgbImage;
         }
 
         string referenceSpecs = Path.Join(refDir, "Config.json");
         Integrator refIntegrator = DefaultReferenceIntegrator;
         if (File.Exists(referenceSpecs)) {
             var json = JsonNode.Parse(File.ReadAllText(referenceSpecs));
-            string name = (string)json["Name"];
 
-            if (LegacyIntegratorNames.ContainsKey(name)) {
+#pragma warning disable CA1507 // Bitches about "Name" as it happens to coincide with an unrelated property
+            string name = (string)json["Name"];
+#pragma warning restore CA1507
+
+            if (LegacyIntegratorNames.TryGetValue(name, out Type type)) {
                 Logger.Warning($"Scene reference specs are using an old convention, {referenceSpecs} will be updated.");
-                refIntegrator = json["Settings"].Deserialize(LegacyIntegratorNames[name], refSerializerOptions) as Integrator;
+                refIntegrator = json["Settings"].Deserialize(type, refSerializerOptions) as Integrator;
                 goto IntegratorLoaded;
             }
 
@@ -93,11 +127,11 @@ public class SceneFromFile : SceneConfig {
                     break;
             }
             if (integratorType == null) {
-                Logger.Error($"No such integrator: {json["Name"]}");
+                Logger.Error($"No such integrator: {name}");
                 goto IntegratorLoaded;
             }
             if (!integratorType.IsAssignableTo(typeof(Integrator))) {
-                Logger.Error($"The integrator '{json["Name"]}' was found, but is not a class derived from {nameof(Integrator)}");
+                Logger.Error($"The integrator '{name}' was found, but is not a class derived from {nameof(Integrator)}");
                 goto IntegratorLoaded;
             }
 
@@ -126,7 +160,7 @@ IntegratorLoaded:
         refIntegrator.Render(scn);
         scn.FrameBuffer.WriteToFile();
 
-        return scn.FrameBuffer.Image;
+        return InpaintNaNs(scn.FrameBuffer.Image);
     }
 
     /// <summary>

@@ -108,14 +108,17 @@ public class FrameBuffer : IDisposable {
         EstimatePixelVariance = 8,
 
         /// <summary>
-        /// If set, NaN and Inf values will not be written to the frame buffer, and the offending code's
-        /// stack trace, iteration number, and pixel position will not be logged.
+        /// If set, NaN and Inf values will not be written to the frame buffer, but they will be logged in the
+        /// .json and a console warning will be printed.
         /// </summary>
         IgnoreNanAndInf = 16,
+
+        /// <summary> Recommended set of flags appropriate for most use cases </summary>
+        Recommended = IgnoreNanAndInf,
     }
 
     private record ErrorMetric(long TimeMS, float MSE, float RelMSE, float RelMSE_Outlier);
-    private List<ErrorMetric> Errors = new();
+    private List<ErrorMetric> Errors = [];
 
     public record NaNWarning(Pixel Pixel, int Iteration, string StackTrace) { }
 
@@ -128,7 +131,7 @@ public class FrameBuffer : IDisposable {
     ///     never called without an explicit filename and no flags are set.
     /// </param>
     /// <param name="flags">Controls how incremental results are stored</param>
-    public FrameBuffer(int width, int height, string filename, Flags flags = Flags.None) {
+    public FrameBuffer(int width, int height, string filename, Flags flags = Flags.Recommended) {
         this.filename = filename;
         this.flags = flags;
         Width = width;
@@ -147,9 +150,6 @@ public class FrameBuffer : IDisposable {
     /// <param name="value">Color to add to the current value</param>
     public virtual void Splat(int col, int row, RgbColor value) {
         if (!float.IsFinite(value.Average)) {
-            if (Behavior.HasFlag(Flags.IgnoreNanAndInf))
-                return;
-
             // Catch invalid values in long running Release mode renderings.
             // Ideally can be reproduced with a single sample from a correctly seeded RNG.
             lock (NaNWarnings) {
@@ -161,6 +161,9 @@ public class FrameBuffer : IDisposable {
                         "Too many NaN / Inf, disabling this warning. Use FrameBuffer.NaNWarnings (also in .json) to see all.");
                 NaNWarnings.Add(new(new Pixel(col, row), CurIteration, Environment.StackTrace));
             }
+
+            if (Behavior.HasFlag(Flags.IgnoreNanAndInf))
+                return;
         }
 
         Image.AtomicAdd(col, row, value / CurIteration);

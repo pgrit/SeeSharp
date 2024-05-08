@@ -37,7 +37,7 @@ class Program {
         }
 
         using var sc = Scene.LoadFromFile(scene.FullName);
-        var flags = interactive ? Images.FrameBuffer.Flags.SendToTev : Images.FrameBuffer.Flags.None;
+        var flags = interactive ? Images.FrameBuffer.Flags.SendToTev : Images.FrameBuffer.Flags.Recommended;
         sc.FrameBuffer = new(resx, resy, output, flags);
         sc.Prepare();
 

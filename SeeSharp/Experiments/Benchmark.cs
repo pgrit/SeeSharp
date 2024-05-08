@@ -18,7 +18,7 @@ public class Benchmark {
     /// <param name="computeErrorMetrics">Compute error metrics when reference is available</param>
     public Benchmark(Experiment experiment, IEnumerable<SceneConfig> sceneConfigs,
                      string workingDirectory, int width, int height,
-                     FrameBuffer.Flags frameBufferFlags = FrameBuffer.Flags.None,
+                     FrameBuffer.Flags frameBufferFlags = FrameBuffer.Flags.Recommended,
                      bool computeErrorMetrics = false) {
         this.experiment = experiment;
         this.sceneConfigs = sceneConfigs;

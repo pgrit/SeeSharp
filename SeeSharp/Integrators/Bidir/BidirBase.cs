@@ -242,7 +242,7 @@ public abstract class BidirBase : Integrator {
         OnAfterRender();
     }
 
-    private void TraceAllCameraPaths(uint iter) {
+    protected virtual void TraceAllCameraPaths(uint iter) {
         CameraRandomWalk walkMod = new(this);
 
         Parallel.For(0, Scene.FrameBuffer.Height, row => {

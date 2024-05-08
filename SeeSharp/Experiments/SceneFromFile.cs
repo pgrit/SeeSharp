@@ -50,6 +50,7 @@ public class SceneFromFile : SceneConfig {
     };
 
     static T InpaintNaNs<T>(T image) where T : Image {
+        bool hadAny = false;
         for (int row = 0; row < image.Height; ++row) {
             for (int col = 0; col < image.Width; ++col) {
                 for (int chan = 0; chan < image.NumChannels; ++chan) {
@@ -67,10 +68,14 @@ public class SceneFromFile : SceneConfig {
                         TryAdd(col, row - 1);
                         TryAdd(col, row + 1);
                         image[col, row, chan] = total / num;
+
+                        hadAny = true;
                     }
                 }
             }
         }
+        if (hadAny)
+            Logger.Warning("Removed NaN / Inf from reference image (check the reference's .json in the scene directory for details)");
         return image;
     }
 

@@ -173,7 +173,7 @@ public abstract class BidirBase : Integrator {
     /// time by the same object of this class.
     /// </summary>
     public override void Render(Scene scene) {
-        this.Scene = scene;
+        Scene = scene;
 
         if (!NumLightPaths.HasValue) NumLightPaths = scene.FrameBuffer.Width * scene.FrameBuffer.Height;
 

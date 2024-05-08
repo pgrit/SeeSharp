@@ -28,6 +28,30 @@ def map_texture(texture, out_dir):
         path = sanitize_path(texture.name + ".exr")
         texture.file_format = "OPEN_EXR"
 
+    # Convert unsupported formats to EXR
+    if not texture.file_format in [
+        "BMP",
+        "PNG",
+        "JPEG",
+        "TIFF",
+        "OPEN_EXR",
+        "HDR"
+    ]:
+        path = sanitize_path(texture.name + ".exr")
+        texture.file_format = "OPEN_EXR"
+
+    # Also convert if the extension is unsupported (Why is this needed? Ask Blender!)
+    ext = os.path.splitext(path)[1]
+    if not ext in [
+        "exr",
+        "bmp",
+        "png",
+        "jpg", "jpeg",
+        "tiff", "hdr"
+    ]:
+        path = sanitize_path(texture.name + ".exr")
+        texture.file_format = "OPEN_EXR"
+
     # Make sure the image is loaded to memory, so we can write it out
     if not texture.has_data:
         texture.pixels[0]

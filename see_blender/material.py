@@ -123,19 +123,19 @@ def map_principled(shader, seesharp):
     seesharp.metallic = shader.inputs["Metallic"].default_value
     # diffuse transmittance not directly matched: instead, Blender has a separate
     # roughenss value for the transmission
-    seesharp.specularTransmittance = shader.inputs["Transmission"].default_value
+    seesharp.specularTransmittance = shader.inputs["Transmission Weight"].default_value
     seesharp.specularTint = shader.inputs["Specular Tint"].default_value
 
-    if seesharp.specularTransmittance == 0:
-        # match the IOR to the specular term
-        specular = shader.inputs["Specular"].default_value
-        s = math.sqrt(0.08 * specular)
-        seesharp.indexOfRefraction = (1 + s) / (1 - s)
-    else:
-        # set the IOR directly and use the same for BRDF and BTDF components
-        seesharp.indexOfRefraction = shader.inputs["IOR"].default_value
+    # if seesharp.specularTransmittance == 0:
+    #     # match the IOR to the specular term
+    #     specular = shader.inputs["Specular"].default_value
+    #     s = math.sqrt(0.08 * specular)
+    #     seesharp.indexOfRefraction = (1 + s) / (1 - s)
+    # else:
+    # set the IOR directly and use the same for BRDF and BTDF components
+    seesharp.indexOfRefraction = shader.inputs["IOR"].default_value
 
-    clr = shader.inputs["Emission"].default_value
+    clr = shader.inputs["Emission Color"].default_value
     seesharp.emission_color = (clr[0], clr[1], clr[2])
     seesharp.emission_strength = shader.inputs["Emission Strength"].default_value
 

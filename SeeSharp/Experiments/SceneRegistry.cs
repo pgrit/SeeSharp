@@ -141,9 +141,6 @@ public static class SceneRegistry {
         if (!needsReimport && File.Exists(sceneFile))
             return;
 
-        // Delete the old .json so we notice immediately if Blender export failed - avoids confusion due to missing changes
-        File.Delete(sceneFile);
-
         if (!BlenderImporter.Import(blendFile, sceneFile)) {
             Logger.Error($"Scene {name}: Blender import failed. Check if Blender is in PATH, " +
                 "the correct version is used, and the SeeSharp Plugin is installed. " +

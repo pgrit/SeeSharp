@@ -155,9 +155,9 @@ public static class SceneRegistry {
 
         long time = File.GetLastWriteTime(blendFile).ToFileTime();
         var md5 = Convert.ToHexString(MD5.HashData(File.ReadAllBytes(blendFile)));
-        File.WriteAllLines(importDescFile, new[] {
+        File.WriteAllLines(importDescFile, [
             time.ToString(),
             md5
-        });
+        ]);
     }
 }

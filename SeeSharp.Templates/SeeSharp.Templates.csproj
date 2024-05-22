@@ -2,7 +2,7 @@
 
   <PropertyGroup>
     <PackageId>SeeSharp.Templates</PackageId>
-    <Version>1.0.1</Version>
+    <Version>1.0.2</Version>
     <Title>SeeSharp Experiment Template</Title>
     <Authors>Pascal Grittmann</Authors>
     <Description>Basic setup for a raytracing experiment with SeeSharp</Description>

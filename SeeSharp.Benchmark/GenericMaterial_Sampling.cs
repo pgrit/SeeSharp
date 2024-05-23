@@ -61,9 +61,7 @@ class GenericMaterial_Sampling {
     => $"Results/r{parameters.Roughness.Lookup(new(0.5f, 0.5f))}-" +
         $"m{parameters.Metallic}-" +
         $"s{parameters.SpecularTransmittance}-" +
-        $"ior{parameters.IndexOfRefraction}-" +
-        $"d{parameters.DiffuseTransmittance}-" +
-        $"thin{parameters.Thin}.exr";
+        $"ior{parameters.IndexOfRefraction}.exr";
 
     static float TestRender(GenericMaterial.Parameters parameters, string name) {
         using var scene = MakeScene(parameters);
@@ -88,32 +86,26 @@ class GenericMaterial_Sampling {
         GenericMaterial highIOR = new(new() {
             Roughness = new(0.3199999928474426f),
             Anisotropic = 0.0f,
-            DiffuseTransmittance = 0.0f,
             IndexOfRefraction = 1.4500000476837158f,
             Metallic = 0.0f,
             SpecularTintStrength = 0.0f,
             SpecularTransmittance = 0.0f,
-            Thin = false,
         });
         GenericMaterial translucent = new(new() {
             Roughness = new(0.3f),
             Anisotropic = 0.0f,
-            DiffuseTransmittance = 0.5f,
             IndexOfRefraction = 1.6667f,
             Metallic = 0.0f,
             SpecularTintStrength = 0.0f,
             SpecularTransmittance = 0.0f,
-            Thin = true,
         });
         GenericMaterial glass = new(new() {
             Roughness = new(0.003199999928474426f),
             Anisotropic = 0.0f,
-            DiffuseTransmittance = 0.0f,
             IndexOfRefraction = 1.4500000476837158f,
             Metallic = 0.0f,
             SpecularTintStrength = 0.0f,
             SpecularTransmittance = 1.0f,
-            Thin = false,
         });
 
         RNG rng = new();
@@ -156,32 +148,26 @@ class GenericMaterial_Sampling {
         GenericMaterial highIOR = new(new() {
             Roughness = new(0.3199999928474426f),
             Anisotropic = 0.0f,
-            DiffuseTransmittance = 0.0f,
             IndexOfRefraction = 1.4500000476837158f,
             Metallic = 0.0f,
             SpecularTintStrength = 0.0f,
             SpecularTransmittance = 0.0f,
-            Thin = false,
         });
         GenericMaterial translucent = new(new() {
             Roughness = new(0.3f),
             Anisotropic = 0.0f,
-            DiffuseTransmittance = 0.5f,
             IndexOfRefraction = 1.6667f,
             Metallic = 0.0f,
             SpecularTintStrength = 0.0f,
             SpecularTransmittance = 0.0f,
-            Thin = true,
         });
         GenericMaterial glass = new(new() {
             Roughness = new(0.003199999928474426f),
             Anisotropic = 0.0f,
-            DiffuseTransmittance = 0.0f,
             IndexOfRefraction = 1.4500000476837158f,
             Metallic = 0.0f,
             SpecularTintStrength = 0.0f,
             SpecularTransmittance = 1.0f,
-            Thin = false,
         });
 
         RNG rng = new();
@@ -244,12 +230,10 @@ class GenericMaterial_Sampling {
         GenericMaterial.Parameters highIOR = new() {
             Roughness = new(0.3199999928474426f),
             Anisotropic = 0.0f,
-            DiffuseTransmittance = 0.0f,
             IndexOfRefraction = 1.4500000476837158f,
             Metallic = 0.0f,
             SpecularTintStrength = 0.0f,
             SpecularTransmittance = 0.0f,
-            Thin = false,
         };
 
         TestRender(highIOR, "highIOR");
@@ -257,12 +241,10 @@ class GenericMaterial_Sampling {
         GenericMaterial.Parameters lowIOR = new() {
             Roughness = new(0.3199999928474426f),
             Anisotropic = 0.0f,
-            DiffuseTransmittance = 0.0f,
             IndexOfRefraction = 1.01f,
             Metallic = 0.0f,
             SpecularTintStrength = 0.0f,
             SpecularTransmittance = 0.0f,
-            Thin = false,
         };
 
         TestRender(lowIOR, "lowIOR");
@@ -270,12 +252,10 @@ class GenericMaterial_Sampling {
         GenericMaterial.Parameters translucent = new() {
             Roughness = new(0.3f),
             Anisotropic = 0.0f,
-            DiffuseTransmittance = 0.5f,
             IndexOfRefraction = 1.6667f,
             Metallic = 0.0f,
             SpecularTintStrength = 0.0f,
             SpecularTransmittance = 0.0f,
-            Thin = true,
         };
 
         TestRender(translucent, "translucent");
@@ -283,12 +263,10 @@ class GenericMaterial_Sampling {
         GenericMaterial.Parameters glass = new() {
             Roughness = new(0.003199999928474426f),
             Anisotropic = 0.0f,
-            DiffuseTransmittance = 0.0f,
             IndexOfRefraction = 1.4500000476837158f,
             Metallic = 0.0f,
             SpecularTintStrength = 0.0f,
             SpecularTransmittance = 1.0f,
-            Thin = false,
         };
 
         TestRender(glass, "glass");
@@ -296,12 +274,10 @@ class GenericMaterial_Sampling {
         GenericMaterial.Parameters mirror = new() {
             Roughness = new(0.003199999928474426f),
             Anisotropic = 0.0f,
-            DiffuseTransmittance = 0.0f,
             IndexOfRefraction = 1.4500000476837158f,
             Metallic = 0.8f,
             SpecularTintStrength = 0.0f,
             SpecularTransmittance = 0.0f,
-            Thin = false,
         };
 
         TestRender(mirror, "mirror");
@@ -328,16 +304,7 @@ class GenericMaterial_Sampling {
                         float t = m / (numSteps + 1.0f);
                         parameters.IndexOfRefraction = t * 1 + (1 - t) * 2;
                         for (int n = 0; n < numSteps; ++n) {
-                            parameters.DiffuseTransmittance = (0.5f * n) / numSteps;
-                            parameters.Thin = false;
                             float e = TestRender(parameters, MakeName(parameters));
-                            totalError += e;
-                            minError = Math.Min(e, minError);
-                            maxError = Math.Max(e, maxError);
-                            numTests++;
-
-                            parameters.Thin = true;
-                            e = TestRender(parameters, MakeName(parameters));
                             totalError += e;
                             minError = Math.Min(e, minError);
                             maxError = Math.Max(e, maxError);

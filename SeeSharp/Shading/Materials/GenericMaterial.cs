@@ -4,6 +4,8 @@ namespace SeeSharp.Shading.Materials;
 
 public partial class GenericMaterial(GenericMaterial.Parameters parameters) : Material
 {
+    public Parameters MaterialParameters => parameters;
+
     /// <summary>
     /// Parameters of the generic material
     /// </summary>
@@ -273,7 +275,7 @@ public partial class GenericMaterial(GenericMaterial.Parameters parameters) : Ma
             if (halfVectorRev != Vector3.Zero)  // Prevent NaN if outDir and inDir exactly align
             {
                 halfVectorRev = Vector3.Normalize(halfVectorRev);
-                halfVectorRev = (!SameHemisphere(inDir, halfVector)) ? -halfVectorRev : halfVectorRev;
+                halfVectorRev = (!SameHemisphere(inDir, halfVectorRev)) ? -halfVectorRev : halfVectorRev;
 
                 float sqrtDenomIn = Vector3.Dot(inDir, halfVectorRev) + etaIn * Vector3.Dot(context.OutDir, halfVectorRev);
                 if (sqrtDenomIn != 0)  // Prevent NaN in corner case

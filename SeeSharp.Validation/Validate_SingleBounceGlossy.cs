@@ -39,8 +39,6 @@ class Validate_SingleBounceGlossy : ValidationSceneFactory {
             BaseColor = new TextureRgb(RgbColor.White),
             Roughness = new TextureMono(0.5f),
             SpecularTransmittance = 1,
-            Thin = true,
-            DiffuseTransmittance = 1,
         });
         scene.Meshes.Add(mesh);
         // second plane
@@ -56,8 +54,6 @@ class Validate_SingleBounceGlossy : ValidationSceneFactory {
         mesh.Material = new GenericMaterial(new GenericMaterial.Parameters {
             BaseColor = new TextureRgb(RgbColor.White),
             Roughness = new TextureMono(0.5f),
-            Thin = true,
-            DiffuseTransmittance = 1,
         });
         scene.Meshes.Add(mesh);
 

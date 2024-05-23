@@ -122,21 +122,7 @@ namespace SeeSharpToMitsuba {
                 );
             } else if (mesh.Material is GenericMaterial) {
                 var mat = mesh.Material as GenericMaterial;
-                if (mat.MaterialParameters.DiffuseTransmittance > 0) {
-                    float difftrans = mat.MaterialParameters.DiffuseTransmittance;
-                    bsdf = new("bsdf", new XAttribute("type", "mixturebsdf"),
-                        new XElement("string",
-                            new XAttribute("name", "weights"),
-                            new XAttribute("value", $"{difftrans}, {1 - difftrans}")
-                        ),
-                        new XElement("bsdf", new XAttribute("type", "difftrans"),
-                            MapTextureOrColor(mat.MaterialParameters.BaseColor, "transmittance")
-                        ),
-                        new XElement("bsdf", new XAttribute("type", "diffuse"),
-                            MapTextureOrColor(mat.MaterialParameters.BaseColor, "reflectance")
-                        )
-                    );
-                } else if (mat.MaterialParameters.SpecularTransmittance > 0) {
+                if (mat.MaterialParameters.SpecularTransmittance > 0) {
                     // Rough dielectric BSDF
                     bsdf = new("bsdf", new XAttribute("type", "roughdielectric"),
                         new XElement("string", MakeNameValue("distribution", "ggx")),

@@ -97,8 +97,6 @@ class SEESHARP_PT_material(MaterialButtonsPanel, Panel):
         layout.prop(mat, "anisotropic", slider=True)
         layout.prop(mat, "specularTransmittance", slider=True)
         layout.prop(mat, "indexOfRefraction", slider=True)
-        layout.prop(mat, "diffuseTransmittance", slider=True)
-        layout.prop(mat, "thin")
 
         layout.separator()
 

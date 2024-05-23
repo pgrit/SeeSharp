@@ -80,12 +80,10 @@ def material_to_json(material, out_dir):
         "baseColor": base_color,
         "roughness": material.roughness,
         "anisotropic": material.anisotropic,
-        "diffuseTransmittance": material.diffuseTransmittance,
         "IOR": material.indexOfRefraction,
         "metallic": material.metallic,
         "specularTintStrength": material.specularTintStrength,
         "specularTransmittance": material.specularTransmittance,
-        "thin": material.thin,
         "emission": map_rgb((
             material.emission_color[0] * material.emission_strength,
             material.emission_color[1] * material.emission_strength,

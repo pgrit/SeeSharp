@@ -141,7 +141,6 @@ public class Material_SampleTransform {
         Material mtl = new GenericMaterial(new GenericMaterial.Parameters {
             BaseColor = new(new RgbColor(1, 1, 1)),
             Roughness = new(0.9f),
-            DiffuseTransmittance = 0.0f,
             IndexOfRefraction = 1.1f
         });
         IntegrateBSDF(mtl, Vector3.Normalize(new Vector3(0, 0, 1f)));
@@ -152,7 +151,6 @@ public class Material_SampleTransform {
         Material mtl = new GenericMaterial(new GenericMaterial.Parameters {
             BaseColor = new(new RgbColor(1, 1, 1)),
             Roughness = new(0.9f),
-            DiffuseTransmittance = 0.0f,
             IndexOfRefraction = 1.1f
         });
         IntegratePdf(mtl, Vector3.Normalize(new Vector3(0, 0, 1f)));
@@ -223,12 +221,10 @@ public class Material_SampleTransform {
         GenericMaterial mtl = new(new() {
             Roughness = new(0.1f),
             Anisotropic = 0.0f,
-            DiffuseTransmittance = 0.0f,
             IndexOfRefraction = 1.45f,
             Metallic = 0.0f,
             SpecularTintStrength = 0.0f,
             SpecularTransmittance = 1.0f,
-            Thin = false,
         });
         IntegrateBSDF(mtl, Vector3.Normalize(new Vector3(0, 0, 1f)));
     }
@@ -238,12 +234,10 @@ public class Material_SampleTransform {
         GenericMaterial mtl = new(new() {
             Roughness = new(0.1f),
             Anisotropic = 0.0f,
-            DiffuseTransmittance = 0.0f,
             IndexOfRefraction = 1.45f,
             Metallic = 0.0f,
             SpecularTintStrength = 0.0f,
             SpecularTransmittance = 1.0f,
-            Thin = false,
         });
         IntegrateBSDF(mtl, Vector3.Normalize(new Vector3(1f, 0, 0.01f)));
     }
@@ -253,12 +247,10 @@ public class Material_SampleTransform {
         GenericMaterial mtl = new(new() {
             Roughness = new(0.1f),
             Anisotropic = 0.0f,
-            DiffuseTransmittance = 0.0f,
             IndexOfRefraction = 1.45f,
             Metallic = 0.0f,
             SpecularTintStrength = 0.0f,
             SpecularTransmittance = 1.0f,
-            Thin = false,
         });
         IntegratePdf(mtl, Vector3.Normalize(new Vector3(1f, 0, 0.01f)));
     }
@@ -268,12 +260,10 @@ public class Material_SampleTransform {
         GenericMaterial mtl = new(new() {
             Roughness = new(0.1f),
             Anisotropic = 0.0f,
-            DiffuseTransmittance = 0.0f,
             IndexOfRefraction = 1.45f,
             Metallic = 0.0f,
             SpecularTintStrength = 0.0f,
             SpecularTransmittance = 1.0f,
-            Thin = false,
         });
         IntegrateBSDF(mtl, Vector3.Normalize(new Vector3(1f, 0, -1.1f)));
     }
@@ -283,12 +273,10 @@ public class Material_SampleTransform {
         GenericMaterial mtl = new(new() {
             Roughness = new(0.1f),
             Anisotropic = 0.0f,
-            DiffuseTransmittance = 0.0f,
             IndexOfRefraction = 1.45f,
             Metallic = 0.0f,
             SpecularTintStrength = 0.0f,
             SpecularTransmittance = 1.0f,
-            Thin = false,
         });
         IntegratePdf(mtl, Vector3.Normalize(new Vector3(1f, 0, -1.1f)));
     }

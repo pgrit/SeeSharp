@@ -84,11 +84,7 @@ public struct SurfaceShader {
     /// </summary>
     /// <param name="inDir">Normalized incoming direction away from the surface (towards light in a path tracer)</param>
     /// <returns>BSDF * cosine</returns>
-    public RgbColor EvaluateWithCosine(Vector3 inDir) {
-        var bsdf = Evaluate(inDir);
-        // TODO can cache inDir in shading space instead of mapping again here
-        return bsdf * AbsCosTheta(Context.WorldToShading(inDir));
-    }
+    public RgbColor EvaluateWithCosine(Vector3 inDir) => material.EvaluateWithCosine(Context, inDir);
 
     /// <summary>
     /// Importance samples the product of BSDF and cosine

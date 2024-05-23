@@ -57,14 +57,6 @@ class SeeSharpMaterial(bpy.types.PropertyGroup):
         default=1.45,
         min=1, max=5)
 
-    diffuseTransmittance: FloatProperty(
-        name="DiffuseTransmittance",
-        description="DiffuseTransmittance",
-        default=0,
-        min=0, max=1)
-
-    thin: BoolProperty(name="Thin", description="Thin")
-
     emission_color: FloatVectorProperty(
         name="Emission color",
         description="Emission color",
@@ -121,18 +113,8 @@ def map_principled(shader, seesharp):
     seesharp.roughness = shader.inputs["Roughness"].default_value
     seesharp.anisotropic = shader.inputs["Anisotropic"].default_value
     seesharp.metallic = shader.inputs["Metallic"].default_value
-    # diffuse transmittance not directly matched: instead, Blender has a separate
-    # roughenss value for the transmission
     seesharp.specularTransmittance = shader.inputs["Transmission Weight"].default_value
     seesharp.specularTint = shader.inputs["Specular Tint"].default_value
-
-    # if seesharp.specularTransmittance == 0:
-    #     # match the IOR to the specular term
-    #     specular = shader.inputs["Specular"].default_value
-    #     s = math.sqrt(0.08 * specular)
-    #     seesharp.indexOfRefraction = (1 + s) / (1 - s)
-    # else:
-    # set the IOR directly and use the same for BRDF and BTDF components
     seesharp.indexOfRefraction = shader.inputs["IOR"].default_value
 
     clr = shader.inputs["Emission Color"].default_value
@@ -170,8 +152,6 @@ def map_translucent(shader, seesharp):
         seesharp.base_texture = tex
 
     seesharp.roughness = 1
-    seesharp.thin = 1
-    seesharp.diffuseTransmittance = 1
     seesharp.indexOfRefraction = 1
 
 def map_view_shader(material, seesharp):

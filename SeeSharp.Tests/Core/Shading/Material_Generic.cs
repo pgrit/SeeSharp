@@ -10,7 +10,6 @@ public class Material_Generic {
             BaseColor = new(new RgbColor(1, 1, 1)),
             Roughness = new(0.2f),
             SpecularTransmittance = 0.8f,
-            DiffuseTransmittance = 0.3f
         });
 
         var mesh = new Mesh(new Vector3[] {
@@ -56,7 +55,6 @@ public class Material_Generic {
             BaseColor = new(new RgbColor(1, 1, 1)),
             Roughness = new(0.2f),
             SpecularTransmittance = 0.8f,
-            DiffuseTransmittance = 0.3f
         });
 
         var mesh = new Mesh(new Vector3[] {
@@ -121,12 +119,10 @@ public class Material_Generic {
             BaseColor = new(new RgbColor(1, 1, 1)),
             Roughness = new(1.0f),
             SpecularTransmittance = 1.0f,
-            DiffuseTransmittance = 1.0f,
             Anisotropic = 0.0f,
             IndexOfRefraction = 1.4500000476837158f,
             Metallic = 0.0f,
             SpecularTintStrength = 0.0f,
-            Thin = true,
         });
 
         var mesh = new Mesh(new Vector3[] {
@@ -151,14 +147,13 @@ public class Material_Generic {
         var inDir = Vector3.Normalize(new Vector3(-0.38466394f, -0.8108599f, -0.44106674f));
 
         var (fwd1, rev1) = mtl.Pdf(hit, outDir, inDir, false);
-        var (rev2, fwd2) = mtl.Pdf(hit, inDir, outDir, false);
+        var (rev2, fwd2) = mtl.Pdf(hit, inDir, outDir, true);
 
         var value = mtl.EvaluateWithCosine(hit, outDir, inDir, false);
         Assert.NotEqual(value, RgbColor.Black);
 
-        Assert.NotEqual(0.0f, rev1, 3);
-        Assert.NotEqual(0.0f, rev2, 3);
         Assert.NotEqual(0.0f, fwd1, 3);
         Assert.NotEqual(0.0f, fwd2, 3);
+        Assert.Equal(fwd1, fwd2, 3);
     }
 }

@@ -92,12 +92,10 @@ public static class JsonScene {
                         BaseColor = JsonUtils.ReadColorOrTexture(m.GetProperty("baseColor"), path),
                         Roughness = new TextureMono(ReadOptionalFloat("roughness", 0.5f)),
                         Anisotropic = ReadOptionalFloat("anisotropic", 0.0f),
-                        DiffuseTransmittance = ReadOptionalFloat("diffuseTransmittance", 1.0f),
                         IndexOfRefraction = ReadOptionalFloat("IOR", 1.01f),
                         Metallic = ReadOptionalFloat("metallic", 0.0f),
                         SpecularTintStrength = ReadOptionalFloat("specularTint", 0.0f),
                         SpecularTransmittance = ReadOptionalFloat("specularTransmittance", 0.0f),
-                        Thin = ReadOptionalBool("thin", false)
                     };
                     lock (namedMats) namedMats[name] = new GenericMaterial(parameters) { Name = name };
                 }

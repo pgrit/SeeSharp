@@ -1,4 +1,3 @@
-using SeeSharp.Shading.Bsdfs;
 using SeeSharp.Shading.MicrofacetDistributions;
 using static SeeSharp.Sampling.SampleWarp;
 

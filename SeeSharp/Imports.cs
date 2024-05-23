@@ -20,7 +20,6 @@ global using SeeSharp.Images;
 global using SeeSharp.Shading;
 global using SeeSharp.Shading.Background;
 global using SeeSharp.Shading.Materials;
-global using SeeSharp.Shading.Bsdfs;
 global using SeeSharp.Shading.Emitters;
 global using static SeeSharp.Shading.ShadingSpace;
 

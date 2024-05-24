@@ -76,8 +76,12 @@ public partial class GenericMaterial  : Material
         return ComputeValueAndPdf(context, inDir, ComputeLocalParams(context), ref c).Value;
     }
 
-    public override RgbColor EvaluateWithCosine(in ShadingContext context, Vector3 inDir)
-    => Evaluate(context, inDir) * float.Abs(inDir.Z);
+    public override RgbColor EvaluateWithCosine(in ShadingContext context, Vector3 inDir) {
+        ShadingStatCounter.NotifyEvaluate();
+        inDir = context.WorldToShading(inDir);
+        ComponentWeights c = new();
+        return ComputeValueAndPdf(context, inDir, ComputeLocalParams(context), ref c).Value * float.Abs(inDir.Z);
+    }
 
     public override (float Pdf, float PdfReverse) Pdf(in ShadingContext context, Vector3 inDir, ref ComponentWeights componentWeights)
     {
@@ -126,7 +130,6 @@ public partial class GenericMaterial  : Material
 
         // Sample a direction from the selected component
         Vector3 inDir;
-        Vector3 halfVector;
         if (c == 0)
         {
             // Sample diffuse
@@ -137,14 +140,14 @@ public partial class GenericMaterial  : Material
         else if (c == 1)
         {
             // Sample specular reflection
-            halfVector = normalDistribution.Sample(context.OutDir, primarySample);
+            Vector3 halfVector = normalDistribution.Sample(context.OutDir, primarySample);
             // Debug.Assert(normalDistribution.Pdf(context.OutDir, halfVector) > 0);
             inDir = Reflect(context.OutDir, halfVector);
         }
         else
         {
             // Sample specular transmission
-            halfVector = normalDistribution.Sample(context.OutDir, primarySample);
+            Vector3 halfVector = normalDistribution.Sample(context.OutDir, primarySample);
             if (Vector3.Dot(context.OutDir, halfVector) < 0)
                 return BsdfSample.Invalid; // prevent NaN
             var i = Refract(context.OutDir, halfVector, eta);
@@ -205,7 +208,7 @@ public partial class GenericMaterial  : Material
             // Retro-reflectance; Burley 2015, eq (4).
             float cosThetaD = Vector3.Dot(inDir, halfVector);
             float Rr = 2 * localParams.roughness * cosThetaD * cosThetaD;
-            if (sameGeometricHemisphere)
+            if (SameHemisphere(context.OutDir, inDir) && sameGeometricHemisphere)
                 bsdfValue += localParams.retroReflectance / MathF.PI * Rr * (fresnelOut + fresnelIn + fresnelOut * fresnelIn * (Rr - 1));
 
             // Microfacet reflection

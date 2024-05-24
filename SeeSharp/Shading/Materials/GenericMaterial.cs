@@ -2,9 +2,24 @@
 
 namespace SeeSharp.Shading.Materials;
 
-public partial class GenericMaterial(GenericMaterial.Parameters parameters) : Material
+public partial class GenericMaterial  : Material
 {
-    public Parameters MaterialParameters => parameters;
+    Parameters parameters;
+    public Parameters MaterialParameters
+    {
+        get => parameters;
+        set
+        {
+            parameters = value;
+            if (parameters.IndexOfRefraction < 1.01f)
+            {
+                parameters.IndexOfRefraction = 1.01f;
+                Logger.Warning($"Changed IOR to the minimum allowed value of 1.01 for material {Name}");
+            }
+        }
+    }
+
+    public GenericMaterial(Parameters parameters) => MaterialParameters = parameters;
 
     /// <summary>
     /// Parameters of the generic material
@@ -123,6 +138,7 @@ public partial class GenericMaterial(GenericMaterial.Parameters parameters) : Ma
         {
             // Sample specular reflection
             halfVector = normalDistribution.Sample(context.OutDir, primarySample);
+            // Debug.Assert(normalDistribution.Pdf(context.OutDir, halfVector) > 0);
             inDir = Reflect(context.OutDir, halfVector);
         }
         else
@@ -138,6 +154,8 @@ public partial class GenericMaterial(GenericMaterial.Parameters parameters) : Ma
         }
 
         var eval = ComputeValueAndPdf(context, inDir, localParams, ref componentWeights);
+
+        // Debug.Assert(eval.Value == RgbColor.Black || float.IsFinite((eval.Value * float.Abs(inDir.Z) / eval.Pdf).Average));
 
         return new BsdfSample {
             Pdf = eval.Pdf,
@@ -310,6 +328,8 @@ public partial class GenericMaterial(GenericMaterial.Parameters parameters) : Ma
             components.WeightsReverse[2] = selectionWeightsReverse[2];
         }
 
+        // Debug.Assert(bsdfValue == RgbColor.Black || float.IsFinite((bsdfValue * float.Abs(inDir.Z) / pdf).Average));
+
         return (bsdfValue, pdf, pdfReverse);
     }
 
@@ -318,7 +338,7 @@ public partial class GenericMaterial(GenericMaterial.Parameters parameters) : Ma
 
     struct LocalParams
     {
-        public RgbColor baseColor, colorTint, specularTint;
+        public RgbColor colorTint, specularTint;
         public float roughness;
         public float alphaX, alphaY;
         public float diffuseWeight;
@@ -334,9 +354,9 @@ public partial class GenericMaterial(GenericMaterial.Parameters parameters) : Ma
         LocalParams result = new();
 
         // Compute colors and tints
-        result.baseColor = parameters.BaseColor.Lookup(shadingContext.Point.TextureCoordinates);
-        float luminance = result.baseColor.Luminance;
-        result.colorTint = luminance > 0 ? (result.baseColor / luminance) : RgbColor.White;
+        var baseColor = parameters.BaseColor.Lookup(shadingContext.Point.TextureCoordinates);
+        float luminance = baseColor.Luminance;
+        result.colorTint = luminance > 0 ? (baseColor / luminance) : RgbColor.White;
         result.specularTint = RgbColor.Lerp(parameters.SpecularTintStrength, RgbColor.White, result.colorTint);
 
         // Microfacet distribution parameters
@@ -348,12 +368,12 @@ public partial class GenericMaterial(GenericMaterial.Parameters parameters) : Ma
         // Fresnel term parameters
         result.specularReflectanceAtNormal = RgbColor.Lerp(parameters.Metallic,
             FresnelSchlick.SchlickR0FromEta(parameters.IndexOfRefraction) * result.specularTint,
-            result.baseColor);
+            baseColor);
 
         result.diffuseWeight = (1 - parameters.Metallic) * (1 - parameters.SpecularTransmittance);
-        result.diffuseReflectance = result.baseColor * result.diffuseWeight;
-        result.specularTransmittance = parameters.SpecularTransmittance * result.baseColor;
-        result.retroReflectance = result.baseColor * result.diffuseWeight;
+        result.diffuseReflectance = baseColor * result.diffuseWeight;
+        result.specularTransmittance = parameters.SpecularTransmittance * baseColor;
+        result.retroReflectance = baseColor * result.diffuseWeight;
 
         ComputeSelectWeights(result, shadingContext.OutDir, ref result.SelectionWeightsForward);
 

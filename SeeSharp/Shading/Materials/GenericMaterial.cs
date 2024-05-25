@@ -388,18 +388,11 @@ public partial class GenericMaterial  : Material
         var diel = new RgbColor(FresnelDielectric.Evaluate(outDir.Z, 1, parameters.IndexOfRefraction));
         var schlick = FresnelSchlick.Evaluate(p.specularReflectanceAtNormal, outDir.Z);
         float f = Math.Clamp(RgbColor.Lerp(parameters.Metallic, diel, schlick).Average, 0.2f, 0.8f);
+        float specularWeight = (1 - p.diffuseWeight) * f;
+        float transmissionWeight = (1 - p.diffuseWeight) * (1 - f) * parameters.SpecularTransmittance;
+        float norm = 1 / (specularWeight + transmissionWeight + p.diffuseWeight);
 
-        float metallicBRDF = parameters.Metallic;
-        float specularBSDF = (1.0f - parameters.Metallic) * parameters.SpecularTransmittance;
-        float dielectricBRDF = (1.0f - parameters.SpecularTransmittance) * (1.0f - parameters.Metallic);
-
-        float specularWeight = f * (metallicBRDF + dielectricBRDF + specularBSDF);
-        float transmissionWeight = (1 - f) * specularBSDF;
-        float diffuseWeight = p.diffuseWeight;
-
-        float norm = 1.0f / (specularWeight + transmissionWeight + diffuseWeight);
-
-        weights[0] = diffuseWeight * norm;
+        weights[0] = p.diffuseWeight * norm;
         weights[1] = specularWeight * norm;
         weights[2] = transmissionWeight * norm;
 

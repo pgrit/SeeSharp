@@ -9,7 +9,7 @@ namespace SeeSharp.Integrators;
 /// [numPdfs] is the last vertex, the one on the light source itself.
 /// </summary>
 public ref struct BidirPathPdfs {
-    private readonly PathCache lightPathCache;
+    private readonly LightPathCache lightPathCache;
 
     /// <summary>
     /// Number of pdfs along the path
@@ -40,7 +40,7 @@ public ref struct BidirPathPdfs {
     /// <param name="cache">The cached light paths</param>
     /// <param name="lightToCam">Pre-allocated memory for the light path pdfs</param>
     /// <param name="camToLight">Pre-allocated memory for the camera path pdfs</param>
-    public BidirPathPdfs(PathCache cache, Span<float> lightToCam, Span<float> camToLight) {
+    public BidirPathPdfs(LightPathCache cache, Span<float> lightToCam, Span<float> camToLight) {
         PdfsCameraToLight = camToLight;
         PdfsLightToCamera = lightToCam;
         lightPathCache = cache;
@@ -76,7 +76,7 @@ public ref struct BidirPathPdfs {
             PdfsLightToCamera[i] = nextVert.PdfFromAncestor;
             PdfsCameraToLight[i + 2] = nextVert.PdfReverseAncestor;
             PdfNextEvent += nextVert.PdfNextEventAncestor; // All but one are zero, so we are lazy and add them up instead of picking the correct one
-            nextVert = lightPathCache[nextVert.AncestorId];
+            nextVert = lightPathCache[nextVert.PathId, nextVert.Depth - 1];
         }
         PdfsLightToCamera[^2] = nextVert.PdfFromAncestor;
         PdfsLightToCamera[^1] = 1;

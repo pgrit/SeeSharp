@@ -81,8 +81,8 @@ public class PhotonMapper : Integrator {
         int index = 0;
         photons = new();
         for (int i = 0; i < lightPaths.NumPaths; ++i) {
-            for (int k = 1; k < lightPaths.PathCache.Length(i); ++k) {
-                var vertex = lightPaths.PathCache[i, k];
+            for (int k = 1; k < lightPaths.Length(i); ++k) {
+                var vertex = lightPaths[i, k];
                 if (vertex.Depth >= 1 && vertex.Weight != RgbColor.Black) {
                     photonMap.AddPoint(vertex.Point.Position, index++);
                     photons.Add((i, k));
@@ -95,8 +95,8 @@ public class PhotonMapper : Integrator {
     RgbColor Merge(float radius, SurfacePoint hit, Vector3 outDir, int pathIdx, int vertIdx, float distSqr,
                    float radiusSquared) {
         // Compute the contribution of the photon
-        var photon = lightPaths.PathCache[pathIdx, vertIdx];
-        var ancestor = lightPaths.PathCache[pathIdx, photon.AncestorId];
+        var photon = lightPaths[pathIdx, vertIdx];
+        var ancestor = lightPaths[pathIdx, vertIdx - 1];
         var dirToAncestor = Vector3.Normalize(ancestor.Point.Position - photon.Point.Position);
         var bsdfValue = photon.Point.Material.Evaluate(hit, outDir, dirToAncestor, false);
         var photonContrib = photon.Weight * bsdfValue / NumLightPaths;

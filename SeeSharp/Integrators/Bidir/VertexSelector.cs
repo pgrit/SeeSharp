@@ -4,12 +4,8 @@
 /// Helper class to select random vertices from a path vertex cache.
 /// Ignores the first vertices of all light paths (the ones on the lights).
 /// </summary>
-public struct VertexSelector {
-    /// <param name="cache">The light subpath cache</param>
-    public VertexSelector(PathCache cache) {
-        this.cache = cache;
-    }
-
+/// <param name="cache">The light subpath cache</param>
+public struct VertexSelector(LightPathCache cache) {
     /// <summary>
     /// Randomly selects a light subpath vertex
     /// </summary>
@@ -25,5 +21,5 @@ public struct VertexSelector {
     /// </summary>
     public int Count => cache.NumVertices;
 
-    PathCache cache;
+    LightPathCache cache = cache;
 }

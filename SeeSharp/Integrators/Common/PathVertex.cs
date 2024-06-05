@@ -27,11 +27,6 @@ public struct PathVertex {
     public RgbColor Weight;
 
     /// <summary>
-    /// 0-based index of the previous vertex along the path, or -1 if there is none
-    /// </summary>
-    public int AncestorId; // TODO eliminate this after we compacted the aches
-
-    /// <summary>
     /// 0-based index of the path this vertex belongs to
     /// </summary>
     public int PathId;

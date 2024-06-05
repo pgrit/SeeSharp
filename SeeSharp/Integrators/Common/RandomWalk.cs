@@ -93,8 +93,11 @@ public ref struct RandomWalk<PayloadType> where PayloadType : new(){
 
         // Find the first actual hitpoint on scene geometry
         var hit = scene.Raytracer.Trace(ray);
-        if (!hit)
-            return Modifier?.OnInvalidHit(ref this, ray, pdf, initialWeight, 1) ?? RgbColor.Black;
+        if (!hit) {
+            var contrib = Modifier?.OnInvalidHit(ref this, ray, pdf, initialWeight, 1) ?? RgbColor.Black;
+            Modifier?.OnTerminate(ref this);
+            return contrib;
+        }
 
         SurfaceShader shader = new(hit, -ray.Direction, isOnLightSubpath);
 
@@ -112,12 +115,16 @@ public ref struct RandomWalk<PayloadType> where PayloadType : new(){
         Modifier?.OnContinue(ref this, pdfToAncestor, 1);
 
         // Terminate if the maximum depth has been reached
-        if (maxDepth <= 1)
+        if (maxDepth <= 1) {
+            Modifier?.OnTerminate(ref this);
             return estimate;
+        }
 
         // Terminate absorbed paths and invalid samples
-        if (dirSample.PdfForward == 0 || dirSample.Weight == RgbColor.Black)
+        if (dirSample.PdfForward == 0 || dirSample.Weight == RgbColor.Black) {
+            Modifier?.OnTerminate(ref this);
             return estimate;
+        }
 
         // Continue the path with the next ray
         ray = Raytracer.SpawnRay(hit, dirSample.Direction);

@@ -1,11 +1,9 @@
 ﻿namespace SeeSharp.Integrators.Bidir;
 
-
 using Walk = RandomWalk<LightPathCache.LightPathPayload>;
 
 /// <summary>
-/// Samples a given number of light paths via random walks through a scene.
-/// The paths are stored in a <see cref="Common.PathCache"/>
+/// Samples a given number of light paths via random walks through a scene and stores their vertices.
 /// </summary>
 public class LightPathCache {
     /// <summary>
@@ -32,13 +30,7 @@ public class LightPathCache {
     /// <summary>
     /// The generated light paths in the current iteration
     /// </summary>
-    public PathCache PathCache { get; set; }
-
-    /// <summary>
-    /// If set to true, the path vertices will be sorted such that equal seed => same path vertex cache
-    /// (This ensures that methods that randomly pick path vertices for connection remain deterministic)
-    /// </summary>
-    public bool UseDeterministicVertexCache { get; set; } = false;
+    protected PathCache PathCache { get; set; }
 
     /// <summary>
     /// Maps a primary space random number to an importance sampled emitter in the scene
@@ -158,7 +150,7 @@ public class LightPathCache {
             TraceLightPath(ref rng, idx, walkModifier);
         });
 
-        PathCache.Prepare(UseDeterministicVertexCache);
+        PathCache.Prepare();
     }
 
     /// <summary>
@@ -167,13 +159,13 @@ public class LightPathCache {
     /// <returns>
     /// The index of the last vertex along the path.
     /// </returns>
-    public virtual int TraceLightPath(ref RNG rng, int idx, LightPathWalk walkModifier) {
+    public virtual void TraceLightPath(ref RNG rng, int idx, LightPathWalk walkModifier) {
         // Select an emitter or the background
         var (emitter, prob) = SelectLight(rng.NextFloat());
         if (emitter != null)
-            return TraceEmitterPath(ref rng, emitter, prob, idx, walkModifier);
+            TraceEmitterPath(ref rng, emitter, prob, idx, walkModifier);
         else
-            return TraceBackgroundPath(ref rng, prob, idx, walkModifier);
+            TraceBackgroundPath(ref rng, prob, idx, walkModifier);
     }
 
     /// <summary>
@@ -185,22 +177,29 @@ public class LightPathCache {
     public delegate void ProcessVertex(in PathVertex vertex, in PathVertex ancestor, Vector3 dirToAncestor);
 
     /// <summary>
-    /// Utility function that iterates over a light path, starting on the end point, excluding the point on the light itself.
+    /// Utility function that iterates over all vertices of all light paths, excluding the point on the light itself.
     /// </summary>
     /// <param name="func">Delegate invoked on each vertex</param>
     public void ForEachVertex(ProcessVertex func) {
-        int n = PathCache?.NumVertices ?? 0;
-        Parallel.For(0, n, i => {
-            var vertex = PathCache[i];
-            if (vertex.AncestorId < 0 || vertex.PathId < 0)
-                return;
-            var ancestor = PathCache[vertex.AncestorId];
-            var dirToAncestor = Vector3.Normalize(ancestor.Point.Position - vertex.Point.Position);
-            func(vertex, ancestor, dirToAncestor);
+        Parallel.For(0, PathCache?.NumPaths ?? 0, pathIdx => {
+            for (int i = 1; i < PathCache.Length(pathIdx); ++i) {
+                var vertex = PathCache.GetPathVertex(pathIdx, i);
+                var ancestor = PathCache.GetPathVertex(pathIdx, i - 1);
+                var dirToAncestor = Vector3.Normalize(ancestor.Point.Position - vertex.Point.Position);
+                func(vertex, ancestor, dirToAncestor);
+            }
         });
     }
 
-    protected int TraceEmitterPath(ref RNG rng, Emitter emitter, float selectProb, int idx, LightPathWalk walkModifier) {
+    public ref PathVertex this[int vertexIdx] => ref PathCache.GetVertex(vertexIdx);
+
+    public ref PathVertex this[int pathIdx, int vertexIdx] => ref PathCache.GetPathVertex(pathIdx, vertexIdx);
+
+    public int Length(int pathIdx) => PathCache.Length(pathIdx);
+
+    public int NumVertices => PathCache.NumVertices;
+
+    protected void TraceEmitterPath(ref RNG rng, Emitter emitter, float selectProb, int idx, LightPathWalk walkModifier) {
         var emitterSample = SampleEmitter(ref rng, emitter);
 
         // Account for the light selection probability in the MIS weights
@@ -208,10 +207,9 @@ public class LightPathCache {
 
         var walk = new Walk(Scene, ref rng, MaxDepth, walkModifier);
         walk.StartFromEmitter(emitterSample, emitterSample.Weight / selectProb, new() { PathIdx = idx });
-        return walk.Payload.LastId;
     }
 
-    protected int TraceBackgroundPath(ref RNG rng, float selectProb, int idx, LightPathWalk walkModifier) {
+    protected void TraceBackgroundPath(ref RNG rng, float selectProb, int idx, LightPathWalk walkModifier) {
         var (ray, weight, pdf) = SampleBackground(ref rng);
 
         // Account for the light selection probability
@@ -219,13 +217,12 @@ public class LightPathCache {
         weight /= selectProb;
 
         if (pdf == 0) // Avoid NaNs
-            return -1;
+            return;
 
         Debug.Assert(float.IsFinite(weight.Average));
 
         var walk = new Walk(Scene, ref rng, MaxDepth, walkModifier);
         walk.StartFromBackground(ray, weight, pdf, new() { PathIdx = idx });
-        return walk.Payload.LastId;
     }
 
     public struct LightPathPayload {
@@ -257,6 +254,8 @@ public class LightPathCache {
         /// </summary>
         public readonly PathCache Cache;
 
+        ThreadLocal<PathBuffer<PathVertex>> threadBuffers = new(() => new(16));
+
         /// <summary>
         /// Computes the next event sampling pdf
         /// </summary>
@@ -282,9 +281,8 @@ public class LightPathCache {
             walk.Payload.nextReversePdf = 0.0f;
             walk.Payload.maxRoughness = 0.0f;
 
-            walk.Payload.LastId = Cache.AddVertex(new PathVertex {
+            threadBuffers.Value.Add(new PathVertex {
                 Point = emitterSample.Point,
-                AncestorId = -1,
                 PathId = walk.Payload.PathIdx,
                 FromBackground = false,
                 Depth = 0,
@@ -297,9 +295,8 @@ public class LightPathCache {
             walk.Payload.nextReversePdf = 0.0f;
             walk.Payload.FirstPoint = new SurfacePoint { Position = ray.Origin };
 
-            walk.Payload.LastId = Cache.AddVertex(new PathVertex {
+            threadBuffers.Value.Add(new PathVertex {
                 Point = walk.Payload.FirstPoint,
-                AncestorId = -1,
                 PathId = walk.Payload.PathIdx,
                 FromBackground = true,
                 Depth = 0,
@@ -314,14 +311,13 @@ public class LightPathCache {
 
             // The next event pdf is computed once the path has three vertices
             float pdfNextEventAncestor = 0.0f;
-            if (depth == 2 && ComputeNextEventPdf != null && walk.Payload.LastId >= 0)
+            if (depth == 2 && ComputeNextEventPdf != null)
                 pdfNextEventAncestor = ComputeNextEventPdf(walk.Payload.FirstPoint, walk.Payload.SecondPoint, -shader.Context.OutDirWorld);
 
-            walk.Payload.LastId = Cache.AddVertex(new PathVertex {
+            threadBuffers.Value.Add(new PathVertex {
                 Point = shader.Point,
                 PdfFromAncestor = pdfFromAncestor,
                 PdfReverseAncestor = walk.Payload.nextReversePdf,
-                AncestorId = walk.Payload.LastId,
                 PathId = walk.Payload.PathIdx,
                 Weight = throughput,
                 Depth = (byte)depth,
@@ -334,6 +330,11 @@ public class LightPathCache {
 
         public override void OnContinue(ref Walk walk, float pdfToAncestor, int depth) {
             walk.Payload.nextReversePdf = pdfToAncestor;
+        }
+
+        public override void OnTerminate(ref Walk walk) {
+            Cache.Commit(walk.Payload.PathIdx, threadBuffers.Value.AsSpan());
+            threadBuffers.Value.Clear();
         }
     }
 }

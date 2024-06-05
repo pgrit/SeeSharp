@@ -113,7 +113,7 @@ public class VertexCacheBidir : BidirBase {
     /// Creates the vertex resampler and computes the light tracing contribution.
     /// </summary>
     protected override void ProcessPathCache() {
-        if (NumConnections > 0) vertexSelector = new VertexSelector(LightPaths.PathCache);
+        if (NumConnections > 0) vertexSelector = new VertexSelector(LightPaths);
         if (EnableLightTracer) SplatLightVertices();
     }
 

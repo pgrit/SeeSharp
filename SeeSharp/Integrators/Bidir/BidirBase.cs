@@ -91,12 +91,12 @@ public abstract class BidirBase : Integrator {
         /// <summary>
         /// The pdf values for sampling this path.
         /// </summary>
-        public List<PathPdfPair> Vertices;
+        public PathBuffer<PathPdfPair> Vertices;
 
         /// <summary>
         /// Distances between all points sampled along this path
         /// </summary>
-        public List<float> Distances;
+        public PathBuffer<float> Distances;
 
         /// <summary>
         /// Maximum roughness of any surface material encountered along the path, prior to the currently
@@ -394,7 +394,7 @@ public abstract class BidirBase : Integrator {
         int lastCameraVertexIdx = -1;
         Span<float> camToLight = stackalloc float[numPdfs];
         Span<float> lightToCam = stackalloc float[numPdfs];
-        var pathPdfs = new BidirPathPdfs(LightPaths.PathCache, lightToCam, camToLight);
+        var pathPdfs = new BidirPathPdfs(LightPaths, lightToCam, camToLight);
         pathPdfs.GatherLightPdfs(vertex, lastCameraVertexIdx);
         pathPdfs.PdfsCameraToLight[0] = response.PdfEmit;
         pathPdfs.PdfsCameraToLight[1] = pdfReverse;
@@ -482,7 +482,7 @@ public abstract class BidirBase : Integrator {
         Span<float> camToLight = stackalloc float[numPdfs];
         Span<float> lightToCam = stackalloc float[numPdfs];
 
-        var pathPdfs = new BidirPathPdfs(LightPaths.PathCache, lightToCam, camToLight);
+        var pathPdfs = new BidirPathPdfs(LightPaths, lightToCam, camToLight);
         pathPdfs.GatherCameraPdfs(path, lastCameraVertexIdx);
         pathPdfs.GatherLightPdfs(vertex, lastCameraVertexIdx);
         if (vertex.Depth == 1)
@@ -537,19 +537,18 @@ public abstract class BidirBase : Integrator {
 
         if (lightVertIdx > 0) {
             // specific vertex selected
-            var vertex = LightPaths.PathCache[lightVertIdx];
-            if (vertex.AncestorId < 0 || vertex.PathId < 0)
+            var vertex = LightPaths[lightVertIdx];
+            if (vertex.Depth < 1)
                 return result;
-
-            var ancestor = LightPaths.PathCache[vertex.AncestorId];
+            var ancestor = LightPaths[lightVertIdx - 1];
             var dirToAncestor = Vector3.Normalize(ancestor.Point.Position - vertex.Point.Position);
             result += Connect(shader, vertex, ancestor, dirToAncestor, path, reversePdfJacobian, lightVertexProb);
         } else if (lightPathIdx >= 0) {
             // Connect with all vertices along the path
-            int n = LightPaths.PathCache.Length(lightPathIdx);
+            int n = LightPaths.Length(lightPathIdx);
             for (int i = 1; i < n; ++i) {
-                var ancestor = LightPaths.PathCache[lightPathIdx, i - 1];
-                var vertex = LightPaths.PathCache[lightPathIdx, i];
+                var ancestor = LightPaths[lightPathIdx, i - 1];
+                var vertex = LightPaths[lightPathIdx, i];
                 var dirToAncestor = Vector3.Normalize(ancestor.Point.Position - vertex.Point.Position);
                 result += Connect(shader, vertex, ancestor, dirToAncestor, path, reversePdfJacobian, lightVertexProb);
             }
@@ -623,7 +622,7 @@ public abstract class BidirBase : Integrator {
         int lastCameraVertexIdx = numPdfs - 2;
         Span<float> camToLight = stackalloc float[numPdfs];
         Span<float> lightToCam = stackalloc float[numPdfs];
-        var pathPdfs = new BidirPathPdfs(LightPaths.PathCache, lightToCam, camToLight);
+        var pathPdfs = new BidirPathPdfs(LightPaths, lightToCam, camToLight);
         pathPdfs.GatherCameraPdfs(path, lastCameraVertexIdx);
         pathPdfs.PdfsCameraToLight[^2] = path.Vertices[^1].PdfFromAncestor;
 
@@ -759,7 +758,7 @@ public abstract class BidirBase : Integrator {
         int lastCameraVertexIdx = numPdfs - 1;
         Span<float> camToLight = stackalloc float[numPdfs];
         Span<float> lightToCam = stackalloc float[numPdfs];
-        var pathPdfs = new BidirPathPdfs(LightPaths.PathCache, lightToCam, camToLight);
+        var pathPdfs = new BidirPathPdfs(LightPaths, lightToCam, camToLight);
         pathPdfs.GatherCameraPdfs(path, lastCameraVertexIdx);
         if (numPdfs > 1)
             pathPdfs.PdfsLightToCamera[^2] = pdfEmit;
@@ -795,7 +794,7 @@ public abstract class BidirBase : Integrator {
         int lastCameraVertexIdx = numPdfs - 1;
         Span<float> camToLight = stackalloc float[numPdfs];
         Span<float> lightToCam = stackalloc float[numPdfs];
-        var pathPdfs = new BidirPathPdfs(LightPaths.PathCache, lightToCam, camToLight);
+        var pathPdfs = new BidirPathPdfs(LightPaths, lightToCam, camToLight);
         pathPdfs.GatherCameraPdfs(path, lastCameraVertexIdx);
         if (numPdfs > 1)
             pathPdfs.PdfsLightToCamera[^2] = pdfEmit;
@@ -840,8 +839,8 @@ public abstract class BidirBase : Integrator {
     protected class CameraRandomWalk : RandomWalk<CameraPath>.RandomWalkModifier {
         BidirBase integrator;
 
-        ThreadLocal<List<PathPdfPair>> threadLocalVertices = new(() => new());
-        ThreadLocal<List<float>> threadLocalDistances = new(() => new());
+        ThreadLocal<PathBuffer<PathPdfPair>> threadLocalVertices = new(() => new(16));
+        ThreadLocal<PathBuffer<float>> threadLocalDistances = new(() => new(16));
 
         public CameraRandomWalk(BidirBase integrator) {
             this.integrator = integrator;

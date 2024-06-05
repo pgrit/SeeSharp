@@ -158,7 +158,7 @@ public class VertexConnectionAndMerging : VertexCacheBidir {
             return 0;
 
         for (int i = 0; i < LightPaths.NumPaths; ++i) {
-            int length = LightPaths.PathCache.Length(i);
+            int length = LightPaths.Length(i);
             average = (length + i * average) / (i + 1);
         }
         return average;
@@ -217,8 +217,8 @@ public class VertexConnectionAndMerging : VertexCacheBidir {
             mergeBuildTimer.Start();
 
             photonMap.Clear();
-            for (int i = 0; i < LightPaths.PathCache.NumVertices; ++i) {
-                var vertex = LightPaths.PathCache[i];
+            for (int i = 0; i < LightPaths.NumVertices; ++i) {
+                var vertex = LightPaths[i];
                 if (vertex.PathId >= 0 && vertex.Depth >= 1 && vertex.Weight != RgbColor.Black) {
                     photonMap.AddPoint(vertex.Point.Position, i);
                 }
@@ -257,7 +257,7 @@ public class VertexConnectionAndMerging : VertexCacheBidir {
 
     protected virtual RgbColor Merge(in CameraPath path, float cameraJacobian, in SurfaceShader shader,
                                      int vertexIdx, float distSqr, float radiusSquared) {
-        var photon = LightPaths.PathCache[vertexIdx];
+        var photon = LightPaths[vertexIdx];
 
         // Check that the path does not exceed the maximum length
         var depth = path.Vertices.Count + photon.Depth;
@@ -265,7 +265,7 @@ public class VertexConnectionAndMerging : VertexCacheBidir {
             return RgbColor.Black;
 
         // Compute the contribution of the photon
-        var ancestor = LightPaths.PathCache[photon.AncestorId];
+        var ancestor = LightPaths[vertexIdx - 1];
         var dirToAncestor = Vector3.Normalize(ancestor.Point.Position - shader.Point.Position);
         var bsdfValue = shader.Evaluate(dirToAncestor);
         var photonContrib = photon.Weight * bsdfValue / NumLightPaths.Value;
@@ -290,7 +290,7 @@ public class VertexConnectionAndMerging : VertexCacheBidir {
         Span<float> camToLight = stackalloc float[numPdfs];
         Span<float> lightToCam = stackalloc float[numPdfs];
 
-        var pathPdfs = new BidirPathPdfs(LightPaths.PathCache, lightToCam, camToLight);
+        var pathPdfs = new BidirPathPdfs(LightPaths, lightToCam, camToLight);
         pathPdfs.GatherCameraPdfs(path, lastCameraVertexIdx);
         pathPdfs.GatherLightPdfs(photon, lastCameraVertexIdx - 1);
 

@@ -47,10 +47,10 @@ public class PathVisualizer : DebugVisualizer {
 
     /// <returns>A grayscale color for scene geometry or the color of the intersected path marker</returns>
     /// <inheritdoc />
-    public override RgbColor ComputeColor(SurfacePoint hit, Vector3 from) {
+    public override RgbColor ComputeColor(SurfacePoint hit, Vector3 from, uint row, uint col) {
         int type;
         if (!markerTypes.TryGetValue(hit.Mesh, out type))
-            return base.ComputeColor(hit, from);
+            return base.ComputeColor(hit, from, row, col);
 
         RgbColor color = new RgbColor(1, 0, 0);
         TypeToColor?.TryGetValue(type, out color);

@@ -46,6 +46,31 @@ public static class MeshFactory {
         return result;
     }
 
+    public static Mesh MakeAABB(BoundingBox boundingBox) {
+        Vector3 x = new(boundingBox.Diagonal.X, 0, 0);
+        Vector3 y = new(0, boundingBox.Diagonal.Y, 0);
+        Vector3 z = new(0, 0, boundingBox.Diagonal.Z);
+        Vector3[] vertices = [
+            boundingBox.Min,
+            boundingBox.Min + x,
+            boundingBox.Min + x + y,
+            boundingBox.Min + y,
+            boundingBox.Min + z,
+            boundingBox.Min + z + x,
+            boundingBox.Min + z + x + y,
+            boundingBox.Min + z + y,
+        ];
+        int[] indices = [
+            0, 1, 2, 0, 2, 3, // front
+            4, 6, 5, 4, 7, 6, // back
+            4, 0, 3, 4, 3, 7, // left
+            1, 5, 2, 5, 6, 2, // right
+            3, 2, 6, 3, 6, 7, // top
+            0, 5, 1, 0, 4, 5, // bottom
+        ];
+        return new(vertices, indices);
+    }
+
     /// <summary>
     /// Creates a triangulated sphere around a point.
     /// </summary>

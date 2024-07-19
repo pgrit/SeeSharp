@@ -79,4 +79,6 @@ public readonly struct BoundingBox {
     /// Surface area of the box
     /// </summary>
     public float SurfaceArea => 2 * (Diagonal.X * (Diagonal.Y + Diagonal.Z) + Diagonal.Y * Diagonal.Z);
+
+    public float Volume => Diagonal.X * Diagonal.Y * Diagonal.Z;
 }

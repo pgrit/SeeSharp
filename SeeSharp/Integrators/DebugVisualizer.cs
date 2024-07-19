@@ -35,14 +35,14 @@ public class DebugVisualizer : Integrator {
     /// The shading value at a primary hit point. The default implementation uses "eye light shading",
     /// i.e., the cosine between the outgoing direction and the normal.
     /// </summary>
-    public virtual RgbColor ComputeColor(SurfacePoint hit, Vector3 from) {
+    public virtual RgbColor ComputeColor(SurfacePoint hit, Vector3 from, uint row, uint col) {
         float cosine = Math.Abs(Vector3.Dot(hit.Normal, from));
         cosine /= hit.Normal.Length();
         cosine /= from.Length();
         return RgbColor.White * cosine;
     }
 
-    private void RenderPixel(Scene scene, uint row, uint col, uint sampleIndex) {
+    public virtual void RenderPixel(Scene scene, uint row, uint col, uint sampleIndex) {
         // Seed the random number generator
         uint pixelIndex = row * (uint)scene.FrameBuffer.Width + col;
         var rng = new RNG(BaseSeed, pixelIndex, sampleIndex);
@@ -54,7 +54,7 @@ public class DebugVisualizer : Integrator {
 
         // Shade and splat
         RgbColor value = RgbColor.Black;
-        if (hit) value = ComputeColor(hit, -primaryRay.Direction);
+        if (hit) value = ComputeColor(hit, -primaryRay.Direction, row, col);
         scene.FrameBuffer.Splat((int)col, (int)row, value);
     }
 }

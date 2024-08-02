@@ -19,7 +19,7 @@ public class PiecewiseConstant {
 
         // Normalize
         float total = cdf[^1];
-        for (int i = 0; i < cdf.Count; ++i) {
+        for (int i = 0; i < cdf.Count && total > 0.0f; ++i) {
             cdf[i] /= total;
             Debug.Assert(float.IsFinite(cdf[i]));
         }

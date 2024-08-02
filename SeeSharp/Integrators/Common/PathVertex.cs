@@ -5,7 +5,8 @@ namespace SeeSharp.Integrators.Common;
 /// </summary>
 public struct PathVertex {
     /// <summary>
-    /// The surface interesection
+    /// The surface intersection. If this is the first vertex of a background path, this point is not actually
+    /// on a surface but somewhere in free space outside the scene.
     /// </summary>
     public SurfacePoint Point;
 

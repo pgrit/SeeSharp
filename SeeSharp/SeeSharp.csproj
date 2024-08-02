@@ -30,6 +30,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <PackageReference Include="Markdig" Version="0.37.0" />
     <PackageReference Include="SimpleImageIO" Version="1.6.1" />
     <!-- <ProjectReference Include="../../SimpleImageIO/SimpleImageIO/SimpleImageIO.csproj" /> -->
     <PackageReference Include="TinyEmbree" Version="1.0.3" />

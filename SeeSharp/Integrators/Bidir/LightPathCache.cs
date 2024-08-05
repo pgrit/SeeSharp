@@ -33,19 +33,14 @@ public class LightPathCache {
     protected PathCache PathCache { get; set; }
 
     /// <summary>
-    /// Maps a primary space random number to an importance sampled emitter in the scene
+    /// Randomly samples either the background or an emitter from the scene
     /// </summary>
-    /// <param name="primary">Primary space random number in [0,1]</param>
     /// <returns>The emitter and its selection probability</returns>
-    public virtual (Emitter, float) SelectLight(float primary) {
-        if (BackgroundProbability > 0 && primary <= BackgroundProbability) {
+    public virtual (Emitter, float) SelectLight(ref RNG rng) {
+        if (BackgroundProbability > 0 && rng.NextFloat() <= BackgroundProbability) {
             return (null, BackgroundProbability);
         } else {
-            // Remap the primary sample and select an emitter in the scene
-            primary = (primary - BackgroundProbability) / (1 - BackgroundProbability);
-            float scaled = Scene.Emitters.Count * primary;
-            int idx = Math.Clamp((int)scaled, 0, Scene.Emitters.Count - 1);
-            var emitter = Scene.Emitters[idx];
+            var emitter = Scene.Emitters[rng.NextInt(Scene.Emitters.Count)];
             return (emitter, (1 - BackgroundProbability) / Scene.Emitters.Count);
         }
     }
@@ -161,7 +156,7 @@ public class LightPathCache {
     /// </returns>
     public virtual void TraceLightPath(ref RNG rng, int idx, LightPathWalk walkModifier) {
         // Select an emitter or the background
-        var (emitter, prob) = SelectLight(rng.NextFloat());
+        var (emitter, prob) = SelectLight(ref rng);
         if (emitter != null)
             TraceEmitterPath(ref rng, emitter, prob, idx, walkModifier);
         else

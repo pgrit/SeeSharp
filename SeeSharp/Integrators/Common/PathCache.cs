@@ -32,7 +32,10 @@ public class PathCache {
             int offset = globalVertexIdx - (idx == 0 ? 0 : cumPathLen[idx - 1]);
             vertexMemoryIdx = pathIndices[idx] + offset;
         } else {
-            vertexMemoryIdx = pathIndices[idx + 1];
+            // Skip empty paths in-between
+            do idx++;
+            while (pathIndices[idx] == -1);
+            vertexMemoryIdx = pathIndices[idx];
         }
         return ref memory[vertexMemoryIdx];
     }

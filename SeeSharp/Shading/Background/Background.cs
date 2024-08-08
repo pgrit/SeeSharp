@@ -13,6 +13,12 @@ public abstract class Background {
 
     public abstract BackgroundSample SampleDirection(Vector2 primary);
     public abstract Vector2 SampleDirectionInverse(Vector3 Direction);
+
+    /// <summary>
+    /// Computes the PDF for sampling a given direction from the background
+    /// </summary>
+    /// <param name="Direction">Direction from the scene towards the background</param>
+    /// <returns>Solid angle PDF</returns>
     public abstract float DirectionPdf(Vector3 Direction);
     public abstract (Ray, RgbColor, float) SampleRay(Vector2 primaryPos, Vector2 primaryDir);
     public abstract (Vector2, Vector2) SampleRayInverse(Vector3 dir, Vector3 pos);

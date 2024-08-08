@@ -211,8 +211,10 @@ public class LightPathCache {
         pdf *= selectProb;
         weight /= selectProb;
 
-        if (pdf == 0) // Avoid NaNs
+        if (pdf == 0) { // Avoid NaNs
+            PathCache.Commit(idx, []);
             return;
+        }
 
         Debug.Assert(float.IsFinite(weight.Average));
 

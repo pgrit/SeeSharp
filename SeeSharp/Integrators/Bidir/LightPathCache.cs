@@ -194,7 +194,7 @@ public class LightPathCache {
 
     public int NumVertices => PathCache.NumVertices;
 
-    protected void TraceEmitterPath(ref RNG rng, Emitter emitter, float selectProb, int idx, LightPathWalk walkModifier) {
+    protected virtual void TraceEmitterPath(ref RNG rng, Emitter emitter, float selectProb, int idx, LightPathWalk walkModifier) {
         var emitterSample = SampleEmitter(ref rng, emitter);
 
         // Account for the light selection probability in the MIS weights
@@ -204,7 +204,7 @@ public class LightPathCache {
         walk.StartFromEmitter(emitterSample, emitterSample.Weight / selectProb, new() { PathIdx = idx });
     }
 
-    protected void TraceBackgroundPath(ref RNG rng, float selectProb, int idx, LightPathWalk walkModifier) {
+    protected virtual void TraceBackgroundPath(ref RNG rng, float selectProb, int idx, LightPathWalk walkModifier) {
         var (ray, weight, pdf) = SampleBackground(ref rng);
 
         // Account for the light selection probability

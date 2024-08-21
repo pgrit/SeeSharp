@@ -5,7 +5,7 @@
 /// traces a certain number of paths from the light sources and one camera path per pixel.
 /// Derived classes can control the sampling decisions and techniques.
 /// </summary>
-public abstract class BidirBase : Integrator {
+public abstract class BidirBase<CameraPayloadType> : Integrator {
     /// <summary>
     /// Number of iterations (batches of one sample per pixel) to render
     /// </summary>
@@ -113,6 +113,8 @@ public abstract class BidirBase : Integrator {
 
         public SurfacePoint CurrentPoint;
         public SurfacePoint PreviousPoint;
+
+        public CameraPayloadType Payload;
     }
 
     /// <summary>
@@ -836,15 +838,9 @@ public abstract class BidirBase : Integrator {
     /// <param name="path">The camera path</param>
     protected virtual void OnCameraPathTerminate(in CameraPath path) { }
 
-    protected class CameraRandomWalk : RandomWalk<CameraPath>.RandomWalkModifier {
-        BidirBase integrator;
-
+    protected class CameraRandomWalk(BidirBase<CameraPayloadType> integrator) : RandomWalk<CameraPath>.RandomWalkModifier {
         ThreadLocal<PathBuffer<PathPdfPair>> threadLocalVertices = new(() => new(16));
         ThreadLocal<PathBuffer<float>> threadLocalDistances = new(() => new(16));
-
-        public CameraRandomWalk(BidirBase integrator) {
-            this.integrator = integrator;
-        }
 
         public override void OnStartCamera(ref RandomWalk<CameraPath> walk, CameraRaySample cameraRay, Pixel filmPosition) {
             threadLocalVertices.Value.Clear();

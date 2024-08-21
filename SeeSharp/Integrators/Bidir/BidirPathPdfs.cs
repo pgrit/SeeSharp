@@ -1,6 +1,4 @@
-﻿using static SeeSharp.Integrators.Bidir.BidirBase;
-
-namespace SeeSharp.Integrators;
+﻿namespace SeeSharp.Integrators.Bidir;
 
 /// <summary>
 /// Assembles the pdf values in two arrays. The elements of each array
@@ -54,7 +52,7 @@ public ref struct BidirPathPdfs {
     /// The index of the last vertex along the path. Can be smaller than the actual length to accumulate
     /// only the pdfs of a sub-path.
     /// </param>
-    public void GatherCameraPdfs(in CameraPath cameraPath, int lastCameraVertexIdx) {
+    public void GatherCameraPdfs<T>(in BidirBase<T>.CameraPath cameraPath, int lastCameraVertexIdx) {
         for (int i = 0; i < lastCameraVertexIdx; ++i) {
             PdfsCameraToLight[i] = cameraPath.Vertices[i].PdfFromAncestor;
             if (i < lastCameraVertexIdx - 1)

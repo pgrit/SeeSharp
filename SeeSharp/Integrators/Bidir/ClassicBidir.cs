@@ -4,7 +4,13 @@
 /// Implements classic bidirectional path tracing as proposed by Veach and Guibas. Each camera path is
 /// paired with a light path, and all vertices of both paths are connected pair-wise.
 /// </summary>
-public class ClassicBidir : BidirBase {
+public class ClassicBidir : ClassicBidirBase<byte> {}
+
+/// <summary>
+/// Implements classic bidirectional path tracing as proposed by Veach and Guibas. Each camera path is
+/// paired with a light path, and all vertices of both paths are connected pair-wise.
+/// </summary>
+public class ClassicBidirBase<CameraPayloadType> : BidirBase<CameraPayloadType> {
     /// <summary>
     /// Set to true to output the raw images and MIS weighted images of all individual sampling
     /// techniques. The images will be written to a folder with the same name as the output file.
@@ -64,8 +70,7 @@ public class ClassicBidir : BidirBase {
         }
 
         if (NumLightPaths.HasValue && NumLightPaths.Value != scene.FrameBuffer.Width * scene.FrameBuffer.Height) {
-            throw new ArgumentOutOfRangeException(nameof(NumLightPaths), NumLightPaths,
-                "Classic Bidir requires exactly one light path for every camera path");
+            throw new InvalidOperationException("Classic Bidir requires exactly one light path for every camera path");
         }
 
         base.Render(scene);

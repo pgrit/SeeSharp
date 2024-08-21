@@ -5,7 +5,14 @@
 /// by Davidovic et al [2014] "Progressive Light Transport Simulation on the GPU: Survey and Improvements".
 /// A good basis for algorithms that want to control the number of connections, or the resampling logic.
 /// </summary>
-public class VertexCacheBidir : BidirBase {
+public class VertexCacheBidir : VertexCacheBidirBase<byte> {}
+
+/// <summary>
+/// Variation of the bidirectional path tracer that uses the "Light vertex cache" proposed
+/// by Davidovic et al [2014] "Progressive Light Transport Simulation on the GPU: Survey and Improvements".
+/// A good basis for algorithms that want to control the number of connections, or the resampling logic.
+/// </summary>
+public class VertexCacheBidirBase<CameraPayloadType> : BidirBase<CameraPayloadType> {
     /// <summary>
     /// Number of connections to make
     /// </summary>

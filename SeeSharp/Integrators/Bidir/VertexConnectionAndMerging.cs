@@ -6,7 +6,13 @@ namespace SeeSharp.Integrators.Bidir;
 /// Implements vertex connection and merging (VCM). An MIS combination of bidirectional path tracing
 /// (we are using the vertex caching flavor) and photon mapping (aka merging).
 /// </summary>
-public class VertexConnectionAndMerging : VertexCacheBidir {
+public class VertexConnectionAndMerging : VertexConnectionAndMergingBase<byte> {}
+
+/// <summary>
+/// Implements vertex connection and merging (VCM). An MIS combination of bidirectional path tracing
+/// (we are using the vertex caching flavor) and photon mapping (aka merging).
+/// </summary>
+public class VertexConnectionAndMergingBase<CameraPayloadType> : VertexCacheBidirBase<CameraPayloadType> {
     /// <summary>Whether or not to use merging at the first hit from the camera.</summary>
     public bool MergePrimary = false;
 

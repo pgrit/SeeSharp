@@ -190,8 +190,15 @@ public class LightPathCache {
 
     public ref PathVertex this[int pathIdx, int vertexIdx] => ref PathCache.GetPathVertex(pathIdx, vertexIdx);
 
+    /// <returns>The length of the pathIdx'th path</returns>
     public int Length(int pathIdx) => PathCache.Length(pathIdx);
 
+    /// <returns>The global vertex index of the vertexIdx'th vertex along the pathIdx'th path</returns>
+    public int GetGlobalVertexIdx(int pathIdx, int vertexIdx) => PathCache.GetPathVertexIndex(pathIdx, vertexIdx);
+
+    /// <summary>
+    /// The total number of light vertices in the cache
+    /// </summary>
     public int NumVertices => PathCache.NumVertices;
 
     protected virtual void TraceEmitterPath(ref RNG rng, Emitter emitter, float selectProb, int idx, LightPathWalk walkModifier) {

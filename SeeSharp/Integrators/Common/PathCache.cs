@@ -19,11 +19,22 @@ public class PathCache {
         memory = new PathVertex[numPaths * expectedPathLength];
     }
 
+    /// <returns>
+    /// A reference to the vertexIdx'th vertex along the pathIdx'th path
+    /// </returns>
     public ref PathVertex GetPathVertex(int pathIdx, int vertexIdx) {
         int p = pathIndices[pathIdx];
         return ref memory[p + vertexIdx];
     }
 
+    /// <returns>
+    /// The global vertex index of the vertexIdx'th vertex along the pathIdx'th path
+    /// </returns>
+    public int GetPathVertexIndex(int pathIdx, int vertexIdx) => pathIndices[pathIdx] + vertexIdx;
+
+    /// <returns>
+    /// A reference to the a vertex identified by its global index in the entire cache
+    /// </returns>
     public ref PathVertex GetVertex(int globalVertexIdx) {
         int idx = Array.BinarySearch(cumPathLen, globalVertexIdx);
         int vertexMemoryIdx;

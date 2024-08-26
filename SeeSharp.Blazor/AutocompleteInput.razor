@@ -1,0 +1,51 @@
+@using System.Text
+@namespace SeeSharp.Blazor
+
+<div>
+    <form @onsubmit=OnSubmit>
+        <p><label>@Label: <input class="@(valid ? "" : "invalid")" type="text" @bind="Text" @bind:event="oninput" list="autocomplete"></label></p>
+    </form>
+    <datalist id="autocomplete">
+        @if (autocompleteList != null)
+        {
+            @foreach (string str in autocompleteList)
+            {
+                <option value="@str"></option>
+            }
+        }
+    </datalist>
+</div>
+
+@code {
+    [Parameter] public IEnumerable<string> Candidates { get; set; }
+
+    [Parameter]
+    public EventCallback<string> OnTextChanged { get; set; }
+
+    [Parameter]
+    public EventCallback<System.EventArgs> OnSubmit { get; set; }
+
+    [Parameter]
+    public string Label { get; set; }
+
+    IEnumerable<string> autocompleteList;
+
+    bool valid;
+
+    public bool Valid => valid;
+
+    public string Text
+    {
+        get => text;
+        set
+        {
+            text = value;
+            autocompleteList = Candidates.Where(str => str.StartsWith(value));
+
+            valid = autocompleteList.Contains(text);
+
+            OnTextChanged.InvokeAsync(text);
+        }
+    }
+    string text = "";
+}

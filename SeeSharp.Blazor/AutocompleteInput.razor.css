@@ -1,0 +1,15 @@
+.invalid {
+    border-width: 2px;
+    border-color: red;
+    border-style: solid;
+}
+
+p:has(.invalid)::after {
+    content: " scene not found";
+    color: red;
+}
+
+input {
+    font-size: medium;
+    margin-left: 8px;
+}

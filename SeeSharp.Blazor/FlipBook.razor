@@ -1,0 +1,63 @@
+@using Microsoft.JSInterop
+@using System.Text.Json.Serialization
+@inject IJSRuntime JSRuntime
+
+@namespace SeeSharp.Blazor
+
+@if (flipCode != null)
+    @((MarkupString)flipCode)
+
+@code {
+    string flipCode;
+    string flipJson;
+
+    [Parameter]
+    public SimpleImageIO.FlipBook Flip { get; set; }
+    SimpleImageIO.FlipBook lastFlip;
+
+    public record struct OnClickEventArgs
+    (
+        int X,
+        int Y,
+        bool CtrlKey
+    )
+    {
+    }
+
+    [Parameter]
+    public EventCallback<OnClickEventArgs> OnClick { get; set; }
+
+    protected override async Task OnParametersSetAsync()
+    {
+        if (Flip == null || lastFlip == Flip) return;
+
+        await Task.Run(() => {
+            var code = Flip.Generate();
+            flipCode = code.Html;
+            flipJson = code.Data;
+        });
+
+        lastFlip = Flip;
+    }
+
+    public struct _OnFlipClickArgs
+    {
+        [JsonInclude] public bool ctrlKey;
+    }
+
+    [JSInvokable]
+    public void _OnFlipClick(int x, int y, _OnFlipClickArgs eventArgs)
+    {
+        OnClick.InvokeAsync(new(x, y, eventArgs.ctrlKey)).Wait();
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        // Need to wait with invoking the JS code until the HTML got added to the DOM on the client side
+        if (flipJson != null)
+        {
+            await JSRuntime.InvokeVoidAsync("makeFlipBook", flipJson, DotNetObjectReference.Create(this), nameof(_OnFlipClick));
+            flipJson = null;
+        }
+    }
+}

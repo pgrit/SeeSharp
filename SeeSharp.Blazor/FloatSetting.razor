@@ -1,0 +1,21 @@
+@using Microsoft.AspNetCore.Mvc
+
+@namespace SeeSharp.Blazor
+
+@inherits SettingBase<float>
+
+@{
+    base.BuildRenderTree(__builder);
+}
+
+@code {
+    protected override string Type => "number";
+
+    protected override float ParseValue(ChangeEventArgs e)
+    {
+        if (float.TryParse((string)e.Value, out float result))
+            return result;
+        return Value;
+    }
+}
+

@@ -1,0 +1,20 @@
+.render-setting-container {
+    display: flex;
+    flex-direction: column;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    width: max-content;
+
+    background-color: #e6f1f4;
+    padding: 0.5em;
+    border-style: solid;
+    border-width: 1pt;
+    border-color: darkgrey;
+}
+
+.render-setting-title {
+    margin-top: 0;
+    margin-bottom: 6pt;
+    border-bottom: 1pt solid darkgray;
+    font-weight: 600;
+}

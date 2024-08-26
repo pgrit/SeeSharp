@@ -1,0 +1,29 @@
+.render-setting {
+    padding: 0;
+    margin: 0;
+    display: flex;
+    justify-content: space-between;
+    font-size: smaller;
+}
+
+    .render-setting:hover {
+        background-color: #f8fbfc;
+    }
+
+.render-setting input {
+    margin-left: 1em;
+}
+
+    .render-setting input[type="number"] {
+        width: 6em;
+    }
+
+    .render-setting input[type="checkbox"] {
+        width: 1em;
+    }
+
+    element {
+        background-color: #e6f1f4;
+        padding: 1em;
+    }
+

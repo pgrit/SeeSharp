@@ -1,0 +1,19 @@
+@using Microsoft.AspNetCore.Mvc
+
+@namespace SeeSharp.Blazor
+
+@inherits SettingBase<bool>
+
+@{
+    base.BuildRenderTree(__builder);
+}
+
+@code {
+    protected override string Type => "checkbox";
+
+    protected override bool ParseValue(ChangeEventArgs e)
+    {
+        return (bool)e.Value;
+    }
+}
+

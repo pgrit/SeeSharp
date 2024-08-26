@@ -1,0 +1,35 @@
+@using Microsoft.AspNetCore.Mvc
+
+@namespace SeeSharp.Blazor
+
+@typeparam T
+
+<label class="render-setting" title="@HoverText">@Label
+    <input value="@Value" @oninput="OnValueChanged" type="@Type" @ref="Input" @attributes=CustomAttributes />
+</label>
+
+@code {
+    [Parameter] public string HoverText { get; set; }
+    [Parameter] public string Label { get; set; }
+
+    [Parameter] public T Value { get; set; }
+    [Parameter] public EventCallback<T> ValueChanged { get; set; }
+
+    protected ElementReference Input;
+
+    protected virtual string Type { get => "number"; }
+
+    protected virtual Dictionary<string, object> CustomAttributes { get => []; }
+
+    protected virtual T ParseValue(ChangeEventArgs e)
+    {
+        throw new NotImplementedException();
+    }
+
+    private async Task OnValueChanged(ChangeEventArgs e)
+    {
+        Value = ParseValue(e);
+        await ValueChanged.InvokeAsync(Value);
+    }
+}
+

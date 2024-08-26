@@ -1,0 +1,61 @@
+::deep .scene-button {
+    margin-top: 0px;
+    margin-bottom: 2px;
+    background-color: #cfe8ef;
+    color: rgb(12, 12, 12);
+    padding-left: 4px;
+    padding-top: 2px;
+    padding-bottom: 2px;
+    overflow: hidden;
+}
+
+    ::deep .scene-button:hover {
+        cursor: pointer;
+        background-color: #8edeee;
+    }
+
+.dropdown-header {
+    font-weight: bold;
+}
+    .dropdown-header:hover {
+        cursor: pointer;
+    }
+
+.dropdown-body {
+    column-count: auto;
+    column-width: 12rem;
+    margin-left: 8px;
+    border-left-width: 8px;
+    border-left-color: #208dab;
+    border-left-style: solid;
+    background-color: #cfe8ef;
+}
+
+.scene-picker {
+    background-color: #e6f1f4;
+    padding-left: 8px;
+    padding-bottom: 8px;
+    padding-top: 8px;
+}
+
+.btn {
+	background-color: #a4e1f2;
+	border-style: none;
+	/* border-width: 2px;
+	border-color: #245e6f; */
+    color: black;
+	font-size: medium;
+	padding-left: 8px;
+	padding-right: 8px;
+    padding-bottom: 4px;
+    padding-top: 4px;
+}
+    .btn:hover {
+        background-color: #c9eff4;
+        cursor: pointer;
+    }
+    .btn:disabled {
+        background-color: #e5f1f5;
+        color: #96b4bd;
+        border-color: #96b4bd;
+    }

@@ -1,0 +1,25 @@
+@using Microsoft.AspNetCore.Mvc
+
+@namespace SeeSharp.Blazor
+
+@inherits SettingBase<int>
+
+@{
+    base.BuildRenderTree(__builder);
+}
+
+@code {
+    protected override string Type => "number";
+
+    protected override int ParseValue(ChangeEventArgs e)
+    {
+        if (int.TryParse((string)e.Value, out int result))
+            return result;
+        return Value;
+    }
+
+    protected override Dictionary<string, object> CustomAttributes => new() {
+        { "step", 1 }
+    };
+}
+

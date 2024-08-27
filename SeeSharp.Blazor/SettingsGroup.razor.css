@@ -4,6 +4,7 @@
     flex-wrap: wrap;
     justify-content: space-between;
     width: max-content;
+    height: max-content;
 
     background-color: #e6f1f4;
     padding: 0.5em;

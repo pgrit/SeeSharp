@@ -15,5 +15,9 @@
     {
         return (bool)e.Value;
     }
+
+    protected override Dictionary<string, object> CustomAttributes => new() {
+        { "checked", Value }
+    };
 }
 

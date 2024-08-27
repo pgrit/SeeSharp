@@ -21,6 +21,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SeeSharp.ToMitsuba", "SeeSh
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SeeSharp.Templates", "SeeSharp.Templates\SeeSharp.Templates.csproj", "{C64F4190-EAB3-4EC5-B882-7FDFADB91580}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SeeSharp.Blazor", "SeeSharp.Blazor\SeeSharp.Blazor.csproj", "{613CF821-48F6-41C8-A2E6-0E8B7479D9DA}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -142,5 +144,17 @@ Global
 		{C64F4190-EAB3-4EC5-B882-7FDFADB91580}.Release|x64.Build.0 = Release|Any CPU
 		{C64F4190-EAB3-4EC5-B882-7FDFADB91580}.Release|x86.ActiveCfg = Release|Any CPU
 		{C64F4190-EAB3-4EC5-B882-7FDFADB91580}.Release|x86.Build.0 = Release|Any CPU
+		{613CF821-48F6-41C8-A2E6-0E8B7479D9DA}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{613CF821-48F6-41C8-A2E6-0E8B7479D9DA}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{613CF821-48F6-41C8-A2E6-0E8B7479D9DA}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{613CF821-48F6-41C8-A2E6-0E8B7479D9DA}.Debug|x64.Build.0 = Debug|Any CPU
+		{613CF821-48F6-41C8-A2E6-0E8B7479D9DA}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{613CF821-48F6-41C8-A2E6-0E8B7479D9DA}.Debug|x86.Build.0 = Debug|Any CPU
+		{613CF821-48F6-41C8-A2E6-0E8B7479D9DA}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{613CF821-48F6-41C8-A2E6-0E8B7479D9DA}.Release|Any CPU.Build.0 = Release|Any CPU
+		{613CF821-48F6-41C8-A2E6-0E8B7479D9DA}.Release|x64.ActiveCfg = Release|Any CPU
+		{613CF821-48F6-41C8-A2E6-0E8B7479D9DA}.Release|x64.Build.0 = Release|Any CPU
+		{613CF821-48F6-41C8-A2E6-0E8B7479D9DA}.Release|x86.ActiveCfg = Release|Any CPU
+		{613CF821-48F6-41C8-A2E6-0E8B7479D9DA}.Release|x86.Build.0 = Release|Any CPU
 	EndGlobalSection
 EndGlobal

@@ -186,7 +186,6 @@ public abstract class BidirBase<CameraPayloadType> : Integrator {
 
         ProgressBar progressBar = new(prefix: "Rendering...");
         progressBar.Start(NumIterations);
-        RNG camSeedGen = new(BaseSeedCamera);
         RenderTimer timer = new();
         Stopwatch lightTracerTimer = new();
         Stopwatch pathTracerTimer = new();
@@ -211,7 +210,7 @@ public abstract class BidirBase<CameraPayloadType> : Integrator {
                 LightPaths.NumPaths = NumLightPaths.Value;
 
                 lightTracerTimer.Start();
-                LightPaths.TraceAllPaths(iter,
+                LightPaths.TraceAllPaths(BaseSeedLight, iter,
                     (origin, primary, nextDirection) => NextEventPdf(primary, origin));
                 ProcessPathCache();
                 lightTracerTimer.Stop();

@@ -17,12 +17,6 @@ public class LightPathCache {
     public int MaxDepth;
 
     /// <summary>
-    /// Seed that is hashed with the iteration and path index to generate a random number sequence
-    /// for each light path.
-    /// </summary>
-    public uint BaseSeed = 0xC030114u;
-
-    /// <summary>
     /// The scene that is being rendered
     /// </summary>
     public Scene Scene { get; init; }
@@ -124,11 +118,12 @@ public class LightPathCache {
     /// <summary>
     /// Resets the path cache and populates it with a new set of light paths.
     /// </summary>
+    /// <param name="seed">Base seed for the random number generator, hashed with the iteration to obtain the actual seed.</param>
     /// <param name="iter">Index of the current iteration, used to seed the random number generator.</param>
     /// <param name="nextEventPdfCallback">
     /// Delegate that is invoked to compute the next event sampling density
     /// </param>
-    public virtual void TraceAllPaths(uint iter, LightPathWalk.NextEventPdfCallback nextEventPdfCallback) {
+    public virtual void TraceAllPaths(uint seed, uint iter, LightPathWalk.NextEventPdfCallback nextEventPdfCallback) {
         if (PathCache == null)
             PathCache = new PathCache(NumPaths, Math.Min(MaxDepth + 1, 10));
         else if (NumPaths != PathCache.NumPaths) {
@@ -141,7 +136,7 @@ public class LightPathCache {
         LightPathWalk walkModifier = new(PathCache, nextEventPdfCallback);
 
         Parallel.For(0, NumPaths, idx => {
-            var rng = new RNG(BaseSeed, (uint)idx, iter);
+            var rng = new RNG(seed, (uint)idx, iter);
             TraceLightPath(ref rng, idx, walkModifier);
         });
 

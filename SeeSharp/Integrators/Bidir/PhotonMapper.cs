@@ -54,14 +54,13 @@ public class PhotonMapper : Integrator {
             MaxDepth = MaxDepth,
             NumPaths = NumLightPaths,
             Scene = scene,
-            BaseSeed = BaseSeedLight
         };
 
         if (photonMap == null) photonMap = new();
 
         for (uint iter = 0; iter < NumIterations; ++iter) {
             scene.FrameBuffer.StartIteration();
-            lightPaths.TraceAllPaths(iter, null);
+            lightPaths.TraceAllPaths(BaseSeedLight, iter, null);
             ProcessPathCache();
             TraceAllCameraPaths(iter);
             scene.FrameBuffer.EndIteration();

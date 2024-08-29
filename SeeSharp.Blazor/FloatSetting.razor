@@ -17,5 +17,9 @@
             return result;
         return Value;
     }
+
+    protected override Dictionary<string, object> CustomAttributes => new() {
+        { "step", "any" }
+    };
 }
 

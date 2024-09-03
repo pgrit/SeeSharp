@@ -202,6 +202,11 @@ public class LightPathCache {
         // Account for the light selection probability in the MIS weights
         emitterSample.Pdf *= selectProb;
 
+        if (emitterSample.Pdf == 0 || emitterSample.Weight == RgbColor.Black) { // Avoid NaNs and terminate early
+            PathCache.Commit(idx, []);
+            return;
+        }
+
         var walk = new Walk(Scene, ref rng, MaxDepth, walkModifier);
         walk.StartFromEmitter(emitterSample, emitterSample.Weight / selectProb, new() { PathIdx = idx });
     }
@@ -213,7 +218,7 @@ public class LightPathCache {
         pdf *= selectProb;
         weight /= selectProb;
 
-        if (pdf == 0) { // Avoid NaNs
+        if (pdf == 0 || weight == RgbColor.Black) { // Avoid NaNs and terminate early
             PathCache.Commit(idx, []);
             return;
         }

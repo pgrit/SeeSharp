@@ -328,11 +328,10 @@ public class VertexConnectionAndMergingBase<CameraPayloadType> : VertexCacheBidi
     /// <summary>
     /// Shrinks the global maximum radius based on the current camera path.
     /// </summary>
-    /// <param name="primaryDistance">Distance between the camera and the primary hit point</param>
+    /// <param name="pixelFootprint">Radius of the pixel footprint at the primary hit point</param>
     /// <returns>The shrunk radius</returns>
-    protected virtual float ComputeLocalMergeRadius(float primaryDistance) {
-        float footprint = primaryDistance * MathF.Tan(0.1f * MathF.PI / 180);
-        return MathF.Min(footprint, MaximumRadius);
+    protected virtual float ComputeLocalMergeRadius(float pixelFootprint) {
+        return pixelFootprint;
     }
 
     struct MergeState {
@@ -364,7 +363,7 @@ public class VertexConnectionAndMergingBase<CameraPayloadType> : VertexCacheBidi
         if (path.Vertices.Count == 1 && !MergePrimary) return RgbColor.Black;
         if (!EnableMerging) return RgbColor.Black;
         if (!MergePrimary && path.Depth == 1) return RgbColor.Black;
-        float localRadius = ComputeLocalMergeRadius(path.Distances[0]);
+        float localRadius = ComputeLocalMergeRadius(path.FootprintRadius);
 
         var state = new MergeState(cameraJacobian, localRadius * localRadius, path, shader);
         photonMap.ForAllNearest(shader.Point.Position, MaxNumPhotons, localRadius, MergeHelper, ref state);
@@ -475,7 +474,7 @@ public class VertexConnectionAndMergingBase<CameraPayloadType> : VertexCacheBidi
 
         // Compute the acceptance probability approximation
         int lastCameraVertexIdx = cameraPath.Vertices.Count - 1;
-        float radius = ComputeLocalMergeRadius(cameraPath.Distances[0]);
+        float radius = ComputeLocalMergeRadius(cameraPath.FootprintRadius);
         float mergeApproximation = pathPdfs.PdfsLightToCamera[lastCameraVertexIdx]
                                  * MathF.PI * radius * radius * NumLightPaths.Value;
 
@@ -511,7 +510,7 @@ public class VertexConnectionAndMergingBase<CameraPayloadType> : VertexCacheBidi
         sumReciprocals += pathPdfs.PdfNextEvent / pdfThis;
 
         // All connections along the camera path
-        float radius = ComputeLocalMergeRadius(cameraPath.Distances[0]);
+        float radius = ComputeLocalMergeRadius(cameraPath.FootprintRadius);
         sumReciprocals +=
             CameraPathReciprocals(cameraPath.Vertices.Count - 2, pathPdfs, cameraPath.Pixel, radius, correlRatio)
             / pdfThis;
@@ -523,7 +522,9 @@ public class VertexConnectionAndMergingBase<CameraPayloadType> : VertexCacheBidi
     public override float LightTracerMis(PathVertex lightVertex, in BidirPathPdfs pathPdfs, Pixel pixel, float distToCam) {
         var correlRatio = new CorrelAwareRatios(pathPdfs, distToCam, lightVertex.FromBackground);
 
-        float radius = ComputeLocalMergeRadius(distToCam);
+        float footprintRadius = float.Sqrt(1.0f / pathPdfs.PdfsCameraToLight[0]);
+
+        float radius = ComputeLocalMergeRadius(footprintRadius);
         float sumReciprocals = LightPathReciprocals(-1, pathPdfs, pixel, radius, correlRatio);
         sumReciprocals /= NumLightPaths.Value;
         sumReciprocals += 1;
@@ -535,7 +536,7 @@ public class VertexConnectionAndMergingBase<CameraPayloadType> : VertexCacheBidi
     public override float BidirConnectMis(in CameraPath cameraPath, PathVertex lightVertex, in BidirPathPdfs pathPdfs) {
         var correlRatio = new CorrelAwareRatios(pathPdfs, cameraPath.Distances[0], lightVertex.FromBackground);
 
-        float radius = ComputeLocalMergeRadius(cameraPath.Distances[0]);
+        float radius = ComputeLocalMergeRadius(cameraPath.FootprintRadius);
         float sumReciprocals = 1.0f;
         int lastCameraVertexIdx = cameraPath.Vertices.Count - 1;
         sumReciprocals += CameraPathReciprocals(lastCameraVertexIdx, pathPdfs, cameraPath.Pixel, radius, correlRatio)
@@ -557,7 +558,7 @@ public class VertexConnectionAndMergingBase<CameraPayloadType> : VertexCacheBidi
             sumReciprocals += pathPdfs.PdfsCameraToLight[^1] / pathPdfs.PdfNextEvent;
 
         // All bidirectional connections
-        float radius = ComputeLocalMergeRadius(cameraPath.Distances[0]);
+        float radius = ComputeLocalMergeRadius(cameraPath.FootprintRadius);
         sumReciprocals +=
             CameraPathReciprocals(cameraPath.Vertices.Count - 1, pathPdfs, cameraPath.Pixel, radius, correlRatio)
             / pathPdfs.PdfNextEvent;

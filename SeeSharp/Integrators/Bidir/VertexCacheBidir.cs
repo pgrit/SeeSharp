@@ -117,11 +117,24 @@ public class VertexCacheBidirBase<CameraPayloadType> : BidirBase<CameraPayloadTy
     }
 
     /// <summary>
+    /// Fraction of light paths that never properly started because their initial ray sampling failed
+    /// </summary>
+    public float InvalidLightPathFraction { get; private set; }
+
+    /// <summary>
     /// Creates the vertex resampler and computes the light tracing contribution.
     /// </summary>
     protected override void ProcessPathCache() {
         if (NumConnections > 0) vertexSelector = new VertexSelector(LightPaths);
         if (EnableLightTracer) SplatLightVertices();
+
+        // For debug purposes: count the number of paths that never started
+        int numEmpty = 0;
+        for (int i = 0; i < LightPaths.NumPaths; ++i) {
+            if (LightPaths.Length(i) == 0)
+                numEmpty++;
+        }
+        InvalidLightPathFraction = numEmpty / (float)LightPaths.NumPaths;
     }
 
     /// <inheritdoc />

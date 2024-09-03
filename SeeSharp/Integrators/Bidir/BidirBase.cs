@@ -114,6 +114,12 @@ public abstract class BidirBase<CameraPayloadType> : Integrator {
         public SurfacePoint CurrentPoint;
         public SurfacePoint PreviousPoint;
 
+        /// <summary>
+        /// Approximated radius of the pixel footprint, i.e., the projection of the pixel this path started in
+        /// onto the visible surface.
+        /// </summary>
+        public float FootprintRadius;
+
         public CameraPayloadType Payload;
     }
 
@@ -867,6 +873,11 @@ public abstract class BidirBase<CameraPayloadType> : Integrator {
             if (depth == 1 && integrator.EnableDenoiser) {
                 var albedo = shader.GetScatterStrength();
                 integrator.DenoiseBuffers.LogPrimaryHit(walk.Payload.Pixel, albedo, shader.Context.Normal);
+            }
+
+            if (depth == 1) {
+                // Compute the pixel footprint (ignoring aspect ratios, approximated based on the camera Jacobian)
+                walk.Payload.FootprintRadius = float.Sqrt(1 / pdfFromAncestor);
             }
 
             walk.Payload.Vertices.Add(new PathPdfPair {

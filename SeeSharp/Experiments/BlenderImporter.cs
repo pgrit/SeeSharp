@@ -55,8 +55,8 @@ static class BlenderImporter {
         string python =
             $"""
             import bpy
-            bpy.ops.wm.open_mainfile(filepath='{blendFile}')
-            bpy.ops.export.to_seesharp(filepath='{jsonFile}')
+            bpy.ops.wm.open_mainfile(filepath='{blendFile.Replace('\\', '/')}')
+            bpy.ops.export.to_seesharp(filepath='{jsonFile.Replace('\\', '/')}')
             """;
 
         if (blenderExecutable == null)

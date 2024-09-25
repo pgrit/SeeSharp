@@ -20,4 +20,9 @@ public abstract class Integrator {
     /// </summary>
     /// <param name="scene">The scene to render</param>
     public abstract void Render(Scene scene);
+
+    /// <summary>
+    /// Provides access to the progress bar of the currently running rendering operation, if available
+    /// </summary>
+    public virtual ProgressBar CurProgressBar { get => null; }
 }

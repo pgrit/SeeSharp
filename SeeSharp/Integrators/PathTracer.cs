@@ -173,6 +173,10 @@ public class PathTracerBase<PayloadType> : Integrator {
         public PayloadType UserData { get; set; }
     }
 
+    ProgressBar progressBar;
+
+    public override ProgressBar CurProgressBar => progressBar;
+
     /// <summary>
     /// Renders a scene with the current settings. Only one scene can be rendered at a time.
     /// </summary>
@@ -192,7 +196,7 @@ public class PathTracerBase<PayloadType> : Integrator {
         if (EnableDenoiser)
             denoiseBuffers = new(scene.FrameBuffer);
 
-        ProgressBar progressBar = new(prefix: "Rendering...");
+        progressBar = new(prefix: "Rendering...");
         progressBar.Start(TotalSpp);
         RenderTimer timer = new();
         ShadingStatCounter.Reset();

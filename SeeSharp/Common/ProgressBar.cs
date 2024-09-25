@@ -36,6 +36,15 @@ public class ProgressBar {
 
     public static bool Silent = false;
 
+    public string CurrentOutput => curText;
+
+    public int NumWorkDone => done;
+    public int TotalWork => total;
+    public double TimeElapsedSeconds => accumSeconds;
+    public double TotalTimeEstimateSeconds => estimTotalSeconds;
+    public double FractionDone => NumWorkDone / (double)TotalWork;
+    public string Label => prefix;
+
     static ProgressBar() {
         // Check if the console / output stream supports altering previous output
         // e.g., not (always) the case if its forwarded to a file or the VS Code Debug Console is used.
@@ -98,7 +107,7 @@ public class ProgressBar {
 
         Debug.Assert(timer.IsRunning, "ProgressBar.Start() has not been called");
 
-        double elapsedSeconds = timer.ElapsedMilliseconds / 1000.0f;
+        double elapsedSeconds = timer.ElapsedTicks / (double)Stopwatch.Frequency;
         timer.Restart();
         accumSeconds += elapsedSeconds;
 

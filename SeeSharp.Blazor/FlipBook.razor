@@ -29,7 +29,14 @@
 
     protected override async Task OnParametersSetAsync()
     {
-        if (Flip == null || lastFlip == Flip) return;
+        if (Flip == null)
+        {
+            flipCode = null;
+            lastFlip = null;
+            return;
+        }
+
+        if (lastFlip == Flip) return;
 
         await Task.Run(() => {
             var code = Flip.Generate();

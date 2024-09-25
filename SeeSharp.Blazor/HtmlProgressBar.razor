@@ -1,0 +1,22 @@
+@namespace SeeSharp.Blazor
+
+@if (Progress != null && Progress.TotalWork != 0)
+{
+    <p>
+        <label>
+            @Progress.Label
+            <progress id="file" value="@Progress.NumWorkDone" max="@Progress.TotalWork"></progress>
+            @($"{Progress.NumWorkDone / (double)Progress.TotalWork:P0}")
+            (@($"{Progress.TimeElapsedSeconds:f2}s / {Progress.TotalTimeEstimateSeconds:f2}s"))
+        </label>
+    </p>
+}
+
+@code {
+    [Parameter] public SeeSharp.Common.ProgressBar Progress { get; set; }
+
+    public void Sync()
+    {
+        StateHasChanged();
+    }
+}

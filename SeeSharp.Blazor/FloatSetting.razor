@@ -11,6 +11,8 @@
 @code {
     protected override string Type => "number";
 
+    [Parameter] public float? Step { get; set; } = null;
+
     protected override float ParseValue(ChangeEventArgs e)
     {
         if (float.TryParse((string)e.Value, out float result))
@@ -19,7 +21,7 @@
     }
 
     protected override Dictionary<string, object> CustomAttributes => new() {
-        { "step", "any" }
+        { "step", Step?.ToString() ?? "any" }
     };
 }
 

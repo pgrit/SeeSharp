@@ -12,15 +12,13 @@ public static class Scripts
     <script>
         {{SimpleImageIO.FlipBook.HeaderScript}}
         function makeFlipBook(jsonArgs, onClickObj, onClickMethodName) {
-            let jsonHotfix = jsonArgs.substr(0, jsonArgs.length - 3) + '}'
-
             let onClick = null;
             if (onClickObj && onClickMethodName) {
                 onClick = (col, row, evt) =>
                     onClickObj.invokeMethodAsync(onClickMethodName, col, row, { ctrlKey: evt.ctrlKey })
             }
 
-            window['flipbook']['MakeFlipBook'](jsonHotfix, onClick);
+            window['flipbook']['MakeFlipBook'](jsonArgs, onClick);
         }
     </script>
     """;

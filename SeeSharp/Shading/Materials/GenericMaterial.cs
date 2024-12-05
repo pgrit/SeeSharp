@@ -312,7 +312,7 @@ public partial class GenericMaterial  : Material
 
         components.NumComponents = 3;
         components.NumComponentsReverse = 3;
-        if (components.Pdfs != null)
+        if (!components.Pdfs.IsEmpty)
         {
             components.Pdfs[0] = pdfsFwd[0];
             components.Pdfs[1] = pdfsFwd[1];
@@ -321,7 +321,7 @@ public partial class GenericMaterial  : Material
             components.Weights[1] = localParams.SelectionWeightsForward[1];
             components.Weights[2] = localParams.SelectionWeightsForward[2];
         }
-        if (components.PdfsReverse != null)
+        if (!components.PdfsReverse.IsEmpty)
         {
             components.PdfsReverse[0] = pdfsRev[0];
             components.PdfsReverse[1] = pdfsRev[1];
@@ -344,7 +344,6 @@ public partial class GenericMaterial  : Material
         public RgbColor colorTint, specularTint;
         public float roughness;
         public float alphaX, alphaY;
-        public float diffuseWeight;
         public RgbColor diffuseReflectance;
         public RgbColor retroReflectance;
         public RgbColor specularTransmittance;
@@ -373,10 +372,10 @@ public partial class GenericMaterial  : Material
             FresnelSchlick.SchlickR0FromEta(parameters.IndexOfRefraction) * result.specularTint,
             baseColor);
 
-        result.diffuseWeight = (1 - parameters.Metallic) * (1 - parameters.SpecularTransmittance);
-        result.diffuseReflectance = baseColor * result.diffuseWeight;
+        float diffuseWeight = (1 - parameters.Metallic) * (1 - parameters.SpecularTransmittance);
+        result.diffuseReflectance = baseColor * diffuseWeight;
         result.specularTransmittance = parameters.SpecularTransmittance * baseColor;
-        result.retroReflectance = baseColor * result.diffuseWeight;
+        result.retroReflectance = baseColor * diffuseWeight;
 
         ComputeSelectWeights(result, shadingContext.OutDir, ref result.SelectionWeightsForward);
 
@@ -388,11 +387,12 @@ public partial class GenericMaterial  : Material
         var diel = new RgbColor(FresnelDielectric.Evaluate(outDir.Z, 1, parameters.IndexOfRefraction));
         var schlick = FresnelSchlick.Evaluate(p.specularReflectanceAtNormal, outDir.Z);
         float f = Math.Clamp(RgbColor.Lerp(parameters.Metallic, diel, schlick).Average, 0.2f, 0.8f);
-        float specularWeight = (1 - p.diffuseWeight) * f;
-        float transmissionWeight = (1 - p.diffuseWeight) * (1 - f) * parameters.SpecularTransmittance;
-        float norm = 1 / (specularWeight + transmissionWeight + p.diffuseWeight);
+        float specularWeight = f;
+        float transmissionWeight = (1 - f) * parameters.SpecularTransmittance;
+        float diffuseWeight = (1 - parameters.Metallic) * (1 - parameters.SpecularTransmittance) * (1 - f);
+        float norm = 1 / (specularWeight + transmissionWeight + diffuseWeight);
 
-        weights[0] = p.diffuseWeight * norm;
+        weights[0] = diffuseWeight * norm;
         weights[1] = specularWeight * norm;
         weights[2] = transmissionWeight * norm;
 

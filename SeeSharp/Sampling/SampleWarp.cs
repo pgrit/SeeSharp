@@ -38,11 +38,11 @@ public static class SampleWarp {
         float beta = AngleBetween(nBC, -nAB);
         float gamma = AngleBetween(nCA, -nBC);
 
-        float cosAlpha = MathF.Cos(alpha);
-        float sinAlpha = MathF.Sin(alpha);
+        var (sinAlpha, cosAlpha) = float.SinCos(alpha);
 
         // Cosine of the arc length of the curved line between v1 and v2
-        float cosLenC = (MathF.Cos(gamma) + MathF.Cos(beta) * cosAlpha) / (MathF.Sin(beta) * sinAlpha);
+        var (sinBeta, cosBeta) = float.SinCos(beta);
+        float cosLenC = (MathF.Cos(gamma) + cosBeta * cosAlpha) / (sinBeta * sinAlpha);
 
         Debug.Assert(float.IsFinite(cosLenC));
 
@@ -51,8 +51,7 @@ public static class SampleWarp {
         // Randomly select a sub-triangle
         float sampleA = primary.X * area;
 
-        float s = MathF.Sin(sampleA - alpha);
-        float t = MathF.Cos(sampleA - alpha);
+        var (s, t) = float.SinCos(sampleA - alpha);
 
         float u = t - cosAlpha;
         float v = s + sinAlpha * cosLenC;
@@ -88,9 +87,10 @@ public static class SampleWarp {
     }
 
     public static Vector3 SphericalToCartesian(float sintheta, float costheta, float phi) {
+        var (sinphi, cosphi) = float.SinCos(phi);
         return new Vector3(
-            sintheta * MathF.Cos(phi),
-            sintheta * MathF.Sin(phi),
+            sintheta * cosphi,
+            sintheta * sinphi,
             costheta
         );
     }
@@ -101,7 +101,10 @@ public static class SampleWarp {
     /// <param name="spherical">A vector where X is the longitude (phi) and Y the latitude (theta)</param>
     /// <returns>Cartesian coordinates in a right handed system (z is up)</returns>
     public static Vector3 SphericalToCartesian(Vector2 spherical)
-    => SphericalToCartesian(MathF.Sin(spherical.Y), MathF.Cos(spherical.Y), spherical.X);
+    {
+        var (sin, cos) = float.SinCos(spherical.Y);
+        return SphericalToCartesian(sin, cos, spherical.X);
+    }
 
     /// <summary>
     /// Maps the cartensian coordinates (z is up) to spherical coordinates.
@@ -220,7 +223,8 @@ public static class SampleWarp {
             }
         }
 
-        return new Vector2(r * MathF.Cos(phi), r * MathF.Sin(phi));
+        var (sin, cos) = float.SinCos(phi);
+        return new Vector2(r * cos, r * sin);
     }
 
     public static Vector2 FromConcentricDisc(Vector2 pos) {

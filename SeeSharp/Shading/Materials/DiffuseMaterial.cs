@@ -180,10 +180,10 @@ public class DiffuseMaterial : Material {
             float pdfFwd = (reflectPdf.Item1 + transmitPdf.Item1) * 0.5f;
             float pdfRev = (reflectPdf.Item2 + transmitPdf.Item2) * 0.5f;
 
-            if (componentWeights.Pdfs != null) componentWeights.Pdfs[0] = pdfFwd * 2.0f;
-            if (componentWeights.Weights != null) componentWeights.Weights[0] = 0.5f;
-            if (componentWeights.PdfsReverse != null) componentWeights.PdfsReverse[0] = pdfRev * 2.0f;
-            if (componentWeights.WeightsReverse != null) componentWeights.WeightsReverse[0] = 0.5f;
+            if (!componentWeights.Pdfs.IsEmpty) componentWeights.Pdfs[0] = pdfFwd * 2.0f;
+            if (!componentWeights.Weights.IsEmpty) componentWeights.Weights[0] = 0.5f;
+            if (!componentWeights.PdfsReverse.IsEmpty) componentWeights.PdfsReverse[0] = pdfRev * 2.0f;
+            if (!componentWeights.WeightsReverse.IsEmpty) componentWeights.WeightsReverse[0] = 0.5f;
 
             return (pdfFwd, pdfRev);
         } else {

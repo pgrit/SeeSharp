@@ -9,7 +9,7 @@ public class PiecewiseConstant {
     /// The given weights are normalized and the CDF is computed.
     /// </summary>
     /// <param name="weights">The non-normalized weights of each bin</param>
-    public PiecewiseConstant(ReadOnlySpan<float> weights) {
+    public PiecewiseConstant(params ReadOnlySpan<float> weights) {
         // Compute unnormalized cdf
         cdf = new List<float>(weights.Length);
         float sum = 0;
@@ -27,13 +27,6 @@ public class PiecewiseConstant {
         // Force the last value to one for numerical stability
         cdf[^1] = 1.0f;
     }
-
-    /// <summary>
-    /// Initializes the piece-wise constant pdf over the [0, 1] domain, where each piece has the same length.
-    /// The given weights are normalized and the CDF is computed.
-    /// </summary>
-    /// <param name="weights">The non-normalized weights of each bin</param>
-    public PiecewiseConstant(params float[] weights) : this(new ReadOnlySpan<float>(weights)) { }
 
     /// <summary>
     /// Transforms a primary sample to one distributed according to the

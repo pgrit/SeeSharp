@@ -65,7 +65,7 @@ class GenericMaterial_Sampling {
 
     static float TestRender(GenericMaterial.Parameters parameters, string name) {
         using var scene = MakeScene(parameters);
-        scene.FrameBuffer = new(512, 512, name, FrameBuffer.Flags.SendToTev);
+        scene.FrameBuffer = new(512, 512, name, FrameBuffer.Flags.SendToTev | FrameBuffer.Flags.EstimatePixelVariance);
         scene.Prepare();
 
         PathTracer integrator = new() {
@@ -271,16 +271,38 @@ class GenericMaterial_Sampling {
 
         TestRender(glass, "glass");
 
-        GenericMaterial.Parameters mirror = new() {
+        GenericMaterial.Parameters mirrorDiel = new() {
             Roughness = new(0.003199999928474426f),
             Anisotropic = 0.0f,
             IndexOfRefraction = 1.4500000476837158f,
-            Metallic = 0.8f,
+            Metallic = 0.0f,
             SpecularTintStrength = 0.0f,
             SpecularTransmittance = 0.0f,
         };
 
-        TestRender(mirror, "mirror");
+        TestRender(mirrorDiel, "mirror-diel");
+
+        GenericMaterial.Parameters mirror = new() {
+            Roughness = new(0.003199999928474426f),
+            Anisotropic = 0.0f,
+            IndexOfRefraction = 1.4500000476837158f,
+            Metallic = 1.0f,
+            SpecularTintStrength = 0.0f,
+            SpecularTransmittance = 0.0f,
+        };
+
+        TestRender(mirror, "mirror-cond");
+
+        GenericMaterial.Parameters mirrorMix = new() {
+            Roughness = new(0.003199999928474426f),
+            Anisotropic = 0.0f,
+            IndexOfRefraction = 1.4500000476837158f,
+            Metallic = 0.7f,
+            SpecularTintStrength = 0.0f,
+            SpecularTransmittance = 0.0f,
+        };
+
+        TestRender(mirrorMix, "mirror-mix");
     }
 
     public static void Benchmark(int numSteps = 2) {

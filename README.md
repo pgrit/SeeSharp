@@ -1,7 +1,9 @@
 <img src="logo.png" width=120 height=120 alt="SeeSharp Logo" />
 
 ![Build](https://github.com/pgrit/SeeSharp/workflows/Build/badge.svg)
-<a href="https://www.nuget.org/packages/SeeSharp/"><img src="https://buildstats.info/nuget/SeeSharp" /></a>
+<a href="https://www.nuget.org/packages/SeeSharp/">
+    ![NuGet Downloads](https://img.shields.io/nuget/dt/SeeSharp)
+</a>
 
 # SeeSharp
 
@@ -28,10 +30,6 @@ We use [TinyEmbree](https://github.com/pgrit/TinyEmbree), a simple C# wrapper ar
 for ray tracing, and [SimpleImageIO](https://github.com/pgrit/SimpleImageIO), a C# wrapper around [TinyEXR](https://github.com/syoyo/tinyexr) and
 [stb_image](https://github.com/nothings/stb). On 64 Bit Windows, Linux, or macOS, you should be able to use the pre-built binaries included in the
 nuget packages. These are linked by default, so you do not need to do anything and can skip ahead to the next section.
-
-<a href="https://www.nuget.org/packages/TinyEmbree/"><img src="https://buildstats.info/nuget/TinyEmbree" /> TinyEmbree</a>
-
-<a href="https://www.nuget.org/packages/SimpleImageIO/"><img src="https://buildstats.info/nuget/SimpleImageIO" /> SimpleImageIO</a>
 
 On other platforms you will need to build these from source. Instructions how to do that can be found in the respective README.md files.
 After building your platform specific version of these, the easiest way is to pack them as a local nuget package.

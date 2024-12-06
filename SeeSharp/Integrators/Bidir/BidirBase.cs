@@ -548,7 +548,7 @@ public abstract class BidirBase<CameraPayloadType> : Integrator {
 
         if (lightVertIdx > 0) {
             // specific vertex selected
-            var vertex = LightPaths[lightVertIdx];
+            var vertex = LightPaths[lightVertIdx]; // TODO-PERFORMANCE this is an expensive binary search ATM --> should we instead pick a random path and vertex within? Or precompute a lookup table for this mapping?
             if (vertex.Depth < 1)
                 return result;
             var ancestor = LightPaths[lightVertIdx - 1];

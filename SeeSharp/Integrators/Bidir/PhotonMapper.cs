@@ -40,7 +40,7 @@ public class PhotonMapper : Integrator {
     /// </summary>
     protected LightPathCache lightPaths;
 
-    TinyEmbree.NearestNeighborSearch photonMap;
+    NearestNeighborSearch<int> photonMap;
 
     /// <inheritdoc />
     public override void Render(Scene scene) {

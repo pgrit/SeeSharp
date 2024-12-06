@@ -42,7 +42,7 @@ public class VertexConnectionAndMergingBase<CameraPayloadType> : VertexCacheBidi
     /// <summary>
     /// Acceleration structure to query photons in the scene.
     /// </summary>
-    protected NearestNeighborSearch photonMap;
+    protected NearestNeighborSearch<(int, int)> photonMap;
 
     ThreadLocal<ulong> totalCamPathLen;
     ThreadLocal<ulong> totalMergeOps;
@@ -223,10 +223,11 @@ public class VertexConnectionAndMergingBase<CameraPayloadType> : VertexCacheBidi
             mergeBuildTimer.Start();
 
             photonMap.Clear();
-            for (int i = 0; i < LightPaths.NumVertices; ++i) {
-                var vertex = LightPaths[i];
-                if (vertex.PathId >= 0 && vertex.Depth >= 1 && vertex.Weight != RgbColor.Black) {
-                    photonMap.AddPoint(vertex.Point.Position, i);
+            for (int pathIdx = 0; pathIdx < NumLightPaths.Value; ++pathIdx) {
+                for (int vertIdx = 1; vertIdx < LightPaths.Length(pathIdx); ++vertIdx) {
+                    ref var vertex = ref LightPaths[pathIdx, vertIdx];
+                    if (vertex.Weight != RgbColor.Black)
+                        photonMap.AddPoint(vertex.Point.Position, (pathIdx, vertIdx));
                 }
             }
             photonMap.Build();
@@ -262,8 +263,8 @@ public class VertexConnectionAndMergingBase<CameraPayloadType> : VertexCacheBidi
     => totalMergeOps.Value++;
 
     protected virtual RgbColor Merge(in CameraPath path, float cameraJacobian, in SurfaceShader shader,
-                                     int vertexIdx, float distSqr, float radiusSquared) {
-        var photon = LightPaths[vertexIdx];
+                                     (int pathIdx, int vertexIdx) idx, float distSqr, float radiusSquared) {
+        var photon = LightPaths[idx.pathIdx, idx.vertexIdx];
 
         // Check that the path does not exceed the maximum length
         var depth = path.Vertices.Count + photon.Depth;
@@ -271,14 +272,14 @@ public class VertexConnectionAndMergingBase<CameraPayloadType> : VertexCacheBidi
             return RgbColor.Black;
 
         // Compute the contribution of the photon
-        var ancestor = LightPaths[vertexIdx - 1];
+        var ancestor = LightPaths[idx.pathIdx, idx.vertexIdx - 1];
         var dirToAncestor = Vector3.Normalize(ancestor.Point.Position - shader.Point.Position);
         var bsdfValue = shader.Evaluate(dirToAncestor);
         var photonContrib = photon.Weight * bsdfValue / NumLightPaths.Value;
 
         // Early exit + prevent NaN / Inf
         if (photonContrib == RgbColor.Black) return RgbColor.Black;
-        // Prevent outliers du to numerical issues with photons arriving almost parallel to the surface
+        // Prevent outliers due to numerical issues with photons arriving almost parallel to the surface
         if (Math.Abs(Vector3.Dot(dirToAncestor, shader.Point.Normal)) < 1e-4f) return RgbColor.Black;
 
         // Compute the missing pdf terms and the MIS weight
@@ -371,7 +372,7 @@ public class VertexConnectionAndMergingBase<CameraPayloadType> : VertexCacheBidi
         return state.Estimate;
     }
 
-    void MergeHelper(Vector3 position, int idx, float distance, int numFound, float distToFurthest, ref MergeState userData) {
+    void MergeHelper(Vector3 position, (int, int) idx, float distance, int numFound, float distToFurthest, ref MergeState userData) {
         float radiusSquared = numFound == MaxNumPhotons
             ? distToFurthest * distToFurthest
             : userData.LocalRadiusSquared;
@@ -419,13 +420,14 @@ public class VertexConnectionAndMergingBase<CameraPayloadType> : VertexCacheBidi
     public readonly ref struct CorrelAwareRatios {
         readonly Span<float> cameraToLight;
         readonly Span<float> lightToCamera;
-        public CorrelAwareRatios(BidirPathPdfs pdfs, float distToCam, bool fromBackground) {
+
+        public CorrelAwareRatios(BidirPathPdfs pdfs, float distToCam, bool fromBackground, Span<float> cameraToLight, Span<float> lightToCamera) {
             float radius = distToCam * 0.0174550649f; // distance * tan(1°)
             float acceptArea = radius * radius * MathF.PI;
-
             int numSurfaceVertices = pdfs.PdfsCameraToLight.Length - 1;
-            cameraToLight = new float[numSurfaceVertices];
-            lightToCamera = new float[numSurfaceVertices];
+
+            this.cameraToLight = cameraToLight;
+            this.lightToCamera = lightToCamera;
 
             // Gather camera probability
             float product = 1.0f;
@@ -478,7 +480,9 @@ public class VertexConnectionAndMergingBase<CameraPayloadType> : VertexCacheBidi
         float mergeApproximation = pathPdfs.PdfsLightToCamera[lastCameraVertexIdx]
                                  * MathF.PI * radius * radius * NumLightPaths.Value;
 
-        var correlRatio = new CorrelAwareRatios(pathPdfs, cameraPath.Distances[0], lightVertex.FromBackground);
+        Span<float> bufA = stackalloc float[pathPdfs.PdfsCameraToLight.Length - 1];
+        Span<float> bufB = stackalloc float[pathPdfs.PdfsCameraToLight.Length - 1];
+        var correlRatio = new CorrelAwareRatios(pathPdfs, cameraPath.Distances[0], lightVertex.FromBackground, bufA, bufB);
         if (!DisableCorrelAwareMIS) mergeApproximation *= correlRatio[lastCameraVertexIdx];
 
         if (mergeApproximation == 0.0f) return 0.0f;
@@ -501,7 +505,9 @@ public class VertexConnectionAndMergingBase<CameraPayloadType> : VertexCacheBidi
 
     /// <inheritdoc />
     public override float EmitterHitMis(in CameraPath cameraPath, in BidirPathPdfs pathPdfs) {
-        var correlRatio = new CorrelAwareRatios(pathPdfs, cameraPath.Distances[0], false);
+        Span<float> bufA = stackalloc float[pathPdfs.PdfsCameraToLight.Length - 1];
+        Span<float> bufB = stackalloc float[pathPdfs.PdfsCameraToLight.Length - 1];
+        var correlRatio = new CorrelAwareRatios(pathPdfs, cameraPath.Distances[0], false, bufA, bufB);
 
         float sumReciprocals = 1.0f;
 
@@ -520,7 +526,9 @@ public class VertexConnectionAndMergingBase<CameraPayloadType> : VertexCacheBidi
 
     /// <inheritdoc />
     public override float LightTracerMis(PathVertex lightVertex, in BidirPathPdfs pathPdfs, Pixel pixel, float distToCam) {
-        var correlRatio = new CorrelAwareRatios(pathPdfs, distToCam, lightVertex.FromBackground);
+        Span<float> bufA = stackalloc float[pathPdfs.PdfsCameraToLight.Length - 1];
+        Span<float> bufB = stackalloc float[pathPdfs.PdfsCameraToLight.Length - 1];
+        var correlRatio = new CorrelAwareRatios(pathPdfs, distToCam, lightVertex.FromBackground, bufA, bufB);
 
         float footprintRadius = float.Sqrt(1.0f / pathPdfs.PdfsCameraToLight[0]);
 
@@ -534,7 +542,9 @@ public class VertexConnectionAndMergingBase<CameraPayloadType> : VertexCacheBidi
 
     /// <inheritdoc />
     public override float BidirConnectMis(in CameraPath cameraPath, PathVertex lightVertex, in BidirPathPdfs pathPdfs) {
-        var correlRatio = new CorrelAwareRatios(pathPdfs, cameraPath.Distances[0], lightVertex.FromBackground);
+        Span<float> bufA = stackalloc float[pathPdfs.PdfsCameraToLight.Length - 1];
+        Span<float> bufB = stackalloc float[pathPdfs.PdfsCameraToLight.Length - 1];
+        var correlRatio = new CorrelAwareRatios(pathPdfs, cameraPath.Distances[0], lightVertex.FromBackground, bufA, bufB);
 
         float radius = ComputeLocalMergeRadius(cameraPath.FootprintRadius);
         float sumReciprocals = 1.0f;
@@ -549,7 +559,9 @@ public class VertexConnectionAndMergingBase<CameraPayloadType> : VertexCacheBidi
 
     /// <inheritdoc />
     public override float NextEventMis(in CameraPath cameraPath, in BidirPathPdfs pathPdfs, bool isBackground) {
-        var correlRatio = new CorrelAwareRatios(pathPdfs, cameraPath.Distances[0], isBackground);
+        Span<float> bufA = stackalloc float[pathPdfs.PdfsCameraToLight.Length - 1];
+        Span<float> bufB = stackalloc float[pathPdfs.PdfsCameraToLight.Length - 1];
+        var correlRatio = new CorrelAwareRatios(pathPdfs, cameraPath.Distances[0], isBackground, bufA, bufB);
 
         float sumReciprocals = 1.0f;
 

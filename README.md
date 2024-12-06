@@ -2,7 +2,7 @@
 
 ![Build](https://github.com/pgrit/SeeSharp/workflows/Build/badge.svg)
 <a href="https://www.nuget.org/packages/SeeSharp/">
-    ![NuGet Downloads](https://img.shields.io/nuget/dt/SeeSharp)
+    ![NuGet Version](https://img.shields.io/nuget/v/SeeSharp)
 </a>
 
 # SeeSharp

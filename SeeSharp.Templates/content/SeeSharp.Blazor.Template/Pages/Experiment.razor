@@ -1,0 +1,87 @@
+@using SeeSharp.Experiments
+@using SeeSharp
+@using SeeSharp.Blazor
+
+@inject IJSRuntime JS
+
+@page "/Experiment"
+
+<h1>Example experiment</h1>
+
+<SceneSelector @ref=sceneSelector OnSceneLoaded="@OnSceneLoaded"></SceneSelector>
+
+<div>
+    <div class="experiment-settings">
+        <SettingsGroup Title="Experiment settings">
+            <IntSetting Label="Num samples" @bind-Value=NumSamples HoverText="Number of samples per pixel" />
+        </SettingsGroup>
+    </div>
+
+    @if (readyToRun)
+    {
+        <p><button @onclick="OnRunClick" @ref="runButton">Run</button></p>
+    }
+
+    @if (!running)
+    {
+        @if (resultsAvailable)
+        {
+            <div class="experiment-results">
+                <FlipViewer Flip="@flip" OnClick="@OnFlipClick"></FlipViewer>
+
+                <p>Render time
+                    <table>
+                        <tr><td>Path tracing</td> <td>@($"{renderTimePT}")ms</td></tr>
+                        <tr><td>VCM</td> <td>@($"{renderTimeVCM}")ms</td></tr>
+                    </table>
+                </p>
+            </div>
+            <p><button @onclick="OnDownloadClick">Download</button></p>
+        }
+    }
+    else
+    {
+        <p>Rendering...</p>
+    }
+</div>
+
+@code {
+    SceneSelector sceneSelector;
+    Scene scene;
+    bool readyToRun = false;
+    bool running = false;
+    bool sceneJustLoaded = false;
+    bool resultsAvailable = false;
+    ElementReference runButton;
+
+    SimpleImageIO.FlipBook flip;
+
+    async Task OnSceneLoaded(SceneFromFile sceneFromFile)
+    {
+        await Task.Run(() => scene = sceneFromFile.MakeScene());
+        flip = null;
+        readyToRun = true;
+        sceneJustLoaded = true;
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (readyToRun && sceneJustLoaded)
+        {
+            await runButton.FocusAsync();
+        }
+
+        sceneJustLoaded = false;
+    }
+
+    async Task OnRunClick()
+    {
+        readyToRun = false;
+        resultsAvailable = false;
+        running = true;
+        await Task.Run(() => RunExperiment());
+        readyToRun = true;
+        running = false;
+        resultsAvailable = true;
+    }
+}

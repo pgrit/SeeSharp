@@ -1,11 +1,11 @@
 {
     "$schema": "http://json.schemastore.org/template",
     "author": "Pascal Grittmann",
-    "classifications": [ "Console/SeeSharp" ],
-    "identity": "SeeSharp.Template",
-    "name": "SeeSharp Experiment",
-    "shortName": "seesharp",
-    "sourceName":"SeeSharp.Template",
+    "classifications": [ "Web/Blazor/SeeSharp" ],
+    "identity": "SeeSharp.Blazor.Template",
+    "name": "SeeSharp Blazor Experiment",
+    "shortName": "seesharp-blazor",
+    "sourceName":"SeeSharp.Blazor.Template",
     "tags": {
       "language": "C#",
       "type": "project"

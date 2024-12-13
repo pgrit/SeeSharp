@@ -1,6 +1,7 @@
 # User specific editor and IDE configurations
 .vs
 launchSettings.json
+!SeeSharp.Templates/content/SeeSharp.Blazor.Template/Properties/launchSettings.json
 .idea
 SeeSharp.sln.DotSettings.user
 
@@ -39,6 +40,9 @@ docs/*
 
 # Generated images of the tests and examples
 /SeeSharp.Validation/Results
+/SeeSharp.Benchmark/Results
+/SeeSharp.Benchmark/*.json
+/SeeSharp.Benchmark/*.exr
 /SeeSharp.Templates/content/SeeSharp.Template/Results
 /SeeSharp.Example/Results
 /Results
@@ -46,3 +50,4 @@ docs/*
 # Profiler output
 *.nettrace
 *.speedscope.json
+*ultra*pid*.json.gz

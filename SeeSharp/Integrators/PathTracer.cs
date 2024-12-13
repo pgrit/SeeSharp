@@ -5,6 +5,134 @@ namespace SeeSharp.Integrators;
 /// </summary>
 public class PathTracer : PathTracerBase<byte> { }
 
+public class PathGraphRenderer : DebugVisualizer {
+    void AddNode(PathGraphNode node, Scene scene, float radius) {
+        if (node.Ancestor != null) { // TODO-HACK to avoid having a sphere around the camera
+            var m = MeshFactory.MakeSphere(node.Position, radius, 16);
+            m.UserData = node;
+            m.Material = new DiffuseMaterial(new()); // only needed to prevent scene validation errors
+            scene.Meshes.Add(m);
+        }
+
+        Logger.Log($"{node.Position}");
+
+        foreach (var s in node.Successors) {
+            if (node.Ancestor != null) { // TODO-HACK to avoid having a sphere around the camera
+                var m = MeshFactory.MakeCylinder(node.Position, s.Position, radius, 16);
+                m.UserData = s;
+                m.Material = new DiffuseMaterial(new()); // only needed to prevent scene validation errors
+                scene.Meshes.Add(m); // TODO-POLISH remove duplicate code
+            }
+
+            AddNode(s, scene, radius);
+        }
+    }
+
+    public void Render(Scene scene, PathGraph graph) {
+        float radius = scene.Radius * 0.005f; // TODO better initialization?
+
+        // Create geometry for the paths nodes and edges
+        var sceneCpy = scene.Copy();
+        foreach (var node in graph.Roots)
+            AddNode(node, sceneCpy, radius);
+        sceneCpy.FrameBuffer = scene.FrameBuffer;
+        sceneCpy.Prepare();
+
+        base.Render(sceneCpy);
+    }
+
+    public override RgbColor ComputeColor(SurfacePoint hit, Vector3 from, uint row, uint col) {
+        // TODO if this is a path graph hit, compute its correct color
+        if (hit.Mesh.UserData is PathGraphNode node)
+            return node.ComputeVisualizerColor();
+
+        return base.ComputeColor(hit, from, row, col);
+    }
+
+}
+
+public class PathGraphNode(Vector3 pos, PathGraphNode ancestor = null) {
+    public Vector3 Position = pos;
+    public PathGraphNode Ancestor = ancestor;
+    public List<PathGraphNode> Successors = [];
+
+    public virtual bool IsBackground => false;
+
+    public PathGraphNode AddSuccessor(PathGraphNode vertex) {
+        Successors.Add(vertex);
+        return vertex;
+    }
+
+    public virtual RgbColor ComputeVisualizerColor() {
+        return RgbColor.Black;
+    }
+}
+
+public class NextEventNode : PathGraphNode {
+    public NextEventNode(Vector3 direction, PathGraphNode ancestor, RgbColor emission, float pdf,
+                           RgbColor bsdfCos, float misWeight)
+    : base(ancestor.Position + direction, ancestor) {
+        Emission = emission;
+        Pdf = pdf;
+        BsdfTimesCosine = bsdfCos;
+        MISWeight = misWeight;
+    }
+
+    public NextEventNode(SurfacePoint point, PathGraphNode ancestor, RgbColor emission, float pdf,
+                           RgbColor bsdfCos, float misWeight)
+    : base(point.Position, ancestor) {
+        Emission = emission;
+        Pdf = pdf;
+        BsdfTimesCosine = bsdfCos;
+        MISWeight = misWeight;
+        Point = point;
+    }
+
+    public readonly RgbColor Emission;
+    public readonly float Pdf;
+    public readonly RgbColor BsdfTimesCosine;
+    public readonly float MISWeight;
+    public readonly SurfacePoint? Point;
+
+    public override bool IsBackground => !Point.HasValue;
+}
+
+public class BSDFSampleNode : PathGraphNode {
+    public BSDFSampleNode(SurfacePoint point, PathGraphNode ancestor, RgbColor scatterWeight, float survivalProb) : base(point.Position, ancestor) {
+        ScatterWeight = scatterWeight;
+        SurvivalProbability = survivalProb;
+        Point = point;
+    }
+
+    public BSDFSampleNode(SurfacePoint point, PathGraphNode ancestor, RgbColor scatterWeight, float survivalProb, RgbColor emission, float misWeight) : base(point.Position, ancestor) {
+        ScatterWeight = scatterWeight;
+        SurvivalProbability = survivalProb;
+        Emission = emission;
+        MISWeight = misWeight;
+        Point = point;
+    }
+
+    public readonly RgbColor ScatterWeight;
+    public readonly float SurvivalProbability;
+    public readonly RgbColor Emission;
+    public readonly float MISWeight;
+    public readonly SurfacePoint Point;
+}
+
+public class BackgroundNode : PathGraphNode {
+    public BackgroundNode(Vector3 direction, PathGraphNode ancestor, RgbColor contrib, float misWeight) : base(ancestor.Position + direction) {
+        Emission = contrib;
+        MISWeight = misWeight;
+    }
+    public readonly RgbColor Emission;
+    public readonly float MISWeight;
+    public override bool IsBackground => true;
+}
+
+public class PathGraph {
+    public List<PathGraphNode> Roots = [];
+}
+
 /// <summary>
 /// A classic path tracer with next event estimation. Additional per-path user data can be tracked via the
 /// generic type provided.
@@ -50,6 +178,7 @@ public class PathTracerBase<PayloadType> : Integrator {
 
     TechPyramid techPyramidRaw;
     TechPyramid techPyramidWeighted;
+    public OutlierReplayCache<uint, int> OutlierCache;
 
     protected DenoiseBuffers denoiseBuffers;
 
@@ -57,6 +186,16 @@ public class PathTracerBase<PayloadType> : Integrator {
     /// The scene that is being rendered.
     /// </summary>
     protected Scene scene;
+
+    public PathGraph ReplayPath(Scene scene, Pixel pixel, int originalWidth, uint baseSeed, int iteration) {
+        this.scene = scene;
+
+        uint pixelIndex = (uint)(pixel.Row * originalWidth + pixel.Col);
+        RNG rng = new(baseSeed, pixelIndex, (uint)iteration);
+        PathGraph graph = new();
+        RenderPixel((uint)pixel.Row, (uint)pixel.Col, ref rng, graph);
+        return graph;
+    }
 
     /// <summary>
     /// Called once for each complete path from the camera to a light.
@@ -168,6 +307,16 @@ public class PathTracerBase<PayloadType> : Integrator {
         public float PreviousPdf { get; set; }
 
         /// <summary>
+        /// BSDF weight divided by PDF at the previous vertex
+        /// </summary>
+        public RgbColor PreviousScatterWeight { get; set; }
+
+        /// <summary>
+        /// Probability to keep the path alive at the previous vertex
+        /// </summary>
+        public float PreviousSurvivalProbability { get; set; }
+
+        /// <summary>
         /// Additional per-path data defined in a derived class.
         /// </summary>
         public PayloadType UserData { get; set; }
@@ -191,6 +340,10 @@ public class PathTracerBase<PayloadType> : Integrator {
             techPyramidWeighted = new TechPyramid(scene.FrameBuffer.Width, scene.FrameBuffer.Height,
                 MinDepth, MaxDepth, false, false, false);
         }
+
+        // TODO add flag to enable / disable this if it is too expensive as an always-on option
+        // TODO add setting for number of outliers to track
+        OutlierCache = new(BaseSeed, scene.FrameBuffer.Width, scene.FrameBuffer.Height, 4);
 
         // Add custom frame buffer layers
         if (EnableDenoiser)
@@ -218,7 +371,7 @@ public class PathTracerBase<PayloadType> : Integrator {
                 for (uint col = 0; col < scene.FrameBuffer.Width; ++col) {
                     uint pixelIndex = (uint)(row * scene.FrameBuffer.Width + col);
                     RNG rng = new(BaseSeed, pixelIndex, sampleIndex);
-                    RenderPixel((uint)row, col, ref rng);
+                    RenderPixel((uint)row, col, ref rng, null);
                 }
             });
             OnPostIteration(sampleIndex);
@@ -267,7 +420,7 @@ public class PathTracerBase<PayloadType> : Integrator {
     /// <summary>
     /// Updates the estimate of one pixel. Called once per iteration for every pixel.
     /// </summary>
-    protected virtual void RenderPixel(uint row, uint col, ref RNG rng) {
+    protected virtual void RenderPixel(uint row, uint col, ref RNG rng, PathGraph graph = null) {
         // Sample a ray from the camera
         var offset = rng.NextFloat2D();
         var pixel = new Vector2(col, row) + offset;
@@ -278,17 +431,26 @@ public class PathTracerBase<PayloadType> : Integrator {
             Rng = ref rng,
             PrefixWeight = RgbColor.White,
             ApproxThroughput = RgbColor.White,
-            Depth = 1
+            Depth = 1,
+            PreviousScatterWeight = RgbColor.White,
+            PreviousSurvivalProbability = 1
         };
 
+        graph?.Roots.Add(new(primaryRay.Origin));
+
         OnStartPath(ref state);
-        var estimate = EstimateIncidentRadiance(primaryRay, ref state);
+        var estimate = EstimateIncidentRadiance(primaryRay, ref state, graph?.Roots[^1]);
         OnFinishedPath(estimate, ref state);
+
+        OutlierCache.Notify(state.Pixel, new() {
+            Weight = estimate,
+            LocalReplayInfo = scene.FrameBuffer.CurIteration - 1
+        });
 
         scene.FrameBuffer.Splat(state.Pixel, estimate);
     }
 
-    protected virtual RgbColor EstimateIncidentRadiance(Ray ray, ref PathState state) {
+    protected virtual RgbColor EstimateIncidentRadiance(Ray ray, ref PathState state, PathGraphNode graphVertex = null) {
         RgbColor radianceEstimate = RgbColor.Black;
 
         while (state.Depth <= MaxDepth) {
@@ -296,8 +458,12 @@ public class PathTracerBase<PayloadType> : Integrator {
 
             // Did the ray leave the scene?
             if (!hit) {
-                if (state.Depth >= MinDepth)
-                    radianceEstimate += state.PrefixWeight * OnBackgroundHit(ray, ref state);
+                if (state.Depth >= MinDepth) {
+                    var (misWeight, contrib) = OnBackgroundHit(ray, ref state);
+                    radianceEstimate += state.PrefixWeight * misWeight * contrib;
+                    graphVertex = graphVertex?.AddSuccessor(new BackgroundNode(ray.Direction, graphVertex, contrib, misWeight));
+                }
+
                 break;
             }
 
@@ -313,7 +479,11 @@ public class PathTracerBase<PayloadType> : Integrator {
             // Check if a light source was hit.
             Emitter light = scene.QueryEmitter(hit);
             if (light != null && state.Depth >= MinDepth) {
-                radianceEstimate += state.PrefixWeight * OnLightHit(ray, hit, ref state, light);
+                var (misWeight, contrib) = OnLightHit(ray, hit, ref state, light);
+                radianceEstimate += state.PrefixWeight * misWeight * contrib;
+                graphVertex = graphVertex?.AddSuccessor(new BSDFSampleNode(hit, graphVertex, state.PreviousScatterWeight, state.PreviousSurvivalProbability, contrib, misWeight));
+            } else {
+                graphVertex = graphVertex?.AddSuccessor(new BSDFSampleNode(hit, graphVertex, state.PreviousScatterWeight, state.PreviousSurvivalProbability));
             }
 
             // Path termination with Russian roulette
@@ -325,8 +495,8 @@ public class PathTracerBase<PayloadType> : Integrator {
             if (state.Depth + 1 >= MinDepth) {
                 RgbColor nextEventContrib = RgbColor.Black;
                 for (int i = 0; i < NumShadowRays; ++i) {
-                    nextEventContrib += PerformBackgroundNextEvent(shader, ref state);
-                    nextEventContrib += PerformNextEventEstimation(shader, ref state);
+                    nextEventContrib += PerformBackgroundNextEvent(shader, ref state, graphVertex);
+                    nextEventContrib += PerformNextEventEstimation(shader, ref state, graphVertex);
                 }
                 radianceEstimate += state.PrefixWeight * nextEventContrib / survivalProb;
             }
@@ -342,14 +512,16 @@ public class PathTracerBase<PayloadType> : Integrator {
             state.Depth++;
             state.PreviousHit = hit;
             state.PreviousPdf = bsdfPdf * survivalProb;
+            state.PreviousScatterWeight = bsdfSampleWeight / survivalProb;
+            state.PreviousSurvivalProbability = survivalProb;
         }
 
         return radianceEstimate;
     }
 
-    protected virtual RgbColor OnBackgroundHit(in Ray ray, ref PathState state) {
+    protected virtual (float, RgbColor) OnBackgroundHit(in Ray ray, ref PathState state) {
         if (scene.Background == null || !EnableBsdfDI)
-            return RgbColor.Black;
+            return (0, RgbColor.Black);
 
         float misWeight = 1.0f;
         float pdfNextEvent;
@@ -362,10 +534,10 @@ public class PathTracerBase<PayloadType> : Integrator {
         var emission = scene.Background.EmittedRadiance(ray.Direction);
         RegisterSample(state.Pixel, emission * state.PrefixWeight, misWeight, state.Depth, false);
         OnHitLightResult(ray, state, misWeight, emission, true);
-        return misWeight * emission;
+        return (misWeight, emission);
     }
 
-    protected virtual RgbColor OnLightHit(in Ray ray, in SurfacePoint hit, ref PathState state, Emitter light) {
+    protected virtual (float, RgbColor) OnLightHit(in Ray ray, in SurfacePoint hit, ref PathState state, Emitter light) {
         float misWeight = 1.0f;
         float pdfNextEvt;
         if (state.Depth > 1) { // directly visible emitters are not explicitely connected
@@ -383,10 +555,10 @@ public class PathTracerBase<PayloadType> : Integrator {
         var emission = light.EmittedRadiance(hit, -ray.Direction);
         RegisterSample(state.Pixel, emission * state.PrefixWeight, misWeight, state.Depth, false);
         OnHitLightResult(ray, state, misWeight, emission, false);
-        return misWeight * emission;
+        return (misWeight, emission);
     }
 
-    protected virtual RgbColor PerformBackgroundNextEvent(in SurfaceShader shader, ref PathState state) {
+    protected virtual RgbColor PerformBackgroundNextEvent(in SurfaceShader shader, ref PathState state, PathGraphNode graphVertex) {
         if (scene.Background == null)
             return RgbColor.Black; // There is no background
 
@@ -408,12 +580,15 @@ public class PathTracerBase<PayloadType> : Integrator {
 
             RegisterSample(state.Pixel, contrib * state.PrefixWeight, misWeight, state.Depth + 1, true);
             OnNextEventResult(shader, state, misWeight, contrib);
+
+            graphVertex?.AddSuccessor(new NextEventNode(sample.Direction, graphVertex, sample.Weight * sample.Pdf, sample.Pdf, bsdfTimesCosine, misWeight));
+
             return misWeight * contrib;
         }
         return RgbColor.Black;
     }
 
-    protected virtual RgbColor PerformNextEventEstimation(in SurfaceShader shader, ref PathState state) {
+    protected virtual RgbColor PerformNextEventEstimation(in SurfaceShader shader, ref PathState state, PathGraphNode graphVertex) {
         if (scene.Emitters.Count == 0)
             return RgbColor.Black;
 
@@ -449,10 +624,14 @@ public class PathTracerBase<PayloadType> : Integrator {
             // Compute the final sample weight, account for the change of variables from light source area
             // to the hemisphere about the shading point.
             var pdf = lightSample.Pdf / jacobian * lightSelectProb * NumShadowRays;
-            RegisterSample(state.Pixel, emission / pdf * bsdfCos * state.PrefixWeight, misWeight,
-                state.Depth + 1, true);
-            OnNextEventResult(shader, state, misWeight, emission / pdf * bsdfCos);
-            return misWeight * emission / pdf * bsdfCos;
+            var contrib = emission / pdf * bsdfCos;
+
+            RegisterSample(state.Pixel, contrib * state.PrefixWeight, misWeight, state.Depth + 1, true);
+            OnNextEventResult(shader, state, misWeight, contrib);
+
+            graphVertex?.AddSuccessor(new NextEventNode(lightSample.Point, graphVertex, emission, pdf, bsdfCos, misWeight));
+
+            return misWeight * contrib;
         }
         return RgbColor.Black;
     }

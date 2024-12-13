@@ -39,6 +39,7 @@ class Program {
         // BidirZeroLightPaths.Run();
         // PathTracerTimeBudget();
 
-        BlenderAutoImport();
+        // BlenderAutoImport();
+        OutlierCacheTest.RenderPT();
     }
 }

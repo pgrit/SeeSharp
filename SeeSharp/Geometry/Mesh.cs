@@ -3,13 +3,18 @@
 /// <summary>
 /// A simple triangle mesh with methods to uniformly sample its area.
 /// </summary>
-public class Mesh : TinyEmbree.TriangleMesh {
+public class Mesh : TriangleMesh {
     public string Name { get; set; }
 
     /// <summary>
     /// The assigned material
     /// </summary>
     public Material Material;
+
+    /// <summary>
+    /// Other auxiliary data tied to this object but not used in the typical rendering process.
+    /// </summary>
+    public object UserData;
 
     /// <summary>
     /// Creates a new mesh based on the given list of vertices, indices, and optional parameters

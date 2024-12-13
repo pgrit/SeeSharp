@@ -14,8 +14,6 @@ public class PathGraphRenderer : DebugVisualizer {
             scene.Meshes.Add(m);
         }
 
-        Logger.Log($"{node.Position}");
-
         foreach (var s in node.Successors) {
             if (node.Ancestor != null) { // TODO-HACK to avoid having a sphere around the camera
                 var m = MeshFactory.MakeCylinder(node.Position, s.Position, radius, 16);
@@ -41,14 +39,43 @@ public class PathGraphRenderer : DebugVisualizer {
         base.Render(sceneCpy);
     }
 
-    public override RgbColor ComputeColor(SurfacePoint hit, Vector3 from, uint row, uint col) {
-        // TODO if this is a path graph hit, compute its correct color
-        if (hit.Mesh.UserData is PathGraphNode node)
-            return node.ComputeVisualizerColor();
+    public override void RenderPixel(Scene scene, uint row, uint col, uint sampleIndex) {
+        // Seed the random number generator
+        uint pixelIndex = row * (uint)scene.FrameBuffer.Width + col;
+        var rng = new RNG(BaseSeed, pixelIndex, sampleIndex);
 
-        return base.ComputeColor(hit, from, row, col);
+        // Sample a ray from the camera
+        var offset = rng.NextFloat2D();
+        Ray ray = scene.Camera.GenerateRay(new Vector2(col, row) + offset, ref rng).Ray;
+
+        RgbColor value = RgbColor.Black;
+        RgbColor firstHitValue = RgbColor.Black;
+        for (int i = 0; ; i++) {
+            SurfacePoint hit = scene.Raytracer.Trace(ray);
+
+            if (!hit) {
+                // Only use transparency if there is actually something underneath
+                value = firstHitValue;
+                break;
+            }
+
+            value *= i / (float)(i + 1);
+
+            if (hit.Mesh.UserData is PathGraphNode node) {
+                var nodeColor = node.ComputeVisualizerColor();
+                value += nodeColor / (i + 1);
+                break;
+            }
+
+            var surfaceColor = ComputeColor(hit, -ray.Direction, row, col);
+            value += surfaceColor / (i + 1);
+            ray = Raytracer.SpawnRay(hit, ray.Direction);
+            if (i == 0) firstHitValue = surfaceColor;
+        }
+
+        // Shade and splat
+        scene.FrameBuffer.Splat((int)col, (int)row, value);
     }
-
 }
 
 public class PathGraphNode(Vector3 pos, PathGraphNode ancestor = null) {
@@ -442,12 +469,15 @@ public class PathTracerBase<PayloadType> : Integrator {
         var estimate = EstimateIncidentRadiance(primaryRay, ref state, graph?.Roots[^1]);
         OnFinishedPath(estimate, ref state);
 
-        OutlierCache.Notify(state.Pixel, new() {
-            Weight = estimate,
-            LocalReplayInfo = scene.FrameBuffer.CurIteration - 1
-        });
+        if (graph == null) {
+            // we must not change the outlier cache while replaying paths
+            OutlierCache.Notify(state.Pixel, new() {
+                Weight = estimate,
+                LocalReplayInfo = scene.FrameBuffer.CurIteration - 1
+            });
 
-        scene.FrameBuffer.Splat(state.Pixel, estimate);
+            scene.FrameBuffer.Splat(state.Pixel, estimate);
+        }
     }
 
     protected virtual RgbColor EstimateIncidentRadiance(Ray ray, ref PathState state, PathGraphNode graphVertex = null) {
@@ -581,7 +611,8 @@ public class PathTracerBase<PayloadType> : Integrator {
             RegisterSample(state.Pixel, contrib * state.PrefixWeight, misWeight, state.Depth + 1, true);
             OnNextEventResult(shader, state, misWeight, contrib);
 
-            graphVertex?.AddSuccessor(new NextEventNode(sample.Direction, graphVertex, sample.Weight * sample.Pdf, sample.Pdf, bsdfTimesCosine, misWeight));
+            if (contrib != RgbColor.Black)
+                graphVertex?.AddSuccessor(new NextEventNode(sample.Direction, graphVertex, sample.Weight * sample.Pdf, sample.Pdf, bsdfTimesCosine, misWeight));
 
             return misWeight * contrib;
         }
@@ -629,7 +660,8 @@ public class PathTracerBase<PayloadType> : Integrator {
             RegisterSample(state.Pixel, contrib * state.PrefixWeight, misWeight, state.Depth + 1, true);
             OnNextEventResult(shader, state, misWeight, contrib);
 
-            graphVertex?.AddSuccessor(new NextEventNode(lightSample.Point, graphVertex, emission, pdf, bsdfCos, misWeight));
+            if (contrib != RgbColor.Black)
+                graphVertex?.AddSuccessor(new NextEventNode(lightSample.Point, graphVertex, emission, pdf, bsdfCos, misWeight));
 
             return misWeight * contrib;
         }

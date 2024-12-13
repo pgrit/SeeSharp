@@ -20,7 +20,7 @@ public class DebugVisualizer : Integrator {
     public override void Render(Scene scene) {
         for (uint sampleIndex = 0; sampleIndex < TotalSpp; ++sampleIndex) {
             scene.FrameBuffer.StartIteration();
-            System.Threading.Tasks.Parallel.For(0, scene.FrameBuffer.Height,
+            Parallel.For(0, scene.FrameBuffer.Height,
                 row => {
                     for (uint col = 0; col < scene.FrameBuffer.Width; ++col) {
                         RenderPixel(scene, (uint)row, col, sampleIndex);

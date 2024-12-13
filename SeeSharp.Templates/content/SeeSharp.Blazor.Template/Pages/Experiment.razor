@@ -12,14 +12,18 @@
 
 <div>
     <div class="experiment-settings">
+        @if (readyToRun)
+        {
+            <p><button @onclick="OnRunClick" @ref="runButton">Run</button></p>
+        }
         <SettingsGroup Title="Experiment settings">
             <IntSetting Label="Num samples" @bind-Value=NumSamples HoverText="Number of samples per pixel" />
         </SettingsGroup>
     </div>
 
-    @if (readyToRun)
+    @if (resultsAvailable)
     {
-        <p><button @onclick="OnRunClick" @ref="runButton">Run</button></p>
+        <button @onclick="OnDownloadClick">Download results</button>
     }
 
     @if (!running)
@@ -29,14 +33,16 @@
             <div class="experiment-results">
                 <FlipViewer Flip="@flip" OnClick="@OnFlipClick"></FlipViewer>
 
-                <p>Render time
+                @if (selected.HasValue && selected.Value)
+                {
                     <table>
-                        <tr><td>Path tracing</td> <td>@($"{renderTimePT}")ms</td></tr>
-                        <tr><td>VCM</td> <td>@($"{renderTimeVCM}")ms</td></tr>
+                        <tr><th>Mesh</th><td>@(selected.Value.Mesh.Name)</td></tr>
+                        <tr><th>Material</th><td>@(selected.Value.Mesh.Material.Name) (roughness: @(selected.Value.Mesh.Material.GetRoughness(selected.Value)), transmissive: @(selected.Value.Mesh.Material.IsTransmissive(selected.Value)))</td></tr>
+                        <tr><th>Distance</th><td>@(selected.Value.Distance)</td></tr>
+                        <tr><th>Position</th><td>@(selected.Value.Position)</td></tr>
                     </table>
-                </p>
+                }
             </div>
-            <p><button @onclick="OnDownloadClick">Download</button></p>
         }
     }
     else

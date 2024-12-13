@@ -31,6 +31,10 @@ public class HtmlReport {
     </style>
     """;
 
+    const string script = """
+    <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    """;
+
     string htmlBody = "";
 
     public void AddMarkdown(string text) {
@@ -47,6 +51,6 @@ public class HtmlReport {
     }
 
     public override string ToString() {
-        return HtmlUtil.MakeHTML(FlipBook.Header + style, htmlBody);
+        return HtmlUtil.MakeHTML(FlipBook.Header + style + script, htmlBody);
     }
 }

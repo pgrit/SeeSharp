@@ -65,4 +65,22 @@ button {
     display: flex;
     gap: 10px;
     flex-wrap: wrap;
+    align-items: flex-start;
+}
+
+table {
+    border-collapse: collapse;
+}
+td, th {
+    border: none;
+    padding: 4px;
+}
+tr:hover { background-color: #e7f2f1; }
+th {
+    padding-top: 6px;
+    padding-bottom: 6px;
+    text-align: left;
+    background-color: #4a96af;
+    color: white;
+    font-size: smaller;
 }

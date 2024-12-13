@@ -28,3 +28,5 @@ global using SeeSharp.Shading;
 global using SeeSharp.Shading.Background;
 global using SeeSharp.Shading.Emitters;
 global using SeeSharp.Shading.Materials;
+
+global using SeeSharp.Blazor;

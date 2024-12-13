@@ -42,12 +42,13 @@ public partial class Experiment : ComponentBase
         renderTimeVCM = scene.FrameBuffer.RenderTimeMs;
     }
 
+    SurfacePoint? selected;
+
     void OnFlipClick(FlipViewer.OnClickEventArgs args)
     {
         if (args.CtrlKey)
         {
-            // Display diagnostic data
-
+            selected = scene.RayCast(new(args.X, args.Y));
         }
     }
 
@@ -56,7 +57,7 @@ public partial class Experiment : ComponentBase
         HtmlReport report = new();
         report.AddMarkdown("""
         # Example experiment
-        $$ L_\mathrm{o} = \int_\Omega L_\mathrm{i} f_\mathrm{r} |\cos\theta_\matrm{i}| \, d\omega_\mathrm{i} $$
+        $$ L_\mathrm{o} = \int_\Omega L_\mathrm{i} f_\mathrm{r} |\cos\theta_\mathrm{i}| \, d\omega_\mathrm{i} $$
         """);
         report.AddFlipBook(flip);
         await SeeSharp.Blazor.Scripts.DownloadAsFile(JS, "report.html", report.ToString());

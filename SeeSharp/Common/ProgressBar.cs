@@ -76,9 +76,11 @@ public class ProgressBar {
         this.prefix = prefix;
 
         // Detect if our output has been "polluted" by other printed messages
-        watcher = new(Console.Out);
-        Console.SetOut(watcher);
-        watcher.WriteCharEvent += OnOtherOutput;
+        if (!Silent) {
+            watcher = new(Console.Out);
+            Console.SetOut(watcher);
+            watcher.WriteCharEvent += OnOtherOutput;
+        }
     }
 
     /// <summary>

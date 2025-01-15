@@ -37,7 +37,7 @@ ProgressBar.Silent = true;
 
 // Loads a scene from file (using SceneRegistry) and initializes it for ray tracing with the given render resolution
 Scene QuickloadScene(string name, int width, int height) {
-    var scene = SceneRegistry.LoadScene("CornellBox").MakeScene();
+    var scene = SceneRegistry.LoadScene(name).MakeScene();
     scene.FrameBuffer = new(width, height, "");
     scene.Prepare();
     return scene;

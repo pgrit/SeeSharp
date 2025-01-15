@@ -206,16 +206,17 @@ public partial class GenericMaterial  : Material
             halfVector = Vector3.Normalize(halfVector);
 
             // Retro-reflectance; Burley 2015, eq (4).
-            float cosThetaD = Vector3.Dot(inDir, halfVector);
-            float Rr = 2 * localParams.roughness * cosThetaD * cosThetaD;
+            float cIn = Vector3.Dot(inDir, halfVector);
+            float Rr = 2 * localParams.roughness * cIn * cIn;
             if (SameHemisphere(context.OutDir, inDir) && sameGeometricHemisphere)
                 bsdfValue += localParams.retroReflectance / MathF.PI * Rr * (fresnelOut + fresnelIn + fresnelOut * fresnelIn * (Rr - 1));
 
             // Microfacet reflection
             if (cosThetaI != 0 && cosThetaO != 0) // Skip degenerate cases
             {
+                float cOut = Vector3.Dot(context.OutDir, halfVector);
                 // The microfacet model only contributes in the upper hemisphere
-                if (SameHemisphere(context.OutDir, inDir) && sameGeometricHemisphere)
+                if (SameHemisphere(context.OutDir, inDir) && sameGeometricHemisphere && cIn * cOut > 0)
                 {
                     // For the Fresnel computation only, make sure that wh is in the same hemisphere as the surface normal,
                     // so that total internal reflection is handled correctly.
@@ -231,8 +232,8 @@ public partial class GenericMaterial  : Material
 
                 // but its PDF "leaks" to the other side -- we compute the PDF for those samples for completeness
                 // (required for fancy stuff like optimal MIS weight computation)
-                float reflectJacobianFwd = Math.Abs(4 * Vector3.Dot(context.OutDir, halfVector));
-                float reflectJacobianRev = Math.Abs(4 * cosThetaD);
+                float reflectJacobianFwd = Math.Abs(4 * cOut);
+                float reflectJacobianRev = Math.Abs(4 * cIn);
                 if (reflectJacobianFwd != 0.0f && reflectJacobianRev != 0.0f) // Prevent NaNs from degenerate cases
                 {
                     pdfsFwd[1] = normalDistribution.Pdf(context.OutDir, halfVector) / reflectJacobianFwd;
@@ -245,22 +246,24 @@ public partial class GenericMaterial  : Material
         float eta = context.OutDir.Z > 0 ? parameters.IndexOfRefraction : (1 / parameters.IndexOfRefraction);
         var halfVectorTransmit = context.OutDir + inDir * eta;
 
-        if (cosThetaO != 0 && cosThetaI != 0 && halfVector != Vector3.Zero && halfVectorTransmit != Vector3.Zero && parameters.SpecularTransmittance > 0) // Skip degenerate cases
+        if (cosThetaO != 0 && cosThetaI != 0 && halfVectorTransmit != Vector3.Zero && parameters.SpecularTransmittance > 0) // Skip degenerate cases
         {
             halfVectorTransmit = Vector3.Normalize(halfVectorTransmit);
             // Flip the half vector to the upper hemisphere for consistent computations
             halfVectorTransmit = (halfVectorTransmit.Z < 0) ? -halfVectorTransmit : halfVectorTransmit;
 
-            float sqrtDenom = Vector3.Dot(context.OutDir, halfVectorTransmit) + eta * Vector3.Dot(inDir, halfVectorTransmit);
+            float cOut = Vector3.Dot(context.OutDir, halfVectorTransmit);
+            float cIn = Vector3.Dot(inDir, halfVectorTransmit);
+            float sqrtDenom = cOut + eta * cIn;
 
             // The BSDF value for transmission is only non-zero if the directions are in different hemispheres
-            if (!SameHemisphere(context.OutDir, inDir))
+            if (!SameHemisphere(context.OutDir, inDir) && cOut * cIn < 0)
             {
-                var F = new RgbColor(FresnelDielectric.Evaluate(Vector3.Dot(context.OutDir, halfVectorTransmit), 1, parameters.IndexOfRefraction));
+                var F = new RgbColor(FresnelDielectric.Evaluate(cOut, 1, parameters.IndexOfRefraction));
                 float factor = context.IsOnLightSubpath ? (1 / eta) : 1;
 
                 var numerator = normalDistribution.NormalDistribution(halfVectorTransmit) * normalDistribution.MaskingShadowing(context.OutDir, inDir);
-                numerator *= eta * eta * Math.Abs(Vector3.Dot(inDir, halfVectorTransmit)) * Math.Abs(Vector3.Dot(context.OutDir, halfVectorTransmit));
+                numerator *= eta * eta * Math.Abs(cIn) * Math.Abs(cOut);
                 numerator *= factor * factor;
 
                 var denom = inDir.Z * context.OutDir.Z * sqrtDenom * sqrtDenom;
@@ -269,18 +272,10 @@ public partial class GenericMaterial  : Material
             }
 
             // If total reflection occured, we switch to reflection sampling
-            float cos = Vector3.Dot(halfVector, context.OutDir);
+            float cos = Vector3.Dot(halfVectorTransmit, context.OutDir);
             if (1 / (eta * eta) * MathF.Max(0, 1 - cos * cos) >= 1) // Total internal reflection occurs for this outgoing direction
             {
                 pdfsFwd[2] = pdfsFwd[1];
-            }
-
-            // Same for reversed sampling
-            float cosIn = Vector3.Dot(halfVector, inDir);
-            float etaIn = inDir.Z > 0 ? parameters.IndexOfRefraction : (1 / parameters.IndexOfRefraction);
-            if (1 / (etaIn * etaIn) * MathF.Max(0, 1 - cosIn * cosIn) >= 1) // Total internal reflection occurs for this outgoing direction
-            {
-                pdfsRev[2] = pdfsRev[1];
             }
 
             // The transmission PDF
@@ -292,17 +287,26 @@ public partial class GenericMaterial  : Material
             }
 
             // For the reverse PDF, we first need to compute the corresponding half vector
-            Vector3 halfVectorRev = inDir + context.OutDir * etaIn;
-            if (halfVectorRev != Vector3.Zero)  // Prevent NaN if outDir and inDir exactly align
-            {
-                halfVectorRev = Vector3.Normalize(halfVectorRev);
-                halfVectorRev = (!SameHemisphere(inDir, halfVectorRev)) ? -halfVectorRev : halfVectorRev;
+            float etaIn = inDir.Z > 0 ? parameters.IndexOfRefraction : (1 / parameters.IndexOfRefraction);
 
-                float sqrtDenomIn = Vector3.Dot(inDir, halfVectorRev) + etaIn * Vector3.Dot(context.OutDir, halfVectorRev);
+            var halfVectorTransmitIn = context.OutDir * etaIn + inDir;
+            halfVectorTransmitIn = Vector3.Normalize(halfVectorTransmitIn);
+            halfVectorTransmitIn = (halfVectorTransmitIn.Z < 0) ? -halfVectorTransmitIn : halfVectorTransmitIn;
+
+            float cosIn = Vector3.Dot(halfVectorTransmitIn, inDir);
+            if (1 / (etaIn * etaIn) * MathF.Max(0, 1 - cosIn * cosIn) >= 1) // Total internal reflection occurs for this outgoing direction
+            {
+                pdfsRev[2] = pdfsRev[1];
+            }
+
+            if (halfVectorTransmitIn != Vector3.Zero)  // Prevent NaN if outDir and inDir exactly align
+            {
+                var wh = (!SameHemisphere(inDir, halfVectorTransmitIn)) ? -halfVectorTransmitIn : halfVectorTransmitIn;
+                float sqrtDenomIn = Vector3.Dot(halfVectorTransmitIn, inDir) + etaIn * Vector3.Dot(context.OutDir, halfVectorTransmitIn);
                 if (sqrtDenomIn != 0)  // Prevent NaN in corner case
                 {
-                    float jacobian = etaIn * etaIn * Math.Max(0, Vector3.Dot(context.OutDir, -halfVectorRev)) / (sqrtDenomIn * sqrtDenomIn);
-                    pdfsRev[2] += normalDistribution.Pdf(inDir, halfVectorRev) * jacobian;
+                    float jacobian = etaIn * etaIn * Math.Max(0, Vector3.Dot(context.OutDir, -wh)) / (sqrtDenomIn * sqrtDenomIn);
+                    pdfsRev[2] += normalDistribution.Pdf(inDir, wh) * jacobian;
                 }
             }
         }

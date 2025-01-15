@@ -1,0 +1,39 @@
+﻿@page "/"
+
+@using System.Reflection
+@using System.Text.RegularExpressions
+
+
+<div>
+    <nav>
+        <ul>
+            @foreach (var (name, url) in GetExperimentPages())
+            {
+                <li><a href=@(url)>@(name)</a></li>
+            }
+        </ul>
+    </nav>
+</div>
+
+
+@code {
+    /// <summary>Enumerates all .razor components in this folder</summary>
+    public IEnumerable<(string Name, string Url)> GetExperimentPages()
+    {
+        var routableComponents = Assembly
+                .GetExecutingAssembly()
+                .ExportedTypes
+                .Where(t => t.IsSubclassOf(typeof(ComponentBase)))
+                .Where(c => c
+                    .GetCustomAttributes(inherit: true)
+                    .OfType<RouteAttribute>()
+                    .Count() > 0);
+
+        foreach (var routableComponent in routableComponents)
+        {
+            string name = routableComponent.ToString().Replace("MaterialTest.Pages.", string.Empty);
+            if (name != "Index")
+                yield return (name, name);
+        }
+    }
+}

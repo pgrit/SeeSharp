@@ -1,0 +1,54 @@
+@using Microsoft.AspNetCore.Mvc
+@using Microsoft.JSInterop
+
+@namespace SeeSharp.Blazor
+
+@inject IJSRuntime JS
+
+<canvas @ref=canvas width="@Size" height="@Size"></canvas>
+
+@code {
+    [Parameter]
+    public int Size { get; set; } = 100;
+
+    public enum Mode {
+        FullCircle,
+        HalfCircle,
+        QuarterCircle
+    }
+
+    [Parameter]
+    public Mode RotationMode { get; set; } = Mode.FullCircle;
+
+    ElementReference canvas;
+
+    [Parameter]
+    public float Value { get; set; } = 0.0f;
+    [Parameter] public EventCallback<float> ValueChanged { get; set; }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!firstRender)
+            return;
+
+        switch (RotationMode)
+        {
+            case Mode.FullCircle:
+                await JS.InvokeVoidAsync("initRotationInput", canvas, DotNetObjectReference.Create(this), Value);
+                break;
+            case Mode.HalfCircle:
+                await JS.InvokeVoidAsync("initHalfRotationInput", canvas, DotNetObjectReference.Create(this), Value, false);
+                break;
+            case Mode.QuarterCircle:
+                await JS.InvokeVoidAsync("initHalfRotationInput", canvas, DotNetObjectReference.Create(this), Value, true);
+                break;
+        }
+    }
+
+    [JSInvokable]
+    public async Task OnValueChanged(float newAngle)
+    {
+        Value = newAngle;
+        await ValueChanged.InvokeAsync(Value);
+    }
+}

@@ -1,9 +1,18 @@
 using Microsoft.JSInterop;
+using System.Reflection;
 
 namespace SeeSharp.Blazor;
 
 public static class Scripts
 {
+    static string ReadResourceText(string filename)
+    {
+        var assembly = typeof(Scripts).GetTypeInfo().Assembly;
+        var stream = assembly.GetManifestResourceStream("SeeSharp.Blazor." + filename)
+            ?? throw new FileNotFoundException("resource file not found", filename);
+        return new StreamReader(stream).ReadToEnd();
+    }
+
     /// <summary>
     /// Required in the &lt; head &gt; so that the SimpleImageIO.FlipBook can be rendered
     /// </summary>
@@ -43,7 +52,14 @@ public static class Scripts
     </script>
     """;
 
-    public static readonly string AllScripts = FlipBookScript + DownloadScript;
+    public static readonly string WidgetScripts =
+    $$"""
+    <script>
+        {{ReadResourceText("Scripts.rotationInput.js")}}
+    </script>
+    """;
+
+    public static readonly string AllScripts = FlipBookScript + DownloadScript + WidgetScripts;
 
     /// <summary>
     /// Downloads a stream to the client with the given file name. Requires that <see cref="DownloadScript" />

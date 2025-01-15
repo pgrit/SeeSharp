@@ -23,4 +23,14 @@
     <ProjectReference Include="..\SeeSharp\SeeSharp.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <None Remove="./Scripts/*.js" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <EmbeddedResource Include="./Scripts/*.js">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </EmbeddedResource>
+  </ItemGroup>
+
 </Project>

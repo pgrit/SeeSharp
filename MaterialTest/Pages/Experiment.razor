@@ -1,0 +1,55 @@
+@using SeeSharp.Experiments
+@using SeeSharp
+@using SeeSharp.Blazor
+
+@inject IJSRuntime JS
+
+@page "/Experiment"
+
+<h1>Example experiment</h1>
+
+<div>
+    <div class="experiment-settings">
+        <SettingsGroup Title="Experiment settings">
+            <FloatSetting Label="IOR" @bind-Value=indexOfRefraction />
+            <FloatSetting Label="roughness" @bind-Value=roughness />
+            <FloatSetting Label="transmit" @bind-Value=transmit />
+            <FloatSetting Label="metallic" @bind-Value=metallic />
+        </SettingsGroup>
+    </div>
+
+    <RotationInput RotationMode=RotationInput.Mode.HalfCircle @bind-Value=theta></RotationInput>
+    <RotationInput RotationMode=RotationInput.Mode.FullCircle @bind-Value=phi></RotationInput>
+
+    <p>
+        @theta
+        @phi
+    </p>
+
+
+    <div class="experiment-results">
+        <FlipViewer Flip="@flip" OnClick="@OnFlipClick"></FlipViewer>
+    </div>
+
+</div>
+
+@code {
+    bool resultsAvailable = false;
+
+    float theta {
+        get => field;
+        set {
+            field = value;
+            RunExperiment();
+        }
+    }
+    float phi {
+        get => field;
+        set {
+            field = value;
+            RunExperiment();
+        }
+    }
+
+    SimpleImageIO.FlipBook flip;
+}

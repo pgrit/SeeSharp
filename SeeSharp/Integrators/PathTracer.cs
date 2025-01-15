@@ -122,6 +122,7 @@ public class NextEventNode : PathGraphNode {
     public readonly SurfacePoint? Point;
 
     public override bool IsBackground => !Point.HasValue;
+    public override RgbColor ComputeVisualizerColor() => new(0.1f, 0.8f, 0.01f);
 }
 
 public class BSDFSampleNode : PathGraphNode {
@@ -144,6 +145,8 @@ public class BSDFSampleNode : PathGraphNode {
     public readonly RgbColor Emission;
     public readonly float MISWeight;
     public readonly SurfacePoint Point;
+
+    public override RgbColor ComputeVisualizerColor() => new(0.1f, 0.4f, 0.8f);
 }
 
 public class BackgroundNode : PathGraphNode {
@@ -154,6 +157,8 @@ public class BackgroundNode : PathGraphNode {
     public readonly RgbColor Emission;
     public readonly float MISWeight;
     public override bool IsBackground => true;
+
+    public override RgbColor ComputeVisualizerColor() => new(0.1f, 0.1f, 0.9f);
 }
 
 public class PathGraph {

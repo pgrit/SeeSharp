@@ -395,6 +395,11 @@ public abstract class BidirBase<CameraPayloadType> : Integrator {
         if (bsdfValue == RgbColor.Black)
             return;
 
+        // The shading cosine only cancels out with the Jacobian if the geometry aligns with the shading geometry
+        bsdfValue *=
+            float.Abs(Vector3.Dot(vertex.Point.ShadingNormal, dirToAncestor)) /
+            float.Abs(Vector3.Dot(vertex.Point.Normal, dirToAncestor));
+
         // Compute the surface area pdf of sampling the previous vertex instead
         var (pdfReverse, _) = shader.Pdf(dirToAncestor);
         if (ancestor.Point.Mesh != null)
@@ -468,8 +473,11 @@ public abstract class BidirBase<CameraPayloadType> : Integrator {
         var dirFromCamToLight = Vector3.Normalize(vertex.Point.Position - shader.Point.Position);
 
         SurfaceShader lightShader = new(vertex.Point, dirToAncestor, true);
+        var bsdfWeightLight = lightShader.Evaluate(-dirFromCamToLight) * float.Abs(Vector3.Dot(vertex.Point.Normal, -dirFromCamToLight));
+        bsdfWeightLight *=
+            float.Abs(Vector3.Dot(vertex.Point.ShadingNormal, dirToAncestor)) /
+            float.Abs(Vector3.Dot(vertex.Point.Normal, dirToAncestor));
 
-        var bsdfWeightLight = lightShader.EvaluateWithCosine(-dirFromCamToLight);
         var bsdfWeightCam = shader.EvaluateWithCosine(dirFromCamToLight);
 
         if (bsdfWeightCam == RgbColor.Black || bsdfWeightLight == RgbColor.Black)

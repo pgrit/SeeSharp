@@ -271,16 +271,23 @@ public class VertexConnectionAndMergingBase<CameraPayloadType> : VertexCacheBidi
         if (depth > MaxDepth || depth < MinDepth)
             return RgbColor.Black;
 
+        // Discard photons on (almost) perpendicular surfaces. This avoids outliers and somewhat reduces
+        // light leaks, but slightly amplifies darkening from kernel estimation bias.
+        if (float.Abs(Vector3.Dot(shader.Point.Normal, photon.Point.Normal)) < 0.4f) {
+            return RgbColor.Black;
+        }
+
         // Compute the contribution of the photon
         var ancestor = LightPaths[idx.pathIdx, idx.vertexIdx - 1];
         var dirToAncestor = Vector3.Normalize(ancestor.Point.Position - shader.Point.Position);
         var bsdfValue = shader.Evaluate(dirToAncestor);
+        bsdfValue *=
+            float.Abs(Vector3.Dot(shader.Point.ShadingNormal, dirToAncestor)) /
+            float.Abs(Vector3.Dot(photon.Point.Normal, dirToAncestor));
         var photonContrib = photon.Weight * bsdfValue / NumLightPaths.Value;
 
         // Early exit + prevent NaN / Inf
         if (photonContrib == RgbColor.Black) return RgbColor.Black;
-        // Prevent outliers due to numerical issues with photons arriving almost parallel to the surface
-        if (Math.Abs(Vector3.Dot(dirToAncestor, shader.Point.Normal)) < 1e-4f) return RgbColor.Black;
 
         // Compute the missing pdf terms and the MIS weight
         var (pdfLightReverse, pdfCameraReverse) = shader.Pdf(dirToAncestor);

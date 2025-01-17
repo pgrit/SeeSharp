@@ -191,6 +191,20 @@ public ref struct RandomWalk<PayloadType> where PayloadType : new(){
             if (dirSample.PdfForward == 0 || dirSample.Weight == RgbColor.Black)
                 break;
 
+            if (isOnLightSubpath) {
+                // The direction sample is multiplied by the shading cosine, but we need the geometric one
+                dirSample.Weight *=
+                    float.Abs(Vector3.Dot(hit.Normal, dirSample.Direction)) /
+                    float.Abs(Vector3.Dot(hit.ShadingNormal, dirSample.Direction));
+
+                // Rendering equation cosine cancels with the Jacobian, but only if geometry and shading geometry align
+                dirSample.Weight *=
+                    float.Abs(Vector3.Dot(hit.ShadingNormal, -ray.Direction)) /
+                    float.Abs(Vector3.Dot(hit.Normal, -ray.Direction));
+
+                SanityChecks.IsNormalized(ray.Direction);
+            }
+
             // Continue the path with the next ray
             prefixWeight *= dirSample.Weight / survivalProb;
             depth++;

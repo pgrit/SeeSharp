@@ -262,8 +262,10 @@ public partial class GenericMaterial  : Material
                 var F = new RgbColor(FresnelDielectric.Evaluate(cOut, 1, parameters.IndexOfRefraction));
                 float factor = context.IsOnLightSubpath ? (1 / eta) : 1;
 
-                var numerator = normalDistribution.NormalDistribution(halfVectorTransmit) * normalDistribution.MaskingShadowing(context.OutDir, inDir);
-                numerator *= eta * eta * Math.Abs(cIn) * Math.Abs(cOut);
+                var wh = (!SameHemisphere(context.OutDir, halfVectorTransmit)) ? -halfVectorTransmit : halfVectorTransmit;
+
+                var numerator = normalDistribution.NormalDistribution(wh) * normalDistribution.MaskingShadowing(context.OutDir, inDir);
+                numerator *= eta * eta * Math.Max(0, Vector3.Dot(inDir, -wh)) * Math.Max(0, Vector3.Dot(context.OutDir, wh));
                 numerator *= factor * factor;
 
                 var denom = inDir.Z * context.OutDir.Z * sqrtDenom * sqrtDenom;
@@ -272,10 +274,17 @@ public partial class GenericMaterial  : Material
             }
 
             // If total reflection occured, we switch to reflection sampling
-            float cos = Vector3.Dot(halfVectorTransmit, context.OutDir);
+            float cos = Vector3.Dot(halfVector, context.OutDir);
             if (1 / (eta * eta) * MathF.Max(0, 1 - cos * cos) >= 1) // Total internal reflection occurs for this outgoing direction
             {
                 pdfsFwd[2] = pdfsFwd[1];
+            }
+
+            float cosIn = Vector3.Dot(halfVector, inDir);
+            float etaIn = inDir.Z > 0 ? parameters.IndexOfRefraction : (1 / parameters.IndexOfRefraction);
+            if (1 / (etaIn * etaIn) * MathF.Max(0, 1 - cosIn * cosIn) >= 1) // Total internal reflection occurs for this outgoing direction
+            {
+                pdfsRev[2] = pdfsRev[1];
             }
 
             // The transmission PDF
@@ -287,17 +296,9 @@ public partial class GenericMaterial  : Material
             }
 
             // For the reverse PDF, we first need to compute the corresponding half vector
-            float etaIn = inDir.Z > 0 ? parameters.IndexOfRefraction : (1 / parameters.IndexOfRefraction);
-
             var halfVectorTransmitIn = context.OutDir * etaIn + inDir;
             halfVectorTransmitIn = Vector3.Normalize(halfVectorTransmitIn);
             halfVectorTransmitIn = (halfVectorTransmitIn.Z < 0) ? -halfVectorTransmitIn : halfVectorTransmitIn;
-
-            float cosIn = Vector3.Dot(halfVectorTransmitIn, inDir);
-            if (1 / (etaIn * etaIn) * MathF.Max(0, 1 - cosIn * cosIn) >= 1) // Total internal reflection occurs for this outgoing direction
-            {
-                pdfsRev[2] = pdfsRev[1];
-            }
 
             if (halfVectorTransmitIn != Vector3.Zero)  // Prevent NaN if outDir and inDir exactly align
             {

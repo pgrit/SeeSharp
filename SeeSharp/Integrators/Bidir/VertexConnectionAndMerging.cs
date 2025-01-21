@@ -288,6 +288,8 @@ public class VertexConnectionAndMergingBase<CameraPayloadType> : VertexCacheBidi
 
         // Early exit + prevent NaN / Inf
         if (photonContrib == RgbColor.Black) return RgbColor.Black;
+        // Prevent outliers due to numerical issues with photons arriving almost parallel to the surface
+        if (Math.Abs(Vector3.Dot(dirToAncestor, shader.Point.Normal)) < 1e-4f) return RgbColor.Black;
 
         // Compute the missing pdf terms and the MIS weight
         var (pdfLightReverse, pdfCameraReverse) = shader.Pdf(dirToAncestor);

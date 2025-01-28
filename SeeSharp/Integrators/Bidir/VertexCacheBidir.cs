@@ -166,7 +166,7 @@ public class VertexCacheBidirBase<CameraPayloadType> : BidirBase<CameraPayloadTy
     }
 
     /// <inheritdoc />
-    public override float EmitterHitMis(in CameraPath cameraPath, in BidirPathPdfs pathPdfs) {
+    public override float EmitterHitMis(in CameraPath cameraPath, in BidirPathPdfs pathPdfs, bool isBackground) {
         float pdfThis = pathPdfs.PdfsCameraToLight[^1];
 
         float sumReciprocals = 1.0f;

@@ -750,8 +750,9 @@ public abstract class BidirBase<CameraPayloadType> : Integrator {
     /// </summary>
     /// <param name="cameraPath">The camera path that hit an emitter</param>
     /// <param name="pathPdfs">Surface area pdfs of all sampling techniques. </param>
+    /// <param name="isBackground">true if the emitter that was hit is the background</param>
     /// <returns>MIS weight</returns>
-    public abstract float EmitterHitMis(in CameraPath cameraPath, in BidirPathPdfs pathPdfs);
+    public abstract float EmitterHitMis(in CameraPath cameraPath, in BidirPathPdfs pathPdfs, bool isBackground);
 
     /// <summary>
     /// Called when a camera path directly intersected an emitter
@@ -784,7 +785,7 @@ public abstract class BidirBase<CameraPayloadType> : Integrator {
         pathPdfs.PdfNextEvent = pdfNextEvent;
         pathPdfs.PdfsCameraToLight[^1] = path.Vertices[^1].PdfFromAncestor;
 
-        float misWeight = numPdfs == 1 ? 1.0f : EmitterHitMis(path, pathPdfs);
+        float misWeight = numPdfs == 1 ? 1.0f : EmitterHitMis(path, pathPdfs, false);
         RegisterSample(emission * path.Throughput, misWeight, path.Pixel,
                        path.Vertices.Count, 0, path.Vertices.Count);
         OnEmitterHitSample(emission * path.Throughput, misWeight, path, pdfNextEvent, pathPdfs, emitter, outDir, hit);
@@ -820,7 +821,7 @@ public abstract class BidirBase<CameraPayloadType> : Integrator {
         pathPdfs.PdfNextEvent = pdfNextEvent;
         pathPdfs.PdfsCameraToLight[^1] = path.Vertices[^1].PdfFromAncestor;
 
-        float misWeight = numPdfs == 1 ? 1.0f : EmitterHitMis(path, pathPdfs);
+        float misWeight = numPdfs == 1 ? 1.0f : EmitterHitMis(path, pathPdfs, true);
         var emission = Scene.Background.EmittedRadiance(ray.Direction);
         RegisterSample(emission * path.Throughput, misWeight, path.Pixel,
                        path.Vertices.Count, 0, path.Vertices.Count);

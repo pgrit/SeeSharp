@@ -116,7 +116,7 @@ public class ClassicBidirBase<CameraPayloadType> : BidirBase<CameraPayloadType> 
     }
 
     /// <inheritdoc />
-    public override float EmitterHitMis(in CameraPath cameraPath, in BidirPathPdfs pathPdfs) {
+    public override float EmitterHitMis(in CameraPath cameraPath, in BidirPathPdfs pathPdfs, bool isBackground) {
         float pdfThis = cameraPath.Vertices[^1].PdfFromAncestor;
 
         float sumReciprocals = 1.0f;

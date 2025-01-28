@@ -513,10 +513,10 @@ public class VertexConnectionAndMergingBase<CameraPayloadType> : VertexCacheBidi
     }
 
     /// <inheritdoc />
-    public override float EmitterHitMis(in CameraPath cameraPath, in BidirPathPdfs pathPdfs) {
+    public override float EmitterHitMis(in CameraPath cameraPath, in BidirPathPdfs pathPdfs, bool isBackground) {
         Span<float> bufA = stackalloc float[pathPdfs.PdfsCameraToLight.Length - 1];
         Span<float> bufB = stackalloc float[pathPdfs.PdfsCameraToLight.Length - 1];
-        var correlRatio = new CorrelAwareRatios(pathPdfs, cameraPath.Distances[0], false, bufA, bufB);
+        var correlRatio = new CorrelAwareRatios(pathPdfs, cameraPath.Distances[0], isBackground, bufA, bufB);
 
         float sumReciprocals = 1.0f;
 

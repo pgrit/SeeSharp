@@ -6,7 +6,7 @@
     <Title>SeeSharp</Title>
     <Description>A flexibility-first framework for rapid prototyping of rendering algorithms.</Description>
     <PackageId>SeeSharp</PackageId>
-    <Version>2.2.0</Version>
+    <Version>2.3.0</Version>
     <Copyright>(c) Pascal Grittmann</Copyright>
     <RepositoryUrl>https://github.com/pgrit/SeeSharp</RepositoryUrl>
 
@@ -36,7 +36,7 @@
 
   <ItemGroup>
     <PackageReference Include="Markdig" Version="0.37.0" />
-    <PackageReference Include="SimpleImageIO" Version="1.7.2" />
+    <PackageReference Include="SimpleImageIO" Version="1.7.3" />
     <!-- <ProjectReference Include="../../SimpleImageIO/SimpleImageIO/SimpleImageIO.csproj" /> -->
     <PackageReference Include="TinyEmbree" Version="1.1.0" />
     <!-- <ProjectReference Include="../../TinyEmbree/TinyEmbree/TinyEmbree.csproj" /> -->

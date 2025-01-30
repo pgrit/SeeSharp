@@ -5,7 +5,7 @@
 /// Ignores the first vertices of all light paths (the ones on the lights).
 /// </summary>
 /// <param name="cache">The light subpath cache</param>
-public struct VertexSelector(LightPathCache cache) {
+public struct VertexSelector(PathCache cache) {
     /// <summary>
     /// Randomly selects a light subpath vertex
     /// </summary>
@@ -21,5 +21,5 @@ public struct VertexSelector(LightPathCache cache) {
     /// </summary>
     public int Count => cache.NumVertices;
 
-    LightPathCache cache = cache;
+    PathCache cache = cache;
 }

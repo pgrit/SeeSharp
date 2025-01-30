@@ -27,6 +27,8 @@ public class PathCache {
         return ref memory[p + vertexIdx];
     }
 
+    public ref PathVertex this[int PathIdx, int VertexIdx] => ref GetPathVertex(PathIdx, VertexIdx);
+
     /// <returns>
     /// The global vertex index of the vertexIdx'th vertex along the pathIdx'th path
     /// </returns>
@@ -50,6 +52,8 @@ public class PathCache {
         }
         return ref memory[vertexMemoryIdx];
     }
+
+    public ref PathVertex this[int GlobalVertexIdx] => ref GetVertex(GlobalVertexIdx);
 
     public int NumVertices => cumPathLen[NumPaths - 1];
     public int NumPaths { get; init; }

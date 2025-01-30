@@ -69,7 +69,7 @@ public class ClassicBidirBase<CameraPayloadType> : BidirBase<CameraPayloadType> 
                                                   minDepth: 1, maxDepth: MaxDepth, merges: false);
         }
 
-        if (NumLightPaths.HasValue && NumLightPaths.Value != scene.FrameBuffer.Width * scene.FrameBuffer.Height) {
+        if (NumLightPaths > 0 && NumLightPaths != scene.FrameBuffer.Width * scene.FrameBuffer.Height) {
             throw new InvalidOperationException("Classic Bidir requires exactly one light path for every camera path");
         }
 
@@ -129,7 +129,7 @@ public class ClassicBidirBase<CameraPayloadType> : BidirBase<CameraPayloadType> 
 
     /// <inheritdoc />
     public override float LightTracerMis(PathVertex lightVertex, in BidirPathPdfs pathPdfs, Pixel pixel, float distToCam) {
-        float sumReciprocals = 1 + LightPathReciprocals(-1, pathPdfs, pixel) / NumLightPaths.Value;
+        float sumReciprocals = 1 + LightPathReciprocals(-1, pathPdfs, pixel) / NumLightPaths;
         return 1 / sumReciprocals;
     }
 
@@ -171,7 +171,7 @@ public class ClassicBidirBase<CameraPayloadType> : BidirBase<CameraPayloadType> 
         // Light tracer
         if (EnableLightTracer)
             sumReciprocals +=
-                nextReciprocal * pdfs.PdfsLightToCamera[0] / pdfs.PdfsCameraToLight[0] * NumLightPaths.Value;
+                nextReciprocal * pdfs.PdfsLightToCamera[0] / pdfs.PdfsCameraToLight[0] * NumLightPaths;
         return sumReciprocals;
     }
 

@@ -10,7 +10,6 @@ namespace SeeSharp.IntegrationTests {
     class Dummy : VertexConnectionAndMerging {
         protected override void OnStartIteration(uint iteration) {
             NumLightPaths = 0;
-            LightPaths.NumPaths = 0;
         }
 
         protected override void OnNextEventSample(RgbColor weight, float misWeight, CameraPath cameraPath, float pdfNextEvent, float pdfHit, in BidirPathPdfs pathPdfs, Emitter emitter, Vector3 lightToSurface, SurfacePoint lightPoint) {

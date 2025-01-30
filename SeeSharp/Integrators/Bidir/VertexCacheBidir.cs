@@ -80,7 +80,7 @@ public class VertexCacheBidirBase<CameraPayloadType> : BidirBase<CameraPayloadTy
 
         // There are "NumLightPaths" samples that could have generated the selected vertex,
         // we repeat the process "NumConnections" times
-        float numSamples = NumConnections * NumLightPaths.Value;
+        float numSamples = NumConnections * NumLightPaths;
 
         return selectProb * numSamples;
     }
@@ -125,16 +125,16 @@ public class VertexCacheBidirBase<CameraPayloadType> : BidirBase<CameraPayloadTy
     /// Creates the vertex resampler and computes the light tracing contribution.
     /// </summary>
     protected override void ProcessPathCache() {
-        if (NumConnections > 0) vertexSelector = new VertexSelector(LightPaths);
+        if (NumConnections > 0) vertexSelector = new VertexSelector(PathCache);
         if (EnableLightTracer) SplatLightVertices();
 
         // For debug purposes: count the number of paths that never started
         int numEmpty = 0;
-        for (int i = 0; i < LightPaths.NumPaths; ++i) {
-            if (LightPaths.Length(i) == 0)
+        for (int i = 0; i < PathCache.NumPaths; ++i) {
+            if (PathCache.Length(i) == 0)
                 numEmpty++;
         }
-        InvalidLightPathFraction = numEmpty / (float)LightPaths.NumPaths;
+        InvalidLightPathFraction = numEmpty / (float)PathCache.NumPaths;
     }
 
     /// <inheritdoc />
@@ -179,7 +179,7 @@ public class VertexCacheBidirBase<CameraPayloadType> : BidirBase<CameraPayloadTy
 
     /// <inheritdoc />
     public override float LightTracerMis(PathVertex lightVertex, in BidirPathPdfs pathPdfs, Pixel pixel, float distToCam) {
-        float sumReciprocals = 1 + LightPathReciprocals(-1, pathPdfs, pixel) / NumLightPaths.Value;
+        float sumReciprocals = 1 + LightPathReciprocals(-1, pathPdfs, pixel) / NumLightPaths;
         return 1 / sumReciprocals;
     }
 
@@ -215,7 +215,7 @@ public class VertexCacheBidirBase<CameraPayloadType> : BidirBase<CameraPayloadTy
         }
         if (EnableLightTracer)
             sumReciprocals +=
-                nextReciprocal * pdfs.PdfsLightToCamera[0] / pdfs.PdfsCameraToLight[0] * NumLightPaths.Value;
+                nextReciprocal * pdfs.PdfsLightToCamera[0] / pdfs.PdfsCameraToLight[0] * NumLightPaths;
         return sumReciprocals;
     }
 

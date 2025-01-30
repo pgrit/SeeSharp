@@ -102,7 +102,6 @@ public ref struct RandomWalk<PayloadType> where PayloadType : new(){
         SurfaceShader shader = new(hit, -ray.Direction, isOnLightSubpath);
 
         // Sample the next direction (required to know the reverse pdf)
-        //  = SampleNextDirection(shader, initialWeight, 1);
         var dirSample = Modifier?.SampleNextDirection(ref this, shader, initialWeight, 1)
             ?? SampleBsdf(shader);
         ApproxThroughput *= dirSample.ApproxReflectance;

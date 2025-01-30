@@ -160,11 +160,11 @@ public class VertexConnectionAndMergingBase<CameraPayloadType> : VertexCacheBidi
 
     private float ComputeAverageLightPathLength() {
         float average = 0;
-        if (LightPaths == null)
+        if (PathCache == null)
             return 0;
 
-        for (int i = 0; i < LightPaths.NumPaths; ++i) {
-            int length = LightPaths.Length(i);
+        for (int i = 0; i < PathCache.NumPaths; ++i) {
+            int length = PathCache.Length(i);
             average = (length + i * average) / (i + 1);
         }
         return average;
@@ -223,9 +223,9 @@ public class VertexConnectionAndMergingBase<CameraPayloadType> : VertexCacheBidi
             mergeBuildTimer.Start();
 
             photonMap.Clear();
-            for (int pathIdx = 0; pathIdx < NumLightPaths.Value; ++pathIdx) {
-                for (int vertIdx = 1; vertIdx < LightPaths.Length(pathIdx); ++vertIdx) {
-                    ref var vertex = ref LightPaths[pathIdx, vertIdx];
+            for (int pathIdx = 0; pathIdx < NumLightPaths; ++pathIdx) {
+                for (int vertIdx = 1; vertIdx < PathCache.Length(pathIdx); ++vertIdx) {
+                    ref var vertex = ref PathCache[pathIdx, vertIdx];
                     if (vertex.Weight != RgbColor.Black)
                         photonMap.AddPoint(vertex.Point.Position, (pathIdx, vertIdx));
                 }
@@ -264,7 +264,7 @@ public class VertexConnectionAndMergingBase<CameraPayloadType> : VertexCacheBidi
 
     protected virtual RgbColor Merge(in CameraPath path, float cameraJacobian, in SurfaceShader shader,
                                      (int pathIdx, int vertexIdx) idx, float distSqr, float radiusSquared) {
-        var photon = LightPaths[idx.pathIdx, idx.vertexIdx];
+        var photon = PathCache[idx.pathIdx, idx.vertexIdx];
 
         // Check that the path does not exceed the maximum length
         var depth = path.Vertices.Count + photon.Depth;
@@ -278,13 +278,13 @@ public class VertexConnectionAndMergingBase<CameraPayloadType> : VertexCacheBidi
         }
 
         // Compute the contribution of the photon
-        var ancestor = LightPaths[idx.pathIdx, idx.vertexIdx - 1];
+        var ancestor = PathCache[idx.pathIdx, idx.vertexIdx - 1];
         var dirToAncestor = Vector3.Normalize(ancestor.Point.Position - shader.Point.Position);
         var bsdfValue = shader.Evaluate(dirToAncestor);
         bsdfValue *=
             float.Abs(Vector3.Dot(shader.Point.ShadingNormal, dirToAncestor)) /
             float.Abs(Vector3.Dot(photon.Point.Normal, dirToAncestor));
-        var photonContrib = photon.Weight * bsdfValue / NumLightPaths.Value;
+        var photonContrib = photon.Weight * bsdfValue / NumLightPaths;
 
         // Early exit + prevent NaN / Inf
         if (photonContrib == RgbColor.Black) return RgbColor.Black;
@@ -306,7 +306,7 @@ public class VertexConnectionAndMergingBase<CameraPayloadType> : VertexCacheBidi
         Span<float> camToLight = stackalloc float[numPdfs];
         Span<float> lightToCam = stackalloc float[numPdfs];
 
-        var pathPdfs = new BidirPathPdfs(LightPaths, lightToCam, camToLight);
+        var pathPdfs = new BidirPathPdfs(PathCache, lightToCam, camToLight);
         pathPdfs.GatherCameraPdfs(path, lastCameraVertexIdx);
         pathPdfs.GatherLightPdfs(photon, lastCameraVertexIdx - 1);
 
@@ -487,7 +487,7 @@ public class VertexConnectionAndMergingBase<CameraPayloadType> : VertexCacheBidi
         int lastCameraVertexIdx = cameraPath.Vertices.Count - 1;
         float radius = ComputeLocalMergeRadius(cameraPath.FootprintRadius);
         float mergeApproximation = pathPdfs.PdfsLightToCamera[lastCameraVertexIdx]
-                                 * MathF.PI * radius * radius * NumLightPaths.Value;
+                                 * MathF.PI * radius * radius * NumLightPaths;
 
         Span<float> bufA = stackalloc float[pathPdfs.PdfsCameraToLight.Length - 1];
         Span<float> bufB = stackalloc float[pathPdfs.PdfsCameraToLight.Length - 1];
@@ -543,7 +543,7 @@ public class VertexConnectionAndMergingBase<CameraPayloadType> : VertexCacheBidi
 
         float radius = ComputeLocalMergeRadius(footprintRadius);
         float sumReciprocals = LightPathReciprocals(-1, pathPdfs, pixel, radius, correlRatio);
-        sumReciprocals /= NumLightPaths.Value;
+        sumReciprocals /= NumLightPaths;
         sumReciprocals += 1;
 
         return 1 / sumReciprocals;
@@ -599,7 +599,7 @@ public class VertexConnectionAndMergingBase<CameraPayloadType> : VertexCacheBidi
             if (EnableMerging) {
                 float acceptProb = pdfs.PdfsLightToCamera[i] * MathF.PI * radius * radius;
                 if (!DisableCorrelAwareMIS) acceptProb *= correlRatio[i];
-                sumReciprocals += nextReciprocal * NumLightPaths.Value * acceptProb;
+                sumReciprocals += nextReciprocal * NumLightPaths * acceptProb;
             }
 
             nextReciprocal *= pdfs.PdfsLightToCamera[i] / pdfs.PdfsCameraToLight[i];
@@ -611,11 +611,11 @@ public class VertexConnectionAndMergingBase<CameraPayloadType> : VertexCacheBidi
         // Light tracer
         if (EnableLightTracer)
             sumReciprocals +=
-                nextReciprocal * pdfs.PdfsLightToCamera[0] / pdfs.PdfsCameraToLight[0] * NumLightPaths.Value;
+                nextReciprocal * pdfs.PdfsLightToCamera[0] / pdfs.PdfsCameraToLight[0] * NumLightPaths;
 
         // Merging directly visible (almost the same as the light tracer!)
         if (MergePrimary)
-            sumReciprocals += nextReciprocal * NumLightPaths.Value * pdfs.PdfsLightToCamera[0]
+            sumReciprocals += nextReciprocal * NumLightPaths * pdfs.PdfsLightToCamera[0]
                             * MathF.PI * radius * radius;
 
         return sumReciprocals;
@@ -637,7 +637,7 @@ public class VertexConnectionAndMergingBase<CameraPayloadType> : VertexCacheBidi
                 if (EnableMerging) {
                     float acceptProb = pdfs.PdfsCameraToLight[i] * MathF.PI * radius * radius;
                     if (!DisableCorrelAwareMIS) acceptProb *= correlRatio[i];
-                    sumReciprocals += nextReciprocal * NumLightPaths.Value * acceptProb;
+                    sumReciprocals += nextReciprocal * NumLightPaths * acceptProb;
                 }
             }
 

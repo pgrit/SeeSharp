@@ -306,9 +306,9 @@ public class VertexConnectionAndMergingBase<CameraPayloadType> : VertexCacheBidi
         Span<float> camToLight = stackalloc float[numPdfs];
         Span<float> lightToCam = stackalloc float[numPdfs];
 
-        var pathPdfs = new BidirPathPdfs(PathCache, lightToCam, camToLight);
+        var pathPdfs = new BidirPathPdfs(lightToCam, camToLight);
         pathPdfs.GatherCameraPdfs(path, lastCameraVertexIdx);
-        pathPdfs.GatherLightPdfs(photon, lastCameraVertexIdx - 1);
+        pathPdfs.GatherLightPdfs(PathCache, photon, lastCameraVertexIdx - 1);
 
         // Set the pdf values that are unique to this combination of paths
         if (lastCameraVertexIdx > 0) // only if this is not the primary hit point

@@ -4,7 +4,7 @@
 /// Performs a random walk, invoking virtual callbacks for events along the path. The state of the walk is
 /// tracked in this object, so it can only be used for one walk at a time.
 /// </summary>
-public ref struct RandomWalk<PayloadType> where PayloadType : new(){
+public ref struct RandomWalk<PayloadType> where PayloadType : new(), allows ref struct{
     public record struct DirectionSample(
         float PdfForward,
         float PdfReverse,
@@ -22,13 +22,13 @@ public ref struct RandomWalk<PayloadType> where PayloadType : new(){
                                       RgbColor prefixWeight, int depth, float toAncestorJacobian)
         => RgbColor.Black;
 
-        public virtual void OnContinue(ref RandomWalk<PayloadType> walk, float pdfToAncestor, int depth) {}
+        public virtual void OnContinue(ref RandomWalk<PayloadType> walk, float pdfToAncestor, int depth) { }
 
-        public virtual void OnTerminate(ref RandomWalk<PayloadType> walk) {}
+        public virtual void OnTerminate(ref RandomWalk<PayloadType> walk) { }
 
-        public virtual void OnStartCamera(ref RandomWalk<PayloadType> walk, CameraRaySample cameraRay, Pixel filmPosition) {}
-        public virtual void OnStartEmitter(ref RandomWalk<PayloadType> walk, EmitterSample emitterSample, RgbColor initialWeight) {}
-        public virtual void OnStartBackground(ref RandomWalk<PayloadType> walk, Ray ray, RgbColor initialWeight, float pdf) {}
+        public virtual void OnStartCamera(ref RandomWalk<PayloadType> walk, CameraRaySample cameraRay, Pixel filmPosition) { }
+        public virtual void OnStartEmitter(ref RandomWalk<PayloadType> walk, EmitterSample emitterSample, RgbColor initialWeight) { }
+        public virtual void OnStartBackground(ref RandomWalk<PayloadType> walk, Ray ray, RgbColor initialWeight, float pdf) { }
 
         public virtual DirectionSample SampleNextDirection(ref RandomWalk<PayloadType> walk, in SurfaceShader shader,
                                                            RgbColor prefixWeight, int depth)

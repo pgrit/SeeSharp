@@ -23,6 +23,16 @@ public struct PathVertex {
     public float PdfNextEventAncestor;
 
     /// <summary>
+    /// Normalized direction from this vertex to its ancestor
+    /// </summary>
+    public Vector3 DirToAncestor;
+
+    /// <summary>
+    /// cos/d^2, cosine at the ancestor divided by squared distance
+    /// </summary>
+    public float JacobianToAncestor;
+
+    /// <summary>
     /// Accumulated Monte Carlo weight of the sub-path up to and including this vertex
     /// </summary>
     public RgbColor Weight;

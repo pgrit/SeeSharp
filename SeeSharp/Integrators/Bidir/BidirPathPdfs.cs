@@ -7,12 +7,10 @@
 /// [numPdfs] is the last vertex, the one on the light source itself.
 /// </summary>
 public ref struct BidirPathPdfs {
-    private readonly PathCache lightPathCache;
-
     /// <summary>
     /// Number of pdfs along the path
     /// </summary>
-    public int NumPdfs => PdfsLightToCamera.Length;
+    public readonly int NumPdfs => PdfsLightToCamera.Length;
 
     /// <summary>
     /// The surface area pdfs for each vertex along the path, when traced from the light.
@@ -35,13 +33,11 @@ public ref struct BidirPathPdfs {
     /// <summary>
     /// Prepares <see langword="this"/> object to compute the pdf values into two preallocated arrays.
     /// </summary>
-    /// <param name="cache">The cached light paths</param>
     /// <param name="lightToCam">Pre-allocated memory for the light path pdfs</param>
     /// <param name="camToLight">Pre-allocated memory for the camera path pdfs</param>
-    public BidirPathPdfs(PathCache cache, Span<float> lightToCam, Span<float> camToLight) {
+    public BidirPathPdfs(Span<float> lightToCam, Span<float> camToLight) {
         PdfsCameraToLight = camToLight;
         PdfsLightToCamera = lightToCam;
-        lightPathCache = cache;
     }
 
     /// <summary>
@@ -60,15 +56,32 @@ public ref struct BidirPathPdfs {
         }
     }
 
+    public void GatherCameraPdfs(in CamCachingBidirBase.CameraPathState cameraPath, int lastCameraVertexIdx) {
+        for (int i = 0; i <= lastCameraVertexIdx; ++i) {
+            PdfsCameraToLight[i] = cameraPath.Vertices[i].PdfFromAncestor;
+            if (i < lastCameraVertexIdx - 2)
+                PdfsLightToCamera[i] = cameraPath.Vertices[i + 2].PdfReverseAncestor;
+        }
+    }
+
+    public void GatherCameraPdfs(PathCache cameraPathCache, in PathVertex cameraVertex, int lastCameraVertexIdx) {
+        for (int i = 0; i <= lastCameraVertexIdx; ++i) {
+            PdfsCameraToLight[i] = cameraPathCache[cameraVertex.PathId, i].PdfFromAncestor;
+            if (i < lastCameraVertexIdx - 2)
+                PdfsLightToCamera[i] = cameraPathCache[cameraVertex.PathId, i + 2].PdfReverseAncestor;
+        }
+    }
+
     /// <summary>
     /// Gathers the surface area pdfs along a light path into our look-up array
     /// </summary>
+    /// <param name="lightPathCache">Cache containing the light vertices of all paths</param>
     /// <param name="lightVertex">The last vertex of the light path</param>
     /// <param name="lastCameraVertexIdx">
     /// Index of the last vertex that was sampled via a camera path. Everything after that position
     /// is filled with the forward and backward sampling pdfs along the light path.
     /// </param>
-    public void GatherLightPdfs(in PathVertex lightVertex, int lastCameraVertexIdx) {
+    public void GatherLightPdfs(PathCache lightPathCache, in PathVertex lightVertex, int lastCameraVertexIdx) {
         var nextVert = lightVertex;
         for (int i = lastCameraVertexIdx + 1; i < NumPdfs - 2; ++i) {
             PdfsLightToCamera[i] = nextVert.PdfFromAncestor;
@@ -77,6 +90,25 @@ public ref struct BidirPathPdfs {
             nextVert = lightPathCache[nextVert.PathId, nextVert.Depth - 1];
         }
         PdfsLightToCamera[^2] = nextVert.PdfFromAncestor;
+        PdfsLightToCamera[^1] = 1;
+    }
+
+    /// <summary>
+    /// Gathers the surface area pdfs along a light path into our look-up array
+    /// </summary>
+    /// <param name="lightPath">The light path of which we gather all PDFs until the currently last vertex</param>
+    /// <param name="lastCameraVertexIdx">
+    /// Index of the last vertex that was sampled via a camera path. Everything after that position
+    /// is filled with the forward and backward sampling pdfs along the light path.
+    /// </param>
+    public void GatherLightPdfs(in CamCachingBidirBase.LightPathState lightPath, int lastCameraVertexIdx) {
+        int k = 1;
+        for (int i = lastCameraVertexIdx + 1; i < NumPdfs - 2; ++i, ++k) {
+            PdfsLightToCamera[i] = lightPath.Vertices[^k].PdfFromAncestor;
+            PdfsCameraToLight[i + 2] = lightPath.Vertices[^k].PdfReverseAncestor;
+            PdfNextEvent += lightPath.Vertices[^k].PdfNextEventAncestor; // All but one are zero, so we are lazy and add them up instead of picking the correct one
+        }
+        PdfsLightToCamera[^2] = lightPath.Vertices[^k].PdfFromAncestor;
         PdfsLightToCamera[^1] = 1;
     }
 }

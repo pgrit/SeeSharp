@@ -232,9 +232,9 @@ public abstract partial class BidirBase<CameraPayloadType> {
         Span<float> camToLight = stackalloc float[numPdfs];
         Span<float> lightToCam = stackalloc float[numPdfs];
 
-        var pathPdfs = new BidirPathPdfs(PathCache, lightToCam, camToLight);
+        var pathPdfs = new BidirPathPdfs(lightToCam, camToLight);
         pathPdfs.GatherCameraPdfs(path, lastCameraVertexIdx);
-        pathPdfs.GatherLightPdfs(vertex, lastCameraVertexIdx);
+        pathPdfs.GatherLightPdfs(PathCache,vertex, lastCameraVertexIdx);
         if (vertex.Depth == 1)
             pathPdfs.PdfNextEvent = NextEventPdf(vertex.Point, ancestor.Point);
 
@@ -372,7 +372,7 @@ public abstract partial class BidirBase<CameraPayloadType> {
         int lastCameraVertexIdx = numPdfs - 2;
         Span<float> camToLight = stackalloc float[numPdfs];
         Span<float> lightToCam = stackalloc float[numPdfs];
-        var pathPdfs = new BidirPathPdfs(PathCache, lightToCam, camToLight);
+        var pathPdfs = new BidirPathPdfs(lightToCam, camToLight);
         pathPdfs.GatherCameraPdfs(path, lastCameraVertexIdx);
         pathPdfs.PdfsCameraToLight[^2] = path.Vertices[^1].PdfFromAncestor;
 
@@ -509,7 +509,7 @@ public abstract partial class BidirBase<CameraPayloadType> {
         int lastCameraVertexIdx = numPdfs - 1;
         Span<float> camToLight = stackalloc float[numPdfs];
         Span<float> lightToCam = stackalloc float[numPdfs];
-        var pathPdfs = new BidirPathPdfs(PathCache, lightToCam, camToLight);
+        var pathPdfs = new BidirPathPdfs(lightToCam, camToLight);
         pathPdfs.GatherCameraPdfs(path, lastCameraVertexIdx);
         if (numPdfs > 1)
             pathPdfs.PdfsLightToCamera[^2] = pdfEmit;
@@ -545,7 +545,7 @@ public abstract partial class BidirBase<CameraPayloadType> {
         int lastCameraVertexIdx = numPdfs - 1;
         Span<float> camToLight = stackalloc float[numPdfs];
         Span<float> lightToCam = stackalloc float[numPdfs];
-        var pathPdfs = new BidirPathPdfs(PathCache, lightToCam, camToLight);
+        var pathPdfs = new BidirPathPdfs(lightToCam, camToLight);
         pathPdfs.GatherCameraPdfs(path, lastCameraVertexIdx);
         if (numPdfs > 1)
             pathPdfs.PdfsLightToCamera[^2] = pdfEmit;

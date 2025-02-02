@@ -69,8 +69,8 @@ public abstract partial class BidirBase<CameraPayloadType> {
         int lastCameraVertexIdx = -1;
         Span<float> camToLight = stackalloc float[numPdfs];
         Span<float> lightToCam = stackalloc float[numPdfs];
-        var pathPdfs = new BidirPathPdfs(PathCache, lightToCam, camToLight);
-        pathPdfs.GatherLightPdfs(vertex, lastCameraVertexIdx);
+        var pathPdfs = new BidirPathPdfs(lightToCam, camToLight);
+        pathPdfs.GatherLightPdfs(PathCache, vertex, lastCameraVertexIdx);
         pathPdfs.PdfsCameraToLight[0] = response.PdfEmit;
         pathPdfs.PdfsCameraToLight[1] = pdfReverse;
         if (vertex.Depth == 1)

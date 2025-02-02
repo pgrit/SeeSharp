@@ -59,7 +59,7 @@ public ref struct BidirPathPdfs {
     public void GatherCameraPdfs(in CamCachingBidirBase.CameraPathState cameraPath, int lastCameraVertexIdx) {
         for (int i = 0; i <= lastCameraVertexIdx; ++i) {
             PdfsCameraToLight[i] = cameraPath.Vertices[i].PdfFromAncestor;
-            if (i < lastCameraVertexIdx - 2)
+            if (i < lastCameraVertexIdx - 1)
                 PdfsLightToCamera[i] = cameraPath.Vertices[i + 2].PdfReverseAncestor;
         }
     }
@@ -67,7 +67,7 @@ public ref struct BidirPathPdfs {
     public void GatherCameraPdfs(PathCache cameraPathCache, in PathVertex cameraVertex, int lastCameraVertexIdx) {
         for (int i = 0; i <= lastCameraVertexIdx; ++i) {
             PdfsCameraToLight[i] = cameraPathCache[cameraVertex.PathId, i].PdfFromAncestor;
-            if (i < lastCameraVertexIdx - 2)
+            if (i < lastCameraVertexIdx - 1)
                 PdfsLightToCamera[i] = cameraPathCache[cameraVertex.PathId, i + 2].PdfReverseAncestor;
         }
     }

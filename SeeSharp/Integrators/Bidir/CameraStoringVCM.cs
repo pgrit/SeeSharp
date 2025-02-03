@@ -1,6 +1,6 @@
 namespace SeeSharp.Integrators.Bidir;
 
-public class CamCachingBidirBase : Integrator {
+public class CameraStoringVCM : Integrator {
     #region Parameters
 
     public int NumIterations { get; set; } = 1;

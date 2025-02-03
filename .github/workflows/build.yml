@@ -70,6 +70,7 @@ jobs:
       uses: actions/upload-artifact@v4
       with:
         path: ${{github.workspace}}/SeeSharp.Templates/bin/**/*.nupkg
+        name: template
 
     - name: Publish SeeSharp.Templates on version change
       uses: alirezanet/publish-nuget@v3.1.0

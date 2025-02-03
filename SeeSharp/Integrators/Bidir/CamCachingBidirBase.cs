@@ -115,7 +115,7 @@ public class CamCachingBidirBase : Integrator {
     public void BuildImportonAccel() {
         photonMap.Clear();
         maxRadius = 0;
-        for (int pathIdx = 0; pathIdx < NumLightPaths; ++pathIdx) {
+        for (int pathIdx = 0; pathIdx < Scene.FrameBuffer.Width * Scene.FrameBuffer.Height; ++pathIdx) {
             float footprint = float.Sqrt(1 / CameraPaths[pathIdx, 0].PdfFromAncestor);
             float radius = ComputeLocalMergeRadius(footprint);
             maxRadius = float.Max(maxRadius, radius);

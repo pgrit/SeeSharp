@@ -126,6 +126,9 @@ public class CameraStoringVCM : Integrator {
                     photonMap.AddPoint(vertex.Point.Position, (pathIdx, vertIdx, radius));
             }
         }
+        // TODO-BUG should the max radius be clamped to the mean / median? Or some fraction of the scene bounds?
+        //          otherwise, it could explode if we see a faraway part of the scene
+        //          related research question: do we even want to use PM at all for such faraway parts?
         photonMap.Build();
     }
 

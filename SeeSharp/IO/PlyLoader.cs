@@ -33,7 +33,7 @@ public class PlyLoader : IMeshLoader {
                 ? GlossyEmitter.MakeFromMesh(mesh, emission.Radiance, emission.Exponent)
                 : DiffuseEmitter.MakeFromMesh(mesh, emission.Radiance);
         } else if (jsonElement.TryGetProperty("emission", out var emissionJson)) {
-            emitters = DiffuseEmitter.MakeFromMesh(mesh, JsonUtils.ReadRgbColor(emissionJson));
+            emitters = DiffuseEmitter.MakeFromMesh(mesh, JsonUtils.GetRgbColor(emissionJson));
         }
 
         return (new[] { mesh }, emitters);

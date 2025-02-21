@@ -62,18 +62,6 @@ public static class JsonScene {
             Parallel.ForEach(materials.EnumerateArray(), m => {
                 string name = m.GetProperty("name").GetString();
 
-                float ReadOptionalFloat(string name, float defaultValue) {
-                    if (m.TryGetProperty(name, out var elem))
-                        return elem.GetSingle();
-                    return defaultValue;
-                }
-
-                bool ReadOptionalBool(string name, bool defaultValue) {
-                    if (m.TryGetProperty(name, out var elem))
-                        return elem.GetBoolean();
-                    return defaultValue;
-                }
-
                 // Check whether this is a purely diffuse material or "generic"
                 string type = "generic";
                 if (m.TryGetProperty("type", out var elem)) {
@@ -82,30 +70,31 @@ public static class JsonScene {
 
                 if (type == "diffuse") {
                     var parameters = new DiffuseMaterial.Parameters {
-                        BaseColor = JsonUtils.ReadColorOrTexture(m.GetProperty("baseColor"), path),
-                        Transmitter = ReadOptionalBool("thin", false)
+                        BaseColor = m.GetProperty("baseColor").GetColorOrTexture(path),
+                        Transmitter = m.GetOptionalBool("thin", false)
                     };
                     lock (namedMats) namedMats[name] = new DiffuseMaterial(parameters) { Name = name };
                 } else {
                     // TODO check that there are no unsupported parameters
                     var parameters = new GenericMaterial.Parameters {
-                        BaseColor = JsonUtils.ReadColorOrTexture(m.GetProperty("baseColor"), path),
-                        Roughness = new TextureMono(ReadOptionalFloat("roughness", 0.5f)),
-                        Anisotropic = ReadOptionalFloat("anisotropic", 0.0f),
-                        IndexOfRefraction = ReadOptionalFloat("IOR", 1.01f),
-                        Metallic = ReadOptionalFloat("metallic", 0.0f),
-                        SpecularTintStrength = ReadOptionalFloat("specularTint", 0.0f),
-                        SpecularTransmittance = ReadOptionalFloat("specularTransmittance", 0.0f),
+                        BaseColor = m.GetProperty("baseColor").GetColorOrTexture(path),
+                        Roughness = m.GetOptionalFloatOrTexture("roughness", path, 0.5f),
+                        // new TextureMono(m.GetOptionalFloat("roughness", 0.5f)),
+                        Anisotropic = m.GetOptionalFloat("anisotropic", 0.0f),
+                        IndexOfRefraction = m.GetOptionalFloat("IOR", 1.01f),
+                        Metallic = m.GetOptionalFloat("metallic", 0.0f),
+                        SpecularTintStrength = m.GetOptionalFloat("specularTint", 0.0f),
+                        SpecularTransmittance = m.GetOptionalFloat("specularTransmittance", 0.0f),
                     };
                     lock (namedMats) namedMats[name] = new GenericMaterial(parameters) { Name = name };
                 }
 
                 // Check if the material is emissive
                 if (m.TryGetProperty("emission", out elem)) {
-                    RgbColor emission = JsonUtils.ReadRgbColor(elem);
+                    RgbColor emission = JsonUtils.GetRgbColor(elem);
                     if (emission != RgbColor.Black) {
-                        bool isGlossy = ReadOptionalBool("emissionIsGlossy", false);
-                        float exponent = ReadOptionalFloat("emissionExponent", 50);
+                        bool isGlossy = m.GetOptionalBool("emissionIsGlossy", false);
+                        float exponent = m.GetOptionalFloat("emissionExponent", 50);
                         lock (emissiveMats)
                             emissiveMats.Add(name, new() {
                                 Radiance = emission,
@@ -161,26 +150,26 @@ public static class JsonScene {
 
             bool trs = false;
             if (t.TryGetProperty("scale", out var scale)) {
-                var sc = JsonUtils.ReadVector(scale);
+                var sc = JsonUtils.GetVector(scale);
                 result *= Matrix4x4.CreateScale(sc);
                 trs = true;
             }
 
             if (t.TryGetProperty("rotation", out var rotation)) {
-                var rot = JsonUtils.ReadVector(rotation);
+                var rot = JsonUtils.GetVector(rotation);
                 rot *= MathF.PI / 180.0f;
                 result *= Matrix4x4.CreateFromYawPitchRoll(rot.Y, rot.X, rot.Z);
                 trs = true;
             }
 
             if (t.TryGetProperty("position", out var position)) {
-                var pos = JsonUtils.ReadVector(position);
+                var pos = JsonUtils.GetVector(position);
                 result *= Matrix4x4.CreateTranslation(pos);
                 trs = true;
             }
 
             if (t.TryGetProperty("matrix", out var matrix)) {
-                var mat = JsonUtils.ReadMatrix(matrix);
+                var mat = JsonUtils.GetMatrix(matrix);
                 result = mat;
 
                 if (trs) Logger.Warning($"Matrix is replacing previous definitions of transform '{name}'");

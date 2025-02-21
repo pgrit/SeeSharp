@@ -10,6 +10,12 @@ public class TextureMono : ImageTexture {
     public TextureMono(float color) => constColor = color;
 
     /// <summary>
+    /// Creates a texture from the given file
+    /// </summary>
+    /// <param name="filename">Path to the monochrome image to load</param>
+    public TextureMono(string filename) => Image = new MonochromeImage(filename);
+
+    /// <summary>
     /// Creates a texture from a monochromatic image
     /// </summary>
     public TextureMono(MonochromeImage img) => Image = img;

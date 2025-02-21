@@ -69,16 +69,68 @@ def map_texture(texture, out_dir):
 
     return { "type": "image", "filename": f"Textures/{name}" }
 
+def map_texture_filename(texture, out_dir):
+    path = texture.filepath_raw.replace('//', '')
+    if path == '':
+        path = sanitize_path(texture.name + ".exr")
+        texture.file_format = "OPEN_EXR"
+
+    # Convert unsupported formats to EXR
+    if not texture.file_format in [
+        "BMP",
+        "PNG",
+        "JPEG",
+        "TIFF",
+        "OPEN_EXR",
+        "HDR"
+    ]:
+        path = sanitize_path(texture.name + ".exr")
+        texture.file_format = "OPEN_EXR"
+
+    # Also convert if the extension is unsupported (Why is this needed? Ask Blender!)
+    ext = os.path.splitext(path)[1]
+    if not ext in [
+        "exr",
+        "bmp",
+        "png",
+        "jpg", "jpeg",
+        "tiff", "hdr"
+    ]:
+        path = sanitize_path(texture.name + ".exr")
+        texture.file_format = "OPEN_EXR"
+
+    # Make sure the image is loaded to memory, so we can write it out
+    if not texture.has_data:
+        texture.pixels[0]
+
+    os.makedirs(f"{out_dir}/Textures", exist_ok=True)
+
+    # Export the texture and store its path
+    name = os.path.basename(path)
+    old = texture.filepath_raw
+    try:
+        texture.filepath_raw = f"{out_dir}/Textures/{name}"
+        texture.save()
+    finally: # Never break the scene!
+        texture.filepath_raw = old
+
+    return f"Textures/{name}"
+
 def material_to_json(material, out_dir):
     if material.base_texture:
         base_color = map_texture(material.base_texture, out_dir)
     else:
         base_color = map_rgb(material.base_color)
 
+    if material.rough_texture:
+        roughness = map_texture_filename(material.rough_texture, out_dir)
+    else:
+        roughness = material.roughness
+
     return {
         "type": "generic",
         "baseColor": base_color,
-        "roughness": material.roughness,
+        "roughness": roughness,
         "anisotropic": material.anisotropic,
         "IOR": material.indexOfRefraction,
         "metallic": material.metallic,

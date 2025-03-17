@@ -131,7 +131,7 @@ public ref struct RandomWalk<PayloadType> where PayloadType : new(), allows ref 
     }
 
     public DirectionSample SampleBsdf(in SurfaceShader shader) {
-        var bsdfSample = shader.Sample(rng.NextFloat2D());
+        var bsdfSample = shader.Sample(rng.NextFloat(), rng.NextFloat2D());
         return new(
             bsdfSample.Pdf,
             bsdfSample.PdfReverse,

@@ -91,69 +91,68 @@ public partial class GenericMaterial  : Material
         return (v.Pdf, v.PdfReverse);
     }
 
-    public override BsdfSample Sample(in ShadingContext context, Vector2 primarySample, ref ComponentWeights componentWeights)
-    {
+    public override BsdfSample Sample(in ShadingContext context, float primaryComponent, Vector2 primaryDirection, ref ComponentWeights componentWeights) {
         ShadingStatCounter.NotifySample();
 
-        if (context.OutDir.Z == 0)
-        {
+        if (context.OutDir.Z == 0) {
             // early exit to prevent NaNs in the microfacet code
             return BsdfSample.Invalid;
         }
 
         var localParams = ComputeLocalParams(context);
 
-        TrowbridgeReitzDistribution normalDistribution = new()
-        {
+        TrowbridgeReitzDistribution normalDistribution = new() {
             AlphaX = localParams.alphaX,
             AlphaY = localParams.alphaY
         };
         float eta = context.OutDir.Z > 0 ? (1 / parameters.IndexOfRefraction) : parameters.IndexOfRefraction;
 
         // Select a component to sample from and remap the primary sample coordinate
-        int c;
-        if (primarySample.X <= localParams.SelectionWeightsForward[0])
-        {
-            c = 0;
-            primarySample.X = Math.Min(primarySample.X / localParams.SelectionWeightsForward[0], 1);
-        }
-        else if (primarySample.X <= localParams.SelectionWeightsForward[0] + localParams.SelectionWeightsForward[1])
-        {
-            c = 1;
-            primarySample.X = Math.Min((primarySample.X - localParams.SelectionWeightsForward[0]) / localParams.SelectionWeightsForward[1], 1);
-        }
-        else
-        {
-            c = 2;
-            primarySample.X = Math.Min((primarySample.X - localParams.SelectionWeightsForward[0] - localParams.SelectionWeightsForward[1]) / localParams.SelectionWeightsForward[2], 1);
-        }
+        float schlickFresnel = FresnelSchlick.Evaluate(localParams.specularReflectanceAtNormal, float.Abs(context.OutDir.Z)).Average;
+        float diffuseBias = float.Max(1 - schlickFresnel, 0.75f);
+        float diffuseWeight = diffuseBias * (1 - parameters.Metallic) * (1 - parameters.SpecularTransmittance);
+        // int c;
+        // if (primaryComponent <= diffuseWeight)
+        //     c = 0;
+        // else if (primaryComponent <= localParams.SelectionWeightsForward[0] + localParams.SelectionWeightsForward[1])
+        //     c = 1;
+        // else
+        //     c = 2;
 
         // Sample a direction from the selected component
         Vector3 inDir;
-        if (c == 0)
-        {
+        if (primaryComponent <= diffuseWeight) {
             // Sample diffuse
-            inDir = SampleWarp.ToCosHemisphere(primarySample).Direction;
+            inDir = SampleWarp.ToCosHemisphere(primaryDirection).Direction;
             if (context.OutDir.Z < 0)
                 inDir.Z *= -1;
         }
-        else if (c == 1)
-        {
-            // Sample specular reflection
-            Vector3 halfVector = normalDistribution.Sample(context.OutDir, primarySample);
-            // Debug.Assert(normalDistribution.Pdf(context.OutDir, halfVector) > 0);
-            inDir = Reflect(context.OutDir, halfVector);
-        }
-        else
-        {
-            // Sample specular transmission
-            Vector3 halfVector = normalDistribution.Sample(context.OutDir, primarySample);
-            if (Vector3.Dot(context.OutDir, halfVector) < 0)
-                return BsdfSample.Invalid; // prevent NaN
-            var i = Refract(context.OutDir, halfVector, eta);
-            if (!i.HasValue)
-                i = Reflect(context.OutDir, halfVector);
-            inDir = i.Value;
+        // else if (c == 1)
+        // {
+        //     // Sample specular reflection
+        //     Vector3 halfVector = normalDistribution.Sample(context.OutDir, primaryDirection);
+        //     // Debug.Assert(normalDistribution.Pdf(context.OutDir, halfVector) > 0);
+        //     inDir = Reflect(context.OutDir, halfVector);
+        // }
+        else {
+            Vector3 halfVector = normalDistribution.Sample(context.OutDir, primaryDirection);
+
+            // float cOut = Vector3.Dot(context.OutDir, halfVector);
+            var cOut = Vector3.Dot(context.OutDir, (halfVector.Z < 0) ? -halfVector : halfVector);
+            var fresnel = FresnelDielectric.Evaluate(cOut, 1, parameters.IndexOfRefraction);
+            float selectTransmit = (1 - fresnel) * parameters.SpecularTransmittance;
+            if ((primaryComponent - diffuseWeight) / (1 - diffuseWeight) < selectTransmit) {
+                // Transmission
+                if (Vector3.Dot(context.OutDir, halfVector) < 0)
+                    return BsdfSample.Invalid; // prevent NaN
+                var i = Refract(context.OutDir, halfVector, eta);
+                if (!i.HasValue)
+                    i = Reflect(context.OutDir, halfVector);
+                inDir = i.Value;
+            } else {
+                // Reflection
+                inDir = Reflect(context.OutDir, halfVector);
+            }
         }
 
         var eval = ComputeValueAndPdf(context, inDir, localParams, ref componentWeights);
@@ -178,8 +177,8 @@ public partial class GenericMaterial  : Material
 
         float cosThetaO = MathF.Abs(context.OutDir.Z);
         float cosThetaI = MathF.Abs(inDir.Z);
-        SelectionWeights selectionWeightsReverse = new();
-        ComputeSelectWeights(localParams, inDir, ref selectionWeightsReverse);
+        // SelectionWeights selectionWeightsReverse = new();
+        // ComputeSelectWeights(localParams, inDir, ref selectionWeightsReverse);
 
         bool sameGeometricHemisphere = ShouldReflect(context.Point, context.OutDirWorld, context.ShadingToWorld(inDir));
 
@@ -193,8 +192,12 @@ public partial class GenericMaterial  : Material
         float fresnelIn = FresnelSchlick.SchlickWeight(cosThetaI);
         if (SameHemisphere(context.OutDir, inDir))
         {
-            if (sameGeometricHemisphere)
-                bsdfValue += localParams.diffuseReflectance / MathF.PI * (1 - fresnelOut * 0.5f) * (1 - fresnelIn * 0.5f);
+            if (sameGeometricHemisphere) {
+                var diffuse = localParams.diffuseReflectance / MathF.PI * (1 - fresnelOut * 0.5f) * (1 - fresnelIn * 0.5f);
+                bsdfValue += diffuse;
+                if (!components.Values.IsEmpty)
+                    components.Values[0] = diffuse;
+            }
             pdfsFwd[0] = cosThetaI / MathF.PI;
             pdfsRev[0] = cosThetaO / MathF.PI;
         }
@@ -208,26 +211,35 @@ public partial class GenericMaterial  : Material
             // Retro-reflectance; Burley 2015, eq (4).
             float cIn = Vector3.Dot(inDir, halfVector);
             float Rr = 2 * localParams.roughness * cIn * cIn;
-            if (SameHemisphere(context.OutDir, inDir) && sameGeometricHemisphere)
-                bsdfValue += localParams.retroReflectance / MathF.PI * Rr * (fresnelOut + fresnelIn + fresnelOut * fresnelIn * (Rr - 1));
+            if (SameHemisphere(context.OutDir, inDir) && sameGeometricHemisphere) {
+                var retro = localParams.retroReflectance / MathF.PI * Rr * (fresnelOut + fresnelIn + fresnelOut * fresnelIn * (Rr - 1));
+                bsdfValue += retro;
+                if (!components.Values.IsEmpty)
+                    components.Values[0] += retro; // we don't sample retro, so it is only covered by cos hemisphere sampling
+            }
 
             // Microfacet reflection
             if (cosThetaI != 0 && cosThetaO != 0) // Skip degenerate cases
             {
                 float cOut = Vector3.Dot(context.OutDir, halfVector);
                 // The microfacet model only contributes in the upper hemisphere
-                if (SameHemisphere(context.OutDir, inDir) && sameGeometricHemisphere && cIn * cOut > 0)
-                {
+                if (SameHemisphere(context.OutDir, inDir) && sameGeometricHemisphere && cIn * cOut > 0) {
                     // For the Fresnel computation only, make sure that wh is in the same hemisphere as the surface normal,
                     // so that total internal reflection is handled correctly.
                     var cosHalfVectorTIR = Vector3.Dot(inDir, (halfVector.Z < 0) ? -halfVector : halfVector);
+
                     var diel = new RgbColor(FresnelDielectric.Evaluate(cosHalfVectorTIR, 1, parameters.IndexOfRefraction));
                     var schlick = FresnelSchlick.Evaluate(localParams.specularReflectanceAtNormal, cosHalfVectorTIR);
                     var fresnel = RgbColor.Lerp(parameters.Metallic, diel, schlick);
 
-                    bsdfValue += localParams.specularTint
+                    var reflect = localParams.specularTint
                         * normalDistribution.NormalDistribution(halfVector) * normalDistribution.MaskingShadowing(context.OutDir, inDir)
                         * fresnel / (4 * cosThetaI * cosThetaO);
+
+                    bsdfValue += reflect;
+
+                    if (!components.Values.IsEmpty)
+                        components.Values[1] += reflect;
                 }
 
                 // but its PDF "leaks" to the other side -- we compute the PDF for those samples for completeness
@@ -245,6 +257,7 @@ public partial class GenericMaterial  : Material
         // Microfacet transmission
         float eta = context.OutDir.Z > 0 ? parameters.IndexOfRefraction : (1 / parameters.IndexOfRefraction);
         var halfVectorTransmit = context.OutDir + inDir * eta;
+        Vector3 halfVectorTransmitIn = Vector3.Zero;
 
         if (cosThetaO != 0 && cosThetaI != 0 && halfVectorTransmit != Vector3.Zero && parameters.SpecularTransmittance > 0) // Skip degenerate cases
         {
@@ -257,8 +270,7 @@ public partial class GenericMaterial  : Material
             float sqrtDenom = cOut + eta * cIn;
 
             // The BSDF value for transmission is only non-zero if the directions are in different hemispheres
-            if (!SameHemisphere(context.OutDir, inDir) && cOut * cIn < 0)
-            {
+            if (!SameHemisphere(context.OutDir, inDir) && cOut * cIn < 0) {
                 var F = new RgbColor(FresnelDielectric.Evaluate(cOut, 1, parameters.IndexOfRefraction));
                 float factor = context.IsOnLightSubpath ? (1 / eta) : 1;
 
@@ -270,7 +282,11 @@ public partial class GenericMaterial  : Material
 
                 var denom = inDir.Z * context.OutDir.Z * sqrtDenom * sqrtDenom;
                 Debug.Assert(float.IsFinite(denom));
-                bsdfValue += (RgbColor.White - F) * localParams.specularTransmittance * Math.Abs(numerator / denom);
+                var transmit = (RgbColor.White - F) * localParams.specularTransmittance * Math.Abs(numerator / denom);
+                bsdfValue += transmit;
+
+                if (!components.Values.IsEmpty)
+                    components.Values[2] += transmit;
             }
 
             // If total reflection occured, we switch to reflection sampling
@@ -296,7 +312,7 @@ public partial class GenericMaterial  : Material
             }
 
             // For the reverse PDF, we first need to compute the corresponding half vector
-            var halfVectorTransmitIn = context.OutDir * etaIn + inDir;
+            halfVectorTransmitIn = context.OutDir * etaIn + inDir;
             halfVectorTransmitIn = Vector3.Normalize(halfVectorTransmitIn);
             halfVectorTransmitIn = (halfVectorTransmitIn.Z < 0) ? -halfVectorTransmitIn : halfVectorTransmitIn;
 
@@ -312,8 +328,21 @@ public partial class GenericMaterial  : Material
             }
         }
 
-        float pdf = pdfsFwd[0] * localParams.SelectionWeightsForward[0] + pdfsFwd[1] * localParams.SelectionWeightsForward[1] + pdfsFwd[2] * localParams.SelectionWeightsForward[2];
-        float pdfReverse = pdfsRev[0] * selectionWeightsReverse[0] + pdfsRev[1] * selectionWeightsReverse[1] + pdfsRev[2] * selectionWeightsReverse[2];
+        // Compute the component selection probabilities
+        float schlickFresnel = FresnelSchlick.Evaluate(localParams.specularReflectanceAtNormal, float.Abs(context.OutDir.Z)).Average;
+        float diffuseBias = float.Max(1 - schlickFresnel, 0.75f);
+        float diffuseWeight = diffuseBias * (1 - parameters.Metallic) * (1 - parameters.SpecularTransmittance);
+        var fresnelR = FresnelDielectric.Evaluate(Vector3.Dot(context.OutDir, (halfVector.Z < 0) ? -halfVector : halfVector), 1, parameters.IndexOfRefraction);
+        float selectReflect = (1 - diffuseWeight) * (1 - (1 - fresnelR) * parameters.SpecularTransmittance);
+
+        var fresnelT = FresnelDielectric.Evaluate(Vector3.Dot(context.OutDir, halfVectorTransmit), 1, parameters.IndexOfRefraction);
+        float selectTransmit = (1 - diffuseWeight) * (1 - fresnelT) * parameters.SpecularTransmittance;
+
+        var fresnelTIn = FresnelDielectric.Evaluate(Vector3.Dot(inDir, halfVectorTransmitIn), 1, parameters.IndexOfRefraction);
+        float selectTransmitIn = (1 - diffuseWeight) * (1 - fresnelT) * parameters.SpecularTransmittance;
+
+        float pdf = pdfsFwd[0] * diffuseWeight + pdfsFwd[1] * selectReflect + pdfsFwd[2] * selectTransmit;
+        float pdfReverse = pdfsRev[0] * diffuseWeight + pdfsRev[1] * selectReflect + pdfsRev[2] * selectTransmitIn;
 
         components.NumComponents = 3;
         components.NumComponentsReverse = 3;
@@ -322,18 +351,18 @@ public partial class GenericMaterial  : Material
             components.Pdfs[0] = pdfsFwd[0];
             components.Pdfs[1] = pdfsFwd[1];
             components.Pdfs[2] = pdfsFwd[2];
-            components.Weights[0] = localParams.SelectionWeightsForward[0];
-            components.Weights[1] = localParams.SelectionWeightsForward[1];
-            components.Weights[2] = localParams.SelectionWeightsForward[2];
+            components.Weights[0] = diffuseWeight;
+            components.Weights[1] = selectReflect;
+            components.Weights[2] = selectTransmit;
         }
         if (!components.PdfsReverse.IsEmpty)
         {
             components.PdfsReverse[0] = pdfsRev[0];
             components.PdfsReverse[1] = pdfsRev[1];
             components.PdfsReverse[2] = pdfsRev[2];
-            components.WeightsReverse[0] = selectionWeightsReverse[0];
-            components.WeightsReverse[1] = selectionWeightsReverse[1];
-            components.WeightsReverse[2] = selectionWeightsReverse[2];
+            components.WeightsReverse[0] = diffuseWeight;
+            components.WeightsReverse[1] = selectReflect;
+            components.WeightsReverse[2] = selectTransmitIn;
         }
 
         // Debug.Assert(bsdfValue == RgbColor.Black || float.IsFinite((bsdfValue * float.Abs(inDir.Z) / pdf).Average));
@@ -353,7 +382,7 @@ public partial class GenericMaterial  : Material
         public RgbColor retroReflectance;
         public RgbColor specularTransmittance;
         public RgbColor specularReflectanceAtNormal;
-        public SelectionWeights SelectionWeightsForward;
+        // public SelectionWeights SelectionWeightsForward;
     }
 
     LocalParams ComputeLocalParams(in ShadingContext shadingContext)
@@ -382,25 +411,6 @@ public partial class GenericMaterial  : Material
         result.specularTransmittance = parameters.SpecularTransmittance * baseColor;
         result.retroReflectance = baseColor * diffuseWeight;
 
-        ComputeSelectWeights(result, shadingContext.OutDir, ref result.SelectionWeightsForward);
-
         return result;
-    }
-
-    void ComputeSelectWeights(LocalParams p, Vector3 outDir, ref SelectionWeights weights)
-    {
-        var diel = new RgbColor(FresnelDielectric.Evaluate(outDir.Z, 1, parameters.IndexOfRefraction));
-        var schlick = FresnelSchlick.Evaluate(p.specularReflectanceAtNormal, outDir.Z);
-        float f = Math.Clamp(RgbColor.Lerp(parameters.Metallic, diel, schlick).Average, 0.2f, 0.8f);
-        float specularWeight = f;
-        float transmissionWeight = (1 - f) * parameters.SpecularTransmittance;
-        float diffuseWeight = (1 - parameters.Metallic) * (1 - parameters.SpecularTransmittance) * (1 - f);
-        float norm = 1 / (specularWeight + transmissionWeight + diffuseWeight);
-
-        weights[0] = diffuseWeight * norm;
-        weights[1] = specularWeight * norm;
-        weights[2] = transmissionWeight * norm;
-
-        Debug.Assert(float.IsFinite(weights[0]));
     }
 }

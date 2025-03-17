@@ -91,9 +91,9 @@ public struct SurfaceShader {
     /// </summary>
     /// <param name="primarySample">A uniform sample in [0,1]x[0,1] that should be transformed</param>
     /// <returns>Sampled direction and associated weights</returns>
-    public BsdfSample Sample(Vector2 primarySample) {
+    public BsdfSample Sample(float primaryComponent, Vector2 primaryDirection) {
         Material.ComponentWeights c = new();
-        return Sample(primarySample, ref c);
+        return Sample(primaryComponent, primaryDirection, ref c);
     }
 
     /// <returns>The pdf of sampling the incoming direction via <see cref="Sample(Vector2)"/></returns>
@@ -102,8 +102,8 @@ public struct SurfaceShader {
         return Pdf(inDir, ref c);
     }
 
-    public BsdfSample Sample(Vector2 primarySample, ref Material.ComponentWeights componentWeights)
-    => material.Sample(Context, primarySample, ref componentWeights);
+    public BsdfSample Sample(float primaryComponent, Vector2 primaryDirection, ref Material.ComponentWeights componentWeights)
+    => material.Sample(Context, primaryComponent, primaryDirection, ref componentWeights);
 
     public (float Pdf, float PdfReverse) Pdf(Vector3 inDir, ref Material.ComponentWeights componentWeights)
     => material.Pdf(Context, inDir, ref componentWeights);
@@ -121,6 +121,7 @@ public abstract class Material {
     /// Tracks buffers to receive per-component PDF values and mixture weights
     /// </summary>
     public ref struct ComponentWeights {
+        public Span<RgbColor> Values;
         public Span<float> Pdfs;
         public Span<float> Weights;
         public Span<float> PdfsReverse;
@@ -200,28 +201,29 @@ public abstract class Material {
     /// <param name="hit">Surface point</param>
     /// <param name="outDir">Normalized outgoing direction away from the surface (towards camera in a path tracer)</param>
     /// <param name="isOnLightSubpath">True for paths originating from a light source</param>
-    /// <param name="primarySample">A uniform sample in [0,1]x[0,1] that should be transformed</param>
+    /// <param name="primaryComponent">A uniform sample in [0,1] used to decide the BSDF component</param>
+    /// <param name="primaryDirection">A uniform sample in [0,1]x[0,1] that is transformed to the sphere of directions</param>
     /// <returns>Sampled direction and associated weights</returns>
-    public BsdfSample Sample(in SurfacePoint hit, Vector3 outDir, bool isOnLightSubpath, Vector2 primarySample) {
+    public BsdfSample Sample(in SurfacePoint hit, Vector3 outDir, bool isOnLightSubpath, float primaryComponent, Vector2 primaryDirection) {
         ComponentWeights c = new();
-        return Sample(hit, outDir, isOnLightSubpath, primarySample, ref c);
+        return Sample(hit, outDir, isOnLightSubpath, primaryComponent, primaryDirection, ref c);
     }
 
-    /// <returns>The pdf of sampling the incoming direction via <see cref="Sample(in SurfacePoint, Vector3, bool, Vector2)"/></returns>
+    /// <returns>The pdf of sampling the incoming direction via <see cref="Sample(in SurfacePoint, Vector3, bool, float, Vector2)"/></returns>
     public (float Pdf, float PdfReverse) Pdf(in SurfacePoint hit, Vector3 outDir, Vector3 inDir, bool isOnLightSubpath) {
         ComponentWeights c = new();
         return Pdf(hit, outDir, inDir, isOnLightSubpath, ref c);
     }
 
     public BsdfSample Sample(in SurfacePoint hit, Vector3 outDir, bool isOnLightSubpath,
-                             Vector2 primarySample, ref ComponentWeights componentWeights)
-    => Sample(new(hit, outDir, isOnLightSubpath), primarySample, ref componentWeights);
+                             float primaryComponent, Vector2 primaryDirection, ref ComponentWeights componentWeights)
+    => Sample(new(hit, outDir, isOnLightSubpath), primaryComponent, primaryDirection, ref componentWeights);
 
     public (float Pdf, float PdfReverse) Pdf(in SurfacePoint hit, Vector3 outDir, Vector3 inDir,
                                              bool isOnLightSubpath, ref ComponentWeights componentWeights)
     => Pdf(new(hit, outDir, isOnLightSubpath), inDir, ref componentWeights);
 
-    public abstract BsdfSample Sample(in ShadingContext context, Vector2 primarySample, ref ComponentWeights componentWeights);
+    public abstract BsdfSample Sample(in ShadingContext context, float primaryComponent, Vector2 primaryDirection, ref ComponentWeights componentWeights);
     public abstract (float Pdf, float PdfReverse) Pdf(in ShadingContext context, Vector3 inDir, ref ComponentWeights componentWeights);
 
     public virtual int MaxSamplingComponents => 1;

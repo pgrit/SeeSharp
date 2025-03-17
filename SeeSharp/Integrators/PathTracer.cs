@@ -697,8 +697,7 @@ public class PathTracerBase<PayloadType> : Integrator {
     /// integrator does not have to recompute the BSDF pdf. Useful for path guiding applications.
     /// </returns>
     protected virtual (Ray, float, RgbColor, RgbColor) SampleDirection(in SurfaceShader shader, in PathState state) {
-        var primary = state.Rng.NextFloat2D();
-        var bsdfSample = shader.Sample(primary);
+        var bsdfSample = shader.Sample(state.Rng.NextFloat(), state.Rng.NextFloat2D());
         var bsdfRay = Raytracer.SpawnRay(shader.Point, bsdfSample.Direction);
         return (bsdfRay, bsdfSample.Pdf, bsdfSample.Weight, bsdfSample.Weight);
     }

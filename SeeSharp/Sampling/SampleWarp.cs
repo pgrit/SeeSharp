@@ -148,6 +148,25 @@ public static class SampleWarp {
         return Math.Abs(cosine) / MathF.PI;
     }
 
+    public static DirectionSample ToUniformHemisphere(Vector2 primary) {
+        Vector3 localDir = SphericalToCartesian(
+            MathF.Sqrt(1 - primary.Y * primary.Y),
+            primary.Y,
+            2.0f * MathF.PI * primary.X);
+
+        return new DirectionSample { Direction = localDir, Pdf = localDir.Z / MathF.PI };
+    }
+
+    public static Vector2 FromUniformHemisphere(Vector3 localDir) {
+        var spherical = CartesianToSpherical(localDir);
+        float x = spherical.X / (2.0f * MathF.PI);
+        float y = MathF.Cos(spherical.Y);
+        return new(x, y);
+    }
+
+    public static float ToUniformHemisphereJacobian() {
+        return 1 / (2.0f * MathF.PI);
+    }
 
     public static DirectionSample ToCosineLobe(float power, Vector2 primary) {
         float phi = MathF.PI * 2.0f * primary.X;

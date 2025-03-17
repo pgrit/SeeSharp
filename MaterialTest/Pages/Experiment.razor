@@ -26,9 +26,25 @@
         @phi
     </p>
 
+    <button @onclick=Download>Download Result</button>
 
     <div class="experiment-results">
         <FlipViewer Flip="@flip" OnClick="@OnFlipClick"></FlipViewer>
+        <FlipViewer Flip="@fliprender" OnClick="@OnFlipRenderClick"></FlipViewer>
+        <p>
+            @* @thetaOut
+            @phiOut *@
+
+            @if(select != null) {
+                <br>
+                @($"{select[0]:G2} {select[1]:G2} {select[2]:G2} ")
+            }
+
+            @* @if(totals != null) {
+                <br>
+                @($"{totals[0]:G2} {totals[1]:G2} {totals[2]:G2} ")
+            } *@
+        </p>
     </div>
 
 </div>
@@ -51,5 +67,8 @@
         }
     }
 
-    SimpleImageIO.FlipBook flip;
+    float thetaOut {get;set;}
+    float phiOut {get;set;}
+
+    SimpleImageIO.FlipBook flip, fliprender;
 }

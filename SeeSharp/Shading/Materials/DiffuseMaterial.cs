@@ -1,7 +1,7 @@
 ﻿namespace SeeSharp.Shading.Materials;
 
 /// <summary>
-/// A simple Lambertian material that either only reflects or only transmits.
+/// A simple Lambertian material that either only reflects or reflects and transmits.
 /// </summary>
 public class DiffuseMaterial : Material {
     /// <summary>
@@ -14,12 +14,12 @@ public class DiffuseMaterial : Material {
         public TextureRgb BaseColor = new TextureRgb(RgbColor.White);
 
         /// <summary>
-        /// If true, only transmittance happens, if false, only reflection
+        /// If true, transmittance and reflection happen, if false, only reflection
         /// </summary>
         public bool Transmitter = false;
     }
 
-    /// <returns>True if we only transmit</returns>
+    /// <returns>True if we allow transmission</returns>
     public override bool IsTransmissive(in SurfacePoint hit) => MaterialParameters.Transmitter;
 
     /// <summary>
@@ -122,23 +122,19 @@ public class DiffuseMaterial : Material {
     }
 
     /// <summary>
-    /// Importance samples the cosine hemisphere
+    /// Importance samples the cosine (hemi)sphere
     /// </summary>
-    public override BsdfSample Sample(in ShadingContext context, Vector2 primarySample, ref ComponentWeights componentWeights) {
+    public override BsdfSample Sample(in ShadingContext context, float primaryComponent, Vector2 primarySample, ref ComponentWeights componentWeights) {
         ShadingStatCounter.NotifySample();
 
         var baseColor = MaterialParameters.BaseColor.Lookup(context.Point.TextureCoordinates);
         Vector3? sample;
         if (MaterialParameters.Transmitter) {
             // Pick either transmission or reflection
-            if (primarySample.X < 0.5f) {
-                var remapped = primarySample;
-                remapped.X = Math.Min(primarySample.X / 0.5f, 1);
-                sample = new DiffuseTransmission(baseColor).Sample(context.OutDir, context.IsOnLightSubpath, remapped);
+            if (primaryComponent < 0.5f) {
+                sample = new DiffuseTransmission(baseColor).Sample(context.OutDir, context.IsOnLightSubpath, primarySample);
             } else {
-                var remapped = primarySample;
-                remapped.X = Math.Min((primarySample.X - 0.5f) / 0.5f, 1);
-                sample = new DiffuseBsdf(baseColor).Sample(context.OutDir, context.IsOnLightSubpath, remapped);
+                sample = new DiffuseBsdf(baseColor).Sample(context.OutDir, context.IsOnLightSubpath, primarySample);
             }
         } else {
             sample = new DiffuseBsdf(baseColor).Sample(context.OutDir, context.IsOnLightSubpath, primarySample);

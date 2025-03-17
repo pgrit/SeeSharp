@@ -126,9 +126,9 @@ class GenericMaterial_Sampling {
         for (int i = 0; i < numTrials; ++i) {
             var outDir = Vector3.Normalize(rng.NextFloat3D());
 
-            highIOR.Sample(dummyHit, outDir, false, rng.NextFloat2D());
-            translucent.Sample(dummyHit, outDir, false, rng.NextFloat2D());
-            glass.Sample(dummyHit, outDir, false, rng.NextFloat2D());
+            highIOR.Sample(dummyHit, outDir, false, rng.NextFloat(), rng.NextFloat2D());
+            translucent.Sample(dummyHit, outDir, false, rng.NextFloat(), rng.NextFloat2D());
+            glass.Sample(dummyHit, outDir, false, rng.NextFloat(), rng.NextFloat2D());
         }
         Console.WriteLine($"Sampling {numTrials} times took {timer.ElapsedMilliseconds}ms");
 
@@ -193,9 +193,9 @@ class GenericMaterial_Sampling {
         for (int i = 0; i < numTrials; ++i) {
             var outDir = Vector3.Normalize(rng.NextFloat3D());
 
-            highIOR.Sample(dummyHit, outDir, false, rng.NextFloat2D(), ref componentWeights);
-            translucent.Sample(dummyHit, outDir, false, rng.NextFloat2D(), ref componentWeights);
-            glass.Sample(dummyHit, outDir, false, rng.NextFloat2D(), ref componentWeights);
+            highIOR.Sample(dummyHit, outDir, false, rng.NextFloat(), rng.NextFloat2D(), ref componentWeights);
+            translucent.Sample(dummyHit, outDir, false, rng.NextFloat(), rng.NextFloat2D(), ref componentWeights);
+            glass.Sample(dummyHit, outDir, false, rng.NextFloat(), rng.NextFloat2D(), ref componentWeights);
         }
         Console.WriteLine($"Sampling {numTrials} times took {timer.ElapsedMilliseconds}ms");
 

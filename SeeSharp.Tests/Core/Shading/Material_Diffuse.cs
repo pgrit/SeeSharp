@@ -71,7 +71,7 @@ public class Material_Diffuse {
         Assert.Equal(rev1, rev2, 3);
         Assert.Equal(fwd1, fwd2, 3);
 
-        var sample = mtl.Sample(hit, outDir, false, new Vector2(0.2f, 0.7f));
+        var sample = mtl.Sample(hit, outDir, false, 0.4f, new Vector2(0.2f, 0.7f));
         var (fwdS, revS) = mtl.Pdf(hit, outDir, sample.Direction, false);
 
         Assert.Equal(sample.Pdf, fwdS, 3);
@@ -107,7 +107,7 @@ public class Material_Diffuse {
         var retro = mtl.EvaluateWithCosine(hit, outDir, inDir, false);
 
         var primary = new Vector2(0.25f, 0.8f);
-        var sample = mtl.Sample(hit, outDir, false, primary);
+        var sample = mtl.Sample(hit, outDir, false, 0.3f, primary);
 
         Assert.Equal(1.0f / MathF.PI, retro.R, 3);
         Assert.Equal(1.0f / MathF.PI, retro.G, 3);
@@ -147,7 +147,7 @@ public class Material_Diffuse {
         var retro = mtl.EvaluateWithCosine(hit, outDir, inDir, false);
 
         var primary = new Vector2(0.25f, 0.8f);
-        var sample = mtl.Sample(hit, outDir, false, primary);
+        var sample = mtl.Sample(hit, outDir, false, 0.3f, primary);
 
         Assert.Equal(1.0f / MathF.PI, retro.R, 3);
         Assert.Equal(0.0f / MathF.PI, retro.G, 3);
@@ -197,7 +197,7 @@ public class Material_Diffuse {
             };
 
         foreach (var prim in prims) {
-            var sample = mtl.Sample(hit, outDir, false, prim);
+            var sample = mtl.Sample(hit, outDir, false, 0.5f, prim);
 
             if (sample.Pdf == 0) {
                 Assert.Equal(0.0f, sample.Weight.R, 3);

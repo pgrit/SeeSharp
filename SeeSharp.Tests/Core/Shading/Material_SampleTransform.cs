@@ -38,7 +38,7 @@ public class Material_SampleTransform {
     /// </param>
     /// <returns>99% confidence interval of the result, assuming normal distribution.</returns>
     (float, float) Integrate(int numSamples, Func<Vector3, float> integrand,
-                             Func<Vector2, (Vector3, float)> transform) {
+                             Func<float, Vector2, (Vector3, float)> transform) {
         float total = 0;
         float totalSquares = 0;
         object mutex = new object();
@@ -54,7 +54,7 @@ public class Material_SampleTransform {
             RNG rng = new(18273912, (uint)i, 1313);
             for (int j = 0; j < numSamples / numBatches; ++j) {
                 var primary = rng.NextFloat2D();
-                var (dir, pdf) = transform(primary);
+                var (dir, pdf) = transform(rng.NextFloat(), primary);
                 if (pdf == 0) continue;
                 float val = integrand(dir) / pdf;
                 result += val * invNum;
@@ -76,7 +76,7 @@ public class Material_SampleTransform {
 
         var uniformTask = Task<float>.Run(() => Integrate(1_000_000,
             dir => mtl.Pdf(hit, outDir, dir, false).Item1,
-            primary => {
+            (_, primary) => {
                 var sample = ToUniformSphere(primary);
                 return (sample.Direction, sample.Pdf);
             }
@@ -97,7 +97,7 @@ public class Material_SampleTransform {
 
         var uniformTask = Task<float>.Run(() => Integrate(1_000_000,
             dir => mtl.EvaluateWithCosine(hit, outDir, dir, false).Average,
-            primary => {
+            (_, primary) => {
                 var sample = ToUniformSphere(primary);
                 return (sample.Direction, sample.Pdf);
             }
@@ -105,8 +105,8 @@ public class Material_SampleTransform {
 
         var importanceSamplingTask = Task<float>.Run(() => Integrate(1_000_000,
             dir => mtl.EvaluateWithCosine(hit, outDir, dir, false).Average,
-            primary => {
-                var sample = mtl.Sample(hit, outDir, false, primary);
+            (u, primary) => {
+                var sample = mtl.Sample(hit, outDir, false, u, primary);
                 return (sample.Direction, sample.Pdf);
             }
         ));
@@ -294,7 +294,7 @@ public class Material_SampleTransform {
 
         var result = Integrate(1_000_000,
             dir => microfacetDistrib.Pdf(outDir, dir),
-            primary => {
+            (_, primary) => {
                 var sample = ToUniformSphere(primary);
                 return (sample.Direction, sample.Pdf);
             }

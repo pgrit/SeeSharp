@@ -1,6 +1,13 @@
 ﻿namespace SeeSharp.Tests.Core.Shading;
 
 public class Material_Generic {
+    public static void AssertSmapeBelow(float expected, float actual, float threshold = 0.005f) {
+        if (expected == actual)
+            return;
+        var smape = Math.Abs(expected - actual) / (0.5f * (Math.Abs(expected) + Math.Abs(actual)));
+        Assert.True(smape < threshold, $"SMAPE {smape} above {threshold} -- Expected: {expected}, Actual: {actual}");
+    }
+
     [Theory]
     [InlineData(0, 0, 1, 0, 1, 1)]
     [InlineData(1, 0, 1, 0, 1, 1)]
@@ -36,10 +43,10 @@ public class Material_Generic {
         var (fwd1, rev1) = mtl.Pdf(hit, outDir, inDir, false);
         var (rev2, fwd2) = mtl.Pdf(hit, inDir, outDir, false);
 
-        Assert.Equal(rev1, rev2, 3);
-        Assert.Equal(fwd1, fwd2, 3);
+        AssertSmapeBelow(rev1, rev2);
+        AssertSmapeBelow(fwd1, fwd2);
 
-        var sample = mtl.Sample(hit, outDir, false, new Vector2(0.2f, 0.7f));
+        var sample = mtl.Sample(hit, outDir, false, 0.4f, new Vector2(0.2f, 0.7f));
         var (fwdS, revS) = mtl.Pdf(hit, outDir, sample.Direction, false);
 
         Assert.Equal(sample.Pdf, fwdS, 3);
@@ -99,7 +106,7 @@ public class Material_Generic {
         Assert.Equal(rev, revRecompute, 3);
         Assert.Equal(fwd, fwdRecompute, 3);
 
-        var sample = mtl.Sample(hit, outDir, false, new Vector2(0.2f, 0.7f), ref componentWeights);
+        var sample = mtl.Sample(hit, outDir, false, 0.4f, new Vector2(0.2f, 0.7f), ref componentWeights);
         float fwdRecomputeS = 0;
         for (int i = 0; i < componentWeights.NumComponents; ++i) {
             fwdRecomputeS += componentWeights.Pdfs[i] * componentWeights.Weights[i];

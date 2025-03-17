@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Components;
+using SeeSharp.Blazor;
 
 namespace SeeSharp.Blazor.Template.Pages;
 

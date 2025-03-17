@@ -39,6 +39,11 @@
         if (lastFlip == Flip) return;
 
         await Task.Run(() => {
+            if (Flip.Count == 0) {
+                flipJson = null;
+                flipCode = "<p>empty flip book</p>";
+                return;
+            }
             var code = Flip.Generate();
             flipCode = code.Html;
             flipJson = code.Data;

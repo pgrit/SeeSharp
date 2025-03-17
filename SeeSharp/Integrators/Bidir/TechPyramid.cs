@@ -104,4 +104,16 @@ public class TechPyramid {
 
     TechniqueNames techniqueNames;
     Dictionary<(int, int, int), RgbImage> techniqueImages;
+
+    public IEnumerable<(string, Image)> GetImagesForPathLength(int totalEdges) {
+        List<(string, Image)> images = [];
+        foreach (var t in techniqueImages) {
+            if (t.Key.Item3 != totalEdges)
+                continue;
+
+            var name = techniqueNames[t.Key];
+            images.Add((name, t.Value));
+        }
+        return images;
+    }
 }

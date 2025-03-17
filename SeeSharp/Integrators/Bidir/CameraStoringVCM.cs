@@ -33,9 +33,9 @@ public class CameraStoringVCM : Integrator {
     public bool EnableHitting { get; set; } = true;
 
     /// <summary>
-    /// Number of inner-path connections to make
+    /// If false, no inner-path connections are formed
     /// </summary>
-    public int NumConnections { get; set; } = 1;
+    public bool EnableConnections { get; set; } = true;
 
     /// <summary>
     /// Number of shadow rays to use for next event. Disabled if zero.
@@ -69,8 +69,8 @@ public class CameraStoringVCM : Integrator {
 
     public PathCache CameraPaths;
 
-    TechPyramid techPyramidRaw;
-    TechPyramid techPyramidWeighted;
+    public TechPyramid TechPyramidRaw { get; protected set; }
+    public TechPyramid TechPyramidWeighted { get; protected set; }
 
     ProgressBar progressBar;
 
@@ -112,10 +112,13 @@ public class CameraStoringVCM : Integrator {
 
     protected float maxRadius;
 
-    public void BuildImportonAccel() {
+    public virtual void BuildImportonAccel() {
         photonMap.Clear();
         maxRadius = 0;
         for (int pathIdx = 0; pathIdx < Scene.FrameBuffer.Width * Scene.FrameBuffer.Height; ++pathIdx) {
+            if (CameraPaths.Length(pathIdx) <= 0)
+                continue;
+
             float footprint = float.Sqrt(1 / CameraPaths[pathIdx, 0].PdfFromAncestor);
             float radius = ComputeLocalMergeRadius(footprint);
             maxRadius = float.Max(maxRadius, radius);
@@ -147,9 +150,9 @@ public class CameraStoringVCM : Integrator {
         }
 
         if (RenderTechniquePyramid) {
-            techPyramidRaw = new TechPyramid(scene.FrameBuffer.Width, scene.FrameBuffer.Height,
+            TechPyramidRaw = new TechPyramid(scene.FrameBuffer.Width, scene.FrameBuffer.Height,
                                              minDepth: 1, maxDepth: MaxDepth, merges: EnableMerging);
-            techPyramidWeighted = new TechPyramid(scene.FrameBuffer.Width, scene.FrameBuffer.Height,
+            TechPyramidWeighted = new TechPyramid(scene.FrameBuffer.Width, scene.FrameBuffer.Height,
                                                   minDepth: 1, maxDepth: MaxDepth, merges: EnableMerging);
         }
 
@@ -195,10 +198,7 @@ public class CameraStoringVCM : Integrator {
                 accelBuildTimer.Stop();
 
                 lightTracerTimer.Start();
-                Parallel.For(0, NumLightPaths, idx => {
-                    var rng = new RNG(BaseSeedLight, (uint)idx, iter);
-                    TraceLightPath(ref rng, idx);
-                });
+                TraceLightPaths(iter);
                 lightTracerTimer.Stop();
             } catch {
                 Logger.Log($"Exception in iteration {iter} out of {NumIterations}.", Verbosity.Error);
@@ -228,12 +228,24 @@ public class CameraStoringVCM : Integrator {
         OnAfterRender();
 
         if (RenderTechniquePyramid) {
-            techPyramidRaw.Normalize(1.0f / Scene.FrameBuffer.CurIteration);
-            techPyramidRaw.WriteToFiles(Path.Join(scene.FrameBuffer.Basename, "techs-raw"));
+            TechPyramidRaw.Normalize(1.0f / Scene.FrameBuffer.CurIteration);
+            if (!string.IsNullOrEmpty(scene.FrameBuffer.Basename))
+                TechPyramidRaw.WriteToFiles(Path.Join(scene.FrameBuffer.Basename, "techs-raw"));
 
-            techPyramidWeighted.Normalize(1.0f / Scene.FrameBuffer.CurIteration);
-            techPyramidWeighted.WriteToFiles(Path.Join(scene.FrameBuffer.Basename, "techs-weighted"));
+            TechPyramidWeighted.Normalize(1.0f / Scene.FrameBuffer.CurIteration);
+            if (!string.IsNullOrEmpty(scene.FrameBuffer.Basename))
+                TechPyramidWeighted.WriteToFiles(Path.Join(scene.FrameBuffer.Basename, "techs-weighted"));
         }
+
+        photonMap.Dispose();
+        photonMap = null;
+    }
+
+    protected virtual void TraceLightPaths(uint iter) {
+        Parallel.For(0, NumLightPaths, idx => {
+            var rng = new RNG(BaseSeedLight, (uint)idx, iter);
+            TraceLightPath(ref rng, idx);
+        });
     }
 
     /// <summary>
@@ -252,8 +264,8 @@ public class CameraStoringVCM : Integrator {
         if (!RenderTechniquePyramid)
             return;
 
-        techPyramidRaw.Add(cameraPathLength, lightPathLength, fullLength, pixel, weight);
-        techPyramidWeighted.Add(cameraPathLength, lightPathLength, fullLength, pixel, weight * misWeight);
+        TechPyramidRaw.Add(cameraPathLength, lightPathLength, fullLength, pixel, weight);
+        TechPyramidWeighted.Add(cameraPathLength, lightPathLength, fullLength, pixel, weight * misWeight);
     }
 
     /// <summary>
@@ -588,8 +600,7 @@ public class CameraStoringVCM : Integrator {
 
         float misWeight = state.Depth == 1 ? 1.0f : EmitterHitMis(state, pathPdfs, true);
         var emission = Scene.Background.EmittedRadiance(ray.Direction);
-        RegisterSample(emission * state.PrefixWeight, misWeight, state.Pixel,
-                       state.Vertices.Count, 0, state.Vertices.Count);
+        RegisterSample(emission * state.PrefixWeight, misWeight, state.Pixel, state.Depth, 0, state.Depth);
         OnEmitterHitSample(emission * state.PrefixWeight, misWeight, state, pdfNextEvent, pathPdfs, null,
             -ray.Direction, new() { Position = ray.Origin });
         return misWeight * emission * state.PrefixWeight;
@@ -665,8 +676,7 @@ public class CameraStoringVCM : Integrator {
         ref var vertex = ref state.Vertices[^1];
 
         // Compute image plane location
-        RNG rng = new(); // TODO / FIXME this is not used atm, so we can pass a dummy. But must update once fancier cameras are implemented!
-        var response = Scene.Camera.SampleResponse(vertex.Point, ref rng);
+        var response = Scene.Camera.SampleResponse(vertex.Point, ref state.Rng);
         if (!response.IsValid)
             return;
 
@@ -726,8 +736,9 @@ public class CameraStoringVCM : Integrator {
 
         float sumReciprocals = 1.0f;
         int lastCameraVertexIdx = cameraVertex.Depth - 1;
-        sumReciprocals += CameraPathReciprocals(lastCameraVertexIdx, pathPdfs, GetPixel(cameraVertex.PathId), radius, correlRatio);
-        sumReciprocals += LightPathReciprocals(lastCameraVertexIdx, pathPdfs, GetPixel(cameraVertex.PathId), radius, correlRatio);
+        float connectProb = NumLightPaths / (float)(Scene.FrameBuffer.Width * Scene.FrameBuffer.Height);
+        sumReciprocals += CameraPathReciprocals(lastCameraVertexIdx, pathPdfs, GetPixel(cameraVertex.PathId), radius, correlRatio) / connectProb;
+        sumReciprocals += LightPathReciprocals(lastCameraVertexIdx, pathPdfs, GetPixel(cameraVertex.PathId), radius, correlRatio) / connectProb;
 
         return 1 / sumReciprocals;
     }
@@ -738,9 +749,8 @@ public class CameraStoringVCM : Integrator {
         pixelIndex / Scene.FrameBuffer.Width
     );
 
-    public virtual RgbColor Connect(in SurfaceShader lightShader, ref LightPathState lightPath, in PathVertex cameraVertex, float lightVertexProb) {
+    public virtual RgbColor Connect(in SurfaceShader lightShader, ref LightPathState lightPath, in PathVertex cameraVertex, float connectProb) {
         var lightVertex = lightPath.Vertices[^1];
-        float reversePdfJacobian = lightVertex.JacobianToAncestor;
 
         // Only allow connections that do not exceed the maximum total path length
         int depth = lightPath.Depth + cameraVertex.Depth + 1;
@@ -754,7 +764,8 @@ public class CameraStoringVCM : Integrator {
         // Compute connection direction
         var dirFromCamToLight = Vector3.Normalize(lightVertex.Point.Position - cameraVertex.Point.Position);
 
-        var bsdfWeightLight = lightShader.Evaluate(-dirFromCamToLight) * float.Abs(Vector3.Dot(lightVertex.Point.Normal, -dirFromCamToLight));
+        float cosLight = float.Abs(Vector3.Dot(lightVertex.Point.Normal, -dirFromCamToLight));
+        var bsdfWeightLight = lightShader.Evaluate(-dirFromCamToLight) * cosLight;
         bsdfWeightLight *=
             float.Abs(Vector3.Dot(lightVertex.Point.ShadingNormal, lightVertex.DirToAncestor)) /
             float.Abs(Vector3.Dot(lightVertex.Point.Normal, lightVertex.DirToAncestor));
@@ -765,16 +776,18 @@ public class CameraStoringVCM : Integrator {
         if (bsdfWeightCam == RgbColor.Black || bsdfWeightLight == RgbColor.Black)
             return RgbColor.Black;
 
+        float distanceSqr = (shader.Point.Position - lightVertex.Point.Position).LengthSquared();
+
         // Compute the missing pdfs
         var (pdfCameraToLight, pdfCameraReverse) = shader.Pdf(dirFromCamToLight);
-        pdfCameraReverse *= reversePdfJacobian;
-        pdfCameraToLight *= SampleWarp.SurfaceAreaToSolidAngle(shader.Point, lightVertex.Point); // TODO redundant compute with below
+        pdfCameraReverse *= cameraVertex.JacobianToAncestor;
+        pdfCameraToLight *= cosLight / distanceSqr;
 
         if (pdfCameraToLight == 0) return RgbColor.Black; // TODO figure out how this can happen!
 
         var (pdfLightToCamera, pdfLightReverse) = lightShader.Pdf(-dirFromCamToLight);
         pdfLightReverse *= lightVertex.JacobianToAncestor;
-        pdfLightToCamera *= SampleWarp.SurfaceAreaToSolidAngle(lightVertex.Point, shader.Point);
+        pdfLightToCamera *= float.Abs(Vector3.Dot(cameraVertex.Point.Normal, -dirFromCamToLight)) / distanceSqr;
 
         // Gather all PDFs for MIS compuation
         int lastCameraVertexIdx = cameraVertex.Depth - 1;
@@ -798,13 +811,12 @@ public class CameraStoringVCM : Integrator {
         float radius = ComputeLocalMergeRadius(footprint);
 
         float misWeight = BidirConnectMis(cameraVertex, primaryDistance, radius, lightPath, pathPdfs);
-        float distanceSqr = (shader.Point.Position - lightVertex.Point.Position).LengthSquared();
 
         // Avoid NaNs in rare cases
         if (distanceSqr == 0)
             return RgbColor.Black;
 
-        RgbColor weight = lightVertex.Weight * bsdfWeightLight * bsdfWeightCam / distanceSqr / lightVertexProb;
+        RgbColor weight = lightVertex.Weight * bsdfWeightLight * bsdfWeightCam / distanceSqr / connectProb;
 
         Debug.Assert(float.IsFinite(weight.Average));
         Debug.Assert(float.IsFinite(misWeight));
@@ -816,13 +828,21 @@ public class CameraStoringVCM : Integrator {
     }
 
     public virtual void PerformConnections(in SurfaceShader shader, ref LightPathState state) {
-        if (NumConnections == 0) return;
+        if (!EnableConnections) return;
+
+        // If there is not exactly one light path per pixel, we pick a camera path at random
+        // Then, the sample density of connections in a pixel is the number of light paths (sample count)
+        // divided by the number of pixels (probability to select the pixel)
+        int pathIdx = NumLightPaths == Scene.FrameBuffer.Width * Scene.FrameBuffer.Height
+            ? state.PathIndex
+            : state.Rng.NextInt(Scene.FrameBuffer.Width * Scene.FrameBuffer.Height);
+        float connectProb = NumLightPaths / (float)(Scene.FrameBuffer.Width * Scene.FrameBuffer.Height);
 
         RgbColor estimate = RgbColor.Black;
-        for (int i = 0; i < CameraPaths.Length(state.PathIndex); ++i) {
-            estimate += Connect(shader, ref state, CameraPaths[state.PathIndex, i], 1);
+        for (int i = 0; i < CameraPaths.Length(pathIdx); ++i) {
+            estimate += Connect(shader, ref state, CameraPaths[pathIdx, i], 1) / connectProb;
         }
-        Scene.FrameBuffer.Splat(GetPixel(state.PathIndex), estimate);
+        Scene.FrameBuffer.Splat(GetPixel(pathIdx), estimate);
     }
 
     /// <summary>
@@ -856,8 +876,9 @@ public class CameraStoringVCM : Integrator {
             / mergeApproximation;
 
         // Add the reciprocal for the connection that replaces the last light path edge
-        if (lightPath.Depth > 1 && NumConnections > 0)
-            sumReciprocals += 1 / mergeApproximation;
+        float connectProb = NumLightPaths / (float)(Scene.FrameBuffer.Width * Scene.FrameBuffer.Height);
+        if (lightPath.Depth > 1 && EnableConnections)
+            sumReciprocals += connectProb / mergeApproximation;
 
         return 1 / sumReciprocals;
     }
@@ -985,7 +1006,7 @@ public class CameraStoringVCM : Integrator {
         if (EnableMerging)
             PerformMerges(shader, ref state);
 
-        if (NumConnections > 0)
+        if (EnableConnections)
             PerformConnections(shader, ref state);
     }
 
@@ -1028,7 +1049,7 @@ public class CameraStoringVCM : Integrator {
         public float PrimaryHitDistance;
     }
 
-    readonly ThreadLocal<PathBuffer<PathVertex>> perThreadVertexBuffers = new(() => new(16));
+    protected readonly ThreadLocal<PathBuffer<PathVertex>> perThreadVertexBuffers = new(() => new(16));
 
     public virtual void TraceCameraPath(uint row, uint col, ref RNG rng) {
         Pixel pixel = new((int)col, (int)row);
@@ -1122,7 +1143,7 @@ public class CameraStoringVCM : Integrator {
     ) { }
 
     public virtual DirectionSample SampleDirection(in SurfaceShader shader, ref RNG rng) {
-        var bsdfSample = shader.Sample(rng.NextFloat2D());
+        var bsdfSample = shader.Sample(rng.NextFloat(), rng.NextFloat2D());
         return new(
             bsdfSample.Pdf,
             bsdfSample.PdfReverse,
@@ -1376,22 +1397,22 @@ public class CameraStoringVCM : Integrator {
     /// See Grittmann et al. 2021 for details
     /// </summary>
     public readonly ref struct CorrelAwareRatios {
-        readonly Span<float> cameraToLight;
-        readonly Span<float> lightToCamera;
+        public readonly Span<float> CameraToLight;
+        public readonly Span<float> LightToCamera;
 
         public CorrelAwareRatios(BidirPathPdfs pdfs, float distToCam, bool fromBackground, Span<float> cameraToLight, Span<float> lightToCamera) {
             float radius = distToCam * 0.0174550649f; // distance * tan(1°)
             float acceptArea = radius * radius * MathF.PI;
             int numSurfaceVertices = pdfs.PdfsCameraToLight.Length - 1;
 
-            this.cameraToLight = cameraToLight;
-            this.lightToCamera = lightToCamera;
+            CameraToLight = cameraToLight;
+            LightToCamera = lightToCamera;
 
             // Gather camera probability
             float product = 1.0f;
             for (int i = 0; i < numSurfaceVertices; ++i) {
                 product *= MathF.Min(pdfs.PdfsCameraToLight[i] * acceptArea, 1.0f);
-                cameraToLight[i] = product;
+                CameraToLight[i] = product;
             }
 
             // Gather light probability
@@ -1403,7 +1424,7 @@ public class CameraStoringVCM : Integrator {
                     next *= acceptArea;
 
                 product *= MathF.Min(next, 1.0f);
-                lightToCamera[i] = product;
+                LightToCamera[i] = product;
             }
         }
 
@@ -1411,8 +1432,8 @@ public class CameraStoringVCM : Integrator {
             get {
                 if (idx == 0) return 1; // primary merges are not correlated
 
-                float light = lightToCamera[idx];
-                float cam = cameraToLight[idx];
+                float light = LightToCamera[idx];
+                float cam = CameraToLight[idx];
 
                 // Prevent NaNs
                 if (cam == 0 && light == 0)
@@ -1428,6 +1449,7 @@ public class CameraStoringVCM : Integrator {
     /// </summary>
     protected virtual float CameraPathReciprocals(int lastCameraVertexIdx, in BidirPathPdfs pdfs,
                                                   Pixel pixel, float radius, in CorrelAwareRatios correlRatio) {
+        float connectProb = NumLightPaths / (float)(Scene.FrameBuffer.Width * Scene.FrameBuffer.Height);
         float sumReciprocals = 0.0f;
         float nextReciprocal = 1.0f;
         for (int i = lastCameraVertexIdx; i > 0; --i) {
@@ -1441,7 +1463,7 @@ public class CameraStoringVCM : Integrator {
             nextReciprocal *= pdfs.PdfsLightToCamera[i] / pdfs.PdfsCameraToLight[i];
 
             // Connecting this vertex to the next one along the camera path
-            if (NumConnections > 0) sumReciprocals += nextReciprocal;
+            if (EnableConnections) sumReciprocals += nextReciprocal * connectProb;
         }
 
         // Light tracer
@@ -1462,6 +1484,7 @@ public class CameraStoringVCM : Integrator {
     /// </summary>
     protected virtual float LightPathReciprocals(int lastCameraVertexIdx, in BidirPathPdfs pdfs,
                                                  Pixel pixel, float radius, in CorrelAwareRatios correlRatio) {
+        float connectProb = NumLightPaths / (float)(Scene.FrameBuffer.Width * Scene.FrameBuffer.Height);
         float sumReciprocals = 0.0f;
         float nextReciprocal = 1.0f;
         for (int i = lastCameraVertexIdx + 1; i < pdfs.NumPdfs; ++i) {
@@ -1481,7 +1504,7 @@ public class CameraStoringVCM : Integrator {
 
             // Account for connections from this vertex to its ancestor
             if (i < pdfs.NumPdfs - 2) // Connections to the emitter (next event) are treated separately
-                if (NumConnections > 0) sumReciprocals += nextReciprocal;
+                if (EnableConnections) sumReciprocals += nextReciprocal * connectProb;
         }
         if (EnableHitting) sumReciprocals += nextReciprocal; // Hitting the emitter directly
         return sumReciprocals;

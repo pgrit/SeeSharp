@@ -71,6 +71,8 @@ public class FrameBuffer : IDisposable {
     /// </summary>
     public string Basename {
         get {
+            if (string.IsNullOrEmpty(filename))
+                return "";
             string dir = Path.GetDirectoryName(filename);
             string fileBase = Path.GetFileNameWithoutExtension(filename);
             return Path.Combine(dir, fileBase);

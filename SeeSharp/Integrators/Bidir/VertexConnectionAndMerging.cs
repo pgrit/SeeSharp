@@ -26,8 +26,8 @@ public class VertexConnectionAndMergingBase<CameraPayloadType> : VertexCacheBidi
     /// </summary>
     public int MaxNumPhotons = 8;
 
-    TechPyramid techPyramidRaw;
-    TechPyramid techPyramidWeighted;
+    public TechPyramid TechPyramidRaw;
+    public TechPyramid TechPyramidWeighted;
 
     /// <summary>
     /// The maximum radius used by any merge in the current iteration. Only initialized after rendering started.
@@ -177,16 +177,16 @@ public class VertexConnectionAndMergingBase<CameraPayloadType> : VertexCacheBidi
         if (!RenderTechniquePyramid)
             return;
 
-        techPyramidRaw.Add(cameraPathLength, lightPathLength, fullLength, pixel, weight);
-        techPyramidWeighted.Add(cameraPathLength, lightPathLength, fullLength, pixel, weight * misWeight);
+        TechPyramidRaw.Add(cameraPathLength, lightPathLength, fullLength, pixel, weight);
+        TechPyramidWeighted.Add(cameraPathLength, lightPathLength, fullLength, pixel, weight * misWeight);
     }
 
     /// <inheritdoc />
     public override void Render(Scene scene) {
         if (RenderTechniquePyramid) {
-            techPyramidRaw = new TechPyramid(scene.FrameBuffer.Width, scene.FrameBuffer.Height,
+            TechPyramidRaw = new TechPyramid(scene.FrameBuffer.Width, scene.FrameBuffer.Height,
                                              minDepth: 1, maxDepth: MaxDepth, merges: true);
-            techPyramidWeighted = new TechPyramid(scene.FrameBuffer.Width, scene.FrameBuffer.Height,
+            TechPyramidWeighted = new TechPyramid(scene.FrameBuffer.Width, scene.FrameBuffer.Height,
                                                   minDepth: 1, maxDepth: MaxDepth, merges: true);
         }
 
@@ -198,13 +198,13 @@ public class VertexConnectionAndMergingBase<CameraPayloadType> : VertexCacheBidi
 
         // Store the technique pyramids
         if (RenderTechniquePyramid) {
-            techPyramidRaw.Normalize(1.0f / Scene.FrameBuffer.CurIteration);
-            string pathRaw = Path.Join(scene.FrameBuffer.Basename, "techs-raw");
-            techPyramidRaw.WriteToFiles(pathRaw);
+            TechPyramidRaw.Normalize(1.0f / Scene.FrameBuffer.CurIteration);
+            if (!string.IsNullOrEmpty(scene.FrameBuffer.Basename))
+                TechPyramidRaw.WriteToFiles(Path.Join(scene.FrameBuffer.Basename, "techs-raw"));
 
-            techPyramidWeighted.Normalize(1.0f / Scene.FrameBuffer.CurIteration);
-            string pathWeighted = Path.Join(scene.FrameBuffer.Basename, "techs-weighted");
-            techPyramidWeighted.WriteToFiles(pathWeighted);
+            TechPyramidWeighted.Normalize(1.0f / Scene.FrameBuffer.CurIteration);
+            if (!string.IsNullOrEmpty(scene.FrameBuffer.Basename))
+                TechPyramidWeighted.WriteToFiles(Path.Join(scene.FrameBuffer.Basename, "techs-weighted"));
         }
 
         photonMap.Dispose();
@@ -370,7 +370,6 @@ public class VertexConnectionAndMergingBase<CameraPayloadType> : VertexCacheBidi
     /// </param>
     /// <returns>MIS weighted contribution due to merging</returns>
     protected virtual RgbColor PerformMerging(in SurfaceShader shader, ref RNG rng, in CameraPath path, float cameraJacobian) {
-        if (path.Vertices.Count == 1 && !MergePrimary) return RgbColor.Black;
         if (!EnableMerging) return RgbColor.Black;
         if (!MergePrimary && path.Depth == 1) return RgbColor.Black;
         float localRadius = ComputeLocalMergeRadius(path.FootprintRadius);

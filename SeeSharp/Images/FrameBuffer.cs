@@ -260,7 +260,7 @@ public class FrameBuffer : IDisposable {
             WriteToFile(name);
         }
 
-        if (flags.HasFlag(Flags.WriteContinously))
+        if (flags.HasFlag(Flags.WriteContinously)) // TODO maybe do this in power-of-two steps so it becomes useful for reference rendering
             WriteToFile();
 
         tevIpc?.UpdateImage(filename);
@@ -319,6 +319,7 @@ public class FrameBuffer : IDisposable {
 
         MetaData["RenderStartTime"] = StartTime.ToString("dd/M/yyyy HH:mm:ss");
         MetaData["RenderWriteTime"] = WriteTime.ToString("dd/M/yyyy HH:mm:ss");
+        MetaData["SeeSharpVersion"] = typeof(FrameBuffer).Assembly.GetName().Version.ToString();
 
         // Write the metadata as json
         string json = JsonSerializer.Serialize(MetaData, options: new() {

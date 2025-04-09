@@ -111,13 +111,6 @@ public partial class GenericMaterial  : Material
         float schlickFresnel = FresnelSchlick.Evaluate(localParams.specularReflectanceAtNormal, float.Abs(context.OutDir.Z)).Average;
         float diffuseBias = float.Max(1 - schlickFresnel, 0.75f);
         float diffuseWeight = diffuseBias * (1 - parameters.Metallic) * (1 - parameters.SpecularTransmittance);
-        // int c;
-        // if (primaryComponent <= diffuseWeight)
-        //     c = 0;
-        // else if (primaryComponent <= localParams.SelectionWeightsForward[0] + localParams.SelectionWeightsForward[1])
-        //     c = 1;
-        // else
-        //     c = 2;
 
         // Sample a direction from the selected component
         Vector3 inDir;
@@ -126,18 +119,9 @@ public partial class GenericMaterial  : Material
             inDir = SampleWarp.ToCosHemisphere(primaryDirection).Direction;
             if (context.OutDir.Z < 0)
                 inDir.Z *= -1;
-        }
-        // else if (c == 1)
-        // {
-        //     // Sample specular reflection
-        //     Vector3 halfVector = normalDistribution.Sample(context.OutDir, primaryDirection);
-        //     // Debug.Assert(normalDistribution.Pdf(context.OutDir, halfVector) > 0);
-        //     inDir = Reflect(context.OutDir, halfVector);
-        // }
-        else {
+        } else {
             Vector3 halfVector = normalDistribution.Sample(context.OutDir, primaryDirection);
 
-            // float cOut = Vector3.Dot(context.OutDir, halfVector);
             var cOut = Vector3.Dot(context.OutDir, (halfVector.Z < 0) ? -halfVector : halfVector);
             var fresnel = FresnelDielectric.Evaluate(cOut, 1, parameters.IndexOfRefraction);
             float selectTransmit = (1 - fresnel) * parameters.SpecularTransmittance;
@@ -147,7 +131,7 @@ public partial class GenericMaterial  : Material
                     return BsdfSample.Invalid; // prevent NaN
                 var i = Refract(context.OutDir, halfVector, eta);
                 if (!i.HasValue)
-                    i = Reflect(context.OutDir, halfVector);
+                    return BsdfSample.Invalid; // TODO check if / how often this occurs
                 inDir = i.Value;
             } else {
                 // Reflection
@@ -177,8 +161,6 @@ public partial class GenericMaterial  : Material
 
         float cosThetaO = MathF.Abs(context.OutDir.Z);
         float cosThetaI = MathF.Abs(inDir.Z);
-        // SelectionWeights selectionWeightsReverse = new();
-        // ComputeSelectWeights(localParams, inDir, ref selectionWeightsReverse);
 
         bool sameGeometricHemisphere = ShouldReflect(context.Point, context.OutDirWorld, context.ShadingToWorld(inDir));
 
@@ -289,20 +271,6 @@ public partial class GenericMaterial  : Material
                     components.Values[2] += transmit;
             }
 
-            // If total reflection occured, we switch to reflection sampling
-            float cos = Vector3.Dot(halfVector, context.OutDir);
-            if (1 / (eta * eta) * MathF.Max(0, 1 - cos * cos) >= 1) // Total internal reflection occurs for this outgoing direction
-            {
-                pdfsFwd[2] = pdfsFwd[1];
-            }
-
-            float cosIn = Vector3.Dot(halfVector, inDir);
-            float etaIn = inDir.Z > 0 ? parameters.IndexOfRefraction : (1 / parameters.IndexOfRefraction);
-            if (1 / (etaIn * etaIn) * MathF.Max(0, 1 - cosIn * cosIn) >= 1) // Total internal reflection occurs for this outgoing direction
-            {
-                pdfsRev[2] = pdfsRev[1];
-            }
-
             // The transmission PDF
             if (sqrtDenom != 0)  // Prevent NaN in corner case
             {
@@ -312,6 +280,7 @@ public partial class GenericMaterial  : Material
             }
 
             // For the reverse PDF, we first need to compute the corresponding half vector
+            float etaIn = inDir.Z > 0 ? parameters.IndexOfRefraction : (1 / parameters.IndexOfRefraction);
             halfVectorTransmitIn = context.OutDir * etaIn + inDir;
             halfVectorTransmitIn = Vector3.Normalize(halfVectorTransmitIn);
             halfVectorTransmitIn = (halfVectorTransmitIn.Z < 0) ? -halfVectorTransmitIn : halfVectorTransmitIn;
@@ -382,7 +351,6 @@ public partial class GenericMaterial  : Material
         public RgbColor retroReflectance;
         public RgbColor specularTransmittance;
         public RgbColor specularReflectanceAtNormal;
-        // public SelectionWeights SelectionWeightsForward;
     }
 
     LocalParams ComputeLocalParams(in ShadingContext shadingContext)

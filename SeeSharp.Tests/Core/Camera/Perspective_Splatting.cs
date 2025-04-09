@@ -21,7 +21,7 @@ namespace SeeSharp.Tests.Core.Camera {
         public void Center_CorrectPixel() {
             var cam = MakeTestCamera();
             RNG rng = new();
-            var raster = cam.SampleResponse(new() { Position = new Vector3(0, 0, 3.5f) }, ref rng).Pixel;
+            var raster = cam.SampleResponse(new() { Position = new Vector3(0, 0, 3.5f) }, rng.NextFloat2D()).Pixel;
 
             Assert.Equal(1, raster.Col);
             Assert.Equal(1, raster.Row);
@@ -36,7 +36,7 @@ namespace SeeSharp.Tests.Core.Camera {
             var xyz = c / len;
 
             RNG rng = new();
-            var raster = cam.SampleResponse(new() { Position = new Vector3(xyz, xyz, xyz) }, ref rng).Pixel;
+            var raster = cam.SampleResponse(new() { Position = new Vector3(xyz, xyz, xyz) }, rng.NextFloat2D()).Pixel;
 
             Assert.Equal(0, raster.Col);
             Assert.Equal(0, raster.Row);
@@ -46,7 +46,7 @@ namespace SeeSharp.Tests.Core.Camera {
         public void Center_Behind_ShouldBeNull() {
             var cam = MakeTestCamera();
             RNG rng = new();
-            var result = cam.SampleResponse(new() { Position = new Vector3(0, 0, -3.5f) }, ref rng);
+            var result = cam.SampleResponse(new() { Position = new Vector3(0, 0, -3.5f) }, rng.NextFloat2D());
             Assert.False(result.IsValid);
         }
     }

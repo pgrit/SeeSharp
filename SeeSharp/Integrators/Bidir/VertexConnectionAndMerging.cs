@@ -198,6 +198,8 @@ public class VertexConnectionAndMergingBase<CameraPayloadType> : VertexCacheBidi
 
         // Store the technique pyramids
         if (RenderTechniquePyramid) {
+            // TODO the base class also creates and writes a tech pyramid (but never accumulates samples).
+            //      We are overwriting those files here -> wasteful
             TechPyramidRaw.Normalize(1.0f / Scene.FrameBuffer.CurIteration);
             if (!string.IsNullOrEmpty(scene.FrameBuffer.Basename))
                 TechPyramidRaw.WriteToFiles(Path.Join(scene.FrameBuffer.Basename, "techs-raw"));

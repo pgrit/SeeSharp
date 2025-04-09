@@ -3,13 +3,13 @@
 /// <summary>
 /// A piece-wise constant PDF / discrete probability to sample from
 /// </summary>
-public class PiecewiseConstant {
+public class PiecewiseConstantPDF {
     /// <summary>
     /// Initializes the piece-wise constant pdf over the [0, 1] domain, where each piece has the same length.
     /// The given weights are normalized and the CDF is computed.
     /// </summary>
     /// <param name="weights">The non-normalized weights of each bin</param>
-    public PiecewiseConstant(params ReadOnlySpan<float> weights) {
+    public PiecewiseConstantPDF(params ReadOnlySpan<float> weights) {
         // Compute unnormalized cdf
         cdf = new List<float>(weights.Length);
         float sum = 0;

@@ -37,7 +37,7 @@ public class Mesh : TriangleMesh {
             Vector3 n = Vector3.Cross(v2 - v1, v3 - v1);
             surfaceAreas[face] = n.Length() * 0.5f;
         }
-        triangleDistribution = new PiecewiseConstant(surfaceAreas);
+        triangleDistribution = new PiecewiseConstantPDF(surfaceAreas);
     }
 
     /// <summary>
@@ -99,5 +99,5 @@ public class Mesh : TriangleMesh {
         return 1.0f / SurfaceArea;
     }
 
-    readonly PiecewiseConstant triangleDistribution;
+    readonly PiecewiseConstantPDF triangleDistribution;
 }

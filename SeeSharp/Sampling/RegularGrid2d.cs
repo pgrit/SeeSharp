@@ -66,17 +66,17 @@ public class RegularGrid2d {
 
     public void Normalize() {
         // Build a 1D CDF to select a row based on the marginals
-        rowDistribution = new PiecewiseConstant(rowMarginals);
+        rowDistribution = new PiecewiseConstantPDF(rowMarginals);
 
         // Build a 1D CDF to select a column within each row
-        colDistributions = new List<PiecewiseConstant>(numRows);
+        colDistributions = new List<PiecewiseConstantPDF>(numRows);
         for (int i = 0; i < numRows; ++i) {
             if (rowMarginals[i] == 0) {
                 colDistributions.Add(null);
                 continue;
             }
             var row = new Span<float>(density, i * numCols, numCols);
-            colDistributions.Add(new PiecewiseConstant(row));
+            colDistributions.Add(new PiecewiseConstantPDF(row));
         }
     }
 
@@ -109,6 +109,6 @@ public class RegularGrid2d {
     float[] rowMarginals;
     int numCols, numRows;
 
-    PiecewiseConstant rowDistribution;
-    List<PiecewiseConstant> colDistributions;
+    PiecewiseConstantPDF rowDistribution;
+    List<PiecewiseConstantPDF> colDistributions;
 }

@@ -111,8 +111,10 @@ public class VertexCacheBidirBase<CameraPayloadType> : BidirBase<CameraPayloadTy
         base.Render(scene);
 
         if (RenderTechniquePyramid) {
-            techPyramidRaw.WriteToFiles(Path.Join(scene.FrameBuffer.Basename, "techs-raw"));
-            techPyramidWeighted.WriteToFiles(Path.Join(scene.FrameBuffer.Basename, "techs-weighted"));
+            if (!string.IsNullOrEmpty(scene.FrameBuffer.Basename))
+                techPyramidRaw.WriteToFiles(Path.Join(scene.FrameBuffer.Basename, "techs-raw"));
+            if (!string.IsNullOrEmpty(scene.FrameBuffer.Basename))
+                techPyramidWeighted.WriteToFiles(Path.Join(scene.FrameBuffer.Basename, "techs-weighted"));
         }
     }
 

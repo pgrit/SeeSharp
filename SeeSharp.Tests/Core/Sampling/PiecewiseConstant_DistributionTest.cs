@@ -7,7 +7,7 @@ namespace SeeSharp.Tests.Core.Sampling {
         [Fact]
         public void Pdfs_ShouldBeProportional() {
             var weights = new float[] { 1, 1, 2, 2 };
-            var dist = new PiecewiseConstant(weights);
+            var dist = new PiecewiseConstantPDF(weights);
 
             Assert.Equal(1.0f / 6.0f, dist.Probability(0), 3);
             Assert.Equal(1.0f / 6.0f, dist.Probability(1), 3);
@@ -18,7 +18,7 @@ namespace SeeSharp.Tests.Core.Sampling {
         [Fact]
         public void AsymptoticDistribution() {
             var weights = new float[] { 1, 1, 2, 2 };
-            var dist = new PiecewiseConstant(weights);
+            var dist = new PiecewiseConstantPDF(weights);
 
             var counters = new float[] { 0, 0, 0, 0 };
             int numSteps = 100;
@@ -35,7 +35,7 @@ namespace SeeSharp.Tests.Core.Sampling {
         [Fact]
         public void ShouldBeUniformWithin() {
             var weights = new float[] { 1, 1, 2, 2 };
-            var dist = new PiecewiseConstant(weights);
+            var dist = new PiecewiseConstantPDF(weights);
 
             int numSteps = 1000;
             var counters = new float[numSteps];
@@ -54,7 +54,7 @@ namespace SeeSharp.Tests.Core.Sampling {
         [Fact]
         public void BorderHandling_IsCorrect() {
             var weights = new float[] { 1, 1, 2, 2 };
-            var dist = new PiecewiseConstant(weights);
+            var dist = new PiecewiseConstantPDF(weights);
 
             var (idx, rel) = dist.Sample(0.0f);
             Assert.Equal(0, idx);
@@ -76,7 +76,7 @@ namespace SeeSharp.Tests.Core.Sampling {
         [Fact]
         public void Singularity_ShouldBeSampledExclusively() {
             var weights = new float[] {283, 0, 0, 0, 0};
-            var dist = new PiecewiseConstant(weights);
+            var dist = new PiecewiseConstantPDF(weights);
 
             var (idx, rel) = dist.Sample(0.0f);
             Assert.Equal(0, idx);

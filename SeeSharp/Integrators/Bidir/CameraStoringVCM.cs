@@ -1,6 +1,6 @@
 namespace SeeSharp.Integrators.Bidir;
 
-public class CameraStoringVCM : Integrator {
+public class CameraStoringVCM<TLightPathData> : Integrator where TLightPathData : new() {
     #region Parameters
 
     public int NumIterations { get; set; } = 1;
@@ -244,7 +244,8 @@ public class CameraStoringVCM : Integrator {
     protected virtual void TraceLightPaths(uint iter) {
         Parallel.For(0, NumLightPaths, idx => {
             var rng = new RNG(BaseSeedLight, (uint)idx, iter);
-            TraceLightPath(ref rng, idx);
+            // TODO PERFORMANCE boxing conversion causes heap allocation -> measure impact and avoid if necessary
+            TraceLightPath(rng, idx, new());
         });
     }
 
@@ -353,10 +354,10 @@ public class CameraStoringVCM : Integrator {
     /// Used by next event estimation to select a light source
     /// </summary>
     /// <param name="from">A point on a surface where next event is performed</param>
-    /// <param name="rng">Random number generator</param>
+    /// <param name="primarySelect">Primary sample value used to select the light</param>
     /// <returns>The selected light and the discrete probability of selecting that light</returns>
-    public virtual (Emitter, float) SelectLight(in SurfacePoint from, ref RNG rng) {
-        int idx = rng.NextInt(Scene.Emitters.Count);
+    public virtual (Emitter, float) SelectLight(in SurfacePoint from, float primarySelect) {
+        int idx = Math.Clamp((int)(primarySelect * Scene.Emitters.Count), 0, Scene.Emitters.Count - 1);
         return (Scene.Emitters[idx], 1.0f / Scene.Emitters.Count);
     }
 
@@ -370,11 +371,12 @@ public class CameraStoringVCM : Integrator {
     /// Samples an emitter and a point on its surface for next event estimation
     /// </summary>
     /// <param name="from">The shading point</param>
-    /// <param name="rng">Random number generator</param>
+    /// <param name="primarySelect">Primary sample value used to select the light</param>
+    /// <param name="primary">Primary sample value used for the point on the light</param>
     /// <returns>The sampled emitter and point on the emitter</returns>
-    public virtual (Emitter, SurfaceSample) SampleNextEvent(SurfacePoint from, ref RNG rng) {
-        var (light, lightProb) = SelectLight(from, ref rng);
-        var lightSample = light.SampleUniformArea(rng.NextFloat2D());
+    public virtual (Emitter, SurfaceSample) SampleNextEvent(SurfacePoint from, float primarySelect, Vector2 primary) {
+        var (light, lightProb) = SelectLight(from, primarySelect);
+        var lightSample = light.SampleUniformArea(primary);
         lightSample.Pdf *= lightProb * NumShadowRays;
         return (light, lightSample);
     }
@@ -467,7 +469,7 @@ public class CameraStoringVCM : Integrator {
                 return RgbColor.Black;
 
             // Sample a point on the light source
-            var (light, lightSample) = SampleNextEvent(shader.Point, ref state.Rng);
+            var (light, lightSample) = SampleNextEvent(shader.Point, state.Rng.NextFloat(), state.Rng.NextFloat2D());
             lightSample.Pdf *= 1 - backgroundProbability;
 
             if (lightSample.Pdf == 0) // Prevent NaN
@@ -670,13 +672,17 @@ public class CameraStoringVCM : Integrator {
         return 1 / sumReciprocals;
     }
 
+    protected virtual void AddLightPathContrib(ref LightPathState state, Pixel pixel, RgbColor contrib) {
+        Scene.FrameBuffer.Splat(pixel, contrib);
+    }
+
     void ConnectLightVertexToCamera(ref LightPathState state) {
         if (state.Depth + 1 < MinDepth) return;
 
         ref var vertex = ref state.Vertices[^1];
 
         // Compute image plane location
-        var response = Scene.Camera.SampleResponse(vertex.Point, ref state.Rng);
+        var response = Scene.Camera.SampleResponse(vertex.Point, state.Rng.NextFloat2D());
         if (!response.IsValid)
             return;
 
@@ -714,7 +720,7 @@ public class CameraStoringVCM : Integrator {
 
         // Compute image contribution and splat
         RgbColor weight = vertex.Weight * bsdfValue * response.Weight / NumLightPaths;
-        Scene.FrameBuffer.Splat(response.Pixel, misWeight * weight);
+        AddLightPathContrib(ref state, response.Pixel, misWeight * weight);
 
         // Log the sample
         RegisterSample(weight, misWeight, response.Pixel, 0, vertex.Depth, vertex.Depth + 1);
@@ -835,14 +841,15 @@ public class CameraStoringVCM : Integrator {
         // divided by the number of pixels (probability to select the pixel)
         int pathIdx = NumLightPaths == Scene.FrameBuffer.Width * Scene.FrameBuffer.Height
             ? state.PathIndex
-            : state.Rng.NextInt(Scene.FrameBuffer.Width * Scene.FrameBuffer.Height);
+            : (int)(state.Rng.NextFloat() * Scene.FrameBuffer.Width * Scene.FrameBuffer.Height);
+        pathIdx = Math.Min(pathIdx, Scene.FrameBuffer.Width * Scene.FrameBuffer.Height - 1);
         float connectProb = NumLightPaths / (float)(Scene.FrameBuffer.Width * Scene.FrameBuffer.Height);
 
         RgbColor estimate = RgbColor.Black;
         for (int i = 0; i < CameraPaths.Length(pathIdx); ++i) {
             estimate += Connect(shader, ref state, CameraPaths[pathIdx, i], 1) / connectProb;
         }
-        Scene.FrameBuffer.Splat(GetPixel(pathIdx), estimate);
+        AddLightPathContrib(ref state, GetPixel(pathIdx), estimate);
     }
 
     /// <summary>
@@ -896,7 +903,7 @@ public class CameraStoringVCM : Integrator {
                                          in PathVertex cameraVertex, in LightPathState lightPath, in BidirPathPdfs pathPdfs) {
     }
 
-    protected virtual void Merge(in LightPathState lightPath, float toAncestorJacobian, in SurfaceShader shader,
+    protected virtual void Merge(ref LightPathState lightPath, float toAncestorJacobian, in SurfaceShader shader,
                                  (int pathIdx, int vertexIdx, float radius) idx, float distSqr, float radiusSquared) {
         var importon = CameraPaths[idx.pathIdx, idx.vertexIdx];
 
@@ -955,7 +962,7 @@ public class CameraStoringVCM : Integrator {
         OnMergeSample(importonWeight * lightPath.PrefixWeight, kernelWeight, misWeight, importon, lightPath, pathPdfs);
 
         // TODO track total merge estimate in each camera vertex
-        Scene.FrameBuffer.Splat(GetPixel(importon.PathId), importonWeight * kernelWeight * misWeight * lightPath.PrefixWeight);
+        AddLightPathContrib(ref lightPath, GetPixel(importon.PathId), importonWeight * kernelWeight * misWeight * lightPath.PrefixWeight);
     }
 
     ref struct MergeContext {
@@ -969,7 +976,7 @@ public class CameraStoringVCM : Integrator {
             return;
 
         float radiusSquared = usr.Radius * usr.Radius;
-        Merge(ctx.State, ctx.State.Vertices[^1].JacobianToAncestor, ctx.Shader, usr, distance * distance, radiusSquared);
+        Merge(ref ctx.State, ctx.State.Vertices[^1].JacobianToAncestor, ctx.Shader, usr, distance * distance, radiusSquared);
     }
 
     public virtual void PerformMerges(in SurfaceShader shader, ref LightPathState state) {
@@ -1113,7 +1120,7 @@ public class CameraStoringVCM : Integrator {
                 break;
 
             // Sample the next direction and convert the reverse pdf
-            var dirSample = SampleDirection(shader, ref rng);
+            var dirSample = SampleDirection(shader, rng.NextFloat(), rng.NextFloat2D());
             approxThroughput *= dirSample.ApproxReflectance / survivalProb;
             float pdfToAncestor = dirSample.PdfReverse * jacobian;
 
@@ -1142,8 +1149,8 @@ public class CameraStoringVCM : Integrator {
         RgbColor ApproxReflectance
     ) { }
 
-    public virtual DirectionSample SampleDirection(in SurfaceShader shader, ref RNG rng) {
-        var bsdfSample = shader.Sample(rng.NextFloat(), rng.NextFloat2D());
+    public virtual DirectionSample SampleDirection(in SurfaceShader shader, float primarySelect, Vector2 primary) {
+        var bsdfSample = shader.Sample(primarySelect, primary);
         return new(
             bsdfSample.Pdf,
             bsdfSample.PdfReverse,
@@ -1180,11 +1187,12 @@ public class CameraStoringVCM : Integrator {
     /// Randomly samples either the background or an emitter from the scene
     /// </summary>
     /// <returns>The emitter and its selection probability</returns>
-    public virtual (Emitter, float) SelectLightForEmission(ref RNG rng) {
-        if (BackgroundProbability > 0 && rng.NextFloat() <= BackgroundProbability) {
+    public virtual (Emitter, float) SelectLightForEmission(float primarySelect) {
+        if (BackgroundProbability > 0 && primarySelect <= BackgroundProbability) {
             return (null, BackgroundProbability);
         } else {
-            var emitter = Scene.Emitters[rng.NextInt(Scene.Emitters.Count)];
+            float u = (primarySelect - BackgroundProbability) * (1 - BackgroundProbability);
+            var emitter = Scene.Emitters[Math.Clamp((int)(u * Scene.Emitters.Count), 0, Scene.Emitters.Count - 1)];
             return (emitter, (1 - BackgroundProbability) / Scene.Emitters.Count);
         }
     }
@@ -1205,12 +1213,11 @@ public class CameraStoringVCM : Integrator {
     /// <summary>
     /// Samples a ray from an emitter in the scene
     /// </summary>
-    /// <param name="rng">Random number generator</param>
+    /// <param name="primaryPos">Primary sample used for the point on the light</param>
+    /// <param name="primaryDir">Primary sample used for the direction from the light</param>
     /// <param name="emitter">The emitter to sample from</param>
     /// <returns>Sampled ray, weights, and probabilities</returns>
-    public virtual EmitterSample SampleEmitter(ref RNG rng, Emitter emitter) {
-        var primaryPos = rng.NextFloat2D();
-        var primaryDir = rng.NextFloat2D();
+    public virtual EmitterSample SampleEmitter(Vector2 primaryPos, Vector2 primaryDir, Emitter emitter) {
         return emitter.SampleRay(primaryPos, primaryDir);
     }
 
@@ -1238,11 +1245,10 @@ public class CameraStoringVCM : Integrator {
     /// <summary>
     /// Samples a ray from the background into the scene.
     /// </summary>
-    /// <param name="rng">Random number generator</param>
+    /// <param name="primaryPos">Primary sample used for the point on the scene spanning disc</param>
+    /// <param name="primaryDir">Primary sample used for the direction</param>
     /// <returns>The sampled ray, its weight, and the sampling pdf</returns>
-    public virtual (Ray, RgbColor, float) SampleBackground(ref RNG rng) {
-        var primaryPos = rng.NextFloat2D();
-        var primaryDir = rng.NextFloat2D();
+    public virtual (Ray, RgbColor, float) SampleBackground(Vector2 primaryPos, Vector2 primaryDir) {
         return Scene.Background.SampleRay(primaryPos, primaryDir);
     }
 
@@ -1259,31 +1265,34 @@ public class CameraStoringVCM : Integrator {
     }
 
     public ref struct LightPathState {
-        public ref RNG Rng;
+        public ISampler Rng;
         public RgbColor PrefixWeight;
         public int Depth;
         public int PathIndex;
         public PathBuffer<PathVertex> Vertices;
 
         public float NextReversePdf;
+
+        public TLightPathData Extension;
     }
 
-    public virtual void TraceLightPath(ref RNG rng, int idx) {
-        var (emitter, prob) = SelectLightForEmission(ref rng);
+    public virtual void TraceLightPath(ISampler rng, int idx, TLightPathData lightPathData) {
+        var (emitter, prob) = SelectLightForEmission(rng.NextFloat());
 
         Ray ray;
         SurfacePoint? previousPoint = null;
         float lastPdf;
         LightPathState state = new() {
-            Rng = ref rng,
+            Rng = rng,
             Depth = 1,
             Vertices = perThreadVertexBuffers.Value,
-            PathIndex = idx
+            PathIndex = idx,
+            Extension = lightPathData
         };
         state.Vertices.Clear();
 
         if (emitter != null) {
-            var emitterSample = SampleEmitter(ref rng, emitter);
+            var emitterSample = SampleEmitter(rng.NextFloat2D(), rng.NextFloat2D(), emitter);
             emitterSample.Pdf *= prob;
             state.PrefixWeight = emitterSample.Weight / prob;
             previousPoint = emitterSample.Point;
@@ -1303,7 +1312,7 @@ public class CameraStoringVCM : Integrator {
 
             ray = Raytracer.SpawnRay(emitterSample.Point, emitterSample.Direction);
         } else {
-            (ray, var weight, lastPdf) = SampleBackground(ref rng);
+            (ray, var weight, lastPdf) = SampleBackground(rng.NextFloat2D(), rng.NextFloat2D());
 
             // Account for the light selection probability
             lastPdf *= prob;
@@ -1361,7 +1370,7 @@ public class CameraStoringVCM : Integrator {
                 break;
 
             // Sample the next direction and convert the reverse pdf
-            var dirSample = SampleDirection(shader, ref rng);
+            var dirSample = SampleDirection(shader, rng.NextFloat(), rng.NextFloat2D());
             approxThroughput *= dirSample.ApproxReflectance / survivalProb;
             float pdfToAncestor = dirSample.PdfReverse * jacobian;
 

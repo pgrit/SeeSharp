@@ -101,6 +101,8 @@ public class SceneFromFile : SceneConfig {
             var layers = Layers.LoadFromFile(filename);
             if (layers.TryGetValue("", out Image img)) return InpaintNaNs(img) as RgbImage;
             else return InpaintNaNs(layers["default"]) as RgbImage;
+
+            // TODO read the SeeSharp version from the .json and print a warning if it does not match (major/minor only, not patch)
         }
 
         string referenceSpecs = Path.Join(refDir, "Config.json");

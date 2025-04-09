@@ -108,14 +108,13 @@ public class PerspectiveCamera : Camera {
     /// <param name="scenePoint">A point on a scene surface that might be seen by the camera</param>
     /// <param name="rng">RNG used to sample the lens. Can be null if the lens radius is zero.</param>
     /// <returns>The pixel coordinates and weights, or an invalid sample</returns>
-    public override CameraResponseSample SampleResponse(SurfacePoint scenePoint, ref RNG rng) {
+    public override CameraResponseSample SampleResponse(SurfacePoint scenePoint, Vector2 primary) {
         Debug.Assert(Width != 0 && Height != 0);
 
         // Sample a point on the lens
         Vector3 lensPoint = Position;
         if (lensRadius > 0) {
-            var lensSample = rng.NextFloat2D();
-            var lensPosCam = lensRadius * SampleWarp.ToConcentricDisc(lensSample);
+            var lensPosCam = lensRadius * SampleWarp.ToConcentricDisc(primary);
             var lensPosWorld = Vector4.Transform(new Vector4(lensPosCam.X, lensPosCam.Y, 0, 1), cameraToWorld);
             lensPoint = new(lensPosWorld.X, lensPosWorld.Y, lensPosWorld.Z);
         }

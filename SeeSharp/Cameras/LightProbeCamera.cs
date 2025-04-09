@@ -66,9 +66,9 @@ public class LightProbeCamera : Camera {
     /// Maps the point to the deterministic location on the image.
     /// </summary>
     /// <param name="scenePoint">A point on a scene surface</param>
-    /// <param name="rng">Unused, can be null</param>
+    /// <param name="_">Unused</param>
     /// <returns>Contribution, pixel, and sampling PDFs</returns>
-    public override CameraResponseSample SampleResponse(SurfacePoint scenePoint, ref RNG rng) {
+    public override CameraResponseSample SampleResponse(SurfacePoint scenePoint, Vector2 _) {
         var filmPoint = WorldToFilm(scenePoint.Position);
 
         float jacobian = SolidAngleToPixelJacobian(scenePoint.Position);

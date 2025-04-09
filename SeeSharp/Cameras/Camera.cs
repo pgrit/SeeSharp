@@ -68,7 +68,7 @@ public abstract class Camera {
     /// <param name="scenePoint">A point on a surface, visible to the camera</param>
     /// <param name="rng">Random number generator</param>
     /// <returns>Importance estimate, sampled pixel coordinates, and pdf</returns>
-    public abstract CameraResponseSample SampleResponse(SurfacePoint scenePoint, ref RNG rng);
+    public abstract CameraResponseSample SampleResponse(SurfacePoint scenePoint, Vector2 primary);
 
     /// <summary>
     /// Computes the change of area when mapping the hemisphere of directions around the camera onto

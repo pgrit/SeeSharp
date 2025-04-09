@@ -36,8 +36,8 @@ public abstract partial class BidirBase<CameraPayloadType> {
         if (vertex.Depth + 1 < MinDepth) return;
 
         // Compute image plane location
-        RNG rng = new(); // TODO / FIXME this is not used atm, so we can pass a dummy. But must update once fancier cameras are implemented!
-        var response = Scene.Camera.SampleResponse(vertex.Point, ref rng);
+        Vector2 primary = new(); // TODO / FIXME this is not used atm, so we can pass a dummy. But must update once fancier cameras are implemented!
+        var response = Scene.Camera.SampleResponse(vertex.Point, primary);
         if (!response.IsValid)
             return;
 

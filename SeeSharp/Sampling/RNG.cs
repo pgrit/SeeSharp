@@ -4,20 +4,20 @@ namespace SeeSharp.Sampling;
 /// Uniform random number generator. Uses PCG and FNV hashing to efficiently generate random numbers
 /// even with highly correlated seeds (e.g., consecutive numbers).
 /// </summary>
-public struct RNG {
-    uint state;
+public struct RNG : ISampler {
+    public uint State { get; set; }
 
     /// <summary>
     /// Creates a new random generator with identical state to the provided random generator.
     /// </summary>
     public RNG(RNG other) {
-        state = other.state;
+        State = other.State;
     }
 
     /// <summary>
     /// Creates a new random generator with either the given seed or a constant default value.
     /// </summary>
-    public RNG(uint seed = 0xAB20F90u) => state = seed;
+    public RNG(uint seed = 0xAB20F90u) => State = seed;
 
     /// <summary>
     /// Computes a new seed by hashing. Hashes each individual component using PCG to reduce correlation
@@ -88,15 +88,15 @@ public struct RNG {
     }
 
     public uint Next() {
-        uint word = ((state >> (int)((state >> 28) + 4)) ^ state) * 277803737u;
-        state = state * 747796405u + 2891336453u;
+        uint word = ((State >> (int)((State >> 28) + 4)) ^ State) * 277803737u;
+        State = State * 747796405u + 2891336453u;
         return ((word >> 22) ^ word);
     }
 
     const uint FnvOffsetBasis = 2166136261;
     const uint FnvPrime = 16777619;
 
-    static uint FnvHash(uint hash, uint data) {
+    public static uint FnvHash(uint hash, uint data) {
         hash = (hash * FnvPrime) ^ (data & 0xFF);
         hash = (hash * FnvPrime) ^ ((data >> 8) & 0xFF);
         hash = (hash * FnvPrime) ^ ((data >> 16) & 0xFF);
@@ -104,13 +104,13 @@ public struct RNG {
         return hash;
     }
 
-    static uint PcgHash(uint input) {
+    public static uint PcgHash(uint input) {
         uint state = input * 747796405u + 2891336453u;
         uint word = ((state >> (int)((state >> 28) + 4)) ^ state) * 277803737u;
         return (word >> 22) ^ word;
     }
 
-    static uint HashSeed(uint BaseSeed, uint chainIndex, uint sampleIndex) {
+    public static uint HashSeed(uint BaseSeed, uint chainIndex, uint sampleIndex) {
         var hash = FnvHash(FnvOffsetBasis, PcgHash(BaseSeed));
         hash = FnvHash(hash, PcgHash(chainIndex));
         hash = FnvHash(hash, PcgHash(sampleIndex));

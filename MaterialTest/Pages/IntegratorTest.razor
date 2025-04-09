@@ -4,9 +4,7 @@
 
 @inject IJSRuntime JS
 
-@page "/Experiment"
-
-<h1>Example experiment</h1>
+@page "/IntegratorTest"
 
 <SceneSelector @ref=sceneSelector OnSceneLoaded="@OnSceneLoaded"></SceneSelector>
 
@@ -37,7 +35,6 @@
                         <tr><th>Position</th><td>@(selected.Value.Position)</td></tr>
                     </table>
                 }
-                <button @onclick="OnDownloadClick">Download results</button>
             </div>
         }
     }

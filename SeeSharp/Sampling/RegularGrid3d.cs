@@ -37,7 +37,7 @@ namespace SeeSharp.Sampling {
         }
 
         public void Normalize() {
-            depthDistribution = new PiecewiseConstant(depthMarginals);
+            depthDistribution = new PiecewiseConstantPDF(depthMarginals);
             for (int i = 0; i < zRes; ++i) {
                 if (depthMarginals[i] > 0) grid[i].Normalize();
             }
@@ -46,6 +46,6 @@ namespace SeeSharp.Sampling {
         RegularGrid2d[] grid;
         int zRes;
         float[] depthMarginals;
-        PiecewiseConstant depthDistribution;
+        PiecewiseConstantPDF depthDistribution;
     }
 }

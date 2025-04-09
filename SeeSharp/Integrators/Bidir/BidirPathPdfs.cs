@@ -56,7 +56,7 @@ public ref struct BidirPathPdfs {
         }
     }
 
-    public void GatherCameraPdfs(in CameraStoringVCM.CameraPathState cameraPath, int lastCameraVertexIdx) {
+    public void GatherCameraPdfs<T>(in CameraStoringVCM<T>.CameraPathState cameraPath, int lastCameraVertexIdx) where T : new() {
         for (int i = 0; i <= lastCameraVertexIdx; ++i) {
             PdfsCameraToLight[i] = cameraPath.Vertices[i].PdfFromAncestor;
             if (i < lastCameraVertexIdx - 1)
@@ -101,7 +101,7 @@ public ref struct BidirPathPdfs {
     /// Index of the last vertex that was sampled via a camera path. Everything after that position
     /// is filled with the forward and backward sampling pdfs along the light path.
     /// </param>
-    public void GatherLightPdfs(in CameraStoringVCM.LightPathState lightPath, int lastCameraVertexIdx) {
+    public void GatherLightPdfs<T>(in CameraStoringVCM<T>.LightPathState lightPath, int lastCameraVertexIdx) where T : new() {
         int k = 1;
         for (int i = lastCameraVertexIdx + 1; i < NumPdfs - 2; ++i, ++k) {
             PdfsLightToCamera[i] = lightPath.Vertices[^k].PdfFromAncestor;

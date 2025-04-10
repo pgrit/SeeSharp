@@ -76,10 +76,6 @@ public abstract partial class BidirBase<CameraPayloadType> : Integrator {
     /// </summary>
     protected virtual void OnBeforeRender() { }
 
-    ProgressBar progressBar;
-
-    public override ProgressBar CurProgressBar => progressBar;
-
     /// <summary>
     /// Renders the scene with the current settings. Not thread-safe: Only one scene can be rendered at a
     /// time by the same object of this class.
@@ -93,7 +89,7 @@ public abstract partial class BidirBase<CameraPayloadType> : Integrator {
         if (EnableDenoiser) DenoiseBuffers = new(scene.FrameBuffer);
         OnBeforeRender();
 
-        progressBar = new(prefix: "Rendering...");
+        ProgressBar progressBar = new(prefix: "Rendering...");
         progressBar.Start(NumIterations);
         RenderTimer timer = new();
         Stopwatch lightTracerTimer = new();

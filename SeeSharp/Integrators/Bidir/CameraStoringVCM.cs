@@ -248,6 +248,33 @@ public class CameraStoringVCM<TLightPathData> : Integrator where TLightPathData 
         photonMap = null;
     }
 
+    public override PathGraph ReplayPixel(Scene scene, Pixel pixel, int iteration) {
+        Scene = scene;
+
+        if (NumLightPaths < 0)
+            NumLightPaths = scene.FrameBuffer.Width * scene.FrameBuffer.Height;
+
+        CameraPaths = new(scene.FrameBuffer.Width * scene.FrameBuffer.Height, Math.Min(MaxDepth + 1, 10));
+        photonMap ??= new();
+
+        PathGraph graph = new();
+        uint pixelIndex = (uint)(pixel.Row * Scene.FrameBuffer.Width + pixel.Col);
+        var rng = new RNG(BaseSeedCamera, pixelIndex, (uint)iteration);
+        TraceCameraPath((uint)pixel.Row, (uint)pixel.Col, ref rng, graph);
+
+        if (EnableMerging)
+            BuildImportonAccel();
+
+        TraceLightPaths((uint)iteration);
+
+        CameraPaths.Clear();
+
+        photonMap.Dispose();
+        photonMap = null;
+
+        return graph;
+    }
+
     protected virtual void TraceLightPaths(uint iter) {
         Parallel.For(0, NumLightPaths, idx => {
             var rng = new RNG(BaseSeedLight, (uint)idx, iter);
@@ -328,7 +355,7 @@ public class CameraStoringVCM<TLightPathData> : Integrator where TLightPathData 
     protected virtual void OnBidirConnectSample(RgbColor weight, float misWeight, in PathVertex cameraVertex,
                                                 in LightPathState lightPath, in BidirPathPdfs pathPdfs) { }
 
-    public virtual RgbColor OnMissCameraPath(Ray ray, float pdfFromAncestor, ref CameraPathState state) {
+    public virtual (float MISWeight, RgbColor UnweightedContrib) OnMissCameraPath(Ray ray, float pdfFromAncestor, ref CameraPathState state) {
         return OnBackgroundHit(ray, state);
     }
 
@@ -464,6 +491,10 @@ public class CameraStoringVCM<TLightPathData> : Integrator where TLightPathData 
 
                 // Compute and log the final sample weight
                 var weight = sample.Weight * bsdfTimesCosine;
+
+                if (weight != RgbColor.Black)
+                    state.GraphVertex?.AddSuccessor(new NextEventNode(sample.Direction, state.GraphVertex, sample.Weight * sample.Pdf, sample.Pdf, bsdfTimesCosine, misWeight));
+
                 RegisterSample(weight * state.PrefixWeight, misWeight, state.Pixel,
                                state.Vertices.Count, 0, state.Vertices.Count + 1);
                 OnNextEventSample(weight * state.PrefixWeight, misWeight, state, sample.Pdf,
@@ -517,6 +548,10 @@ public class CameraStoringVCM<TLightPathData> : Integrator where TLightPathData 
                 float misWeight = NextEventMis(state, pathPdfs, false);
 
                 var weight = emission * bsdfTimesCosine * (jacobian / lightSample.Pdf);
+
+                if (weight != RgbColor.Black)
+                    state.GraphVertex?.AddSuccessor(new NextEventNode(lightSample.Point, state.GraphVertex, emission, lightSample.Pdf / jacobian * NumShadowRays, bsdfTimesCosine, misWeight));
+
                 RegisterSample(weight * state.PrefixWeight, misWeight, state.Pixel,
                                state.Vertices.Count, 0, state.Vertices.Count + 1);
                 OnNextEventSample(weight * state.PrefixWeight, misWeight, state, lightSample.Pdf,
@@ -565,7 +600,7 @@ public class CameraStoringVCM<TLightPathData> : Integrator where TLightPathData 
     /// sampling the previous point along the camera path
     /// </param>
     /// <returns>MIS weighted contribution of the emitter</returns>
-    public virtual RgbColor OnEmitterHit(Emitter emitter, SurfacePoint hit, Vector3 outDir, in CameraPathState state, float reversePdfJacobian) {
+    public virtual (float MISWeight, RgbColor UnweightedContrib) OnEmitterHit(Emitter emitter, SurfacePoint hit, Vector3 outDir, in CameraPathState state, float reversePdfJacobian) {
         var emission = emitter.EmittedRadiance(hit, outDir);
 
         // Compute pdf values
@@ -582,16 +617,16 @@ public class CameraStoringVCM<TLightPathData> : Integrator where TLightPathData 
         RegisterSample(emission * state.PrefixWeight, misWeight, state.Pixel,
                        state.Vertices.Count, 0, state.Vertices.Count);
         OnEmitterHitSample(emission * state.PrefixWeight, misWeight, state, pdfNextEvent, pathPdfs, emitter, outDir, hit);
-        return misWeight * emission;
+        return (misWeight, emission);
     }
 
-    public virtual RgbColor OnBackgroundHit(Ray ray, in CameraPathState state) {
+    public virtual (float MISWeight, RgbColor UnweightedContrib) OnBackgroundHit(Ray ray, in CameraPathState state) {
         if (Scene.Background == null)
-            return RgbColor.Black;
+            return (0, RgbColor.Black);
 
         // Even if hitting is disabled, we still consider directly visible backgrounds
         if (!EnableHitting && state.Depth > 1)
-            return RgbColor.Black;
+            return (0, RgbColor.Black);
 
         // Compute the pdf of sampling the previous point by emission from the background
         float pdfEmit = ComputeBackgroundPdf(ray.Origin, -ray.Direction);
@@ -612,7 +647,7 @@ public class CameraStoringVCM<TLightPathData> : Integrator where TLightPathData 
         RegisterSample(emission * state.PrefixWeight, misWeight, state.Pixel, state.Depth, 0, state.Depth);
         OnEmitterHitSample(emission * state.PrefixWeight, misWeight, state, pdfNextEvent, pathPdfs, null,
             -ray.Direction, new() { Position = ray.Origin });
-        return misWeight * emission * state.PrefixWeight;
+        return (misWeight, emission * state.PrefixWeight);
     }
 
     public virtual RgbColor OnHitCameraPath(in SurfaceShader shader, float pdfFromAncestor, float toAncestorJacobian, ref CameraPathState state) {
@@ -632,7 +667,11 @@ public class CameraStoringVCM<TLightPathData> : Integrator where TLightPathData 
         // Was a light hit?
         Emitter light = Scene.QueryEmitter(shader.Point);
         if (light != null && (EnableHitting || state.Depth == 1) && state.Depth >= MinDepth) {
-            value += state.PrefixWeight * OnEmitterHit(light, shader.Point, shader.Context.OutDirWorld, state, toAncestorJacobian);
+            var (misWeight, unweightedContrib) = OnEmitterHit(light, shader.Point, shader.Context.OutDirWorld, state, toAncestorJacobian);
+            value += state.PrefixWeight * unweightedContrib * misWeight;
+            state.GraphVertex = state.GraphVertex?.AddSuccessor(new BSDFSampleNode(shader.Point, state.GraphVertex, state.PreviousScatterWeight, state.PreviousSurvivalProbability, state.PrefixWeight * unweightedContrib, misWeight));
+        } else {
+            state.GraphVertex = state.GraphVertex?.AddSuccessor(new BSDFSampleNode(shader.Point, state.GraphVertex, state.PreviousScatterWeight, state.PreviousSurvivalProbability));
         }
 
         // Next event estimation
@@ -1065,11 +1104,23 @@ public class CameraStoringVCM<TLightPathData> : Integrator where TLightPathData 
         public float NextReversePdf;
 
         public float PrimaryHitDistance;
+
+        public PathGraphNode GraphVertex;
+
+        /// <summary>
+        /// BSDF weight divided by PDF at the previous vertex
+        /// </summary>
+        public RgbColor PreviousScatterWeight { get; set; }
+
+        /// <summary>
+        /// Probability to keep the path alive at the previous vertex
+        /// </summary>
+        public float PreviousSurvivalProbability { get; set; }
     }
 
     protected readonly ThreadLocal<PathBuffer<PathVertex>> perThreadVertexBuffers = new(() => new(16));
 
-    public virtual void TraceCameraPath(uint row, uint col, ref RNG rng) {
+    public virtual void TraceCameraPath(uint row, uint col, ref RNG rng, PathGraph graph = null) {
         Pixel pixel = new((int)col, (int)row);
 
         var sample = Scene.Camera.GenerateRay(new Vector2(col, row) + rng.NextFloat2D(), ref rng);
@@ -1079,10 +1130,15 @@ public class CameraStoringVCM<TLightPathData> : Integrator where TLightPathData 
             PixelIndex = pixel.Col + pixel.Row * Scene.FrameBuffer.Width,
             Depth = 1,
             PrefixWeight = sample.Weight,
-            Vertices = perThreadVertexBuffers.Value
+            Vertices = perThreadVertexBuffers.Value,
+            PreviousScatterWeight = RgbColor.White,
+            PreviousSurvivalProbability = 1
         };
         state.Vertices.Clear();
         OnStartCamera(ref state);
+
+        graph?.Roots.Add(new(sample.Ray.Origin));
+        state.GraphVertex = graph?.Roots[^1];
 
         RgbColor estimate = RgbColor.Black;
         RgbColor approxThroughput = RgbColor.White;
@@ -1095,7 +1151,9 @@ public class CameraStoringVCM<TLightPathData> : Integrator where TLightPathData 
 
             var hit = Scene.Raytracer.Trace(ray);
             if (!hit) {
-                estimate += OnMissCameraPath(ray, pdfDirection, ref state);
+                var (MISWeight, UnweightedContrib) = OnMissCameraPath(ray, pdfDirection, ref state);
+                estimate += MISWeight * UnweightedContrib;
+                state.GraphVertex?.AddSuccessor(new BackgroundNode(ray.Direction, state.GraphVertex, UnweightedContrib, MISWeight));
                 break;
             }
 
@@ -1144,12 +1202,15 @@ public class CameraStoringVCM<TLightPathData> : Integrator where TLightPathData 
             state.PrefixWeight *= dirSample.Weight / survivalProb;
             pdfDirection = dirSample.PdfForward;
             previousPoint = hit;
+            state.PreviousScatterWeight = dirSample.Weight / survivalProb;
+            state.PreviousSurvivalProbability = survivalProb;
             ray = Raytracer.SpawnRay(hit, dirSample.Direction);
         }
 
         OnTerminateCameraPath(ref state);
 
-        Scene.FrameBuffer.Splat(pixel, estimate);
+        if (graph == null)
+            Scene.FrameBuffer.Splat(pixel, estimate);
     }
 
     public record struct DirectionSample(

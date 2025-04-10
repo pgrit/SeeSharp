@@ -40,6 +40,7 @@ class Program {
         // PathTracerTimeBudget();
 
         // BlenderAutoImport();
-        OutlierCacheTest.RenderPT();
+        // OutlierCacheTest.RenderPT();
+        OutlierCacheTest.RenderVCM();
     }
 }

@@ -29,6 +29,12 @@ public class FrameBuffer : IDisposable {
     public RgbImage ReferenceImage = null;
 
     /// <summary>
+    /// If greater than zero, the n largest values ever written will be tracked in each pixel, along with the
+    /// index of the iteration that wrote this value.
+    /// </summary>
+    public int NumOutliersToTrack = 4;
+
+    /// <summary>
     /// Automatically added layer that estimates per-pixel variances in the frame buffer
     /// </summary>
     public readonly VarianceLayer PixelVariance;
@@ -170,6 +176,11 @@ public class FrameBuffer : IDisposable {
 
         Image.AtomicAdd(col, row, value / CurIteration);
         PixelVariance?.Splat(col, row, value);
+
+        OutlierCache?.Notify(new(col, row), new() {
+            Iteration = CurIteration - 1,
+            Weight = value
+        });
     }
 
     /// <summary>
@@ -179,6 +190,8 @@ public class FrameBuffer : IDisposable {
     /// <param name="value">Color to add to the current value</param>
     public void Splat(Pixel pixel, RgbColor value)
     => Splat(pixel.Col, pixel.Row, value);
+
+    public OutlierReplayCache OutlierCache { get; protected set; }
 
     /// <summary>
     /// Initializes the memory for the image data and aux layers. Should be called exactly once before / at
@@ -205,6 +218,8 @@ public class FrameBuffer : IDisposable {
                 tevIpc = null;
             }
         }
+
+        OutlierCache = new(Width, Height, NumOutliersToTrack);
     }
 
     public virtual void Normalize() => Image.Scale((CurIteration - 1.0f) / CurIteration);

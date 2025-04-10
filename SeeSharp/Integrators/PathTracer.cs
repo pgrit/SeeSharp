@@ -5,166 +5,6 @@ namespace SeeSharp.Integrators;
 /// </summary>
 public class PathTracer : PathTracerBase<byte> { }
 
-public class PathGraphRenderer : DebugVisualizer {
-    void AddNode(PathGraphNode node, Scene scene, float radius) {
-        if (node.Ancestor != null) { // TODO-HACK to avoid having a sphere around the camera
-            var m = MeshFactory.MakeSphere(node.Position, radius, 16);
-            m.UserData = node;
-            m.Material = new DiffuseMaterial(new()); // only needed to prevent scene validation errors
-            scene.Meshes.Add(m);
-        }
-
-        foreach (var s in node.Successors) {
-            if (node.Ancestor != null) { // TODO-HACK to avoid having a sphere around the camera
-                var m = MeshFactory.MakeCylinder(node.Position, s.Position, radius, 16);
-                m.UserData = s;
-                m.Material = new DiffuseMaterial(new()); // only needed to prevent scene validation errors
-                scene.Meshes.Add(m); // TODO-POLISH remove duplicate code
-            }
-
-            AddNode(s, scene, radius);
-        }
-    }
-
-    public void Render(Scene scene, PathGraph graph) {
-        float radius = scene.Radius * 0.005f; // TODO better initialization?
-
-        // Create geometry for the paths nodes and edges
-        var sceneCpy = scene.Copy();
-        foreach (var node in graph.Roots)
-            AddNode(node, sceneCpy, radius);
-        sceneCpy.FrameBuffer = scene.FrameBuffer;
-        sceneCpy.Prepare();
-
-        base.Render(sceneCpy);
-    }
-
-    public override void RenderPixel(Scene scene, uint row, uint col, uint sampleIndex) {
-        // Seed the random number generator
-        uint pixelIndex = row * (uint)scene.FrameBuffer.Width + col;
-        var rng = new RNG(BaseSeed, pixelIndex, sampleIndex);
-
-        // Sample a ray from the camera
-        var offset = rng.NextFloat2D();
-        Ray ray = scene.Camera.GenerateRay(new Vector2(col, row) + offset, ref rng).Ray;
-
-        RgbColor value = RgbColor.Black;
-        RgbColor firstHitValue = RgbColor.Black;
-        for (int i = 0; ; i++) {
-            SurfacePoint hit = scene.Raytracer.Trace(ray);
-
-            if (!hit) {
-                // Only use transparency if there is actually something underneath
-                value = firstHitValue;
-                break;
-            }
-
-            value *= i / (float)(i + 1);
-
-            if (hit.Mesh.UserData is PathGraphNode node) {
-                var nodeColor = node.ComputeVisualizerColor();
-                value += nodeColor / (i + 1);
-                break;
-            }
-
-            var surfaceColor = ComputeColor(hit, -ray.Direction, row, col);
-            value += surfaceColor / (i + 1);
-            ray = Raytracer.SpawnRay(hit, ray.Direction);
-            if (i == 0) firstHitValue = surfaceColor;
-        }
-
-        // Shade and splat
-        scene.FrameBuffer.Splat((int)col, (int)row, value);
-    }
-}
-
-public class PathGraphNode(Vector3 pos, PathGraphNode ancestor = null) {
-    public Vector3 Position = pos;
-    public PathGraphNode Ancestor = ancestor;
-    public List<PathGraphNode> Successors = [];
-
-    public virtual bool IsBackground => false;
-
-    public PathGraphNode AddSuccessor(PathGraphNode vertex) {
-        Successors.Add(vertex);
-        return vertex;
-    }
-
-    public virtual RgbColor ComputeVisualizerColor() {
-        return RgbColor.Black;
-    }
-}
-
-public class NextEventNode : PathGraphNode {
-    public NextEventNode(Vector3 direction, PathGraphNode ancestor, RgbColor emission, float pdf,
-                           RgbColor bsdfCos, float misWeight)
-    : base(ancestor.Position + direction, ancestor) {
-        Emission = emission;
-        Pdf = pdf;
-        BsdfTimesCosine = bsdfCos;
-        MISWeight = misWeight;
-    }
-
-    public NextEventNode(SurfacePoint point, PathGraphNode ancestor, RgbColor emission, float pdf,
-                           RgbColor bsdfCos, float misWeight)
-    : base(point.Position, ancestor) {
-        Emission = emission;
-        Pdf = pdf;
-        BsdfTimesCosine = bsdfCos;
-        MISWeight = misWeight;
-        Point = point;
-    }
-
-    public readonly RgbColor Emission;
-    public readonly float Pdf;
-    public readonly RgbColor BsdfTimesCosine;
-    public readonly float MISWeight;
-    public readonly SurfacePoint? Point;
-
-    public override bool IsBackground => !Point.HasValue;
-    public override RgbColor ComputeVisualizerColor() => new(0.1f, 0.8f, 0.01f);
-}
-
-public class BSDFSampleNode : PathGraphNode {
-    public BSDFSampleNode(SurfacePoint point, PathGraphNode ancestor, RgbColor scatterWeight, float survivalProb) : base(point.Position, ancestor) {
-        ScatterWeight = scatterWeight;
-        SurvivalProbability = survivalProb;
-        Point = point;
-    }
-
-    public BSDFSampleNode(SurfacePoint point, PathGraphNode ancestor, RgbColor scatterWeight, float survivalProb, RgbColor emission, float misWeight) : base(point.Position, ancestor) {
-        ScatterWeight = scatterWeight;
-        SurvivalProbability = survivalProb;
-        Emission = emission;
-        MISWeight = misWeight;
-        Point = point;
-    }
-
-    public readonly RgbColor ScatterWeight;
-    public readonly float SurvivalProbability;
-    public readonly RgbColor Emission;
-    public readonly float MISWeight;
-    public readonly SurfacePoint Point;
-
-    public override RgbColor ComputeVisualizerColor() => new(0.1f, 0.4f, 0.8f);
-}
-
-public class BackgroundNode : PathGraphNode {
-    public BackgroundNode(Vector3 direction, PathGraphNode ancestor, RgbColor contrib, float misWeight) : base(ancestor.Position + direction) {
-        Emission = contrib;
-        MISWeight = misWeight;
-    }
-    public readonly RgbColor Emission;
-    public readonly float MISWeight;
-    public override bool IsBackground => true;
-
-    public override RgbColor ComputeVisualizerColor() => new(0.1f, 0.1f, 0.9f);
-}
-
-public class PathGraph {
-    public List<PathGraphNode> Roots = [];
-}
-
 /// <summary>
 /// A classic path tracer with next event estimation. Additional per-path user data can be tracked via the
 /// generic type provided.
@@ -173,7 +13,7 @@ public class PathTracerBase<PayloadType> : Integrator {
     /// <summary>
     /// Used to compute the seeds for all random samplers.
     /// </summary>
-    public UInt32 BaseSeed = 0xC030114;
+    public uint BaseSeed = 0xC030114;
 
     /// <summary>
     /// Number of samples per pixel to render
@@ -210,7 +50,6 @@ public class PathTracerBase<PayloadType> : Integrator {
 
     TechPyramid techPyramidRaw;
     TechPyramid techPyramidWeighted;
-    public OutlierReplayCache<uint, int> OutlierCache;
 
     protected DenoiseBuffers denoiseBuffers;
 
@@ -219,11 +58,11 @@ public class PathTracerBase<PayloadType> : Integrator {
     /// </summary>
     protected Scene scene;
 
-    public PathGraph ReplayPath(Scene scene, Pixel pixel, int originalWidth, uint baseSeed, int iteration) {
+    public override PathGraph ReplayPixel(Scene scene, Pixel pixel, int iteration) {
         this.scene = scene;
 
-        uint pixelIndex = (uint)(pixel.Row * originalWidth + pixel.Col);
-        RNG rng = new(baseSeed, pixelIndex, (uint)iteration);
+        uint pixelIndex = (uint)(pixel.Row * scene.FrameBuffer.Width + pixel.Col);
+        RNG rng = new(BaseSeed, pixelIndex, (uint)iteration);
         PathGraph graph = new();
         RenderPixel((uint)pixel.Row, (uint)pixel.Col, ref rng, graph);
         return graph;
@@ -354,10 +193,6 @@ public class PathTracerBase<PayloadType> : Integrator {
         public PayloadType UserData { get; set; }
     }
 
-    ProgressBar progressBar;
-
-    public override ProgressBar CurProgressBar => progressBar;
-
     /// <summary>
     /// Renders a scene with the current settings. Only one scene can be rendered at a time.
     /// </summary>
@@ -373,15 +208,11 @@ public class PathTracerBase<PayloadType> : Integrator {
                 MinDepth, MaxDepth, false, false, false);
         }
 
-        // TODO add flag to enable / disable this if it is too expensive as an always-on option
-        // TODO add setting for number of outliers to track
-        OutlierCache = new(BaseSeed, scene.FrameBuffer.Width, scene.FrameBuffer.Height, 4);
-
         // Add custom frame buffer layers
         if (EnableDenoiser)
             denoiseBuffers = new(scene.FrameBuffer);
 
-        progressBar = new(prefix: "Rendering...");
+        ProgressBar progressBar = new(prefix: "Rendering...");
         progressBar.Start(TotalSpp);
         RenderTimer timer = new();
         ShadingStatCounter.Reset();
@@ -474,15 +305,8 @@ public class PathTracerBase<PayloadType> : Integrator {
         var estimate = EstimateIncidentRadiance(primaryRay, ref state, graph?.Roots[^1]);
         OnFinishedPath(estimate, ref state);
 
-        if (graph == null) {
-            // we must not change the outlier cache while replaying paths
-            OutlierCache.Notify(state.Pixel, new() {
-                Weight = estimate,
-                LocalReplayInfo = scene.FrameBuffer.CurIteration - 1
-            });
-
+        if (graph == null)
             scene.FrameBuffer.Splat(state.Pixel, estimate);
-        }
     }
 
     protected virtual RgbColor EstimateIncidentRadiance(Ray ray, ref PathState state, PathGraphNode graphVertex = null) {
@@ -496,7 +320,7 @@ public class PathTracerBase<PayloadType> : Integrator {
                 if (state.Depth >= MinDepth) {
                     var (misWeight, contrib) = OnBackgroundHit(ray, ref state);
                     radianceEstimate += state.PrefixWeight * misWeight * contrib;
-                    graphVertex = graphVertex?.AddSuccessor(new BackgroundNode(ray.Direction, graphVertex, contrib, misWeight));
+                    graphVertex?.AddSuccessor(new BackgroundNode(ray.Direction, graphVertex, contrib, misWeight));
                 }
 
                 break;
@@ -682,7 +506,7 @@ public class PathTracerBase<PayloadType> : Integrator {
     /// <returns>Pdf of sampling "sampledDir" when coming from "outDir".</returns>
     protected virtual float DirectionPdf(in SurfaceShader shader, Vector3 sampledDir,
                                          PathState state)
-    => shader.Pdf(sampledDir).Item1;
+    => shader.Pdf(sampledDir).Pdf;
 
     /// <summary>
     /// Samples a direction to continue the path

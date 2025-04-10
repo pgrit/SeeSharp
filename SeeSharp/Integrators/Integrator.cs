@@ -22,7 +22,9 @@ public abstract class Integrator {
     public abstract void Render(Scene scene);
 
     /// <summary>
-    /// Provides access to the progress bar of the currently running rendering operation, if available
+    /// Re-renders a pixel as it was rendered in a specific iteration.
     /// </summary>
-    public virtual ProgressBar CurProgressBar { get => null; }
+    /// <returns>The paths that contributed to this pixel as a connected graph</returns>
+    public virtual PathGraph ReplayPixel(Scene scene, Pixel pixel, int iteration)
+    => throw new NotSupportedException("This integrator does not implement path replay");
 }

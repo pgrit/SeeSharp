@@ -1,16 +1,16 @@
 namespace SeeSharp.Integrators.Util;
 
-public class OutlierReplayCache<TGlobal, TLocal> {
+public class OutlierReplayCache {
     public struct PathReplayInfo {
         public RgbColor Weight;
-        public TLocal LocalReplayInfo;
+        public int Iteration;
     }
 
     public void Notify(in Pixel pixel, in PathReplayInfo info) {
         float w = info.Weight.Average;
 
         if (!float.IsFinite(w)) {
-            // TODO log into a separate NaN / Inf cache instead
+            // NaN / Inf replay info is logged by the FrameBuffer already
             return;
         }
 
@@ -21,10 +21,9 @@ public class OutlierReplayCache<TGlobal, TLocal> {
         }
     }
 
-    public OutlierReplayCache(TGlobal globalReplayInfo, int width, int height, int n) {
+    public OutlierReplayCache(int width, int height, int n) {
         this.width = width;
         nMax = n;
-        GlobalReplayInfo = globalReplayInfo;
 
         pixelHeaps = new PriorityQueue<PathReplayInfo, float>[width * height];
         for (int i = 0; i < width * height; ++i)
@@ -35,6 +34,5 @@ public class OutlierReplayCache<TGlobal, TLocal> {
     => pixelHeaps[pixel.Row * width + pixel.Col];
 
     PriorityQueue<PathReplayInfo, float>[] pixelHeaps;
-    public readonly TGlobal GlobalReplayInfo;
     int width, nMax;
 }

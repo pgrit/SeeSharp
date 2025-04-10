@@ -1,4 +1,5 @@
-﻿using TechniqueNames = System.Collections.Generic.Dictionary
+﻿using System.Linq;
+using TechniqueNames = System.Collections.Generic.Dictionary
     <(int cameraPathEdges, int lightPathEdges, int totalEdges), string>;
 
 namespace SeeSharp.Integrators.Bidir;
@@ -19,8 +20,11 @@ public class TechPyramid {
     /// <param name="lightTracer">If false, ignores light tracing</param>
     public TechPyramid(int width, int height, int minDepth, int maxDepth, bool merges,
                        bool connections = true, bool lightTracer = true) {
+        this.maxDepth = maxDepth;
+        this.minDepth = minDepth;
+
         // Generate the filenames
-        techniqueNames = new TechniqueNames();
+        techniqueNames = [];
         for (int depth = minDepth; depth <= maxDepth; ++depth) {
             // Hitting the light
             techniqueNames.Add(key: (cameraPathEdges: depth,
@@ -61,7 +65,7 @@ public class TechPyramid {
         }
 
         // Create an image for every technique
-        techniqueImages = new Dictionary<(int, int, int), RgbImage>();
+        techniqueImages = [];
         foreach (var tech in techniqueNames) {
             techniqueImages[tech.Key] = new RgbImage(width, height);
         }
@@ -95,15 +99,15 @@ public class TechPyramid {
     /// </summary>
     /// <param name="basename">First portion of the filenames, will be extended with a per-tech suffix</param>
     public void WriteToFiles(string basename) {
-        foreach (var t in techniqueImages) {
-            var name = techniqueNames[t.Key];
-            var filename = basename + $"{name}.exr";
-            t.Value.WriteToFile(filename);
+        for (int depth = minDepth; depth <= maxDepth; ++depth) {
+            var imgs = GetImagesForPathLength(depth);
+            Layers.WriteToExr($"{basename}-depth-{depth}.exr", [.. imgs]);
         }
     }
 
-    TechniqueNames techniqueNames;
-    Dictionary<(int, int, int), RgbImage> techniqueImages;
+    readonly TechniqueNames techniqueNames;
+    readonly Dictionary<(int, int, int), RgbImage> techniqueImages;
+    readonly int minDepth, maxDepth;
 
     public IEnumerable<(string, Image)> GetImagesForPathLength(int totalEdges) {
         List<(string, Image)> images = [];

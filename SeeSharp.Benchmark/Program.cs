@@ -49,8 +49,6 @@ Console.WriteLine("=======================");
 GenericMaterial_Sampling.BenchPerformance(500000);
 GenericMaterial_Sampling.BenchPerformanceComponentPdfs(500000);
 
-GenericMaterial_Sampling.Fresnel(500000);
-
 GenericMaterial_Sampling.Benchmark();
 
 VectorBench.BenchComputeBasisVectors(10000000);

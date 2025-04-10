@@ -1,6 +1,4 @@
-﻿using SeeSharp.Shading.MicrofacetDistributions;
-
-namespace SeeSharp.Shading.Materials;
+﻿namespace SeeSharp.Shading.Materials;
 
 public partial class GenericMaterial  : Material
 {
@@ -108,7 +106,7 @@ public partial class GenericMaterial  : Material
         float eta = context.OutDir.Z > 0 ? (1 / parameters.IndexOfRefraction) : parameters.IndexOfRefraction;
 
         // Select a component to sample from and remap the primary sample coordinate
-        float schlickFresnel = FresnelSchlick.Evaluate(localParams.specularReflectanceAtNormal, float.Abs(context.OutDir.Z)).Average;
+        float schlickFresnel = Fresnel.SchlickFresnel(localParams.specularReflectanceAtNormal, float.Abs(context.OutDir.Z)).Average;
         float diffuseBias = float.Max(1 - schlickFresnel, 0.75f);
         float diffuseWeight = diffuseBias * (1 - parameters.Metallic) * (1 - parameters.SpecularTransmittance);
 
@@ -123,7 +121,7 @@ public partial class GenericMaterial  : Material
             Vector3 halfVector = normalDistribution.Sample(context.OutDir, primaryDirection);
 
             var cOut = Vector3.Dot(context.OutDir, (halfVector.Z < 0) ? -halfVector : halfVector);
-            var fresnel = FresnelDielectric.Evaluate(cOut, 1, parameters.IndexOfRefraction);
+            var fresnel = Fresnel.Dielectric(cOut, 1, parameters.IndexOfRefraction);
             float selectTransmit = (1 - fresnel) * parameters.SpecularTransmittance;
             if ((primaryComponent - diffuseWeight) / (1 - diffuseWeight) < selectTransmit) {
                 // Transmission
@@ -170,8 +168,8 @@ public partial class GenericMaterial  : Material
         Span<float> pdfsRev = stackalloc float[3];
 
         // Diffuse component
-        float fresnelOut = FresnelSchlick.SchlickWeight(cosThetaO);
-        float fresnelIn = FresnelSchlick.SchlickWeight(cosThetaI);
+        float fresnelOut = Fresnel.SchlickWeight(cosThetaO);
+        float fresnelIn = Fresnel.SchlickWeight(cosThetaI);
         if (SameHemisphere(context.OutDir, inDir))
         {
             if (sameGeometricHemisphere) {
@@ -210,8 +208,8 @@ public partial class GenericMaterial  : Material
                     // so that total internal reflection is handled correctly.
                     var cosHalfVectorTIR = Vector3.Dot(inDir, (halfVector.Z < 0) ? -halfVector : halfVector);
 
-                    var diel = new RgbColor(FresnelDielectric.Evaluate(cosHalfVectorTIR, 1, parameters.IndexOfRefraction));
-                    var schlick = FresnelSchlick.Evaluate(localParams.specularReflectanceAtNormal, cosHalfVectorTIR);
+                    var diel = new RgbColor(Fresnel.Dielectric(cosHalfVectorTIR, 1, parameters.IndexOfRefraction));
+                    var schlick = Fresnel.SchlickFresnel(localParams.specularReflectanceAtNormal, cosHalfVectorTIR);
                     var fresnel = RgbColor.Lerp(parameters.Metallic, diel, schlick);
 
                     var reflect = localParams.specularTint
@@ -253,7 +251,7 @@ public partial class GenericMaterial  : Material
 
             // The BSDF value for transmission is only non-zero if the directions are in different hemispheres
             if (!SameHemisphere(context.OutDir, inDir) && cOut * cIn < 0) {
-                var F = new RgbColor(FresnelDielectric.Evaluate(cOut, 1, parameters.IndexOfRefraction));
+                var F = new RgbColor(Fresnel.Dielectric(cOut, 1, parameters.IndexOfRefraction));
                 float factor = context.IsOnLightSubpath ? (1 / eta) : 1;
 
                 var wh = (!SameHemisphere(context.OutDir, halfVectorTransmit)) ? -halfVectorTransmit : halfVectorTransmit;
@@ -298,16 +296,16 @@ public partial class GenericMaterial  : Material
         }
 
         // Compute the component selection probabilities
-        float schlickFresnel = FresnelSchlick.Evaluate(localParams.specularReflectanceAtNormal, float.Abs(context.OutDir.Z)).Average;
+        float schlickFresnel = Fresnel.SchlickFresnel(localParams.specularReflectanceAtNormal, float.Abs(context.OutDir.Z)).Average;
         float diffuseBias = float.Max(1 - schlickFresnel, 0.75f);
         float diffuseWeight = diffuseBias * (1 - parameters.Metallic) * (1 - parameters.SpecularTransmittance);
-        var fresnelR = FresnelDielectric.Evaluate(Vector3.Dot(context.OutDir, (halfVector.Z < 0) ? -halfVector : halfVector), 1, parameters.IndexOfRefraction);
+        var fresnelR = Fresnel.Dielectric(Vector3.Dot(context.OutDir, (halfVector.Z < 0) ? -halfVector : halfVector), 1, parameters.IndexOfRefraction);
         float selectReflect = (1 - diffuseWeight) * (1 - (1 - fresnelR) * parameters.SpecularTransmittance);
 
-        var fresnelT = FresnelDielectric.Evaluate(Vector3.Dot(context.OutDir, halfVectorTransmit), 1, parameters.IndexOfRefraction);
+        var fresnelT = Fresnel.Dielectric(Vector3.Dot(context.OutDir, halfVectorTransmit), 1, parameters.IndexOfRefraction);
         float selectTransmit = (1 - diffuseWeight) * (1 - fresnelT) * parameters.SpecularTransmittance;
 
-        var fresnelTIn = FresnelDielectric.Evaluate(Vector3.Dot(inDir, halfVectorTransmitIn), 1, parameters.IndexOfRefraction);
+        var fresnelTIn = Fresnel.Dielectric(Vector3.Dot(inDir, halfVectorTransmitIn), 1, parameters.IndexOfRefraction);
         float selectTransmitIn = (1 - diffuseWeight) * (1 - fresnelT) * parameters.SpecularTransmittance;
 
         float pdf = pdfsFwd[0] * diffuseWeight + pdfsFwd[1] * selectReflect + pdfsFwd[2] * selectTransmit;
@@ -371,7 +369,7 @@ public partial class GenericMaterial  : Material
 
         // Fresnel term parameters
         result.specularReflectanceAtNormal = RgbColor.Lerp(parameters.Metallic,
-            FresnelSchlick.SchlickR0FromEta(parameters.IndexOfRefraction) * result.specularTint,
+            Fresnel.SchlickR0FromEta(parameters.IndexOfRefraction) * result.specularTint,
             baseColor);
 
         float diffuseWeight = (1 - parameters.Metallic) * (1 - parameters.SpecularTransmittance);

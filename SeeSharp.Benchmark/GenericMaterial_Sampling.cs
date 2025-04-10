@@ -211,21 +211,6 @@ class GenericMaterial_Sampling {
         Console.WriteLine($"Computing PDF {numTrials} times took {timer.ElapsedMilliseconds}ms");
     }
 
-    public static void Fresnel(int numTrials) {
-        RNG rng = new();
-        RgbColor total = RgbColor.Black;
-        var timer = Stopwatch.StartNew();
-        for (int i = 0; i < numTrials; ++i) {
-            var fresnel = new DisneyFresnel() {
-                IndexOfRefraction = rng.NextFloat(1.01f, 2.2f),
-                Metallic = rng.NextFloat(),
-                ReflectanceAtNormal = new(rng.NextFloat(), rng.NextFloat(), rng.NextFloat())
-            };
-            total += fresnel.Evaluate(rng.NextFloat());
-        }
-        Console.WriteLine($"Evaluating Fresnel {numTrials} times took {timer.ElapsedMilliseconds}ms");
-    }
-
     public static void QuickTest() {
         GenericMaterial.Parameters highIOR = new() {
             Roughness = new(0.3199999928474426f),

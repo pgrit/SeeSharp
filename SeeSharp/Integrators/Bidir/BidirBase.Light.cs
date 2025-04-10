@@ -112,7 +112,7 @@ public abstract partial class BidirBase<CameraPayloadType> {
     }
 
     /// <summary>
-    /// Computes the sampling probability used by <see cref="SelectLight"/>
+    /// Computes the sampling probability used by <see cref="SelectLight(ref RNG)"/>
     /// </summary>
     /// <param name="em">An emitter in the scene</param>
     /// <returns>The selection probability</returns>

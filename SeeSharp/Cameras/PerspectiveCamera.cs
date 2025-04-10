@@ -106,7 +106,7 @@ public class PerspectiveCamera : Camera {
     /// sample if there is no such point.
     /// </summary>
     /// <param name="scenePoint">A point on a scene surface that might be seen by the camera</param>
-    /// <param name="rng">RNG used to sample the lens. Can be null if the lens radius is zero.</param>
+    /// <param name="primary">Unused</param>
     /// <returns>The pixel coordinates and weights, or an invalid sample</returns>
     public override CameraResponseSample SampleResponse(SurfacePoint scenePoint, Vector2 primary) {
         Debug.Assert(Width != 0 && Height != 0);

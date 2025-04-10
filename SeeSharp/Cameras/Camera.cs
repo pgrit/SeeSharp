@@ -66,7 +66,7 @@ public abstract class Camera {
     /// Computes a Monte Carlo estimate of the contribution a scene point makes to the camera film
     /// </summary>
     /// <param name="scenePoint">A point on a surface, visible to the camera</param>
-    /// <param name="rng">Random number generator</param>
+    /// <param name="primary">Primary sample used for aperture / lens sampling</param>
     /// <returns>Importance estimate, sampled pixel coordinates, and pdf</returns>
     public abstract CameraResponseSample SampleResponse(SurfacePoint scenePoint, Vector2 primary);
 

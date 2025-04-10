@@ -1,6 +1,4 @@
-﻿using SeeSharp.Common;
-
-namespace SeeSharp.Shading.MicrofacetDistributions;
+﻿namespace SeeSharp.Shading;
 
 /// <summary>
 /// GGX microfacet distribution. Based on PBRT v3 with some sprinkles of Heitz's JCGT paper.

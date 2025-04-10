@@ -9,11 +9,11 @@ public partial class GenericMaterial  : Material
         set
         {
             parameters = value;
-            if (parameters.IndexOfRefraction < 1.01f)
-            {
-                parameters.IndexOfRefraction = 1.01f;
-                Logger.Warning($"Changed IOR to the minimum allowed value of 1.01 for material {Name}");
-            }
+            // if (parameters.IndexOfRefraction < 1.01f)
+            // {
+            //     parameters.IndexOfRefraction = 1.01f;
+            //     Logger.Warning($"Changed IOR to the minimum allowed value of 1.01 for material {Name}");
+            // }
         }
     }
 

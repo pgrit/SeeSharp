@@ -1,3 +1,5 @@
+using ImportonPayload = (int PathIndex, int VertexIndex, float Radius);
+
 namespace SeeSharp.Integrators.Bidir;
 
 public class CameraStoringVCM<TLightPathData> : Integrator where TLightPathData : new() {
@@ -55,6 +57,11 @@ public class CameraStoringVCM<TLightPathData> : Integrator where TLightPathData 
     public bool DisableCorrelAwareMIS { get; set; } = false;
 
     /// <summary>
+    /// If true (default) tracks required AOVs and runs the denoiser after rendering is done.
+    /// </summary>
+    public bool EnableDenoiser { get; set; } = true;
+
+    /// <summary>
     /// If set to true, renders all techniques for all path lengths as separate images, with and without MIS.
     /// This is expensive and should only be used for debugging purposes.
     /// </summary>
@@ -65,16 +72,14 @@ public class CameraStoringVCM<TLightPathData> : Integrator where TLightPathData 
 
     #endregion Parameters
 
-    public Scene Scene;
+    public Scene Scene { get; protected set; }
 
-    public PathCache CameraPaths;
+    public DenoiseBuffers DenoiseBuffers { get; protected set; }
+
+    public PathCache CameraPaths { get; protected set; }
 
     public TechPyramid TechPyramidRaw { get; protected set; }
     public TechPyramid TechPyramidWeighted { get; protected set; }
-
-    ProgressBar progressBar;
-
-    public override ProgressBar CurProgressBar => progressBar;
 
     /// <summary>
     /// Called once after the end of each rendering iteration (one sample per pixel)
@@ -99,7 +104,7 @@ public class CameraStoringVCM<TLightPathData> : Integrator where TLightPathData 
     /// </summary>
     protected virtual void OnBeforeRender() { }
 
-    protected NearestNeighborSearch<(int PathIndex, int VertexIndex, float Radius)> photonMap;
+    protected NearestNeighborSearch<ImportonPayload> photonMap;
 
     /// <summary>
     /// Shrinks the global maximum radius based on the current camera path.
@@ -141,7 +146,9 @@ public class CameraStoringVCM<TLightPathData> : Integrator where TLightPathData 
         if (NumLightPaths < 0)
             NumLightPaths = scene.FrameBuffer.Width * scene.FrameBuffer.Height;
 
-        // if (EnableDenoiser) DenoiseBuffers = new(scene.FrameBuffer);
+        if (EnableDenoiser)
+            DenoiseBuffers = new(scene.FrameBuffer);
+
         OnBeforeRender();
 
         if (RenderTechniquePyramid && MaxDepth > 10) {
@@ -159,7 +166,7 @@ public class CameraStoringVCM<TLightPathData> : Integrator where TLightPathData 
         CameraPaths = new(scene.FrameBuffer.Width * scene.FrameBuffer.Height, Math.Min(MaxDepth + 1, 10));
         photonMap ??= new();
 
-        progressBar = new(prefix: "Rendering...");
+        ProgressBar progressBar = new(prefix: "Rendering...");
         progressBar.Start(NumIterations);
         RenderTimer timer = new();
         Stopwatch lightTracerTimer = new();
@@ -965,30 +972,34 @@ public class CameraStoringVCM<TLightPathData> : Integrator where TLightPathData 
         AddLightPathContrib(ref lightPath, GetPixel(importon.PathId), importonWeight * kernelWeight * misWeight * lightPath.PrefixWeight);
     }
 
-    ref struct MergeContext {
+    ref struct MergeOp : NearestNeighborSearch<ImportonPayload>.IMergeOp {
         public SurfaceShader Shader;
         public LightPathState State;
-    }
+        public CameraStoringVCM<TLightPathData> Parent;
 
-    void MergeHelper(Vector3 position, (int PathIdx, int VertexIdx, float Radius) usr, float distance, int numFound, float distToFurthest, ref MergeContext ctx) {
-        // Since we search based on the maximum radius, we need to reject some of those with a smaller one
-        if (usr.Radius < distance)
-            return;
+        public void Invoke(Vector3 position, ImportonPayload userData, float distance, int numFound, float distToFurthest) {
+            // Since we search based on the maximum radius, we need to reject some of those with a smaller one
+            if (userData.Radius < distance)
+                return;
 
-        float radiusSquared = usr.Radius * usr.Radius;
-        Merge(ref ctx.State, ctx.State.Vertices[^1].JacobianToAncestor, ctx.Shader, usr, distance * distance, radiusSquared);
+            float radiusSquared = userData.Radius * userData.Radius;
+            Parent.Merge(ref State, State.Vertices[^1].JacobianToAncestor, Shader, userData, distance * distance, radiusSquared);
+        }
     }
 
     public virtual void PerformMerges(in SurfaceShader shader, ref LightPathState state) {
-        // var state = new MergeState(cameraJacobian, localRadius * localRadius, path, shader);
-        MergeContext ctx = new() {
+        MergeOp mergeOp = new() {
             Shader = shader,
             State = state,
+            Parent = this
         };
-        photonMap.ForAllNearest(shader.Point.Position, 10 /*TODO for less bias in kernel normalization, this should be int.MaxValue, but that is very (!!) expensive in some scenes*/, maxRadius, MergeHelper, ref ctx);
+
+        photonMap.ForAllNearest(shader.Point.Position,
+            10 /*TODO for less bias in kernel normalization, this should be int.MaxValue, but that is very (!!) expensive in some scenes*/,
+            maxRadius, ref mergeOp);
+
         // OnCombinedMergeSample(shader, ref rng, path, cameraJacobian, state.Estimate);
         // TODO combined sample value must be tracked in the camera vertices if we need it...
-
     }
 
     public virtual void OnHitLightPath(in SurfaceShader shader, float pdfFromAncestor, float toAncestorJacobian, ref LightPathState state) {

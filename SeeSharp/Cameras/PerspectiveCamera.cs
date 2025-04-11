@@ -136,7 +136,9 @@ public class PerspectiveCamera : Camera {
         float pdfEmit = invLensArea * jacobian;
 
         return new CameraResponseSample {
-            Pixel = new((int)filmPos.Value.X, (int)filmPos.Value.Y),
+            Pixel = new(
+                Math.Clamp((int)filmPos.Value.X, 0, Width - 1),
+                Math.Clamp((int)filmPos.Value.Y, 0, Height - 1)),
             Position = lensPoint,
             Weight = jacobian * RgbColor.White,
             PdfConnect = pdfConnect,

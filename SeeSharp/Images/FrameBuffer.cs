@@ -309,12 +309,24 @@ public class FrameBuffer : IDisposable {
         string fileBase = Path.GetFileNameWithoutExtension(fname);
         string basename = Path.Combine(dir, fileBase);
 
+        // If we are caching outlier info, create extra layers for that
+        List<(string, Image)> outlierImages = [];
+        for (int i = 0; i < NumOutliersToTrack; ++i)
+            outlierImages.Add(($"outlier-{i}", new MonochromeImage(Width, Height)));
+        for (int row = 0; row < Height; ++row) {
+            for (int col = 0; col < Width; ++col) {
+                var outliers = OutlierCache.GetPixelOutlier(new(col, row));
+                var iterations = outliers.UnorderedItems.OrderByDescending(i => i.Priority)
+                    .Select(i => i.Element.Iteration)
+                    .ToList();
+                for (int i = 0; i < iterations.Count; ++i) {
+                    outlierImages[i].Item2[col, row, 0] = iterations[i];
+                }
+            }
+        }
+
         if (Path.GetExtension(fname).ToLower() == ".exr") {
-            Layers.WriteToExr(fname,
-                layers.Select(kv => (kv.Key, kv.Value.Image))
-                    .Append((null, Image))
-                    .ToArray()
-            );
+            Layers.WriteToExr(fname, [.. layers.Select(kv => (kv.Key, kv.Value.Image)), (null, Image), .. outlierImages]);
         } else {
             // write all layers into individual files
             Image.WriteToFile(fname);

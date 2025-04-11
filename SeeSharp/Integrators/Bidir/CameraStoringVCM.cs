@@ -748,7 +748,9 @@ public class CameraStoringVCM<TLightPathData> : Integrator where TLightPathData 
     }
 
     protected virtual void AddLightPathContrib(ref LightPathState state, Pixel pixel, RgbColor contrib) {
-        Scene.FrameBuffer.Splat(pixel, contrib);
+        // Only output image data if we are not replaying a pixel but actually rendering
+        if (!IsolatedPixel.HasValue)
+            Scene.FrameBuffer.Splat(pixel, contrib);
     }
 
     void ConnectLightVertexToCamera(ref LightPathState state) {

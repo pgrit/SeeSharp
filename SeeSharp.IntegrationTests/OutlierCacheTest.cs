@@ -53,10 +53,11 @@ static class OutlierCacheTest {
         scene.Prepare();
 
         var integrator = new CameraStoringVCM<byte>() {
-            NumIterations = 1,
+            NumIterations = 10,
             MaxDepth = 10,
         };
         integrator.Render(scene);
+        scene.FrameBuffer.WriteToFile();
 
         Pixel pixel = new(628, 428);
 

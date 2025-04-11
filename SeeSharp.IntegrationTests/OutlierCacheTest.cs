@@ -53,7 +53,7 @@ static class OutlierCacheTest {
         scene.Prepare();
 
         var integrator = new CameraStoringVCM<byte>() {
-            NumIterations = 4,
+            NumIterations = 1,
             MaxDepth = 10,
         };
         integrator.Render(scene);
@@ -76,5 +76,7 @@ static class OutlierCacheTest {
         scene.FrameBuffer = new(640, 480, "pathVCM.exr", FrameBuffer.Flags.SendToTev);
         PathGraphRenderer graphVis = new() {};
         graphVis.Render(scene, graph);
+
+        System.IO.File.WriteAllText("VCMpaths.ply", graph.ConvertToPLY());
     }
 }

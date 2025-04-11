@@ -1,77 +1,6 @@
+using System.Linq;
+
 namespace SeeSharp.Integrators.Util;
-
-public class PathGraphRenderer : DebugVisualizer {
-    void AddNode(PathGraphNode node, Scene scene, float radius) {
-        if (node.Ancestor != null) { // TODO-HACK to avoid having a sphere around the camera
-            var m = MeshFactory.MakeSphere(node.Position, radius, 16);
-            m.UserData = node;
-            m.Material = new DiffuseMaterial(new()); // only needed to prevent scene validation errors
-            scene.Meshes.Add(m);
-        }
-
-        foreach (var s in node.Successors) {
-            if (node.Ancestor != null) { // TODO-HACK to avoid having a sphere around the camera
-                var m = MeshFactory.MakeCylinder(node.Position, s.Position, radius, 16);
-                m.UserData = s;
-                m.Material = new DiffuseMaterial(new()); // only needed to prevent scene validation errors
-                scene.Meshes.Add(m); // TODO-POLISH remove duplicate code
-            }
-
-            AddNode(s, scene, radius);
-        }
-    }
-
-    public void Render(Scene scene, PathGraph graph) {
-        float radius = scene.Radius * 0.005f; // TODO better initialization? -- maybe based on the median vertex distance to the camera?
-
-        // Create geometry for the paths nodes and edges
-        var sceneCpy = scene.Copy();
-        foreach (var node in graph.Roots)
-            AddNode(node, sceneCpy, radius);
-        sceneCpy.FrameBuffer = scene.FrameBuffer;
-        sceneCpy.Prepare();
-
-        base.Render(sceneCpy);
-    }
-
-    public override void RenderPixel(Scene scene, uint row, uint col, uint sampleIndex) {
-        // Seed the random number generator
-        uint pixelIndex = row * (uint)scene.FrameBuffer.Width + col;
-        var rng = new RNG(BaseSeed, pixelIndex, sampleIndex);
-
-        // Sample a ray from the camera
-        var offset = rng.NextFloat2D();
-        Ray ray = scene.Camera.GenerateRay(new Vector2(col, row) + offset, ref rng).Ray;
-
-        RgbColor value = RgbColor.Black;
-        RgbColor firstHitValue = RgbColor.Black;
-        for (int i = 0; ; i++) {
-            SurfacePoint hit = scene.Raytracer.Trace(ray);
-
-            if (!hit) {
-                // Only use transparency if there is actually something underneath
-                value = firstHitValue;
-                break;
-            }
-
-            value *= i / (float)(i + 1);
-
-            if (hit.Mesh.UserData is PathGraphNode node) {
-                var nodeColor = node.ComputeVisualizerColor();
-                value += nodeColor / (i + 1);
-                break;
-            }
-
-            var surfaceColor = ComputeColor(hit, -ray.Direction, row, col);
-            value += surfaceColor / (i + 1);
-            ray = Raytracer.SpawnRay(hit, ray.Direction);
-            if (i == 0) firstHitValue = surfaceColor;
-        }
-
-        // Shade and splat
-        scene.FrameBuffer.Splat((int)col, (int)row, value);
-    }
-}
 
 public class PathGraphNode(Vector3 pos, PathGraphNode ancestor = null) {
     public Vector3 Position = pos;
@@ -194,4 +123,70 @@ public class BackgroundNode : PathGraphNode {
 
 public class PathGraph {
     public List<PathGraphNode> Roots = [];
+
+    struct PlyVertex {
+        public Vector3 Position;
+        public byte R, G, B;
+    }
+    struct PlyEdge {
+        public int V1, V2;
+    }
+
+    static void AddNode(PathGraphNode node, List<PlyVertex> vertices, List<PlyEdge> edges) {
+        foreach (var s in node.Successors) {
+            var clr = s.ComputeVisualizerColor();
+            var (r, g, b) = RgbColor.LinearToSrgb(clr);
+            vertices.Add(new() {
+                Position = node.Position,
+                R = (byte)(r * 255),
+                G = (byte)(g * 255),
+                B = (byte)(b * 255),
+            });
+            vertices.Add(new() {
+                Position = s.Position,
+                R = (byte)(r * 255),
+                G = (byte)(g * 255),
+                B = (byte)(b * 255),
+            });
+
+            edges.Add(new() {
+                V1 = vertices.Count - 2,
+                V2 = vertices.Count - 1,
+            });
+
+            AddNode(s, vertices, edges);
+        }
+    }
+
+    public string ConvertToPLY() {
+        List<PlyVertex> vertices = [];
+        List<PlyEdge> edges = [];
+        foreach (var node in Roots)
+            AddNode(node, vertices, edges);
+
+        string vertexStr =
+            string.Join('\n', vertices.Select(v => $"{v.Position.X} {v.Position.Y} {v.Position.Z} {v.R} {v.G} {v.B}"));
+        string edgeStr =
+            string.Join('\n', edges.Select(v => $"{v.V1} {v.V2}"));
+
+        string ply = $"""
+        ply
+        format ascii 1.0
+        element vertex {vertices.Count}
+        property float x
+        property float y
+        property float z
+        property uchar red
+        property uchar green
+        property uchar blue
+        element edge {edges.Count}
+        property int vertex1
+        property int vertex2
+        end_header
+        {vertexStr}
+        {edgeStr}
+        """;
+
+        return ply;
+    }
 }

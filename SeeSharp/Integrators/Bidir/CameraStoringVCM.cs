@@ -81,6 +81,8 @@ public class CameraStoringVCM<TLightPathData> : Integrator where TLightPathData 
     public TechPyramid TechPyramidRaw { get; protected set; }
     public TechPyramid TechPyramidWeighted { get; protected set; }
 
+    protected Pixel? IsolatedPixel { get; set;}
+
     /// <summary>
     /// Called once after the end of each rendering iteration (one sample per pixel)
     /// </summary>
@@ -142,6 +144,7 @@ public class CameraStoringVCM<TLightPathData> : Integrator where TLightPathData 
 
     public override void Render(Scene scene) {
         Scene = scene;
+        IsolatedPixel = null;
 
         if (NumLightPaths < 0)
             NumLightPaths = scene.FrameBuffer.Width * scene.FrameBuffer.Height;
@@ -250,6 +253,7 @@ public class CameraStoringVCM<TLightPathData> : Integrator where TLightPathData 
 
     public override PathGraph ReplayPixel(Scene scene, Pixel pixel, int iteration) {
         Scene = scene;
+        IsolatedPixel = pixel;
 
         if (NumLightPaths < 0)
             NumLightPaths = scene.FrameBuffer.Width * scene.FrameBuffer.Height;
@@ -353,7 +357,17 @@ public class CameraStoringVCM<TLightPathData> : Integrator where TLightPathData 
     /// <param name="lightPath">Last vertex of the camera sub-path that was connected to</param>
     /// <param name="pathPdfs">Surface area pdfs of all sampling techniques. </param>
     protected virtual void OnBidirConnectSample(RgbColor weight, float misWeight, in PathVertex cameraVertex,
-                                                in LightPathState lightPath, in BidirPathPdfs pathPdfs) { }
+                                                in LightPathState lightPath, in BidirPathPdfs pathPdfs) {
+        if (GetPixel(cameraVertex.PathId) == IsolatedPixel && weight * misWeight != RgbColor.Black) {
+            // This connection contributes to the pixel we are focusing on. Extend the path graph accordingly.
+            var camNode = replayPathNodes[cameraVertex.Depth]; // replayPathNodes[0] is the camera itself
+
+            var node = camNode.AddSuccessor(new ConnectionNode(lightPath.Vertices[^1], misWeight, weight));
+            for (int i = lightPath.Vertices.Count - 2; i >= 0; --i) {
+                node = node.AddSuccessor(new LightPathNode(lightPath.Vertices[i]));
+            }
+        }
+    }
 
     public virtual (float MISWeight, RgbColor UnweightedContrib) OnMissCameraPath(Ray ray, float pdfFromAncestor, ref CameraPathState state) {
         return OnBackgroundHit(ray, state);
@@ -550,7 +564,7 @@ public class CameraStoringVCM<TLightPathData> : Integrator where TLightPathData 
                 var weight = emission * bsdfTimesCosine * (jacobian / lightSample.Pdf);
 
                 if (weight != RgbColor.Black)
-                    state.GraphVertex?.AddSuccessor(new NextEventNode(lightSample.Point, state.GraphVertex, emission, lightSample.Pdf / jacobian * NumShadowRays, bsdfTimesCosine, misWeight));
+                    state.GraphVertex?.AddSuccessor(new NextEventNode(lightSample.Point, emission, lightSample.Pdf / jacobian * NumShadowRays, bsdfTimesCosine, misWeight));
 
                 RegisterSample(weight * state.PrefixWeight, misWeight, state.Pixel,
                                state.Vertices.Count, 0, state.Vertices.Count + 1);
@@ -650,6 +664,8 @@ public class CameraStoringVCM<TLightPathData> : Integrator where TLightPathData 
         return (misWeight, emission * state.PrefixWeight);
     }
 
+    List<PathGraphNode> replayPathNodes;
+
     public virtual RgbColor OnHitCameraPath(in SurfaceShader shader, float pdfFromAncestor, float toAncestorJacobian, ref CameraPathState state) {
         state.Vertices.Add(new() {
             Point = shader.Point,
@@ -664,14 +680,17 @@ public class CameraStoringVCM<TLightPathData> : Integrator where TLightPathData 
 
         RgbColor value = RgbColor.Black;
 
+        if (state.GraphVertex != null)
+            replayPathNodes.Add(state.GraphVertex);
+
         // Was a light hit?
         Emitter light = Scene.QueryEmitter(shader.Point);
         if (light != null && (EnableHitting || state.Depth == 1) && state.Depth >= MinDepth) {
             var (misWeight, unweightedContrib) = OnEmitterHit(light, shader.Point, shader.Context.OutDirWorld, state, toAncestorJacobian);
             value += state.PrefixWeight * unweightedContrib * misWeight;
-            state.GraphVertex = state.GraphVertex?.AddSuccessor(new BSDFSampleNode(shader.Point, state.GraphVertex, state.PreviousScatterWeight, state.PreviousSurvivalProbability, state.PrefixWeight * unweightedContrib, misWeight));
+            state.GraphVertex = state.GraphVertex?.AddSuccessor(new BSDFSampleNode(shader.Point, state.PreviousScatterWeight, state.PreviousSurvivalProbability, state.PrefixWeight * unweightedContrib, misWeight));
         } else {
-            state.GraphVertex = state.GraphVertex?.AddSuccessor(new BSDFSampleNode(shader.Point, state.GraphVertex, state.PreviousScatterWeight, state.PreviousSurvivalProbability));
+            state.GraphVertex = state.GraphVertex?.AddSuccessor(new BSDFSampleNode(shader.Point, state.PreviousScatterWeight, state.PreviousSurvivalProbability));
         }
 
         // Next event estimation
@@ -690,11 +709,21 @@ public class CameraStoringVCM<TLightPathData> : Integrator where TLightPathData 
     /// <param name="weight">The sample contribution not yet weighted by MIS</param>
     /// <param name="misWeight">The MIS weight that will be multiplied on the sample weight</param>
     /// <param name="pixel">The pixel to which this sample contributes</param>
-    /// <param name="lightVertex">The last vertex on the light path</param>
+    /// <param name="lightPath">Last vertex of this light path was connected to the camera</param>
     /// <param name="pathPdfs">Surface area pdfs of all sampling techniques. </param>
     /// <param name="distToCam">Distance of the last vertex to the camera</param>
     protected virtual void OnLightTracerSample(RgbColor weight, float misWeight, Pixel pixel,
-                                               PathVertex lightVertex, in BidirPathPdfs pathPdfs, float distToCam) { }
+                                               in LightPathState lightPath, in BidirPathPdfs pathPdfs, float distToCam) {
+        if (pixel == IsolatedPixel && weight * misWeight != RgbColor.Black) {
+            // This connection contributes to the pixel we are focusing on. Extend the path graph accordingly.
+            var camNode = replayPathNodes[0]; // replayPathNodes[0] is the camera itself
+
+            var node = camNode.AddSuccessor(new ConnectionNode(lightPath.Vertices[^1], misWeight, weight));
+            for (int i = lightPath.Vertices.Count - 2; i >= 0; --i) {
+                node = node.AddSuccessor(new LightPathNode(lightPath.Vertices[i]));
+            }
+        }
+    }
 
     /// <summary>
     /// Computes the MIS weight of a light tracer sample, for example via the balance heuristic.
@@ -770,7 +799,7 @@ public class CameraStoringVCM<TLightPathData> : Integrator where TLightPathData 
 
         // Log the sample
         RegisterSample(weight, misWeight, response.Pixel, 0, vertex.Depth, vertex.Depth + 1);
-        OnLightTracerSample(weight, misWeight, response.Pixel, vertex, pathPdfs, distToCam);
+        OnLightTracerSample(weight, misWeight, response.Pixel, state, pathPdfs, distToCam);
     }
 
     /// <summary>
@@ -800,6 +829,8 @@ public class CameraStoringVCM<TLightPathData> : Integrator where TLightPathData 
         pixelIndex % Scene.FrameBuffer.Width,
         pixelIndex / Scene.FrameBuffer.Width
     );
+
+    public int GetPixelIndex(Pixel pixel) => pixel.Col + pixel.Row * Scene.FrameBuffer.Width;
 
     public virtual RgbColor Connect(in SurfaceShader lightShader, ref LightPathState lightPath, in PathVertex cameraVertex, float connectProb) {
         var lightVertex = lightPath.Vertices[^1];
@@ -947,6 +978,15 @@ public class CameraStoringVCM<TLightPathData> : Integrator where TLightPathData 
     /// <param name="pathPdfs">Surface area pdfs of all sampling techniques. </param>
     protected virtual void OnMergeSample(RgbColor weight, float kernelWeight, float misWeight,
                                          in PathVertex cameraVertex, in LightPathState lightPath, in BidirPathPdfs pathPdfs) {
+        if (GetPixel(cameraVertex.PathId) == IsolatedPixel && weight * misWeight != RgbColor.Black) {
+            // This connection contributes to the pixel we are focusing on. Extend the path graph accordingly.
+            var camNode = replayPathNodes[0]; // replayPathNodes[0] is the camera itself
+
+            var node = camNode.AddSuccessor(new MergeNode(lightPath.Vertices[^1], misWeight, weight * kernelWeight));
+            for (int i = lightPath.Vertices.Count - 2; i >= 0; --i) {
+                node = node.AddSuccessor(new LightPathNode(lightPath.Vertices[i]));
+            }
+        }
     }
 
     protected virtual void Merge(ref LightPathState lightPath, float toAncestorJacobian, in SurfaceShader shader,
@@ -1127,7 +1167,7 @@ public class CameraStoringVCM<TLightPathData> : Integrator where TLightPathData 
         CameraPathState state = new() {
             Rng = ref rng,
             Pixel = pixel,
-            PixelIndex = pixel.Col + pixel.Row * Scene.FrameBuffer.Width,
+            PixelIndex = GetPixelIndex(pixel),
             Depth = 1,
             PrefixWeight = sample.Weight,
             Vertices = perThreadVertexBuffers.Value,
@@ -1139,6 +1179,7 @@ public class CameraStoringVCM<TLightPathData> : Integrator where TLightPathData 
 
         graph?.Roots.Add(new(sample.Ray.Origin));
         state.GraphVertex = graph?.Roots[^1];
+        if (graph != null) replayPathNodes = [ state.GraphVertex ];
 
         RgbColor estimate = RgbColor.Black;
         RgbColor approxThroughput = RgbColor.White;

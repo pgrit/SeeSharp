@@ -340,9 +340,9 @@ public class PathTracerBase<PayloadType> : Integrator {
             if (light != null && state.Depth >= MinDepth) {
                 var (misWeight, contrib) = OnLightHit(ray, hit, ref state, light);
                 radianceEstimate += state.PrefixWeight * misWeight * contrib;
-                graphVertex = graphVertex?.AddSuccessor(new BSDFSampleNode(hit, graphVertex, state.PreviousScatterWeight, state.PreviousSurvivalProbability, contrib, misWeight));
+                graphVertex = graphVertex?.AddSuccessor(new BSDFSampleNode(hit, state.PreviousScatterWeight, state.PreviousSurvivalProbability, contrib, misWeight));
             } else {
-                graphVertex = graphVertex?.AddSuccessor(new BSDFSampleNode(hit, graphVertex, state.PreviousScatterWeight, state.PreviousSurvivalProbability));
+                graphVertex = graphVertex?.AddSuccessor(new BSDFSampleNode(hit, state.PreviousScatterWeight, state.PreviousSurvivalProbability));
             }
 
             // Path termination with Russian roulette
@@ -490,7 +490,7 @@ public class PathTracerBase<PayloadType> : Integrator {
             OnNextEventResult(shader, state, misWeight, contrib);
 
             if (contrib != RgbColor.Black)
-                graphVertex?.AddSuccessor(new NextEventNode(lightSample.Point, graphVertex, emission, pdf, bsdfCos, misWeight));
+                graphVertex?.AddSuccessor(new NextEventNode(lightSample.Point, emission, pdf, bsdfCos, misWeight));
 
             return misWeight * contrib;
         }

@@ -82,6 +82,7 @@ public class PathGraphNode(Vector3 pos, PathGraphNode ancestor = null) {
 
     public PathGraphNode AddSuccessor(PathGraphNode vertex) {
         Successors.Add(vertex);
+        vertex.Ancestor = this;
         return vertex;
     }
 
@@ -92,7 +93,7 @@ public class PathGraphNode(Vector3 pos, PathGraphNode ancestor = null) {
 
 public class NextEventNode : PathGraphNode {
     public NextEventNode(Vector3 direction, PathGraphNode ancestor, RgbColor emission, float pdf,
-                           RgbColor bsdfCos, float misWeight)
+                         RgbColor bsdfCos, float misWeight)
     : base(ancestor.Position + direction, ancestor) {
         Emission = emission;
         Pdf = pdf;
@@ -100,9 +101,8 @@ public class NextEventNode : PathGraphNode {
         MISWeight = misWeight;
     }
 
-    public NextEventNode(SurfacePoint point, PathGraphNode ancestor, RgbColor emission, float pdf,
-                           RgbColor bsdfCos, float misWeight)
-    : base(point.Position, ancestor) {
+    public NextEventNode(SurfacePoint point, RgbColor emission, float pdf, RgbColor bsdfCos, float misWeight)
+    : base(point.Position) {
         Emission = emission;
         Pdf = pdf;
         BsdfTimesCosine = bsdfCos;
@@ -117,17 +117,17 @@ public class NextEventNode : PathGraphNode {
     public readonly SurfacePoint? Point;
 
     public override bool IsBackground => !Point.HasValue;
-    public override RgbColor ComputeVisualizerColor() => new(0.1f, 0.8f, 0.01f);
+    public override RgbColor ComputeVisualizerColor() => RgbColor.SrgbToLinear(170, 231, 232);
 }
 
 public class BSDFSampleNode : PathGraphNode {
-    public BSDFSampleNode(SurfacePoint point, PathGraphNode ancestor, RgbColor scatterWeight, float survivalProb) : base(point.Position, ancestor) {
+    public BSDFSampleNode(SurfacePoint point, RgbColor scatterWeight, float survivalProb) : base(point.Position) {
         ScatterWeight = scatterWeight;
         SurvivalProbability = survivalProb;
         Point = point;
     }
 
-    public BSDFSampleNode(SurfacePoint point, PathGraphNode ancestor, RgbColor scatterWeight, float survivalProb, RgbColor emission, float misWeight) : base(point.Position, ancestor) {
+    public BSDFSampleNode(SurfacePoint point, RgbColor scatterWeight, float survivalProb, RgbColor emission, float misWeight) : base(point.Position) {
         ScatterWeight = scatterWeight;
         SurvivalProbability = survivalProb;
         Emission = emission;
@@ -141,7 +141,43 @@ public class BSDFSampleNode : PathGraphNode {
     public readonly float MISWeight;
     public readonly SurfacePoint Point;
 
-    public override RgbColor ComputeVisualizerColor() => new(0.1f, 0.4f, 0.8f);
+    public override RgbColor ComputeVisualizerColor() => RgbColor.SrgbToLinear(41, 107, 177);
+}
+
+public class LightPathNode(PathVertex lightVertex) : PathGraphNode(lightVertex.Point.Position) {
+    public readonly PathVertex LightVertex = lightVertex;
+
+    public override RgbColor ComputeVisualizerColor() => RgbColor.SrgbToLinear(228, 135, 17);
+}
+
+public class ConnectionNode : PathGraphNode {
+    public ConnectionNode(PathVertex lightVertex, float misWeight, RgbColor contrib)
+    : base(lightVertex.Point.Position) {
+        Contrib = contrib;
+        MISWeight = misWeight;
+        LightVertex = lightVertex;
+    }
+
+    public readonly RgbColor Contrib;
+    public readonly float MISWeight;
+    public readonly PathVertex LightVertex;
+
+    public override RgbColor ComputeVisualizerColor() => RgbColor.SrgbToLinear(167, 214, 170);
+}
+
+public class MergeNode : PathGraphNode {
+    public MergeNode(PathVertex lightVertex, float misWeight, RgbColor contrib)
+    : base(lightVertex.Point.Position) {
+        Contrib = contrib;
+        MISWeight = misWeight;
+        LightVertex = lightVertex;
+    }
+
+    public readonly RgbColor Contrib;
+    public readonly float MISWeight;
+    public readonly PathVertex LightVertex;
+
+    public override RgbColor ComputeVisualizerColor() => RgbColor.SrgbToLinear(218, 152, 204);
 }
 
 public class BackgroundNode : PathGraphNode {
@@ -153,7 +189,7 @@ public class BackgroundNode : PathGraphNode {
     public readonly float MISWeight;
     public override bool IsBackground => true;
 
-    public override RgbColor ComputeVisualizerColor() => new(0.1f, 0.1f, 0.9f);
+    public override RgbColor ComputeVisualizerColor() => RgbColor.SrgbToLinear(170, 231, 232);
 }
 
 public class PathGraph {

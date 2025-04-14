@@ -45,6 +45,9 @@ public class ProgressBar {
     public double FractionDone => NumWorkDone / (double)TotalWork;
     public string Label => prefix;
 
+    public delegate void OnUpdateEventHandler(ProgressBar progressBar);
+    public static event OnUpdateEventHandler OnUpdate;
+
     static ProgressBar() {
         // Check if the console / output stream supports altering previous output
         // e.g., not (always) the case if its forwarded to a file or the VS Code Debug Console is used.
@@ -97,6 +100,8 @@ public class ProgressBar {
         timer.Restart();
 
         lock (Console.Out) UpdateText();
+
+        OnUpdate?.Invoke(this);
     }
 
     /// <summary>
@@ -121,6 +126,8 @@ public class ProgressBar {
         estimTotalSeconds = secondsPerUnit * total;
 
         lock (Console.Out) UpdateText();
+
+        OnUpdate?.Invoke(this);
     }
 
     static string MakeTimeString(double seconds) {

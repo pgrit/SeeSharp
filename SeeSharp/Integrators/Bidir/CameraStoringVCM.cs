@@ -370,7 +370,37 @@ public class CameraStoringVCM<TLightPathData> : Integrator where TLightPathData 
     }
 
     public virtual (float MISWeight, RgbColor UnweightedContrib) OnMissCameraPath(Ray ray, float pdfFromAncestor, ref CameraPathState state) {
-        return OnBackgroundHit(ray, state);
+        if (Scene.Background == null)
+            return (0, RgbColor.Black);
+
+        // Even if hitting is disabled, we still consider directly visible backgrounds
+        if (!EnableHitting && state.Depth > 1)
+            return (0, RgbColor.Black);
+
+        // Compute the pdf of sampling the previous point by emission from the background
+        float pdfEmit = ComputeBackgroundPdf(ray.Origin, -ray.Direction);
+
+        // Compute the pdf of sampling the same connection via next event estimation
+        float pdfNextEvent = Scene.Background.DirectionPdf(ray.Direction);
+        float backgroundProbability = ComputeNextEventBackgroundProbability(/*hit*/);
+        pdfNextEvent *= backgroundProbability;
+
+        var pathPdfs = new BidirPathPdfs(stackalloc float[state.Depth], stackalloc float[state.Depth]);
+        pathPdfs.GatherCameraPdfs(state, state.Depth - 2);
+        if (state.Depth > 1) {
+            pathPdfs.PdfsLightToCamera[^2] = pdfEmit;
+            if (state.Depth > 2) pathPdfs.PdfsLightToCamera[^3] = state.NextReversePdf;
+
+            pathPdfs.PdfsCameraToLight[^1] = pdfFromAncestor; // this is a solid angle PDF because the background has no surface
+        }
+        pathPdfs.PdfNextEvent = pdfNextEvent;
+
+        float misWeight = state.Depth == 1 ? 1.0f : EmitterHitMis(state, pathPdfs, true);
+        var emission = Scene.Background.EmittedRadiance(ray.Direction);
+        RegisterSample(emission * state.PrefixWeight, misWeight, state.Pixel, state.Depth, 0, state.Depth);
+        OnEmitterHitSample(emission * state.PrefixWeight, misWeight, state, pdfNextEvent, pathPdfs, null,
+            -ray.Direction, new() { Position = ray.Origin });
+        return (misWeight, emission * state.PrefixWeight);
     }
 
     /// <summary>
@@ -632,36 +662,6 @@ public class CameraStoringVCM<TLightPathData> : Integrator where TLightPathData 
                        state.Vertices.Count, 0, state.Vertices.Count);
         OnEmitterHitSample(emission * state.PrefixWeight, misWeight, state, pdfNextEvent, pathPdfs, emitter, outDir, hit);
         return (misWeight, emission);
-    }
-
-    public virtual (float MISWeight, RgbColor UnweightedContrib) OnBackgroundHit(Ray ray, in CameraPathState state) {
-        if (Scene.Background == null)
-            return (0, RgbColor.Black);
-
-        // Even if hitting is disabled, we still consider directly visible backgrounds
-        if (!EnableHitting && state.Depth > 1)
-            return (0, RgbColor.Black);
-
-        // Compute the pdf of sampling the previous point by emission from the background
-        float pdfEmit = ComputeBackgroundPdf(ray.Origin, -ray.Direction);
-
-        // Compute the pdf of sampling the same connection via next event estimation
-        float pdfNextEvent = Scene.Background.DirectionPdf(ray.Direction);
-        float backgroundProbability = ComputeNextEventBackgroundProbability(/*hit*/);
-        pdfNextEvent *= backgroundProbability;
-
-        var pathPdfs = new BidirPathPdfs(stackalloc float[state.Depth], stackalloc float[state.Depth]);
-        pathPdfs.GatherCameraPdfs(state, state.Depth - 1);
-        if (state.Depth > 1)
-            pathPdfs.PdfsLightToCamera[^2] = pdfEmit;
-        pathPdfs.PdfNextEvent = pdfNextEvent;
-
-        float misWeight = state.Depth == 1 ? 1.0f : EmitterHitMis(state, pathPdfs, true);
-        var emission = Scene.Background.EmittedRadiance(ray.Direction);
-        RegisterSample(emission * state.PrefixWeight, misWeight, state.Pixel, state.Depth, 0, state.Depth);
-        OnEmitterHitSample(emission * state.PrefixWeight, misWeight, state, pdfNextEvent, pathPdfs, null,
-            -ray.Direction, new() { Position = ray.Origin });
-        return (misWeight, emission * state.PrefixWeight);
     }
 
     List<PathGraphNode> replayPathNodes;

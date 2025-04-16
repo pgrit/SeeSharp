@@ -58,14 +58,14 @@ public class PathTracerBase<PayloadType> : Integrator {
     /// </summary>
     protected Scene scene;
 
-    public override PathGraph ReplayPixel(Scene scene, Pixel pixel, int iteration) {
+    public override (PathGraph Graph, RgbColor Estimate) ReplayPixel(Scene scene, Pixel pixel, int iteration) {
         this.scene = scene;
 
         uint pixelIndex = (uint)(pixel.Row * scene.FrameBuffer.Width + pixel.Col);
         RNG rng = new(BaseSeed, pixelIndex, (uint)iteration);
         PathGraph graph = new();
-        RenderPixel((uint)pixel.Row, (uint)pixel.Col, ref rng, graph);
-        return graph;
+        var estimate = RenderPixel((uint)pixel.Row, (uint)pixel.Col, ref rng, graph);
+        return (graph, estimate);
     }
 
     /// <summary>
@@ -283,7 +283,7 @@ public class PathTracerBase<PayloadType> : Integrator {
     /// <summary>
     /// Updates the estimate of one pixel. Called once per iteration for every pixel.
     /// </summary>
-    protected virtual void RenderPixel(uint row, uint col, ref RNG rng, PathGraph graph = null) {
+    protected virtual RgbColor RenderPixel(uint row, uint col, ref RNG rng, PathGraph graph = null) {
         // Sample a ray from the camera
         var offset = rng.NextFloat2D();
         var pixel = new Vector2(col, row) + offset;
@@ -307,6 +307,8 @@ public class PathTracerBase<PayloadType> : Integrator {
 
         if (graph == null)
             scene.FrameBuffer.Splat(state.Pixel, estimate);
+
+        return estimate;
     }
 
     protected virtual RgbColor EstimateIncidentRadiance(Ray ray, ref PathState state, PathGraphNode graphVertex = null) {

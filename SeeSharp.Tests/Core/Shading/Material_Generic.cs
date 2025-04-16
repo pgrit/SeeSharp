@@ -1,7 +1,7 @@
 ﻿namespace SeeSharp.Tests.Core.Shading;
 
 public class Material_Generic {
-    public static void AssertSmapeBelow(float expected, float actual, float threshold = 0.005f) {
+    static void AssertSmapeBelow(float expected, float actual, float threshold = 0.005f) {
         if (expected == actual)
             return;
         var smape = Math.Abs(expected - actual) / (0.5f * (Math.Abs(expected) + Math.Abs(actual)));

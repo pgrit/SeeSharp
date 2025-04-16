@@ -25,6 +25,6 @@ public abstract class Integrator {
     /// Re-renders a pixel as it was rendered in a specific iteration.
     /// </summary>
     /// <returns>The paths that contributed to this pixel as a connected graph</returns>
-    public virtual PathGraph ReplayPixel(Scene scene, Pixel pixel, int iteration)
+    public virtual (PathGraph Graph, RgbColor Estimate) ReplayPixel(Scene scene, Pixel pixel, int iteration)
     => throw new NotSupportedException("This integrator does not implement path replay");
 }

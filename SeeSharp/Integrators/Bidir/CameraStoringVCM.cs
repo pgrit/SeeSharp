@@ -144,7 +144,9 @@ public class CameraStoringVCM<TLightPathData> : Integrator where TLightPathData 
         photonMap.Build();
     }
 
-    public override void Render(Scene scene) {
+    public override void Render(Scene scene) => Render(scene, 0);
+
+    public void Render(Scene scene, int startAtIteration) {
         Scene = scene;
         IsolatedPixel = null;
 
@@ -179,7 +181,7 @@ public class CameraStoringVCM<TLightPathData> : Integrator where TLightPathData 
         Stopwatch accelBuildTimer = new();
         ShadingStatCounter.Reset();
         scene.Raytracer.ResetStats();
-        for (uint iter = 0; iter < NumIterations; ++iter) {
+        for (uint iter = (uint)startAtIteration; iter - startAtIteration < NumIterations; ++iter) {
             long nextIterTime = timer.RenderTime + timer.PerIterationCost;
             if (MaximumRenderTimeMs.HasValue && nextIterTime > MaximumRenderTimeMs.Value) {
                 Logger.Log("Maximum render time exhausted.");
@@ -253,7 +255,7 @@ public class CameraStoringVCM<TLightPathData> : Integrator where TLightPathData 
         photonMap = null;
     }
 
-    public override PathGraph ReplayPixel(Scene scene, Pixel pixel, int iteration) {
+    public override (PathGraph Graph, RgbColor Estimate) ReplayPixel(Scene scene, Pixel pixel, int iteration) {
         Scene = scene;
         IsolatedPixel = pixel;
         ReplayValue = new(1,1);
@@ -279,7 +281,7 @@ public class CameraStoringVCM<TLightPathData> : Integrator where TLightPathData 
         photonMap.Dispose();
         photonMap = null;
 
-        return graph;
+        return (graph, ReplayValue[0, 0]);
     }
 
     protected virtual void TraceLightPaths(uint iter) {

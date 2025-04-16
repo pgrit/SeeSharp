@@ -34,7 +34,7 @@ static class OutlierCacheTest {
             }
         }
 
-        var graph = integrator.ReplayPixel(scene, pixel, iteration);
+        var (graph, _) = integrator.ReplayPixel(scene, pixel, iteration);
 
         scene.FrameBuffer = new(640, 480, "path.exr", FrameBuffer.Flags.SendToTev);
         PathGraphRenderer graphVis = new() {};
@@ -72,7 +72,7 @@ static class OutlierCacheTest {
             }
         }
 
-        var graph = integrator.ReplayPixel(scene, pixel, iteration);
+        var (graph, _) = integrator.ReplayPixel(scene, pixel, iteration);
 
         scene.FrameBuffer = new(640, 480, "pathVCM.exr", FrameBuffer.Flags.SendToTev);
         PathGraphRenderer graphVis = new() {};

@@ -81,7 +81,9 @@ public class CameraStoringVCM<TLightPathData> : Integrator where TLightPathData 
     public TechPyramid TechPyramidRaw { get; protected set; }
     public TechPyramid TechPyramidWeighted { get; protected set; }
 
-    protected Pixel? IsolatedPixel { get; set;}
+    protected Pixel? IsolatedPixel { get; set; }
+
+    protected RgbImage ReplayValue { get; set; }
 
     /// <summary>
     /// Called once after the end of each rendering iteration (one sample per pixel)
@@ -254,6 +256,7 @@ public class CameraStoringVCM<TLightPathData> : Integrator where TLightPathData 
     public override PathGraph ReplayPixel(Scene scene, Pixel pixel, int iteration) {
         Scene = scene;
         IsolatedPixel = pixel;
+        ReplayValue = new(1,1);
 
         if (NumLightPaths < 0)
             NumLightPaths = scene.FrameBuffer.Width * scene.FrameBuffer.Height;
@@ -751,6 +754,8 @@ public class CameraStoringVCM<TLightPathData> : Integrator where TLightPathData 
         // Only output image data if we are not replaying a pixel but actually rendering
         if (!IsolatedPixel.HasValue)
             Scene.FrameBuffer.Splat(pixel, contrib);
+        else
+            ReplayValue.AtomicAdd(0, 0, contrib);
     }
 
     void ConnectLightVertexToCamera(ref LightPathState state) {
@@ -1254,6 +1259,8 @@ public class CameraStoringVCM<TLightPathData> : Integrator where TLightPathData 
 
         if (graph == null)
             Scene.FrameBuffer.Splat(pixel, estimate);
+        else
+            ReplayValue.AtomicAdd(0, 0, estimate);
     }
 
     public record struct DirectionSample(

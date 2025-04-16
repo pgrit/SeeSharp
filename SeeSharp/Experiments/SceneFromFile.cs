@@ -156,7 +156,10 @@ IntegratorLoaded:
         refIntegrator.MinDepth = MinDepth;
 
         using Scene scn = MakeScene();
-        scn.FrameBuffer = new(width, height, filename);
+        scn.FrameBuffer = new(width, height, filename,
+            FrameBuffer.Flags.IgnoreNanAndInf |
+            FrameBuffer.Flags.WriteContinously |
+            FrameBuffer.Flags.WriteExponentially); // output intermediate results exponentially to avoid loosing everything on a crash
         scn.Prepare();
         refIntegrator.Render(scn);
         scn.FrameBuffer.WriteToFile();

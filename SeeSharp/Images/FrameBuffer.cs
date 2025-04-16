@@ -122,6 +122,12 @@ public class FrameBuffer : IDisposable {
         /// </summary>
         IgnoreNanAndInf = 16,
 
+        /// <summary>
+        /// If set, <see cref="WriteIntermediate" /> and <see cref="WriteContinously" /> only output an image
+        /// after each power-of-two iteration, and <see cref="SendToTev" /> is only triggered at that rate, too.
+        /// </summary>
+        WriteExponentially = 32,
+
         /// <summary> Recommended set of flags appropriate for most use cases </summary>
         Recommended = IgnoreNanAndInf,
     }
@@ -270,16 +276,18 @@ public class FrameBuffer : IDisposable {
         if (ReferenceImage != null)
             Errors.Add(ComputeErrorMetric());
 
-        if (flags.HasFlag(Flags.WriteIntermediate)) {
-            string name = Basename + "-iter" + CurIteration.ToString("D3")
-                + $"-{stopwatch.ElapsedMilliseconds}ms" + Extension;
-            WriteToFile(name);
+        if (!flags.HasFlag(Flags.WriteExponentially) || int.IsPow2(CurIteration - 1)) {
+            if (flags.HasFlag(Flags.WriteIntermediate)) {
+                string name = Basename + "-iter" + CurIteration.ToString("D3")
+                    + $"-{stopwatch.ElapsedMilliseconds}ms" + Extension;
+                WriteToFile(name);
+            }
+
+            if (flags.HasFlag(Flags.WriteContinously)) // TODO maybe do this in power-of-two steps so it becomes useful for reference rendering
+                WriteToFile();
+
+            tevIpc?.UpdateImage(filename);
         }
-
-        if (flags.HasFlag(Flags.WriteContinously)) // TODO maybe do this in power-of-two steps so it becomes useful for reference rendering
-            WriteToFile();
-
-        tevIpc?.UpdateImage(filename);
     }
 
     /// <summary>

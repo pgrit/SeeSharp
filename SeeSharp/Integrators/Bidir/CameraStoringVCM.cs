@@ -989,7 +989,7 @@ public class CameraStoringVCM<TLightPathData> : Integrator where TLightPathData 
                                          in PathVertex cameraVertex, in LightPathState lightPath, in BidirPathPdfs pathPdfs) {
         if (GetPixel(cameraVertex.PathId) == IsolatedPixel && weight * misWeight != RgbColor.Black) {
             // This connection contributes to the pixel we are focusing on. Extend the path graph accordingly.
-            var camNode = replayPathNodes[0]; // replayPathNodes[0] is the camera itself
+            var camNode = replayPathNodes[cameraVertex.Depth]; // replayPathNodes[0] is the camera itself
 
             var node = camNode.AddSuccessor(new MergeNode(lightPath.Vertices[^1], misWeight, weight * kernelWeight));
             for (int i = lightPath.Vertices.Count - 2; i >= 0; --i) {

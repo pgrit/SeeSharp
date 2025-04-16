@@ -1,4 +1,5 @@
 using System.Linq;
+using System.Reflection;
 
 namespace SeeSharp.Images;
 
@@ -346,7 +347,10 @@ public class FrameBuffer : IDisposable {
 
         MetaData["RenderStartTime"] = StartTime.ToString("dd/M/yyyy HH:mm:ss");
         MetaData["RenderWriteTime"] = WriteTime.ToString("dd/M/yyyy HH:mm:ss");
-        MetaData["SeeSharpVersion"] = typeof(FrameBuffer).Assembly.GetName().Version.ToString();
+        MetaData["SeeSharpVersion"] =
+            typeof(FrameBuffer).Assembly
+            .GetCustomAttribute<AssemblyInformationalVersionAttribute>()
+            .InformationalVersion;
 
         // Write the metadata as json
         string json = JsonSerializer.Serialize(MetaData, options: new() {

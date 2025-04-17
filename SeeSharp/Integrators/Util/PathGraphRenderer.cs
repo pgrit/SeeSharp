@@ -40,19 +40,31 @@ public class PathGraphRenderer : DebugVisualizer {
             return distances[(n+1)/2];
     }
 
-    float ComputeRadius(Scene scene, PathGraph graph) {
-        float medianDist = ComputeMedianNodeDistance(scene.Camera.Position, graph.Roots[0]); // TODO if we ever actually need multiple roots, this needs updating
+    float ComputeRadius(Scene scene, PathGraphNode node) {
+        float medianDist = ComputeMedianNodeDistance(scene.Camera.Position, node);
         // Set radius so the median point covers desired angle
         return float.Tan(float.DegreesToRadians(0.1f)) * medianDist;
     }
 
     public void Render(Scene scene, PathGraph graph) {
-        float radius = ComputeRadius(scene, graph);
+        float radius = ComputeRadius(scene, graph.Roots[0]); // TODO if we ever actually need multiple roots, this needs updating
 
         // Create geometry for the paths nodes and edges
         var sceneCpy = scene.Copy();
         foreach (var node in graph.Roots)
             AddNode(node, sceneCpy, radius);
+        sceneCpy.FrameBuffer = scene.FrameBuffer;
+        sceneCpy.Prepare();
+
+        base.Render(sceneCpy);
+    }
+
+    public void Render(Scene scene, PathGraphNode node) {
+        float radius = ComputeRadius(scene, node);
+
+        // Create geometry for the paths nodes and edges
+        var sceneCpy = scene.Copy();
+        AddNode(node, sceneCpy, radius);
         sceneCpy.FrameBuffer = scene.FrameBuffer;
         sceneCpy.Prepare();
 

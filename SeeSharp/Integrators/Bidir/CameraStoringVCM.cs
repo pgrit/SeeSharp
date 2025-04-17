@@ -367,9 +367,11 @@ public class CameraStoringVCM<TLightPathData> : Integrator where TLightPathData 
             // This connection contributes to the pixel we are focusing on. Extend the path graph accordingly.
             var camNode = replayPathNodes[cameraVertex.Depth]; // replayPathNodes[0] is the camera itself
 
-            var node = camNode.AddSuccessor(new ConnectionNode(lightPath.Vertices[^1], misWeight, weight));
-            for (int i = lightPath.Vertices.Count - 2; i >= 0; --i) {
-                node = node.AddSuccessor(new LightPathNode(lightPath.Vertices[i]));
+            lock (camNode) {
+                var node = camNode.AddSuccessor(new ConnectionNode(lightPath.Vertices[^1], misWeight, weight));
+                for (int i = lightPath.Vertices.Count - 2; i >= 0; --i) {
+                    node = node.AddSuccessor(new LightPathNode(lightPath.Vertices[i]));
+                }
             }
         }
     }
@@ -685,9 +687,6 @@ public class CameraStoringVCM<TLightPathData> : Integrator where TLightPathData 
 
         RgbColor value = RgbColor.Black;
 
-        if (state.GraphVertex != null)
-            replayPathNodes.Add(state.GraphVertex);
-
         // Was a light hit?
         Emitter light = Scene.QueryEmitter(shader.Point);
         if (light != null && (EnableHitting || state.Depth == 1) && state.Depth >= MinDepth) {
@@ -697,6 +696,9 @@ public class CameraStoringVCM<TLightPathData> : Integrator where TLightPathData 
         } else {
             state.GraphVertex = state.GraphVertex?.AddSuccessor(new BSDFSampleNode(shader.Point, state.PreviousScatterWeight, state.PreviousSurvivalProbability));
         }
+
+        if (state.GraphVertex != null)
+            replayPathNodes.Add(state.GraphVertex);
 
         // Next event estimation
         if (state.Depth < MaxDepth && state.Depth + 1 >= MinDepth) {
@@ -723,9 +725,11 @@ public class CameraStoringVCM<TLightPathData> : Integrator where TLightPathData 
             // This connection contributes to the pixel we are focusing on. Extend the path graph accordingly.
             var camNode = replayPathNodes[0]; // replayPathNodes[0] is the camera itself
 
-            var node = camNode.AddSuccessor(new ConnectionNode(lightPath.Vertices[^1], misWeight, weight));
-            for (int i = lightPath.Vertices.Count - 2; i >= 0; --i) {
-                node = node.AddSuccessor(new LightPathNode(lightPath.Vertices[i]));
+            lock (camNode) {
+                var node = camNode.AddSuccessor(new ConnectionNode(lightPath.Vertices[^1], misWeight, weight));
+                for (int i = lightPath.Vertices.Count - 2; i >= 0; --i) {
+                    node = node.AddSuccessor(new LightPathNode(lightPath.Vertices[i]));
+                }
             }
         }
     }
@@ -991,9 +995,11 @@ public class CameraStoringVCM<TLightPathData> : Integrator where TLightPathData 
             // This connection contributes to the pixel we are focusing on. Extend the path graph accordingly.
             var camNode = replayPathNodes[cameraVertex.Depth]; // replayPathNodes[0] is the camera itself
 
-            var node = camNode.AddSuccessor(new MergeNode(lightPath.Vertices[^1], misWeight, weight * kernelWeight));
-            for (int i = lightPath.Vertices.Count - 2; i >= 0; --i) {
-                node = node.AddSuccessor(new LightPathNode(lightPath.Vertices[i]));
+            lock (camNode) {
+                var node = camNode.AddSuccessor(new MergeNode(lightPath.Vertices[^1], misWeight, weight * kernelWeight));
+                for (int i = lightPath.Vertices.Count - 2; i >= 0; --i) {
+                    node = node.AddSuccessor(new LightPathNode(lightPath.Vertices[i]));
+                }
             }
         }
     }
@@ -1203,7 +1209,8 @@ public class CameraStoringVCM<TLightPathData> : Integrator where TLightPathData 
             if (!hit) {
                 var (MISWeight, UnweightedContrib) = OnMissCameraPath(ray, pdfDirection, ref state);
                 estimate += MISWeight * UnweightedContrib;
-                state.GraphVertex?.AddSuccessor(new BackgroundNode(ray.Direction, state.GraphVertex, UnweightedContrib, MISWeight));
+                if (state.Depth > 1)
+                    state.GraphVertex?.AddSuccessor(new BackgroundNode(ray.Direction, state.GraphVertex, UnweightedContrib, MISWeight));
                 break;
             }
 

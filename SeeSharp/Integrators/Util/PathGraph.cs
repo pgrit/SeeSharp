@@ -18,6 +18,22 @@ public class PathGraphNode(Vector3 pos, PathGraphNode ancestor = null) {
     public virtual RgbColor ComputeVisualizerColor() {
         return RgbColor.Black;
     }
+
+    public PathGraphNode Clone() {
+        var result = MemberwiseClone() as PathGraphNode;
+        result.Successors = [];
+        foreach (var s in Successors) {
+            var sClone = s.Clone();
+            sClone.Ancestor = result;
+            result.Successors.Add(sClone);
+        }
+        return result;
+    }
+}
+
+public interface IContribNode {
+    public RgbColor Contrib { get; }
+    public float MISWeight { get; }
 }
 
 public class NextEventNode : PathGraphNode {
@@ -79,7 +95,7 @@ public class LightPathNode(PathVertex lightVertex) : PathGraphNode(lightVertex.P
     public override RgbColor ComputeVisualizerColor() => RgbColor.SrgbToLinear(228, 135, 17);
 }
 
-public class ConnectionNode : PathGraphNode {
+public class ConnectionNode : PathGraphNode, IContribNode {
     public ConnectionNode(PathVertex lightVertex, float misWeight, RgbColor contrib)
     : base(lightVertex.Point.Position) {
         Contrib = contrib;
@@ -87,14 +103,14 @@ public class ConnectionNode : PathGraphNode {
         LightVertex = lightVertex;
     }
 
-    public readonly RgbColor Contrib;
-    public readonly float MISWeight;
+    public RgbColor Contrib { get; init; }
+    public float MISWeight { get; init; }
     public readonly PathVertex LightVertex;
 
     public override RgbColor ComputeVisualizerColor() => RgbColor.SrgbToLinear(167, 214, 170);
 }
 
-public class MergeNode : PathGraphNode {
+public class MergeNode : PathGraphNode, IContribNode {
     public MergeNode(PathVertex lightVertex, float misWeight, RgbColor contrib)
     : base(lightVertex.Point.Position) {
         Contrib = contrib;
@@ -102,8 +118,8 @@ public class MergeNode : PathGraphNode {
         LightVertex = lightVertex;
     }
 
-    public readonly RgbColor Contrib;
-    public readonly float MISWeight;
+    public RgbColor Contrib { get; init; }
+    public float MISWeight { get; init; }
     public readonly PathVertex LightVertex;
 
     public override RgbColor ComputeVisualizerColor() => RgbColor.SrgbToLinear(218, 152, 204);
@@ -123,6 +139,15 @@ public class BackgroundNode : PathGraphNode {
 
 public class PathGraph {
     public List<PathGraphNode> Roots = [];
+
+    public PathGraph Clone() {
+        var result = MemberwiseClone() as PathGraph;
+        result.Roots = [];
+        foreach (var r in Roots) {
+            result.Roots.Add(r);
+        }
+        return result;
+    }
 
     struct PlyVertex {
         public Vector3 Position;
@@ -156,6 +181,37 @@ public class PathGraph {
 
             AddNode(s, vertices, edges);
         }
+    }
+
+    public static string ConvertToPLY(PathGraphNode startNode) {
+        List<PlyVertex> vertices = [];
+        List<PlyEdge> edges = [];
+        AddNode(startNode, vertices, edges);
+
+        string vertexStr =
+            string.Join('\n', vertices.Select(v => $"{v.Position.X} {v.Position.Y} {v.Position.Z} {v.R} {v.G} {v.B}"));
+        string edgeStr =
+            string.Join('\n', edges.Select(v => $"{v.V1} {v.V2}"));
+
+        string ply = $"""
+        ply
+        format ascii 1.0
+        element vertex {vertices.Count}
+        property float x
+        property float y
+        property float z
+        property uchar red
+        property uchar green
+        property uchar blue
+        element edge {edges.Count}
+        property int vertex1
+        property int vertex2
+        end_header
+        {vertexStr}
+        {edgeStr}
+        """;
+
+        return ply;
     }
 
     public string ConvertToPLY() {

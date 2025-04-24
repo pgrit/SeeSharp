@@ -760,7 +760,7 @@ public class CameraStoringVCM<TLightPathData> : Integrator where TLightPathData 
         // Only output image data if we are not replaying a pixel but actually rendering
         if (!IsolatedPixel.HasValue)
             Scene.FrameBuffer.Splat(pixel, contrib);
-        else
+        else if (IsolatedPixel == pixel)
             ReplayValue.AtomicAdd(0, 0, contrib);
     }
 

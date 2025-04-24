@@ -255,6 +255,13 @@ public class CameraStoringVCM<TLightPathData> : Integrator where TLightPathData 
         photonMap = null;
     }
 
+    /// <summary>
+    /// Reproduces the paths that have contributed to the given pixel
+    /// </summary>
+    /// <param name="scene">The scene to render, the FrameBuffer must have the original resolution</param>
+    /// <param name="pixel">Pixel to replay</param>
+    /// <param name="iteration">0-based iteration to replay</param>
+    /// <returns>The paths that have been sampled and the pixel estimate computed from them</returns>
     public override (PathGraph Graph, RgbColor Estimate) ReplayPixel(Scene scene, Pixel pixel, int iteration) {
         Scene = scene;
         IsolatedPixel = pixel;
@@ -287,7 +294,7 @@ public class CameraStoringVCM<TLightPathData> : Integrator where TLightPathData 
     protected virtual void TraceLightPaths(uint iter) {
         Parallel.For(0, NumLightPaths, idx => {
             var rng = new RNG(BaseSeedLight, (uint)idx, iter);
-            // TODO PERFORMANCE boxing conversion causes heap allocation -> measure impact and avoid if necessary
+            // TODO PERFORMANCE boxing conversion of rng to ISampler causes heap allocation -> measure impact and avoid if necessary
             TraceLightPath(rng, idx, new());
         });
     }
@@ -544,7 +551,7 @@ public class CameraStoringVCM<TLightPathData> : Integrator where TLightPathData 
                 var weight = sample.Weight * bsdfTimesCosine;
 
                 if (weight != RgbColor.Black)
-                    state.GraphVertex?.AddSuccessor(new NextEventNode(sample.Direction, state.GraphVertex, sample.Weight * sample.Pdf, sample.Pdf, bsdfTimesCosine, misWeight));
+                    state.GraphVertex?.AddSuccessor(new NextEventNode(sample.Direction, state.GraphVertex, sample.Weight * sample.Pdf, sample.Pdf, bsdfTimesCosine, misWeight, state.PrefixWeight));
 
                 RegisterSample(weight * state.PrefixWeight, misWeight, state.Pixel,
                                state.Vertices.Count, 0, state.Vertices.Count + 1);
@@ -601,7 +608,7 @@ public class CameraStoringVCM<TLightPathData> : Integrator where TLightPathData 
                 var weight = emission * bsdfTimesCosine * (jacobian / lightSample.Pdf);
 
                 if (weight != RgbColor.Black)
-                    state.GraphVertex?.AddSuccessor(new NextEventNode(lightSample.Point, emission, lightSample.Pdf / jacobian * NumShadowRays, bsdfTimesCosine, misWeight));
+                    state.GraphVertex?.AddSuccessor(new NextEventNode(lightSample.Point, emission, lightSample.Pdf / jacobian * NumShadowRays, bsdfTimesCosine, misWeight, state.PrefixWeight));
 
                 RegisterSample(weight * state.PrefixWeight, misWeight, state.Pixel,
                                state.Vertices.Count, 0, state.Vertices.Count + 1);

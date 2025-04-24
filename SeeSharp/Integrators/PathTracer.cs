@@ -443,7 +443,7 @@ public class PathTracerBase<PayloadType> : Integrator {
             OnNextEventResult(shader, state, misWeight, contrib);
 
             if (contrib != RgbColor.Black)
-                graphVertex?.AddSuccessor(new NextEventNode(sample.Direction, graphVertex, sample.Weight * sample.Pdf, sample.Pdf, bsdfTimesCosine, misWeight));
+                graphVertex?.AddSuccessor(new NextEventNode(sample.Direction, graphVertex, sample.Weight * sample.Pdf, sample.Pdf, bsdfTimesCosine, misWeight, state.PrefixWeight));
 
             return misWeight * contrib;
         }
@@ -492,7 +492,7 @@ public class PathTracerBase<PayloadType> : Integrator {
             OnNextEventResult(shader, state, misWeight, contrib);
 
             if (contrib != RgbColor.Black)
-                graphVertex?.AddSuccessor(new NextEventNode(lightSample.Point, emission, pdf, bsdfCos, misWeight));
+                graphVertex?.AddSuccessor(new NextEventNode(lightSample.Point, emission, pdf, bsdfCos, misWeight, state.PrefixWeight));
 
             return misWeight * contrib;
         }

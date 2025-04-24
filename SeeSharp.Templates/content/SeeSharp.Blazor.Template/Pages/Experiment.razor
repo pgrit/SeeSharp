@@ -10,7 +10,12 @@
 
 <h1>Example experiment</h1>
 
-<SceneSelector @ref=sceneSelector OnSceneLoaded="@OnSceneLoaded"></SceneSelector>
+<div style="display: flex; gap: 5px; flex-wrap: wrap;">
+    <div style="flex-grow: 1">
+        <SceneSelector @ref=sceneSelector OnSceneLoaded="@OnSceneLoaded"></SceneSelector>
+    </div>
+    <LogOutput></LogOutput>
+</div>
 
 <div>
     <div class="experiment-settings">

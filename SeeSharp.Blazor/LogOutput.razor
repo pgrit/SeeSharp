@@ -1,0 +1,57 @@
+@using SeeSharp.Common
+
+@implements IDisposable
+@implements ILogOutput
+
+@namespace SeeSharp.Blazor
+
+<div class="list">
+    <p class="header">Log</p>
+    <div class="container">
+        <table>
+            @foreach(var m in Iterate()) {
+                <tr class="@(m.Verbosity switch {
+                            Verbosity.Error => "error",
+                            Verbosity.Warning => "warning",
+                            Verbosity.Debug => "debug",
+                            _ => ""
+                        })">
+                    <td>@m.Time.ToString("HH:mm:ss")</td>
+                    <td class="msg">
+                        @m.Message
+                    </td>
+                </tr>
+            }
+        </table>
+    </div>
+</div>
+
+@code {
+    Lock msgLock = new();
+    List<(Verbosity Verbosity, string Message, DateTime Time)> messages = [];
+
+    IEnumerable<(Verbosity Verbosity, string Message, DateTime Time)> Iterate()
+    {
+        try {
+            msgLock.Enter();
+            foreach(var m in messages)
+                yield return m;
+        } finally {
+            msgLock.Exit();
+        }
+    }
+
+    public void Write(Verbosity verbosity, string message) {
+        lock (msgLock)
+            messages.Insert(0, (verbosity, message, DateTime.Now));
+        InvokeAsync(StateHasChanged);
+    }
+
+    protected override void OnInitialized() {
+        Logger.AddOutput(this);
+    }
+
+    public void Dispose() {
+        Logger.RemoveOutput(this);
+    }
+}

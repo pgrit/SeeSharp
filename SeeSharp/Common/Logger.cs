@@ -25,6 +25,10 @@ public enum Verbosity {
     Debug,
 }
 
+public interface ILogOutput {
+    void Write(Verbosity verbosity, string message);
+}
+
 /// <summary>
 /// A simple command line logger that colors and tags messages based on their type. Verbosity can be
 /// set to control which types are displayed.
@@ -37,12 +41,23 @@ public static class Logger {
     public static Verbosity Verbosity { get => verbosity; set => verbosity = value; }
     static Verbosity verbosity = Verbosity.Info;
 
+    static readonly List<ILogOutput> logWriters = [];
+
+    public static void AddOutput(ILogOutput output) => logWriters.Add(output);
+    public static void RemoveOutput(ILogOutput output) => logWriters.Remove(output);
+
     /// <summary>
     /// Prints a log message with appropriate coloring if the verbosity level matches.
     /// </summary>
     /// <param name="message">The message to print</param>
     /// <param name="verbosity">The verbosity level of this message</param>
     public static void Log(string message, Verbosity verbosity = Verbosity.Info) {
+        lock (logWriters) {
+            foreach (var l in logWriters) {
+                l.Write(verbosity, message);
+            }
+        }
+
         if (Verbosity < verbosity)
             return;
 

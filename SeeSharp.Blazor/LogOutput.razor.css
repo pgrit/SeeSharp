@@ -1,0 +1,61 @@
+.header {
+	background: #8ecbdc;
+	border-top-style: none;
+	border-bottom-style: solid;
+	border-bottom-width: 1pt;
+	margin: 0;
+	padding-bottom: 0.2em;
+	text-align: center;
+}
+
+.error {
+    background-color: rgb(211, 86, 86);
+    color: rgb(69, 4, 4);
+}
+
+.warning {
+    background-color: rgb(244, 210, 75);
+    color: rgb(57, 38, 7);
+}
+
+.debug {
+    background-color: rgb(196, 196, 196);
+}
+
+.error>.msg::before {
+    content: "[Error] "
+}
+
+.warning>.msg::before {
+    content: "[Warning] "
+}
+
+.debug>.msg::before {
+    content: "[Debug] "
+}
+
+.list {
+    overflow: scroll;
+    resize: both;
+    background: #e6f1f4;
+    border-style: solid;
+    border-width: 1pt;
+    border-color: #2b3f44;
+
+    width: 500px;
+    min-width: 100px;
+    height: 125px;
+    min-height: 50px;
+
+    display: flex;
+    flex-direction: column;
+}
+
+.container {
+    overflow: scroll;
+    flex-grow: 1;
+}
+
+td:nth-child(1) {
+    padding-right: 2em;
+}

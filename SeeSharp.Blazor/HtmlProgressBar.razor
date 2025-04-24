@@ -1,28 +1,60 @@
 @namespace SeeSharp.Blazor
 
-@if (progressBar != null && progressBar.TotalWork != 0)
-{
+<div style="position: fixed;
+    right: 10px;
+    bottom: 10px;
+    background-color: #e6f1f4;
+    padding: 0px 20px 0px 20px;
+    border-color: #24758b;
+    border-width: 2px;
+    border-style: solid;
+    border-radius: 4px;">
+
+    @if(progressBar != null && progressBar.NumWorkDone < progressBar.TotalWork && FunStuff != null) {
+        <img src="@FunStuff" height="100px" style="
+            float: left;
+            margin-top: 4px;
+            margin-bottom: 4px;
+            margin-right: 4px;"
+        />
+    }
     <p>
-        <label>
-            @progressBar.Label
-            <progress id="file" value="@progressBar.NumWorkDone" max="@progressBar.TotalWork"></progress>
-            @($"{progressBar.NumWorkDone / (double)progressBar.TotalWork:P0}")
-            (@($"{progressBar.TimeElapsedSeconds:f2}s / {progressBar.TotalTimeEstimateSeconds:f2}s"))
-        </label>
+        @if (progressBar != null && progressBar.TotalWork != 0) {
+            @if(progressBar.NumWorkDone < progressBar.TotalWork) {
+                <label>
+                    @progressBar.Label
+                    <progress id="file" value="@progressBar.NumWorkDone" max="@progressBar.TotalWork"></progress>
+                    @($"{progressBar.NumWorkDone / (double)progressBar.TotalWork:P0}")
+                    (@($"{progressBar.TimeElapsedSeconds:f2}s / {progressBar.TotalTimeEstimateSeconds:f2}s"))
+                </label>
+            } else {
+                @(progressBar.Label)
+                @: done after
+                @($"{progressBar.TimeElapsedSeconds:f2}s")
+                <text> (</text>
+                @progressBar.NumWorkDone
+                <text> / </text>
+                @progressBar.TotalWork
+                <text>)</text>
+            }
+        } else {
+            @:Idle
+        }
     </p>
-}
+</div>
 
 @code {
-    HtmlProgressBar()
-    {
-        SeeSharp.Common.ProgressBar.OnUpdate += Sync;
-    }
-
     SeeSharp.Common.ProgressBar progressBar;
 
-    void Sync(SeeSharp.Common.ProgressBar progressBar)
-    {
+    [Parameter]
+    public string FunStuff { get; set; }
+
+    void Sync(SeeSharp.Common.ProgressBar progressBar) {
         this.progressBar = progressBar;
-        StateHasChanged();
+        InvokeAsync(StateHasChanged);
+    }
+
+    protected override void OnInitialized() {
+        SeeSharp.Common.ProgressBar.OnUpdate += Sync;
     }
 }

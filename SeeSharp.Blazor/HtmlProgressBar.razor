@@ -13,7 +13,7 @@
     align-items: center;">
 
     @if(progressBar != null && progressBar.NumWorkDone < progressBar.TotalWork && FunStuff != null) {
-        <img src="@FunStuff" height="100px" style="
+        <img src="@FunStuff[rng.Next(FunStuff.Length)]" height="100px" style="
             margin-top: 4px;
             margin-bottom: 4px;
             margin-right: 10px;
@@ -47,9 +47,10 @@
 
 @code {
     SeeSharp.Common.ProgressBar progressBar;
+    System.Random rng = new();
 
     [Parameter]
-    public string FunStuff { get; set; }
+    public string[] FunStuff { get; set; }
 
     void Sync(SeeSharp.Common.ProgressBar progressBar) {
         this.progressBar = progressBar;

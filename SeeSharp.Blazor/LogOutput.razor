@@ -6,10 +6,25 @@
 @namespace SeeSharp.Blazor
 
 <div class="list">
-    <p class="header">Log</p>
+    <p class="header" style="display: flex; ">
+        <button @onclick="OnClearClick">Clear</button>
+        <span style="flex-grow: 1;">Log</span>
+        <span>
+            <button style="@(showErrors ? "" : "background: rgb(109, 150, 170)")" @onclick="OnErrorFilterClick">Errors</button>
+            <button style="@(showWarnings ? "" : "background: rgb(109, 150, 170)")" @onclick="OnWarnFilterClick">Warnings</button>
+            <button style="@(showInfos ? "" : "background: rgb(109, 150, 170)")" @onclick="OnInfoFilterClick">Infos</button>
+            <button style="@(showDebug ? "" : "background: rgb(109, 150, 170)")" @onclick="OnDebugFilterClick">Debug</button>
+        </span>
+    </p>
     <div class="container">
         <table>
             @foreach(var m in Iterate()) {
+                @if (!showErrors && m.Verbosity == Verbosity.Error ||
+                    !showWarnings && m.Verbosity == Verbosity.Warning ||
+                    !showInfos && m.Verbosity == Verbosity.Info ||
+                    !showDebug && m.Verbosity == Verbosity.Debug) {
+                    continue;
+                }
                 <tr class="@(m.Verbosity switch {
                             Verbosity.Error => "error",
                             Verbosity.Warning => "warning",
@@ -53,5 +68,28 @@
 
     public void Dispose() {
         Logger.RemoveOutput(this);
+    }
+
+    void OnClearClick() {
+        lock (msgLock)
+            messages.Clear();
+    }
+
+    bool showErrors = true, showWarnings = true, showInfos = true, showDebug = false;
+
+    void OnErrorFilterClick() {
+        showErrors = !showErrors;
+    }
+
+    void OnWarnFilterClick() {
+        showWarnings = !showWarnings;
+    }
+
+    void OnInfoFilterClick() {
+        showInfos = !showInfos;
+    }
+
+    void OnDebugFilterClick() {
+        showDebug = !showDebug;
     }
 }

@@ -933,12 +933,10 @@ public class CameraStoringVCM<TLightPathData> : Integrator where TLightPathData 
     public virtual void PerformConnections(in SurfaceShader shader, ref LightPathState state) {
         if (!EnableConnections) return;
 
-        // If there is not exactly one light path per pixel, we pick a camera path at random
-        // Then, the sample density of connections in a pixel is the number of light paths (sample count)
+        // We pick a camera path at random.
+        // So, the sample density of connections in a pixel is the number of light paths (sample count)
         // divided by the number of pixels (probability to select the pixel)
-        int pathIdx = NumLightPaths == Scene.FrameBuffer.Width * Scene.FrameBuffer.Height
-            ? state.PathIndex
-            : (int)(state.Rng.NextFloat() * Scene.FrameBuffer.Width * Scene.FrameBuffer.Height);
+        int pathIdx = (int)(state.Rng.NextFloat() * Scene.FrameBuffer.Width * Scene.FrameBuffer.Height);
         pathIdx = Math.Min(pathIdx, Scene.FrameBuffer.Width * Scene.FrameBuffer.Height - 1);
         float connectProb = NumLightPaths / (float)(Scene.FrameBuffer.Width * Scene.FrameBuffer.Height);
 

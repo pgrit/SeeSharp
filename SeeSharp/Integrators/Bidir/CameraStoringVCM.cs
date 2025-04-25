@@ -1452,7 +1452,7 @@ public class CameraStoringVCM<TLightPathData> : Integrator where TLightPathData 
 
             // Account for the light selection probability
             lastPdf *= prob;
-            weight /= prob;
+            state.PrefixWeight = weight / prob;
 
             if (lastPdf == 0 || weight == RgbColor.Black)  // Avoid NaNs and terminate early
                 return;

@@ -91,7 +91,7 @@ public class ClassicBidirBase<CameraPayloadType> : BidirBase<CameraPayloadType> 
     }
 
     /// <inheritdoc />
-    protected override RgbColor OnCameraHit(in CameraPath path, ref RNG rng, in SurfaceShader shader,
+    protected override RgbColor OnCameraHit(ref CameraPath path, ref RNG rng, in SurfaceShader shader,
                                             float pdfFromAncestor, RgbColor throughput, int depth,
                                             float toAncestorJacobian) {
         RgbColor value = RgbColor.Black;
@@ -99,16 +99,16 @@ public class ClassicBidirBase<CameraPayloadType> : BidirBase<CameraPayloadType> 
         // Was a light hit?
         Emitter light = Scene.QueryEmitter(shader.Point);
         if (light != null && depth >= MinDepth) {
-            value += throughput * OnEmitterHit(light, shader.Point, shader.Context.OutDirWorld, path, toAncestorJacobian);
+            value += throughput * OnEmitterHit(light, shader.Point, shader.Context.OutDirWorld, ref path, toAncestorJacobian);
         }
 
         // Perform connections if the maximum depth has not yet been reached
         if (depth < MaxDepth && EnableConnections)
-            value += throughput * BidirConnections(shader, ref rng, path, toAncestorJacobian);
+            value += throughput * BidirConnections(shader, ref rng, ref path, toAncestorJacobian);
 
         if (depth < MaxDepth && depth + 1 >= MinDepth) {
             for (int i = 0; i < NumShadowRays; ++i) {
-                value += throughput * PerformNextEventEstimation(shader, ref rng, path, toAncestorJacobian);
+                value += throughput * PerformNextEventEstimation(shader, ref rng, ref path, toAncestorJacobian);
             }
         }
 

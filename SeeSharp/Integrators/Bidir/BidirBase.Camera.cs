@@ -190,7 +190,7 @@ public abstract partial class BidirBase<CameraPayloadType> {
     }
 
     RgbColor Connect(in SurfaceShader shader, PathVertex vertex, PathVertex ancestor, Vector3 dirToAncestor,
-                     in CameraPath path, float reversePdfJacobian, float lightVertexProb) {
+                     ref CameraPath path, float reversePdfJacobian, float lightVertexProb) {
         // Only allow connections that do not exceed the maximum total path length
         int depth = vertex.Depth + path.Vertices.Count + 1;
         if (depth > MaxDepth || depth < MinDepth)
@@ -277,7 +277,7 @@ public abstract partial class BidirBase<CameraPayloadType> {
     /// </param>
     /// <returns>The sum of all MIS weighted contributions for inner path connections</returns>
     protected virtual RgbColor BidirConnections(in SurfaceShader shader, ref RNG rng,
-                                                in CameraPath path, float reversePdfJacobian) {
+                                                ref CameraPath path, float reversePdfJacobian) {
         RgbColor result = RgbColor.Black;
         if (NumLightPaths == 0) return result;
 
@@ -292,7 +292,7 @@ public abstract partial class BidirBase<CameraPayloadType> {
                 return result;
             var ancestor = PathCache[lightVertIdx - 1];
             var dirToAncestor = Vector3.Normalize(ancestor.Point.Position - vertex.Point.Position);
-            result += Connect(shader, vertex, ancestor, dirToAncestor, path, reversePdfJacobian, lightVertexProb);
+            result += Connect(shader, vertex, ancestor, dirToAncestor, ref path, reversePdfJacobian, lightVertexProb);
         } else if (lightPathIdx >= 0) {
             // Connect with all vertices along the path
             int n = PathCache.Length(lightPathIdx);
@@ -300,7 +300,7 @@ public abstract partial class BidirBase<CameraPayloadType> {
                 var ancestor = PathCache[lightPathIdx, i - 1];
                 var vertex = PathCache[lightPathIdx, i];
                 var dirToAncestor = Vector3.Normalize(ancestor.Point.Position - vertex.Point.Position);
-                result += Connect(shader, vertex, ancestor, dirToAncestor, path, reversePdfJacobian, lightVertexProb);
+                result += Connect(shader, vertex, ancestor, dirToAncestor, ref path, reversePdfJacobian, lightVertexProb);
             }
         }
 
@@ -366,7 +366,7 @@ public abstract partial class BidirBase<CameraPayloadType> {
     /// </param>
     /// <returns>MIS weighted next event contribution</returns>
     protected virtual RgbColor PerformNextEventEstimation(in SurfaceShader shader, ref RNG rng,
-                                                          in CameraPath path, float reversePdfJacobian) {
+                                                          ref CameraPath path, float reversePdfJacobian) {
         // Gather the PDFs for next event computation (we do it first to avoid code duplication)
         int numPdfs = path.Vertices.Count + 1;
         int lastCameraVertexIdx = numPdfs - 2;
@@ -498,7 +498,7 @@ public abstract partial class BidirBase<CameraPayloadType> {
     /// </param>
     /// <returns>MIS weighted contribution of the emitter</returns>
     protected virtual RgbColor OnEmitterHit(Emitter emitter, SurfacePoint hit, Vector3 outDir,
-                                            CameraPath path, float reversePdfJacobian) {
+                                            ref CameraPath path, float reversePdfJacobian) {
         var emission = emitter.EmittedRadiance(hit, outDir);
 
         // Compute pdf values
@@ -529,7 +529,7 @@ public abstract partial class BidirBase<CameraPayloadType> {
     /// <param name="ray">The last ray of the camera path that intersected nothing</param>
     /// <param name="path">The camera path</param>
     /// <returns>MIS weighted contribution from the background</returns>
-    protected virtual RgbColor OnBackgroundHit(Ray ray, in CameraPath path) {
+    protected virtual RgbColor OnBackgroundHit(Ray ray, ref CameraPath path) {
         if (Scene.Background == null)
             return RgbColor.Black;
 
@@ -577,7 +577,7 @@ public abstract partial class BidirBase<CameraPayloadType> {
     /// sampling its ancestor.
     /// </param>
     /// <returns>Sum of MIS weighted contributions for all sampling techniques performed here</returns>
-    protected abstract RgbColor OnCameraHit(in CameraPath path, ref RNG rng, in SurfaceShader shader,
+    protected abstract RgbColor OnCameraHit(ref CameraPath path, ref RNG rng, in SurfaceShader shader,
                                             float pdfFromAncestor, RgbColor throughput, int depth,
                                             float toAncestorJacobian);
 
@@ -585,7 +585,7 @@ public abstract partial class BidirBase<CameraPayloadType> {
     /// Called for each termination of the camera path
     /// </summary>
     /// <param name="path">The camera path</param>
-    protected virtual void OnCameraPathTerminate(in CameraPath path) { }
+    protected virtual void OnCameraPathTerminate(ref CameraPath path) { }
 
     protected class CameraRandomWalk(BidirBase<CameraPayloadType> integrator) : RandomWalk<CameraPath>.RandomWalkModifier {
         ThreadLocal<PathBuffer<PathPdfPair>> threadLocalVertices = new(() => new(16));
@@ -609,7 +609,7 @@ public abstract partial class BidirBase<CameraPayloadType> {
             });
             walk.Payload.Throughput = throughput;
             walk.Payload.Distances.Add(float.PositiveInfinity);
-            return integrator.OnBackgroundHit(ray, walk.Payload);
+            return integrator.OnBackgroundHit(ray, ref walk.Payload);
         }
 
         public override RgbColor OnHit(ref RandomWalk<CameraPath> walk, in SurfaceShader shader, float pdfFromAncestor,
@@ -636,7 +636,7 @@ public abstract partial class BidirBase<CameraPayloadType> {
 
             walk.Payload.PreviousPoint = walk.Payload.CurrentPoint;
             walk.Payload.CurrentPoint = shader.Point;
-            return integrator.OnCameraHit(walk.Payload, ref walk.rng, shader, pdfFromAncestor, throughput, depth, toAncestorJacobian);
+            return integrator.OnCameraHit(ref walk.Payload, ref walk.rng, shader, pdfFromAncestor, throughput, depth, toAncestorJacobian);
         }
 
         public override void OnContinue(ref RandomWalk<CameraPath> walk, float pdfToAncestor, int depth) {
@@ -649,7 +649,7 @@ public abstract partial class BidirBase<CameraPayloadType> {
         }
 
         public override void OnTerminate(ref RandomWalk<CameraPath> walk) {
-            integrator.OnCameraPathTerminate(walk.Payload);
+            integrator.OnCameraPathTerminate(ref walk.Payload);
         }
     }
 }

@@ -54,7 +54,7 @@
     public string[] FunStuff { get; set; }
 
     void Sync(SeeSharp.Common.ProgressBar progressBar) {
-        if (this.ProgressBar != progressBar && FunStuff != null && FunStuff.Length > 0)
+        if (this.progressBar != progressBar && FunStuff != null && FunStuff.Length > 0)
             imageIdx = rng.Next(FunStuff.Length);
         this.progressBar = progressBar;
         InvokeAsync(StateHasChanged);

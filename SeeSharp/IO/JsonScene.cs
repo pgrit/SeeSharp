@@ -104,7 +104,7 @@ public static class JsonScene {
                     }
                 }
 
-                lock (progressBar) progressBar.ReportDone(1);
+                progressBar.ReportDone(1);
             });
         }
         namedMaterials = namedMats;

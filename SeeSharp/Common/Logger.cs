@@ -51,11 +51,11 @@ public static class Logger {
     /// </summary>
     /// <param name="message">The message to print</param>
     /// <param name="verbosity">The verbosity level of this message</param>
-    public static void Log(string message, Verbosity verbosity = Verbosity.Info) {
-        lock (logWriters) {
-            foreach (var l in logWriters) {
-                l.Write(verbosity, message);
-            }
+    public static void Log(string message, Verbosity verbosity = Verbosity.Info)
+    {
+        foreach (var l in logWriters)
+        {
+            l.Write(verbosity, message);
         }
 
         if (Verbosity < verbosity)

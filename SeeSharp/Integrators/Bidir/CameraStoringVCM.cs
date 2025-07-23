@@ -186,6 +186,7 @@ public class CameraStoringVCM<TLightPathData> : Integrator where TLightPathData 
             if (MaximumRenderTimeMs.HasValue && nextIterTime > MaximumRenderTimeMs.Value) {
                 Logger.Log("Maximum render time exhausted.");
                 // if (EnableDenoiser) DenoiseBuffers.Denoise();
+                progressBar.Terminate();
                 break;
             }
 

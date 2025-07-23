@@ -222,6 +222,7 @@ public class PathTracerBase<PayloadType> : Integrator {
             if (MaximumRenderTimeMs.HasValue && nextIterTime > MaximumRenderTimeMs.Value) {
                 Logger.Log("Maximum render time exhausted.");
                 if (EnableDenoiser) denoiseBuffers.Denoise();
+                progressBar.Terminate();
                 break;
             }
             timer.StartIteration();

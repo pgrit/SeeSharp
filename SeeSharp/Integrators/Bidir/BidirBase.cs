@@ -101,6 +101,7 @@ public abstract partial class BidirBase<CameraPayloadType> : Integrator {
             if (MaximumRenderTimeMs.HasValue && nextIterTime > MaximumRenderTimeMs.Value) {
                 Logger.Log("Maximum render time exhausted.");
                 if (EnableDenoiser) DenoiseBuffers.Denoise();
+                progressBar.Terminate();
                 break;
             }
 

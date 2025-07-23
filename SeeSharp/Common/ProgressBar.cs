@@ -105,6 +105,15 @@ public class ProgressBar {
     }
 
     /// <summary>
+    /// Notifies that the process has been stopped (either finished or cancelled)
+    /// </summary>
+    public void Terminate()
+    {
+        total = done;
+        ReportDone(0);
+    }
+
+    /// <summary>
     /// Updates the progress bar after some work has been performed. Thread-safe.
     /// </summary>
     /// <param name="amount">How many steps have been performed</param>

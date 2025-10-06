@@ -68,6 +68,14 @@ button {
     align-items: flex-start;
 }
 
+.compare {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 10px;
+    flex-wrap: wrap;
+    align-items: flex-start;
+}
+
 table {
     border-collapse: collapse;
 }

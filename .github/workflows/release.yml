@@ -16,16 +16,11 @@ jobs:
       with:
         dotnet-version: '9.0.x'
 
-    - name: Test
-      working-directory: ${{github.workspace}}
-      run: dotnet test
+    - uses: extractions/setup-just@v3
 
-    - name: Publish
-      run: dotnet publish ${{github.workspace}}/SeeSharp.PreviewRender -c Release -o ${{github.workspace}}/see_blender/bin
-
-    - name: Zip
+    - name: Build Extension
       working-directory: ${{github.workspace}}
-      run: zip -r see_blender see_blender
+      run: just blender
 
     - name: Create Release
       id: create_release
@@ -44,6 +39,6 @@ jobs:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       with:
         upload_url: ${{ steps.create_release.outputs.upload_url }}
-        asset_path: ./see_blender.zip
-        asset_name: see_blender.zip
+        asset_path: ./BlenderExtension/see_sharp_renderer-1.0.0.zip
+        asset_name: see_sharp_renderer-1.0.0.zip
         asset_content_type: application/zip

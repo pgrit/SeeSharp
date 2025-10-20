@@ -1,5 +1,5 @@
 import bpy
-from bpy.props import *
+from bpy.props import EnumProperty, IntProperty, BoolProperty, PointerProperty
 import os
 import subprocess
 import tempfile
@@ -7,26 +7,11 @@ import tempfile
 from . import exporter
 
 class SeeSharpRenderEngine(bpy.types.RenderEngine):
-    # These three members are used by blender to set up the
-    # RenderEngine; define its internal name, visible name and capabilities.
     bl_idname = "SEE_SHARP"
     bl_label = "SeeSharp"
     bl_use_preview = False
+    bl_use_eevee_viewport = True
 
-    # Init is called whenever a new render engine instance is created. Multiple
-    # instances may exist at the same time, for example for a viewport and final
-    # render.
-    def __init__(self):
-        self.scene_data = None
-        self.draw_data = None
-
-    # When the render engine instance is destroy, this is called. Clean up any
-    # render engine data here, for example stopping running render threads.
-    def __del__(self):
-        pass
-
-    # This is the method called by Blender for both final renders (F12) and
-    # small preview for materials, world and lights.
     def render(self, depsgraph):
         scene = depsgraph.scene
         scale = scene.render.resolution_percentage / 100.0
@@ -56,10 +41,6 @@ class SeeSharpRenderEngine(bpy.types.RenderEngine):
             self.end_result(result)
 
 
-# RenderEngines also need to tell UI Panels that they are compatible with.
-# We recommend to enable all panels marked as BLENDER_RENDER, and then
-# exclude any panels that are replaced by custom panels registered by the
-# render engine, or that are not supported.
 def get_panels():
     exclude_panels = {
         'VIEWLAYER_PT_filter',

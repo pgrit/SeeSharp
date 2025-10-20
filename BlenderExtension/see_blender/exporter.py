@@ -5,7 +5,6 @@ from math import degrees, atan, tan
 import bpy
 import bmesh
 from bpy_extras.io_utils import ExportHelper, axis_conversion
-from mathutils import Matrix
 from bpy.props import StringProperty, BoolProperty
 from bpy.types import Operator
 

@@ -1,7 +1,6 @@
 import math
 import bpy
-from bpy.props import *
-from math import sqrt
+from bpy.props import FloatVectorProperty, PointerProperty, FloatProperty, BoolProperty
 
 class SeeSharpMaterial(bpy.types.PropertyGroup):
     base_color: FloatVectorProperty(

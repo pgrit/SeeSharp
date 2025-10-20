@@ -51,3 +51,8 @@ docs/*
 *.nettrace
 *.speedscope.json
 *ultra*pid*.json.gz
+
+# Blender extension binary data
+BlenderExtension/dist
+BlenderExtension/seesharp_binaries.egg-info
+BlenderExtension/see_sharp_renderer-*.zip

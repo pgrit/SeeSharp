@@ -1,14 +1,4 @@
-import bpy
-
 from . import exporter, render_engine, material_ui, material, world
-
-bl_info = {
-    "name": "SeeSharp Renderer",
-    "author": "Pascal Grittmann",
-    "version": (0, 1),
-    "blender": (2, 92, 0),
-    "category": "Render",
-}
 
 def register():
     exporter.register()

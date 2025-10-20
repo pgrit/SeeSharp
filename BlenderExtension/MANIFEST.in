@@ -1,0 +1,2 @@
+recursive-include seesharp_binaries/bin/ *
+

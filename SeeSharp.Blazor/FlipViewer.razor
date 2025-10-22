@@ -19,13 +19,32 @@
     (
         int X,
         int Y,
-        bool CtrlKey
+        @* bool CtrlKey,
+        bool AltKey,//MOD *@
+
+        string key,
+        bool isPressedDown,
+
+        int mouseButtom,
+        bool isButtomDown,
+
+        int deltaY,//MOD
+        int selectedIndex,//MOD
+        string registryKey//MOD
     )
     {
     }
 
     [Parameter]
     public EventCallback<OnClickEventArgs> OnClick { get; set; }
+    [Parameter]
+    public EventCallback<OnClickEventArgs> OnWheel { get; set; } //MOD
+    [Parameter]
+    public EventCallback<OnClickEventArgs> OnMouseOver { get; set; } //MOD
+    [Parameter]
+    public EventCallback<OnClickEventArgs> OnKeyDown { get; set; } //MOD
+    [Parameter]
+    public EventCallback<OnClickEventArgs> OnKeyUp { get; set; } //MOD
 
     protected override async Task OnParametersSetAsync()
     {
@@ -54,21 +73,71 @@
 
     public struct _OnFlipClickArgs
     {
-        [JsonInclude] public bool ctrlKey;
+        @* [JsonInclude] public bool ctrlKey;
+        [JsonInclude] public bool altKey;//MOD *@
+        [JsonInclude] public string key;
+        [JsonInclude] public bool isPressedDown;
+        [JsonInclude] public int mouseButtom;
+        [JsonInclude] public bool isButtomDown;
+        [JsonInclude] public int deltaY;//MOD
+        [JsonInclude] public int selectedIndex;//MOD
+        [JsonInclude] public string registryKey;//MOD
     }
 
     [JSInvokable]
-    public void _OnFlipClick(int x, int y, _OnFlipClickArgs eventArgs)
+    public void _OnFlipClick(int buttom)
     {
-        OnClick.InvokeAsync(new(x, y, eventArgs.ctrlKey)).Wait();
+        OnClick.InvokeAsync(new(X: -1, Y: -1, key: "", isPressedDown: false, mouseButtom: buttom, isButtomDown: false, deltaY: 0, selectedIndex: -1, registryKey: "")).Wait();
     }
+
+    //MOD
+    // IMPORTANT: There is a bool for altKey, but on the React side a wheel event only is fired when alt is pressed, so altKey is more or less redundant
+    [JSInvokable]
+    public void _OnFlipWheel(int deltaY)
+    {
+        OnWheel.InvokeAsync(new(X: -1, Y: -1, key: "", isPressedDown: false, mouseButtom: -1, isButtomDown: false, deltaY: deltaY, selectedIndex: -1, registryKey: "")).Wait();
+    }
+
+    //MOD
+    [JSInvokable]
+    public void _OnFlipMouseOver(int x, int y)
+    {
+        OnMouseOver.InvokeAsync(new(X: x, Y: y, key: "", isPressedDown: false, mouseButtom: -1, isButtomDown: false, deltaY: 0, selectedIndex: -1, registryKey: "")).Wait();
+    }
+
+    //MOD
+    [JSInvokable]
+    public void _OnFlipKey(int selectedIdx, string keyStr, string keyPressed, bool isPressedDown)
+    {
+        OnKeyDown.InvokeAsync(new(X: -1, Y: -1, key: keyPressed, isPressedDown: isPressedDown, mouseButtom: -1, isButtomDown: false, deltaY: 0, selectedIndex: selectedIdx, registryKey: keyStr)).Wait();
+    }
+
+    //MOD
+    @* [JSInvokable]
+    public void _OnFlipKeyUp(_OnFlipClickArgs eventArgs)
+    {
+        OnKeyUp.InvokeAsync(new(-1, -1, eventArgs.key, eventArgs.isPressedDown, 0, eventArgs.selectedIndex, eventArgs.registryKey)).Wait();
+    } *@
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
         // Need to wait with invoking the JS code until the HTML got added to the DOM on the client side
         if (flipJson != null)
         {
-            await JSRuntime.InvokeVoidAsync("makeFlipBook", flipJson, DotNetObjectReference.Create(this), nameof(_OnFlipClick));
+            await JSRuntime.InvokeVoidAsync(
+                "makeFlipBook", 
+                flipJson, 
+                DotNetObjectReference.Create(this), 
+                nameof(_OnFlipClick), 
+                DotNetObjectReference.Create(this), 
+                nameof(_OnFlipWheel),
+                DotNetObjectReference.Create(this), 
+                nameof(_OnFlipMouseOver),
+                DotNetObjectReference.Create(this), 
+                nameof(_OnFlipKey)
+                @* DotNetObjectReference.Create(this), 
+                nameof(_OnFlipKeyUp) *@
+                );
             flipJson = null;
         }
     }

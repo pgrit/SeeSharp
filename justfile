@@ -9,6 +9,7 @@ _build_dotnet:
 [working-directory: "./BlenderExtension"]
 _blender_binaries:
   python -m build --wheel
+  cp -r ./dist ./see_blender/wheels
 
 # Builds the Blender add-on .zip
 [working-directory: "./BlenderExtension/see_blender/"]

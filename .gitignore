@@ -54,5 +54,6 @@ docs/*
 
 # Blender extension binary data
 BlenderExtension/dist
+BlenderExtension/see_blender/wheels
 BlenderExtension/seesharp_binaries.egg-info
 BlenderExtension/see_sharp_renderer-*.zip

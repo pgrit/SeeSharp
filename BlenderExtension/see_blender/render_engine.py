@@ -1,8 +1,8 @@
 import bpy
 from bpy.props import EnumProperty, IntProperty, BoolProperty, PointerProperty
 import os
-import subprocess
 import tempfile
+import seesharp_binaries
 
 from . import exporter
 
@@ -20,21 +20,18 @@ class SeeSharpRenderEngine(bpy.types.RenderEngine):
 
         config = scene.seesharp.config
 
-        exe = os.path.dirname(__file__) + "/bin/SeeSharp.PreviewRender.dll"
         with tempfile.TemporaryDirectory() as tempdir:
             exporter.export_scene(tempdir + "/scene.json", scene, depsgraph)
-            args = ["dotnet", exe]
-            args.extend([
-                "--scene", tempdir + "/scene.json",
-                "--output", tempdir + "/Render.hdr",
-                "--resx", str(size_x),
-                "--resy", str(size_y),
-                "--samples", str(config.samples),
-                "--algo", str(config.engine),
-                "--maxdepth", str(config.maxdepth),
-                "--denoise", str(config.denoise)
-            ])
-            subprocess.call(args)
+
+            seesharp_binaries.preview_render(
+                tempdir + "/scene.json",
+                tempdir + "/Render.hdr",
+                size_x, size_y,
+                config.samples,
+                config.engine,
+                config.maxdepth,
+                config.denoise
+            )
 
             result = self.begin_result(0, 0, size_x, size_y)
             result.layers[0].load_from_file(tempdir + "/Render.hdr")

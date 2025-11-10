@@ -59,6 +59,7 @@ button {
     flex-direction: column;
     float: left;
     margin-right: 1em;
+    height: 10000px; /*Sets height of parameter window on the left site. Only visual benefits*/
 }
 
 .experiment-results {

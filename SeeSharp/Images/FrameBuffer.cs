@@ -132,8 +132,8 @@ public class FrameBuffer : IDisposable {
         Recommended = IgnoreNanAndInf,
     }
 
-    private record ErrorMetric(long TimeMS, float MSE, float RelMSE, float RelMSE_Outlier);
-    private List<ErrorMetric> Errors = [];
+    public record ErrorMetric(long TimeMS, float MSE, float RelMSE, float RelMSE_Outlier);
+    public List<ErrorMetric> Errors { get; private set; } = [];
 
     public record NaNWarning(Pixel Pixel, int Iteration, string StackTrace) { }
 

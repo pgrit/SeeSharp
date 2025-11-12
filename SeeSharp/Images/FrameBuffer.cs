@@ -133,8 +133,7 @@ public class FrameBuffer : IDisposable {
     }
 
     public record ErrorMetric(long TimeMS, float MSE, float RelMSE, float RelMSE_Outlier);
-    private readonly List<ErrorMetric> errors = [];
-    public List<ErrorMetric> Errors => errors;
+    public List<ErrorMetric> Errors { get; private set; } = [];
 
     public record NaNWarning(Pixel Pixel, int Iteration, string StackTrace) { }
 
@@ -275,7 +274,7 @@ public class FrameBuffer : IDisposable {
             layer.OnEndIteration(CurIteration);
 
         if (ReferenceImage != null)
-            errors.Add(ComputeErrorMetric());
+            Errors.Add(ComputeErrorMetric());
 
         if (!flags.HasFlag(Flags.WriteExponentially) || int.IsPow2(CurIteration - 1)) {
             if (flags.HasFlag(Flags.WriteIntermediate)) {
@@ -348,8 +347,8 @@ public class FrameBuffer : IDisposable {
         }
 
         // Add error metric data if available
-        if (errors.Count > 0)
-            MetaData["ErrorMetrics"] = errors;
+        if (Errors.Count > 0)
+            MetaData["ErrorMetrics"] = Errors;
 
         if (NaNWarnings != null)
             MetaData["NaNWarnings"] = NaNWarnings;

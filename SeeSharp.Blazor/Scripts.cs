@@ -41,15 +41,9 @@ public static class Scripts {
 
             let onKey = null
             if (onKeyObj && onKeyMethodName) {
-                onKey = (selectedIdx, keyStr, keyPressed, isPressedDown) =>
-                    onKeyObj.invokeMethodAsync(onKeyMethodName, selectedIdx, keyStr, keyPressed, isPressedDown)
+                onKey = (selectedIdx, keyStr, keyPressed, isPressed) =>
+                    onKeyObj.invokeMethodAsync(onKeyMethodName, selectedIdx, keyStr, keyPressed, isPressed)
             }
-
-            // let onKeyUp = null
-            // if (onKeyUpObj && onKeyUpMethodName) {
-            //     onKeyUp = (evt, selectedIdx, keyStr) =>
-            //         onKeyUpObj.invokeMethodAsync(onKeyUpMethodName, { ctrlKey: evt.ctrlKey, altKey: evt.altKey, deltaY: evt.deltaY, selectedIndex: selectedIdx, registryKey: keyStr })
-            // }
 
             window['flipbook']['MakeFlipBook'](jsonArgs, onClick, onWheel, onMouseOver, onKey);
         }

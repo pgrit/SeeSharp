@@ -4,6 +4,8 @@
 
 @inject IJSRuntime JS
 
+@inherits SeeSharp.Blazor.Template.Pages.BaseExperiment
+
 @page "/Experiment"
 
 <h1>Example experiment</h1>
@@ -44,11 +46,6 @@
                 } *@
                 @* <button @onclick="OnDownloadClick">Download results</button> *@
             </div>
-            <h3>Compare Example (SVCM, VCM)</h3> 
-            <div class="compare">
-                <FlipViewer Flip="@compare.Item1" OnClick="@OnFlipClick" OnWheel="@OnFlipWheel" OnMouseOver="@OnFlipMouseOver" OnKeyDown="@OnFlipKey"></FlipViewer>
-                <FlipViewer Flip="@compare.Item2" OnClick="@OnFlipClick" OnWheel="@OnFlipWheel" OnMouseOver="@OnFlipMouseOver" OnKeyDown="@OnFlipKey"></FlipViewer>
-            </div>
         }
     }
     else
@@ -68,15 +65,11 @@
     bool resultsAvailable = false;
     ElementReference runButton;
 
-    SimpleImageIO.FlipBook flip;
-    (SimpleImageIO.FlipBook, SimpleImageIO.FlipBook) compare;
-
     async Task OnSceneLoaded(SceneFromFile sceneFromFile)
     {
         await Task.Run(() => scene = sceneFromFile.MakeScene());
 
         flip = null;
-        compare = (null, null);
 
         resultsAvailable = false;
         readyToRun = true;

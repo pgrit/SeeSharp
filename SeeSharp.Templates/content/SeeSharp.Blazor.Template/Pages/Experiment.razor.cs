@@ -5,14 +5,6 @@ using SeeSharp.Blazor;
 namespace SeeSharp.Blazor.Template.Pages;
 
 public partial class Experiment : BaseExperiment {
-    // protected const int Width = 1280;
-    // protected const int Height = 720;
-    // protected const int FlipWidth = 660;
-    // protected const int FlipHeight = 580;
-    // protected const int MaxDepth = 10;
-
-    // int NumSamples = 2;
-
     public SimpleImageIO.FlipBook flip;
 
     long renderTimePT, renderTimeVCM;

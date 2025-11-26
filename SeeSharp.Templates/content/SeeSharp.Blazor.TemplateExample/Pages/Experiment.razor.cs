@@ -29,14 +29,6 @@ struct ExampleImageGenerator {
 }
 
 public partial class Experiment : BaseExperiment {
-    // const int Width = 1280;
-    // const int Height = 720;
-    // const int FlipWidth = 660;
-    // const int FlipHeight = 580;
-    // const int MaxDepth = 10;
-
-    // int NumSamples = 2;
-
     // Define all flip books here
     public SimpleImageIO.FlipBook flip;
     public (SimpleImageIO.FlipBook, SimpleImageIO.FlipBook) compare;
@@ -155,10 +147,10 @@ public partial class Experiment : BaseExperiment {
         Image updateImage = flipBook.GetImage(state.selectedIndex);
         Image updateImageOther = flipBookOther.GetImage(state.selectedIndex);
 
-        if (state.altKeyPressed) {
+        if (state.actionKey1Pressed) {
             bool colored = true;
 
-            if (state.ctrlKeyPressed)
+            if (state.actionKey2Pressed)
                 colored = !colored;
 
             if (state.currIteration == 0) {

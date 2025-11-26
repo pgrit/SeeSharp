@@ -1,3 +1,4 @@
+using System.Threading.Tasks;
 using Microsoft.AspNetCore.Components;
 using Microsoft.JSInterop;
 using SeeSharp.Blazor;
@@ -17,13 +18,18 @@ public struct ListenerState {
     /// </summary>
     public int currIteration = 0;
 
-    public bool altKeyPressed = false;
-    public bool ctrlKeyPressed = false;
+    // Add here all action keys for your functionalities
+    // Attention: any key press disables the default html scrolling!
+    public string actionKey1 = "a";
+    public string actionKey2 = "d";
+    public bool actionKey1Pressed = false;
+    public bool actionKey2Pressed = false;
+
     public int currX = 0;
     public int currY = 0;
 
     /// <summary>
-    /// The key of the current flipbook in string form and concatenated with ','
+    /// The key of the current flipbook
     /// </summary>
     public string currFlipKey = "";
 }
@@ -72,7 +78,7 @@ public partial class BaseExperiment : ComponentBase {
     /// </summary>
     /// <param name="args">ListenerState from HMTL side</param>
     public virtual void OnFlipClick(FlipViewer.OnClickEventArgs args) {
-        updateFlipbook(FiredType.Click);
+         updateFlipbook(FiredType.Click);
     }
 
     /// <summary>
@@ -81,19 +87,19 @@ public partial class BaseExperiment : ComponentBase {
     /// </summary>
     /// <param name="args">ListenerState from HMTL side.</param>
     public virtual void OnFlipWheel(FlipViewer.OnClickEventArgs args) {
-        if (state.altKeyPressed) {
+        if (state.actionKey1Pressed) {
             // scrolled up
             if (args.deltaY < 0) {
                 if (state.currIteration < NumSamples - 1) {
                     state.currIteration++;
-                    updateFlipbook(FiredType.Wheel);
+                     updateFlipbook(FiredType.Wheel);
                 }
             }
             // scrolled down
             if (args.deltaY >= 0) {
                 if (state.currIteration > 0) {
                     state.currIteration--;
-                    updateFlipbook(FiredType.Wheel);
+                     updateFlipbook(FiredType.Wheel);
                 }
             }
         }
@@ -108,11 +114,11 @@ public partial class BaseExperiment : ComponentBase {
             return;
 
         if (args.X >= 0 && args.X <= Width - 1)
-                state.currX = args.X;
+            state.currX = args.X;
         if (args.Y >= 0 && args.Y <= Height - 1)
             state.currY = args.Y;
 
-        updateFlipbook(FiredType.Move);
+         updateFlipbook(FiredType.Move);
     }
 
     /// <summary>
@@ -120,22 +126,22 @@ public partial class BaseExperiment : ComponentBase {
     /// </summary>
     /// <param name="args">ListenerState from HMTL side.</param>
     public virtual void OnFlipKey(FlipViewer.OnClickEventArgs args) {
-        if (args.key == "Alt")
-            state.altKeyPressed = args.isPressed;
+        if (args.key == state.actionKey1)
+            state.actionKey1Pressed = args.isPressed;
 
-        if (args.key == "Control")
-            state.ctrlKeyPressed = args.isPressed;
+        if (args.key == state.actionKey2)
+            state.actionKey2Pressed = args.isPressed;
 
         state.currFlipKey = args.registryKey;
         state.selectedIndex = args.selectedIndex;
 
-        if (args.key == "Alt" && !args.isPressed)
+        if (args.key == state.actionKey1 && !args.isPressed)
             state.currIteration = 0;
 
         if (args.isPressed)
-            updateFlipbook(FiredType.KeyDown);
+             updateFlipbook(FiredType.KeyDown);
         else
-            updateFlipbook(FiredType.KeyUp);
+             updateFlipbook(FiredType.KeyUp);
     }
 
     /// <summary>

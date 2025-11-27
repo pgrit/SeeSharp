@@ -96,6 +96,7 @@ public abstract partial class BidirBase<CameraPayloadType> {
     /// <summary>
     /// The generated light paths in the current iteration
     /// </summary>
+    [JsonIgnore]
     protected PathCache PathCache { get; set; }
 
     /// <summary>
@@ -127,6 +128,7 @@ public abstract partial class BidirBase<CameraPayloadType> {
     /// <summary>
     /// Probability of selecting the background instead of a surface emitter
     /// </summary>
+    [JsonIgnore]
     public virtual float BackgroundProbability
     => Scene.Background != null ? 1 / (1.0f + Scene.Emitters.Count) : 0;
 
@@ -260,6 +262,7 @@ public abstract partial class BidirBase<CameraPayloadType> {
     /// <summary>
     /// The total number of light vertices in the cache
     /// </summary>
+    [JsonIgnore]
     public int NumVertices => PathCache.NumVertices;
 
     protected virtual void TraceEmitterPath(ref RNG rng, Emitter emitter, float selectProb, int idx, LightPathWalk walkModifier) {

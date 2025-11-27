@@ -72,13 +72,18 @@ public class CameraStoringVCM<TLightPathData> : Integrator where TLightPathData 
 
     #endregion Parameters
 
+    [JsonIgnore]
     public Scene Scene { get; protected set; }
 
+    [JsonIgnore]
     public DenoiseBuffers DenoiseBuffers { get; protected set; }
 
+    [JsonIgnore]
     public PathCache CameraPaths { get; protected set; }
 
+    [JsonIgnore]
     public TechPyramid TechPyramidRaw { get; protected set; }
+    [JsonIgnore]
     public TechPyramid TechPyramidWeighted { get; protected set; }
 
     protected Pixel? IsolatedPixel { get; set; }

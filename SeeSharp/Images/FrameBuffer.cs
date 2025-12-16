@@ -132,7 +132,7 @@ public class FrameBuffer : IDisposable {
         Recommended = IgnoreNanAndInf,
     }
 
-    public record ErrorMetric(long TimeMS, float MSE, float RelMSE, float RelMSE_Outlier);
+    public record ErrorMetric(long TimeMS, float MSE, float MSE_Outlier, float RelMSE, float RelMSE_Outlier);
     public List<ErrorMetric> Errors { get; private set; } = [];
 
     public record NaNWarning(Pixel Pixel, int Iteration, string StackTrace) { }
@@ -378,6 +378,7 @@ public class FrameBuffer : IDisposable {
     private ErrorMetric ComputeErrorMetric() {
         return new(stopwatch.ElapsedMilliseconds,
             Metrics.MSE(Image, ReferenceImage),
+            Metrics.MSE_OutlierRejection(Image, ReferenceImage),
             Metrics.RelMSE(Image, ReferenceImage),
             Metrics.RelMSE_OutlierRejection(Image, ReferenceImage));
     }

@@ -15,6 +15,8 @@ public abstract class Integrator {
     /// </summary>
     public int MinDepth { get; set; } = 1;
 
+    public uint BaseSeed { get; set; } = 0x0C030114;
+
     /// <summary>
     /// Renders a scene to the frame buffer that is specified by the <see cref="Scene" /> object.
     /// </summary>

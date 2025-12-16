@@ -5,11 +5,6 @@
 /// </summary>
 public class DebugVisualizer : Integrator {
     /// <summary>
-    /// Base seed used for anti-aliasing
-    /// </summary>
-    public uint BaseSeed = 0xC030114;
-
-    /// <summary>
     /// Number of anti-aliasing samples to take in each pixel
     /// </summary>
     public int TotalSpp = 1;

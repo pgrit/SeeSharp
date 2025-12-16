@@ -29,12 +29,26 @@ public abstract partial class BidirBase<CameraPayloadType> : Integrator {
     /// <summary>
     /// The base seed to generate camera paths.
     /// </summary>
-    public uint BaseSeedCamera = 0xC030114u;
+    public uint BaseSeedCamera {
+        get => (uint)(BaseSeed >> 16);
+        set {
+            Debug.Assert(value <= 0xFFFF);
+            BaseSeed &= 0x0000FFFF;
+            BaseSeed |= value << 16;
+        }
+    }
 
     /// <summary>
     /// The base seed used when sampling paths from the light sources
     /// </summary>
-    public uint BaseSeedLight = 0x13C0FEFEu;
+    public uint BaseSeedLight {
+        get => BaseSeed & 0x0000FFFF;
+        set {
+            Debug.Assert(value <= 0xFFFF);
+            BaseSeed &= 0xFFFF0000;
+            BaseSeed |= value & 0x0000FFFF;
+        }
+    }
 
     /// <summary>
     /// If set to true (default) runs Intel Open Image Denoise after the end of the last rendering iteration
@@ -141,6 +155,7 @@ public abstract partial class BidirBase<CameraPayloadType> : Integrator {
         scene.FrameBuffer.MetaData["LightTracerTime"] = lightTracerTimer.ElapsedMilliseconds;
         scene.FrameBuffer.MetaData["ShadingStats"] = ShadingStatCounter.Current;
         scene.FrameBuffer.MetaData["RayTracerStats"] = scene.Raytracer.Stats;
+        scene.FrameBuffer.MetaData["BaseSeed"] = BaseSeed;
 
         OnAfterRender();
     }

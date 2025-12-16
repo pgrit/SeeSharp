@@ -21,14 +21,28 @@ public class PhotonMapper : Integrator {
     public int NumLightPaths = 0;
 
     /// <summary>
-    /// Seed for the random samples used to generate the photons
+    /// The base seed to generate camera paths.
     /// </summary>
-    public uint BaseSeedLight = 0xC030114u;
+    public uint BaseSeedCamera {
+        get => (uint)(BaseSeed >> 16);
+        set {
+            Debug.Assert(value <= 0xFFFF);
+            BaseSeed &= 0x0000FFFF;
+            BaseSeed |= value << 16;
+        }
+    }
 
     /// <summary>
-    /// Seed for the random samples used to generate the camera rays
+    /// The base seed used when sampling paths from the light sources
     /// </summary>
-    public uint BaseSeedCamera = 0x13C0FEFEu;
+    public uint BaseSeedLight {
+        get => BaseSeed & 0x0000FFFF;
+        set {
+            Debug.Assert(value <= 0xFFFF);
+            BaseSeed &= 0xFFFF0000;
+            BaseSeed |= value & 0x0000FFFF;
+        }
+    }
 
     /// <summary>
     /// The scene that is currently rendered

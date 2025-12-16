@@ -11,11 +11,6 @@ public class PathTracer : PathTracerBase<byte> { }
 /// </summary>
 public class PathTracerBase<PayloadType> : Integrator {
     /// <summary>
-    /// Used to compute the seeds for all random samplers.
-    /// </summary>
-    public uint BaseSeed = 0xC030114;
-
-    /// <summary>
     /// Number of samples per pixel to render
     /// </summary>
     public int TotalSpp = 20;
@@ -255,6 +250,7 @@ public class PathTracerBase<PayloadType> : Integrator {
         scene.FrameBuffer.MetaData["FrameBufferTime"] = timer.FrameBufferTime;
         scene.FrameBuffer.MetaData["ShadingStats"] = ShadingStatCounter.Current;
         scene.FrameBuffer.MetaData["RayTracerStats"] = scene.Raytracer.Stats;
+        scene.FrameBuffer.MetaData["BaseSeed"] = BaseSeed;
 
         OnAfterRender();
 

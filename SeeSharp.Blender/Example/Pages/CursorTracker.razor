@@ -1,0 +1,44 @@
+@page "/CursorTracker"
+@using SeeSharp.Blender
+@inject SeeSharp.Blender.CursorTrackerClient Client
+@inject SeeSharp.Blender.BlenderCommandSender Commander
+@inject SeeSharp.Blender.BlenderEventListener Listener
+<h3>Blender Live Data</h3>
+
+@if (_data is null)
+{
+    <p>Waiting for Blender...</p>
+}
+else
+{
+    <div>
+        @if (_data.Hit_Position != null)
+        {
+            <p><b>Cursor:</b> @Format(_data.Cursor_Position)</p>
+            <p><b>Object:</b> @_data.Object</p>
+            <p><b>Hit Position:</b> @Format(_data.Hit_Position)</p>
+            <p><b>Normal:</b> @Format(_data.Normal)</p>
+            <p><b>Face Index:</b> @_data.Face_Index</p>
+        }
+        else
+        {
+            <p><b>No object hit</b></p>
+        }
+    </div>
+}
+
+@code {
+    private BlenderCursorData? _data;
+    protected override void OnInitialized()
+    {
+        Client._cursor_tracked.OnCursorTracked += data =>
+        {
+            Console.WriteLine("RAW JSON: " + JsonSerializer.Serialize(data));
+            _data = data;
+            InvokeAsync(StateHasChanged);
+        };
+    }
+
+    string Format(float[]? arr)
+    => arr == null ? "null" : string.Join(", ", arr);
+}

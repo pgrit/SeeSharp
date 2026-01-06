@@ -1,0 +1,26 @@
+.tree-node {
+    display: flex;
+    align-items: center;
+    font-family: monospace;
+}
+
+.toggle {
+    width: 20px;
+    cursor: pointer;
+    user-select: none;
+}
+
+.label {
+    cursor: pointer;
+    padding: 2px 4px;
+}
+
+.label:hover {
+    background-color: #2d2d2d;
+}
+
+.children {
+    margin-left: 20px;
+    border-left: 1px dotted #555;
+    padding-left: 6px;
+}

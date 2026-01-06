@@ -1,0 +1,232 @@
+@page "/PathViewer"
+@inject SeeSharp.Blender.PathViewerClient Client
+@inject SeeSharp.Blender.BlenderCommandSender Commander
+@inject SeeSharp.Blender.BlenderEventListener Listener
+
+@using Markdig.Extensions.SelfPipeline
+@using Microsoft.AspNetCore.Routing.Internal
+@using SeeSharp.Experiments
+@using SeeSharp
+@using SeeSharp.Blazor
+@using SeeSharp.Common;
+@using SeeSharp.Integrators;
+@using SeeSharp.Integrators.Bidir;
+@using SeeSharp.Blender;
+@inject IJSRuntime JS
+<h3>Render Scene</h3>
+
+<div style="display: flex; gap: 5px; flex-wrap: wrap;">
+    <div style="flex-grow: 1">
+        <BlenderImporter @ref=sceneSelector OnSceneLoaded="@OnSceneLoaded"></BlenderImporter>
+    </div>
+    <LogOutput></LogOutput>
+</div>
+
+
+<button @onclick="Render">Render</button>
+
+<ul>
+    @foreach (var path in paths)
+    {
+        <li style="@GetStyle(path)">
+            @path
+            <button @onclick="() => SelectPath(path)">Select</button>
+            <button @onclick="() => DeletePath(path)">Delete</button>
+        </li>
+        @if (path == SelectedId)
+        {
+            <GraphBrowser Node="viewer_roots[path]" OnClick="OnNodeClicked" OnDoubleClick="OnNodeDoubleClicked" />
+        }
+    }
+</ul>
+
+@if (renderedImage != null)
+{
+    <select class="form-select" @onchange="OnModeChanged">
+        <option value="">-- Rendering Mode --</option>
+        <option value="PathTracer">PathTracer</option>
+        <option value="Bidir">Bidir</option>
+    </select>
+
+    <div>
+        <h4>Rendered Image</h4>
+        <img id="renderImg" src="@renderedImage" style="max-width:100%; cursor: crosshair;" @onclick="OnImageClick" />
+    </div>
+}
+
+@code {
+    BlenderImporter sceneSelector;
+    private string renderedImage;
+    private string hitInfo;
+
+    private List<String> paths = new();
+    private string? SelectedId = null;
+    public PathGraphNode? viewer_root = null;
+    public Dictionary<string, PathGraphNode>? viewer_roots = new Dictionary<string, PathGraphNode>();
+
+    Scene scene;
+    Integrator path_tracer = new PathTracer()
+    {
+        MaxDepth = 5,
+        TotalSpp = 1,
+        EnableDenoiser = false
+    };
+
+    Integrator bi_path_tracer = new CameraStoringVCM<byte>()
+    {
+        NumIterations = 10,
+        MaxDepth = 10,
+        EnableDenoiser = false
+    };
+    Integrator integrator = new PathTracer()
+    {
+        MaxDepth = 5,
+        TotalSpp = 1,
+        EnableDenoiser = false
+    };
+
+    void OnModeChanged(ChangeEventArgs e)
+    {
+        var SelectedMode = e.Value?.ToString() ?? "";
+
+        // Update ModeExecutor based on SelectedMode
+        integrator = SelectedMode switch
+        {
+            "PathTracer" => path_tracer,
+            "Bidir" => bi_path_tracer,
+            _ => path_tracer
+        };
+    }
+    PathGraph graph;
+    RgbColor estimate;
+
+    async Task OnSceneLoaded(SceneFromFile sceneFromFile)
+    {
+        await Task.Run(() => scene = sceneFromFile.MakeScene());
+        Console.WriteLine("About to load this scene: " + sceneSelector.FindJson(sceneSelector.sceneNameInput.Text));
+
+        paths.Clear();
+        viewer_roots.Clear();
+
+        await Commander.SendCommandAsync(new
+        {
+            command = "import_scene",
+            scene_name = sceneSelector.FindJson(sceneSelector.sceneNameInput.Text)
+        });
+    }
+
+    async Task Render()
+    {
+        scene.FrameBuffer = new(1920, 1080, "../Data/Render.exr");
+        scene.Prepare();
+        path_tracer.Render(scene);
+        scene.FrameBuffer.Image.WriteToFile("./Data/Render.png");
+        var bytes = File.ReadAllBytes("./Data/Render.png");
+        renderedImage = $"data:image/png;base64,{Convert.ToBase64String(bytes)}";
+    }
+
+    protected override void OnInitialized()
+    {
+        Client._created.OnCreated += obj =>
+        {
+            paths.Add(obj);
+            SelectedId = null;
+            InvokeAsync(StateHasChanged);
+        };
+        Client._deleted.OnDeleted += obj =>
+        {
+            paths.Remove(obj);
+            viewer_roots.Remove(obj);
+            InvokeAsync(StateHasChanged);
+        };
+        Client._selected.OnSelected += obj =>
+        {
+            SelectedId = obj;
+            InvokeAsync(StateHasChanged);
+        };
+    }
+
+    async Task OnImageClick(MouseEventArgs e)
+    {
+        var pt = await JS.InvokeAsync<PixelPos>("getBlenderPixelCoords",
+        "renderImg", e.ClientX, e.ClientY);
+
+        scene.FrameBuffer = new(1920, 1080, "../Data/Render.exr");
+        scene.Prepare();
+        (graph, estimate) = integrator.ReplayPixel(scene, new Pixel((int)pt.x, (int)pt.y), 0);
+        PathGraphNode node = graph.Roots[0];
+        viewer_root = graph.Roots[0];
+        string jsonGraph = GraphSerializer.SerializeGraph(node);
+        string path_id = Guid.NewGuid().ToString();
+        viewer_roots.Add(path_id, graph.Roots[0]);
+        await Commander.SendCommandAsync(new
+        {
+            command = "create_path",
+            id = path_id, 
+            graph = jsonGraph
+        });
+    }
+
+    async Task DeletePath(string id)
+    {
+        await Commander.SendCommandAsync(new { command = "delete_path", id });
+    }
+
+    async Task SelectPath(string id)
+    {
+        await Commander.SendCommandAsync(new { command = "select_path", id });
+    }
+    public class PixelPos { public float x { get; set; } public float y { get; set; } }
+
+    async void OnNodeClicked(PathGraphNode node)
+    {
+        var node_list = new List<string>();
+        for (var n = node; n != null; n = n.Ancestor)
+        {
+            node_list.Add(n.GetHashCode().ToString("X"));
+        }
+
+        node_list.Reverse();
+        bool is_full_graph = (node == viewer_roots[SelectedId]);
+
+        await Commander.SendCommandAsync(new
+        {
+            command = "click_on_node",
+            path = JsonSerializer.Serialize(node_list, new
+        JsonSerializerOptions
+            {
+                WriteIndented = false
+            }),
+            path_id = SelectedId,
+            is_full_graph
+        });
+    }
+    async void OnNodeDoubleClicked(PathGraphNode node)
+    {
+        var node_list = new List<string>();
+        for (var n = node; n != null; n = n.Ancestor)
+        {
+            node_list.Add(n.GetHashCode().ToString("X"));
+        }
+
+        node_list.Reverse();
+        bool is_full_graph = (node == viewer_roots[SelectedId]);
+        await Commander.SendCommandAsync(new
+        {
+            command = "dbclick_on_node",
+            path = JsonSerializer.Serialize(node_list, new
+        JsonSerializerOptions
+            {
+                WriteIndented = false
+            }),
+            path_id = SelectedId,
+            is_full_graph
+        });
+    }
+    string GetStyle(string id)
+    {
+        return id == SelectedId
+        ? "background-color: yellow; font-weight: bold;"
+        : "";
+    }
+}

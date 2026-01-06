@@ -140,6 +140,8 @@ def material_to_json(material, out_dir):
             material.emission_color[1] * material.emission_strength,
             material.emission_color[2] * material.emission_strength
         )),
+        "emission_color":  map_rgb(material.emission_color),
+        "emission_strength": material.emission_strength,
         "emissionIsGlossy": material.emission_is_glossy,
         "emissionExponent": material.emission_glossy_exponent
     }

@@ -1,0 +1,92 @@
+@using SeeSharp.Integrators.Util
+
+
+@namespace SeeSharp.Blazor
+@if (Node != null)
+{
+    <div class="tree-node">
+        <span class="toggle" @onclick="Toggle">
+            @if (HasChildren)
+            {
+                <span>@(expanded ? "▼" : "▶")</span>
+            }
+            else
+            {
+                <span style="opacity:0.3">•</span>
+            }
+        </span>
+
+        <span class="label" style="color:@ToHex()" @onclick="Click" @ondblclick="DoubleClick">
+            @Node.GetType().Name
+        </span>
+    </div>
+
+    @if (expanded && HasChildren)
+    {
+        <div class="children">
+            @foreach (var child in Node.Successors)
+            {
+                <GraphBrowser Node="child" OnClick="OnClick" OnDoubleClick="OnDoubleClick" ForceExpand=AutoExpand />
+            }
+        </div>
+    }
+
+}
+
+@code {
+    [Parameter] public PathGraphNode Node { get; set; } = default!;
+    [Parameter] public Action<PathGraphNode> OnClick { get; set; } = default!;
+    [Parameter] public Action<PathGraphNode> OnDoubleClick { get; set; } = default!;
+    [Parameter] public bool ForceExpand { get; set; } = false;
+    bool expanded = false;
+    bool HasChildren => Node.Successors?.Count > 0;
+    void Toggle() => expanded = !expanded;
+
+    bool AutoExpand =>
+    Node is ConnectionNode || Node is MergeNode || ForceExpand;
+
+    protected override void OnParametersSet()
+    {
+        if (ForceExpand)
+        {
+            expanded = true;
+        }
+    }
+    void Click()
+    {
+        OnClick?.Invoke(Node);
+    }
+    
+    void DoubleClick()
+    {
+        OnDoubleClick?.Invoke(Node);
+    }
+
+    string ToHex()
+    {
+        string color = "#000000";
+        switch (Node.GetType().Name)
+        {
+            case "BSDFSampleNode":
+                color = "#FF0000"; //Red
+                break;
+            case "NextEventNode":
+                color = "#0000FF"; //Blue
+                break;
+            case "LightPathNode":
+                color = "#00AA00"; //Green
+                break;
+            case "ConnectionNode":
+                color = "#FFA500"; //Orange
+                break;
+            case "MergeNode":
+                color = "#00BFC4"; //Cyan
+                break;
+            case "BackgroundNode":
+                color = "#800080"; //Purple
+                break;
+
+        }
+        return color;
+    }
+}

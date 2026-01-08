@@ -25,6 +25,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SeeSharp.Blazor", "SeeSharp
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MaterialTest", "MaterialTest\MaterialTest.csproj", "{5440A486-D6C5-47C8-8B53-C09F1EFE0A7F}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SeeSharp.Blender", "SeeSharp.Blender\SeeSharp.Blender.csproj", "{BB86935A-DF0E-4B98-9823-41A15F85BD7D}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -33,9 +35,6 @@ Global
 		Release|Any CPU = Release|Any CPU
 		Release|x64 = Release|x64
 		Release|x86 = Release|x86
-	EndGlobalSection
-	GlobalSection(SolutionProperties) = preSolution
-		HideSolutionNode = FALSE
 	EndGlobalSection
 	GlobalSection(ProjectConfigurationPlatforms) = postSolution
 		{3B8C0540-28DA-4071-A3B1-03391D07630F}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
@@ -170,5 +169,20 @@ Global
 		{5440A486-D6C5-47C8-8B53-C09F1EFE0A7F}.Release|x64.Build.0 = Release|Any CPU
 		{5440A486-D6C5-47C8-8B53-C09F1EFE0A7F}.Release|x86.ActiveCfg = Release|Any CPU
 		{5440A486-D6C5-47C8-8B53-C09F1EFE0A7F}.Release|x86.Build.0 = Release|Any CPU
+		{BB86935A-DF0E-4B98-9823-41A15F85BD7D}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{BB86935A-DF0E-4B98-9823-41A15F85BD7D}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{BB86935A-DF0E-4B98-9823-41A15F85BD7D}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{BB86935A-DF0E-4B98-9823-41A15F85BD7D}.Debug|x64.Build.0 = Debug|Any CPU
+		{BB86935A-DF0E-4B98-9823-41A15F85BD7D}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{BB86935A-DF0E-4B98-9823-41A15F85BD7D}.Debug|x86.Build.0 = Debug|Any CPU
+		{BB86935A-DF0E-4B98-9823-41A15F85BD7D}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{BB86935A-DF0E-4B98-9823-41A15F85BD7D}.Release|Any CPU.Build.0 = Release|Any CPU
+		{BB86935A-DF0E-4B98-9823-41A15F85BD7D}.Release|x64.ActiveCfg = Release|Any CPU
+		{BB86935A-DF0E-4B98-9823-41A15F85BD7D}.Release|x64.Build.0 = Release|Any CPU
+		{BB86935A-DF0E-4B98-9823-41A15F85BD7D}.Release|x86.ActiveCfg = Release|Any CPU
+		{BB86935A-DF0E-4B98-9823-41A15F85BD7D}.Release|x86.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
 	EndGlobalSection
 EndGlobal

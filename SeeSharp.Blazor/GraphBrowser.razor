@@ -16,7 +16,10 @@
             }
         </span>
 
-        <span class="label" style="color:@ToHex()" @onclick="Click" @ondblclick="DoubleClick">
+        <span class="label" style="color:rgb(@(Node.ComputeVisualizerColor().R * 100)%,
+                                                @(Node.ComputeVisualizerColor().G * 100)%,
+                                                @(Node.ComputeVisualizerColor().B * 100)%)" @onclick="Click"
+            @ondblclick="DoubleClick">
             @Node.GetType().Name
         </span>
     </div>
@@ -56,37 +59,9 @@
     {
         OnClick?.Invoke(Node);
     }
-    
+
     void DoubleClick()
     {
         OnDoubleClick?.Invoke(Node);
-    }
-
-    string ToHex()
-    {
-        string color = "#000000";
-        switch (Node.GetType().Name)
-        {
-            case "BSDFSampleNode":
-                color = "#FF0000"; //Red
-                break;
-            case "NextEventNode":
-                color = "#0000FF"; //Blue
-                break;
-            case "LightPathNode":
-                color = "#00AA00"; //Green
-                break;
-            case "ConnectionNode":
-                color = "#FFA500"; //Orange
-                break;
-            case "MergeNode":
-                color = "#00BFC4"; //Cyan
-                break;
-            case "BackgroundNode":
-                color = "#800080"; //Purple
-                break;
-
-        }
-        return color;
     }
 }

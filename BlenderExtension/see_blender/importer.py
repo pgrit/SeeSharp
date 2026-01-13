@@ -3,6 +3,7 @@ import json
 import math
 import bpy
 import mathutils
+import bmesh
 from bpy_extras.io_utils import axis_conversion
 
 # ------------------------------------------------------------------------
@@ -48,7 +49,7 @@ def make_material(name, mat_json, base_path):
             links.new(tex.outputs["Color"], principled.inputs["Base Color"])
 
     # -------- Roughness (texture or float)
-    roughness = mat_json["roughness"]
+    roughness = mat_json.get("roughness", 1.0)
     if isinstance(roughness, str):  # texture
         img_path = os.path.join(base_path, roughness)
         img = load_image(img_path)
@@ -66,8 +67,8 @@ def make_material(name, mat_json, base_path):
     principled.inputs["Anisotropic"].default_value = mat_json.get("anisotropic", 0.0)
 
     # Emission
-    emission_json = mat_json["emission"]
-    if emission_json["type"] == "rgb":
+    emission_json = mat_json.get("emission")
+    if emission_json and emission_json.get("type") == "rgb":
         color = mat_json["emission_color"]["value"]
         principled.inputs["Emission Color"].default_value = (*color[:3], 1.0)
         principled.inputs["Emission Strength"].default_value = mat_json["emission_strength"]
@@ -87,6 +88,68 @@ def load_ply(filepath):
     if new_objs:
         return new_objs[0]
     return None
+
+def import_trimesh_object(obj, mat_lookup):
+    name = obj.get("name", "Trimesh")
+
+    mesh = bpy.data.meshes.new(name)
+    bm = bmesh.new()
+
+    verts = obj["vertices"]
+    indices = obj["indices"]
+
+    # ---- vertices
+    bm_verts = []
+    for i in range(0, len(verts), 3):
+        bm_verts.append(bm.verts.new((verts[i], verts[i+1], verts[i+2])))
+    bm.verts.ensure_lookup_table()
+
+    # ---- faces
+    for i in range(0, len(indices), 3):
+        try:
+            bm.faces.new((
+                bm_verts[indices[i]],
+                bm_verts[indices[i+1]],
+                bm_verts[indices[i+2]],
+            ))
+        except ValueError:
+            pass
+
+    bm.to_mesh(mesh)
+    bm.free()
+
+    obj_bl = bpy.data.objects.new(name, mesh)
+    bpy.context.collection.objects.link(obj_bl)
+
+    # ---- normals (optional)
+    if "normals" in obj:
+        normals = obj["normals"]
+        loop_normals = []
+
+        for loop in mesh.loops:
+            vi = loop.vertex_index
+            loop_normals.append(mathutils.Vector(normals[vi*3 : vi*3 + 3]))
+
+        mesh.normals_split_custom_set(loop_normals)
+
+    # ---- UVs (optional)
+    if "uv" in obj:
+        uv_layer = mesh.uv_layers.new(name="UVMap")
+        uvs = obj["uv"]
+        for poly in mesh.polygons:
+            for loop_idx in poly.loop_indices:
+                vi = mesh.loops[loop_idx].vertex_index
+                uv_layer.data[loop_idx].uv = (
+                    uvs[vi*2],
+                    uvs[vi*2 + 1]
+                )
+
+    # ---- material
+    mat_name = obj.get("material")
+    if mat_name in mat_lookup:
+        mesh.materials.append(mat_lookup[mat_name])
+
+    return obj_bl
 
 
 # ------------------------------------------------------------------------
@@ -186,18 +249,40 @@ def import_seesharp(filepath):
 
     if "objects" in data:
         for obj in data["objects"]:
-            ply_path = os.path.join(base_path, obj["relativePath"])
-            new_obj = load_ply(ply_path)
-            if not new_obj:
-                print(f"Failed to load {ply_path}")
-                continue
+            if obj.get("type") == "trimesh":
+                new_obj = import_trimesh_object(obj, mat_lookup)
+            else:
+                # fallback to existing PLY logic
+                ply_path = os.path.join(base_path, obj["relativePath"])
+                new_obj = load_ply(ply_path)
+                if not new_obj:
+                    print(f"Failed to load {ply_path}")
+                    continue
 
-            # Apply SeeSharp → Blender inverse transform
+                if obj.get("material") in mat_lookup:
+                    new_obj.data.materials.append(mat_lookup[obj["material"]])
+            # Apply transform (shared)
             new_obj.matrix_world = global_matrix.inverted()
+        # for obj in data["objects"]:    
+        #     # ply_path = os.path.join(base_path, obj["relativePath"])
+        #     rel_path = obj.get("relativePath")
 
-            # Assign material
-            if obj["material"] in mat_lookup:
-                new_obj.data.materials.append(mat_lookup[obj["material"]])
+        #     if not rel_path:
+        #         print(f"⚠ Skipping object '{obj.get('name', 'UNKNOWN')}', no relativePath")
+        #         continue
+
+        #     ply_path = os.path.join(base_path, rel_path)
+        #     new_obj = load_ply(ply_path)
+        #     if not new_obj:
+        #         print(f"Failed to load {ply_path}")
+        #         continue
+
+        #     # Apply SeeSharp → Blender inverse transform
+        #     new_obj.matrix_world = global_matrix.inverted()
+
+        #     # Assign material
+        #     if obj.get("material") in mat_lookup:
+        #         new_obj.data.materials.append(mat_lookup[obj["material"]])
 
     bpy.context.scene.render.engine = "SEE_SHARP"
 

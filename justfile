@@ -14,7 +14,7 @@ _blender_binaries:
 # Builds the Blender add-on .zip
 [working-directory: "./BlenderExtension/see_blender/"]
 blender: _build_dotnet _blender_binaries
-  blender --command extension build --output-dir ..
+  blender --factory-startup --command extension build --output-dir ..
   @echo ""
   @echo "Blender plugin built. Open Blender and go to 'Edit - Preferences - Addons - Install from Disk' (dropdown menu in the top-right corner)"
   @echo "Browse to the 'BlenderExtension/see_sharp_renderer-VERSION.zip' file in this directory and install it."

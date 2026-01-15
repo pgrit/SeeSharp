@@ -1,4 +1,4 @@
-from . import exporter, render_engine, material_ui, material, world
+from . import exporter, render_engine, material_ui, material, world, importer
 
 def register():
     exporter.register()
@@ -6,6 +6,7 @@ def register():
     material_ui.register()
     material.register()
     world.register()
+    importer.register()
 
 def unregister():
     exporter.unregister()
@@ -13,3 +14,4 @@ def unregister():
     material_ui.unregister()
     material.unregister()
     world.unregister()
+    importer.unregister()

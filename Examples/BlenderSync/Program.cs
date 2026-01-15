@@ -2,7 +2,7 @@ using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Components.Web;
 
 ProgressBar.Silent = true;
-SceneRegistry.AddSourceRelativeToScript("./Data");
+SceneRegistry.AddSourceRelativeToScript("../../Data/Scenes");
 
 var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddRazorPages();

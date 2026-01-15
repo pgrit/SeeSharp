@@ -1,7 +1,6 @@
 using Microsoft.AspNetCore.Components;
-using SeeSharp.Blazor;
 
-namespace SeeSharp.Blender.Example.Pages;
+namespace BlenderSync.Pages;
 
 public partial class Experiment : ComponentBase
 {

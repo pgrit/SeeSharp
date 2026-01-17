@@ -1,0 +1,838 @@
+@page "/ReferenceRendering"
+@using SeeSharp.Experiments
+@using SeeSharp.Integrators
+@using SeeSharp.Blazor
+@using System.IO
+@using SimpleImageIO
+@using System.Reflection
+@using System.Threading.Tasks
+@using System.Text.Json
+@using System.Text.Json.Nodes
+@using System.Diagnostics
+@using System.Linq
+@using System.Text.RegularExpressions; 
+
+<div class="experiment-layout">
+    
+    <div class="layout-header">
+        <SceneSelector @ref="sceneSelector" OnSceneLoaded="OnSceneLoaded" />
+    </div>
+
+    <div class="col-box">
+        <div class="col-title">Parameters</div>
+        <div class="col-content">
+            <IntegratorSelector @ref="integratorSelector" scene="@scene" />
+        </div>
+        
+        <div style="padding: 10px; border-top: 1px solid #eee; display: flex; gap: 10px;">
+            <button style="flex:1;" @onclick="ResetConfig">Reset</button>
+            <button style="flex:1;" class="btn-primary" @onclick="ApplyConfig">Apply</button>
+        </div>
+    </div>
+
+    <div class="col-box">
+        <div class="col-title">Available references</div>
+        <div class="col-content">
+            @if (referenceFiles.Count == 0) {
+                <div style="color:#999; text-align:center; margin-top:20px;">No references found</div>
+            }
+            @foreach (var file in referenceFiles) {
+                <div class="ref-item @(selectedFile == file ? "active" : "")" @onclick="() => SelectReference(file)">
+                    <div style="font-size: smaller; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+                        @file.Resolution, max depth: @file.MaxDepth 
+                        @if (file.FilePath.EndsWith("-partial.exr")) {
+                            <span> (Partial) </span>
+                        }
+                    </div> 
+                </div>
+            }
+        </div>
+
+        <div class="render-form">
+            <div style="font-weight:bold; margin-bottom:8px;">Render new</div>
+            
+            <div class="form-group">
+                <label>Resolution:</label>
+                <div>
+                    <input type="number" @bind="renderWidth" /> x <input type="number" @bind="renderHeight" />
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label>Maximum Depth:</label>
+                <input type="number" @bind="renderMaxDepth"  min="1" max="100" />
+            </div>
+            
+            <button style="width:100%; padding:6px; margin-top:5px;" @onclick="RenderReference" disabled="@isRendering">
+                @(isRendering ? "Rendering..." : "Render")
+            </button>
+
+            <div style="display: flex; gap: 5px; margin-top: 10px; align-items: center;">
+                <span style="font-size: smaller;">SPP:</span>
+                <input type="number" @bind="quickPreviewSpp" min="1" style="width: 60px; padding: 5px;" title="SPP for quick preview" />
+                <button style="flex-grow: 1; padding:6px;" @onclick="RenderQuickPreview" disabled="@isRendering">
+                    Render Quick Preview
+                </button>
+            </div>
+
+            <hr style="margin: 10px 0; border: 0; border-top: 1px dashed #ccc;" />
+            
+            <div style="font-weight:bold; margin-bottom:8px;">Render more</div>
+            
+            <div class="form-group">
+                <label>Add Spp:</label>
+                <input type="number" @bind="additionalSpp" min="1" />
+            </div>
+            
+            <button style="width:100%; padding:6px;" 
+                    @onclick="RenderMoreSamples" 
+                    disabled="@(selectedFile == null || isRendering)">
+                Render More Samples
+            </button>
+
+            <button style="width:100%; padding:6px; margin-top:5px;" 
+                    class="btn-primary" 
+                    @onclick="RenderMoreSamples" 
+                    disabled="@(selectedFile == null || !selectedFile.FilePath.EndsWith("-partial.exr") || isRendering)">
+                Resume
+            </button>
+        </div>
+    </div>
+
+    <div class="right-col-wrapper">
+        <div class="col-box viewer-box">
+            <div class="col-title">Viewer</div>
+            <div class="viewer-area">
+                @if (flip != null) {
+                    <FlipViewer Flip="@flip" />
+                }
+                else {
+                    <span style="color:#666;">Select a reference or render</span>
+                }
+            </div>
+        </div>
+
+        <div class="col-box meta-box">
+            <div class="col-title">Info</div>
+            <div class="meta-content">
+                @if (selectedFile != null) {
+                    <div class="meta-grid">
+                        <span class="label">RenderTime:</span> <span>@selectedFile.RenderTimeDisplay</span>
+                        <span class="label">StartTime:</span> <span>@selectedFile.StartTimeDisplay</span>
+                        <span class="label">WriteTime:</span> <span>@selectedFile.WriteTimeDisplay</span>
+                        <span class="label">Iterations:</span> <span>@selectedFile.Spp</span>
+                        <span class="label">Version:</span> <span>@selectedFile.Version</span>
+                    </div>
+                    
+                    <div style="margin-top: 10px; border-top: 1px solid #eee; padding-top: 5px;">
+                        <details>
+                            <summary style="cursor: pointer; font-size: 0.9em; color: #555; font-weight:bold; margin-bottom:5px;">Integrator Settings</summary>
+                            <div class="config-tree">
+                                <div class="config-item">
+                                    <span class="config-key">Integrator:</span>
+                                    <span class="config-val str">@selectedFile.IntegratorName</span>
+                                </div>
+                                @{
+                                    if (!string.IsNullOrEmpty(selectedFile.RawJsonConfig))
+                                    {
+                                        var node = System.Text.Json.Nodes.JsonNode.Parse(selectedFile.RawJsonConfig);
+                                        if (node != null)
+                                        {
+                                            var ignoredKeys = new HashSet<string> { 
+                                                "RenderTime", "NumIterations", "RenderStartTime", "RenderWriteTime", 
+                                                "SeeSharpVersion"
+                                            };
+                                            foreach (var kvp in node.AsObject())
+                                            {
+                                                if (ignoredKeys.Contains(kvp.Key)) continue;
+                                                string valStr = kvp.Value?.ToString() ?? "null";
+                                                string typeClass = "val"; 
+                                                if (kvp.Value is System.Text.Json.Nodes.JsonValue jval) {
+                                                    if (jval.TryGetValue<bool>(out _)) typeClass = "bool";
+                                                    else if (jval.TryGetValue<string>(out _)) typeClass = "str";
+                                                }
+                                                <div class="config-item">
+                                                    <span class="config-key">@kvp.Key:</span>
+                                                    <span class="config-val @typeClass">@valStr</span>
+                                                </div>
+                                            }
+                                        }
+                                    }
+                                }
+                            </div>
+                        </details>
+                    </div>
+                }
+                else {
+                    <div class="empty-tip">No image selected</div>
+                }
+            </div>
+        </div>
+
+    </div>
+</div>
+
+@code {
+    class ReferenceInfo {
+        public string FilePath { get; set; } = "";
+        public string Resolution { get; set; } = "";
+        public int MaxDepth { get; set; }
+        public string IntegratorName { get; set; } = "";
+        
+        public int Spp { get; set; }
+        public string RenderTimeDisplay { get; set; } = "";
+        public string Version { get; set; } = ""; 
+        public string StartTimeDisplay { get; set; } = "";
+        public string WriteTimeDisplay { get; set; } = "";
+        public string Timestamp { get; set; } = ""; 
+        
+        public string RawJsonConfig { get; set; } = ""; 
+    }
+
+    SceneSelector sceneSelector;
+    IntegratorSelector integratorSelector;
+    Scene scene; 
+    SceneFromFile currentSceneFile; 
+    string currentSceneDirectory = ""; 
+    FlipBook flip; 
+    
+    List<ReferenceInfo> referenceFiles = new();
+    ReferenceInfo selectedFile;
+    
+    int renderWidth = 512;
+    int renderHeight = 512;
+    int renderMaxDepth = 5;
+    int quickPreviewSpp = 1;
+    bool isRendering = false;
+    int additionalSpp = 32;
+    
+    void OnSceneLoaded(SceneFromFile sceneFromFile)
+    {
+        currentSceneFile = sceneFromFile;
+        scene = sceneFromFile.MakeScene();
+
+        if (!string.IsNullOrEmpty(sceneFromFile.Name))
+        {
+            string sceneName = Path.GetFileNameWithoutExtension(sceneFromFile.Name);
+            var dir = new DirectoryInfo(AppContext.BaseDirectory);
+            while (dir != null && dir.Name != "SeeSharp")
+                dir = dir.Parent;
+            if (dir != null)
+                currentSceneDirectory = Path.Combine(dir.FullName, "Data", "Scenes", sceneName);
+            
+            ScanReferences(currentSceneDirectory);
+        }
+    }
+    
+    void ScanReferences(string sceneDir)
+    {
+        referenceFiles.Clear();
+        if (string.IsNullOrEmpty(sceneDir)) return;
+
+        string refDir = Path.Combine(sceneDir, "References");
+        if (!Directory.Exists(refDir)) return;
+
+        var exrFiles = Directory.GetFiles(refDir, "*.exr")
+                                .OrderByDescending(f => File.GetLastWriteTime(f));
+
+        foreach (var f in exrFiles) {
+            var info = new ReferenceInfo {
+                FilePath = f,
+                Resolution = GetResolution(f),
+                Timestamp = File.GetLastWriteTime(f).ToString("yyyy-MM-dd HH:mm:ss")
+            };
+            
+            ReadMetadataFromJson(info, f);
+
+            referenceFiles.Add(info);
+        }
+    }
+
+    void ReadMetadataFromJson(ReferenceInfo info, string exrPath)
+    {
+        string folder = Path.GetDirectoryName(exrPath);
+        string fileNameNoExt = Path.GetFileNameWithoutExtension(exrPath);
+        string jsonPath = Path.Combine(folder, $"{fileNameNoExt}.json");
+
+        if (!File.Exists(jsonPath)) return;
+
+        string jsonContent = File.ReadAllText(jsonPath);
+        var root = JsonNode.Parse(jsonContent);
+        if (root == null) return;
+
+        info.Version = root["SeeSharpVersion"]?.ToString() ?? "";
+        info.StartTimeDisplay = root["RenderStartTime"]?.ToString() ?? "";
+        info.WriteTimeDisplay = root["RenderWriteTime"]?.ToString() ?? "";
+            
+        if (root["RenderTime"] != null) {
+            double ms = root["RenderTime"].GetValue<double>();
+            TimeSpan t = TimeSpan.FromMilliseconds(ms);
+            info.RenderTimeDisplay = t.TotalMinutes >= 1 ? $"{t.Minutes:D2}m {t.Seconds:D2}s" : $"{ms:F0}ms";
+        }
+
+        if (root["NumIterations"] != null) info.Spp = root["NumIterations"].GetValue<int>();
+
+        var settingsNode = root["Settings"];
+        if (settingsNode != null) {
+            var options = new JsonSerializerOptions { WriteIndented = true };
+            info.RawJsonConfig = settingsNode.ToJsonString(options);
+            info.MaxDepth = settingsNode["MaxDepth"]?.GetValue<int>() ?? 0;
+        }
+            
+        string integratorName = root["Name"]?.GetValue<string>();
+        info.IntegratorName = integratorName.Split('.').Last();
+    }
+
+    string GetResolution(string filePath)
+    {
+        string filename = Path.GetFileNameWithoutExtension(filePath);
+        var match = Regex.Match(filename, @"Width(\d+)-Height(\d+)", RegexOptions.IgnoreCase);
+        if (match.Success) return $"{match.Groups[1].Value}x{match.Groups[2].Value}";
+        
+        return "Unknown";
+    }
+    
+    void ResetConfig()
+    {
+        integratorSelector?.TriggerReset();
+    }
+
+    async Task ApplyConfig()
+    {
+        if (integratorSelector == null) return;
+
+        string folder = Path.GetDirectoryName(selectedFile?.FilePath) ?? currentSceneDirectory ?? "";
+        if (!folder.EndsWith("References")) {
+            string refDir = Path.Combine(folder, "References");
+            if (Directory.Exists(refDir)) 
+                folder = refDir;
+        }
+        string configPath = Path.Combine(folder, "Config.json");
+        if (File.Exists(configPath)) {
+            if (LoadIntegratorFromJson(configPath)) 
+                return;
+        }
+    }
+
+    bool LoadIntegratorFromJson(string path) {
+        if (!File.Exists(path)) return false;
+
+        string json = File.ReadAllText(path);
+        var root = JsonNode.Parse(json);
+            
+        JsonNode settingsNode = root["Settings"];
+
+        if (settingsNode == null) return false;
+
+        var currentIntegrator = integratorSelector.addedIntegrators.FirstOrDefault();
+        if (currentIntegrator == null) return false;
+
+        var options = new JsonSerializerOptions { IncludeFields = true, PropertyNameCaseInsensitive = true };
+        var loaded = JsonSerializer.Deserialize(settingsNode, currentIntegrator.GetType(), options);
+            
+        CopyProperties(currentIntegrator, loaded);
+        StateHasChanged();
+        return true;
+    }
+
+    void CopyProperties(object target, object source) {
+        if (target == null || source == null || target.GetType() != source.GetType()) return;
+        var type = target.GetType();
+
+        bool IsConfigParam(Type t) { 
+            return t == typeof(string) || t.IsValueType;
+        }
+
+        foreach (var prop in type.GetProperties(BindingFlags.Public | BindingFlags.Instance).Where(p => p.CanRead && p.CanWrite)) {
+            if (IsConfigParam(prop.PropertyType)) 
+                prop.SetValue(target, prop.GetValue(source)); 
+        }
+        foreach (var field in type.GetFields(BindingFlags.Public | BindingFlags.Instance)) {
+            if (IsConfigParam(field.FieldType)) 
+                field.SetValue(target, field.GetValue(source));
+        }
+    }
+
+    void SelectReference(ReferenceInfo file)
+    {
+        selectedFile = file;
+        
+        string folder = Path.GetDirectoryName(file.FilePath);
+        string configPath = Path.Combine(folder, "Config.json");
+        int configTargetSpp = 0;
+        
+        if (File.Exists(configPath)) {
+            var root = JsonNode.Parse(File.ReadAllText(configPath));
+            var settings = root["Settings"];
+            configTargetSpp = settings?["TotalSpp"]?.GetValue<int>() 
+                            ?? settings?["NumIterations"]?.GetValue<int>() 
+                            ?? 0;
+        }
+
+        bool isPartial = file.FilePath.EndsWith("-partial.exr");
+        if (isPartial && configTargetSpp > file.Spp) {
+            additionalSpp = configTargetSpp - file.Spp;
+        }
+
+        if (File.Exists(file.FilePath)) {
+            UpdateViewerFromFile(file.FilePath);
+        }
+    }
+
+    void UpdateViewerFromFile(string path)
+    {
+        flip = null;
+        StateHasChanged();
+
+        if (!File.Exists(path)) return;
+        var layers = SimpleImageIO.Layers.LoadFromFile(path);
+        var img = layers.Values.OfType<RgbImage>().FirstOrDefault();
+
+        if (img != null)
+            UpdatePreviewFromMemory(img);
+    }
+
+    async void UpdatePreviewFromMemory(RgbImage image) {
+        var imgClone = new RgbImage(image.Width, image.Height);
+        CopyImage(imgClone, image);
+        flip = null; 
+        StateHasChanged(); 
+        await Task.Delay(1);
+        var newFlip = new FlipBook(660, 580);
+        newFlip.Add("", imgClone);
+        flip = newFlip;
+        StateHasChanged();
+    }
+
+    void CopyImage(RgbImage target, RgbImage source) {
+        Parallel.For(0, target.Height, y => {
+            for (int x = 0; x < target.Width; ++x) 
+                target.SetPixel(x, y, source.GetPixel(x, y));
+        });
+    }
+
+    async Task RenderReference()
+    {
+        if (currentSceneFile == null || integratorSelector.addedIntegrators.Count == 0) return;
+        
+        isRendering = true;
+        flip = null; 
+        await InvokeAsync(StateHasChanged);
+
+        var curIntegrator = integratorSelector.addedIntegrators.First();
+
+        await Task.Run(async () => {
+            var startTime = DateTime.Now;
+            var stopwatch = Stopwatch.StartNew();
+
+            var renderScene = scene;
+            var renderIntegrator = CloneIntegrator(curIntegrator);
+
+            SetMaxDepth(renderIntegrator, renderMaxDepth);
+            int targetSpp = GetTargetSpp(renderIntegrator);
+
+            string referencesRoot = Path.Combine(currentSceneDirectory, "References");
+            Directory.CreateDirectory(referencesRoot);
+
+            SaveConfig(referencesRoot, renderIntegrator);
+
+            string baseName = $"MaxDepth{renderMaxDepth}-Width{renderWidth}-Height{renderHeight}";
+            string finalPath = Path.Combine(referencesRoot, baseName + ".exr");
+            string partialPath = Path.Combine(referencesRoot, baseName + "-partial.exr");
+
+            var accumulator = new RgbImage(renderWidth, renderHeight);
+            renderScene.FrameBuffer = new FrameBuffer(renderWidth, renderHeight, ""); 
+            renderScene.Prepare();
+
+            int currentSpp = 0;
+            int nextTargetSpp = 1;
+            
+            while (currentSpp < targetSpp)
+            {
+                int delta = nextTargetSpp - currentSpp;
+                if (currentSpp + delta > targetSpp) delta = targetSpp - currentSpp;
+                if (delta <= 0) break; 
+
+                SetBatchSpp(renderIntegrator, delta);
+                
+                renderScene.FrameBuffer = new FrameBuffer(renderWidth, renderHeight, "");
+                renderIntegrator.Render(renderScene); 
+
+                var batchImg = new RgbImage(renderWidth, renderHeight);
+                CopyImage(batchImg, renderScene.FrameBuffer.Image);
+                batchImg.Scale((float)delta);
+                AddImage(accumulator, batchImg);
+                
+                currentSpp += delta;
+
+                if (currentSpp == nextTargetSpp || currentSpp == targetSpp) {
+                    SetBatchSpp(renderIntegrator, currentSpp);
+                    WriteImageWithJson(accumulator, partialPath, renderIntegrator, currentSpp, renderMaxDepth, stopwatch.ElapsedMilliseconds, startTime);
+                    
+                    if (currentSpp < targetSpp) nextTargetSpp *= 2;
+                    if (nextTargetSpp > targetSpp) nextTargetSpp = targetSpp;
+                }
+            }
+            stopwatch.Stop();
+
+            SetBatchSpp(renderIntegrator, targetSpp);
+            WriteImageWithJson(accumulator, finalPath, renderIntegrator, targetSpp, renderMaxDepth, stopwatch.ElapsedMilliseconds, startTime);
+
+            if (File.Exists(partialPath)) File.Delete(partialPath);
+            string partialJson = Path.ChangeExtension(partialPath, ".json");
+            if (File.Exists(partialJson)) File.Delete(partialJson);
+
+            var newRef = new ReferenceInfo { 
+                FilePath = finalPath,
+                Resolution = $"{renderWidth}x{renderHeight}",
+                MaxDepth = renderMaxDepth,
+                Spp = targetSpp,
+                Version = typeof(SeeSharp.Scene).Assembly.GetName().Version?.ToString() ?? "Unknown",
+                StartTimeDisplay = startTime.ToString("yyyy-MM-dd HH:mm:ss"),
+                WriteTimeDisplay = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss"),
+                Timestamp = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss"),
+                IntegratorName = renderIntegrator.GetType().Name
+            };
+            
+            double ms = stopwatch.ElapsedMilliseconds;
+            TimeSpan t = TimeSpan.FromMilliseconds(ms);
+            newRef.RenderTimeDisplay = t.TotalMinutes >= 1 ? $"{t.Minutes:D2}m {t.Seconds:D2}s" : $"{ms:F0}ms";
+            
+            newRef.RawJsonConfig = JsonSerializer.Serialize(renderIntegrator, renderIntegrator.GetType(), new JsonSerializerOptions { WriteIndented = true, IncludeFields = true });
+
+            await InvokeAsync(() => {
+                var existing = referenceFiles.FirstOrDefault(r => r.FilePath == finalPath);
+                if (existing != null) referenceFiles.Remove(existing);
+
+                referenceFiles.Insert(0, newRef);
+                selectedFile = newRef;
+                UpdateViewerFromFile(finalPath);
+                StateHasChanged();
+            });
+        });
+
+        isRendering = false;
+        await InvokeAsync(StateHasChanged);
+    }
+    
+    async Task RenderMoreSamples()
+    {
+        if (currentSceneFile == null || selectedFile == null || !File.Exists(selectedFile.FilePath)) return;
+        if (integratorSelector.addedIntegrators.Count == 0) return;
+
+        isRendering = true;
+        await InvokeAsync(StateHasChanged);
+        var curIntegrator = integratorSelector.addedIntegrators.First();
+        
+        await Task.Run(async () => {
+            long previousRenderTimeMs = 0;
+            DateTime originalStartTime = DateTime.Now;
+            uint originalBaseSeed = 0;
+            Integrator renderIntegrator = null;
+
+            string folder = Path.GetDirectoryName(selectedFile.FilePath);
+            string fileNameNoExt = Path.GetFileNameWithoutExtension(selectedFile.FilePath);
+            string jsonPath = Path.Combine(folder, $"{fileNameNoExt}.json");
+            
+            if (File.Exists(jsonPath)) {
+                try {
+                    var root = JsonNode.Parse(File.ReadAllText(jsonPath));
+                    if (root != null) {
+                        previousRenderTimeMs = (long)(root["RenderTime"]?.GetValue<double>() ?? 0);
+                        string startStr = root["RenderStartTime"]?.ToString();
+                        if (!DateTime.TryParse(startStr, out originalStartTime)) 
+                             DateTime.TryParseExact(startStr, "dd/M/yyyy HH:mm:ss", null, System.Globalization.DateTimeStyles.None, out originalStartTime);
+                        
+                        var settingsNode = root["Settings"];
+                        var uiType = integratorSelector.addedIntegrators.FirstOrDefault()?.GetType();
+                        if (settingsNode != null && uiType != null) {
+                             var options = new JsonSerializerOptions { IncludeFields = true, PropertyNameCaseInsensitive = true };
+                             renderIntegrator = JsonSerializer.Deserialize(settingsNode, uiType, options) as Integrator;
+                        }
+                    }
+                } catch {}
+            }
+
+            if (renderIntegrator == null) {
+                string configPath = Path.Combine(folder, "Config.json");
+                if (File.Exists(configPath)) {
+                    var root = JsonNode.Parse(File.ReadAllText(configPath));
+                    var settingsNode = root["Settings"];
+                    var uiType = integratorSelector.addedIntegrators.FirstOrDefault()?.GetType();
+                    if (settingsNode != null && uiType != null) {
+                         var options = new JsonSerializerOptions { IncludeFields = true, PropertyNameCaseInsensitive = true };
+                         renderIntegrator = JsonSerializer.Deserialize(settingsNode, uiType, options) as Integrator;
+                    }
+                }
+            }
+
+            var stopwatch = Stopwatch.StartNew();
+            
+            var oldImg = new RgbImage(selectedFile.FilePath); 
+            int oldSpp = selectedFile.Spp;
+            int targetTotalSpp = oldSpp + additionalSpp;
+
+            var accumulator = new RgbImage(oldImg.Width, oldImg.Height);
+            CopyImage(accumulator, oldImg);
+            accumulator.Scale((float)oldSpp); 
+
+            var renderScene = scene;
+
+            originalBaseSeed = GetBaseSeed(renderIntegrator);
+            SetBaseSeed(renderIntegrator, originalBaseSeed + (uint)oldSpp);
+
+            SetMaxDepth(renderIntegrator, selectedFile.MaxDepth); 
+
+            int currentSpp = oldSpp;
+            int nextTargetSpp = currentSpp + 1;
+
+            renderScene.FrameBuffer = new FrameBuffer(oldImg.Width, oldImg.Height, "");
+            renderScene.Prepare();
+
+            string currentPath = selectedFile.FilePath;
+            string finalPath, partialPath;
+
+            if (currentPath.EndsWith("-partial.exr")) {
+                partialPath = currentPath; 
+                finalPath = currentPath.Replace("-partial.exr", ".exr"); 
+            } else {
+                finalPath = currentPath;
+                partialPath = Path.ChangeExtension(currentPath, "-partial.exr");
+            }
+
+            while (currentSpp < targetTotalSpp)
+            {
+                int delta = nextTargetSpp - currentSpp;
+                if (currentSpp + delta > targetTotalSpp) delta = targetTotalSpp - currentSpp;
+                if (delta <= 0) break;
+
+                SetBatchSpp(renderIntegrator, delta);
+                renderScene.FrameBuffer = new FrameBuffer(oldImg.Width, oldImg.Height, "");
+                renderIntegrator.Render(renderScene);
+
+                var batchImg = new RgbImage(oldImg.Width, oldImg.Height);
+                CopyImage(batchImg, renderScene.FrameBuffer.Image);
+                batchImg.Scale((float)delta);
+                AddImage(accumulator, batchImg);
+
+                currentSpp += delta;
+                long totalTimeNow = previousRenderTimeMs + stopwatch.ElapsedMilliseconds;
+
+                SetBaseSeed(renderIntegrator, originalBaseSeed);
+                SetBatchSpp(renderIntegrator, currentSpp);
+                WriteImageWithJson(accumulator, partialPath, renderIntegrator, currentSpp, renderMaxDepth, totalTimeNow, originalStartTime);
+                
+                SetBaseSeed(renderIntegrator, originalBaseSeed + (uint)currentSpp);
+
+                if (currentSpp < targetTotalSpp) nextTargetSpp += Math.Max(1, (nextTargetSpp - oldSpp) * 2);
+                if (nextTargetSpp > targetTotalSpp) nextTargetSpp = targetTotalSpp;
+            }
+            stopwatch.Stop();
+
+            long finalTotalTime = previousRenderTimeMs + stopwatch.ElapsedMilliseconds;
+
+            SetBaseSeed(renderIntegrator, originalBaseSeed);
+            SetBatchSpp(renderIntegrator, targetTotalSpp);
+            WriteImageWithJson(accumulator, finalPath, renderIntegrator, targetTotalSpp, renderMaxDepth, finalTotalTime, originalStartTime);
+
+            if (finalPath != partialPath) {
+                if (File.Exists(partialPath)) File.Delete(partialPath);
+                string pJson = Path.ChangeExtension(partialPath, ".json");
+                if (File.Exists(pJson)) File.Delete(pJson);
+            }
+
+            var newRef = new ReferenceInfo { FilePath = finalPath };
+            ReadMetadataFromJson(newRef, finalPath);
+            
+            newRef.Timestamp = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss");
+            newRef.StartTimeDisplay = originalStartTime.ToString("yyyy-MM-dd HH:mm:ss");
+            newRef.WriteTimeDisplay = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss");
+            newRef.Spp = targetTotalSpp;
+            newRef.Resolution = $"{oldImg.Width}x{oldImg.Height}"; 
+            
+            TimeSpan t = TimeSpan.FromMilliseconds(finalTotalTime);
+            newRef.RenderTimeDisplay = t.TotalMinutes >= 1 ? $"{t.Minutes:D2}m {t.Seconds:D2}s" : $"{finalTotalTime}ms";
+            newRef.RawJsonConfig = JsonSerializer.Serialize(renderIntegrator, renderIntegrator.GetType(), new JsonSerializerOptions { WriteIndented = true, IncludeFields = true });
+
+            await InvokeAsync(() => {
+                var existing = referenceFiles.FirstOrDefault(r => r.FilePath == currentPath);
+                if (existing != null) referenceFiles.Remove(existing);
+                
+                var existingFinal = referenceFiles.FirstOrDefault(r => r.FilePath == finalPath);
+                if (existingFinal != null) referenceFiles.Remove(existingFinal);
+
+                referenceFiles.Insert(0, newRef);
+                selectedFile = newRef;
+
+                UpdateViewerFromFile(finalPath);
+                StateHasChanged();
+            });
+        });
+
+        isRendering = false;
+        await InvokeAsync(StateHasChanged);
+    }
+
+    async Task RenderQuickPreview()
+    {
+        if (currentSceneFile == null || integratorSelector.addedIntegrators.Count == 0) return;
+
+        isRendering = true;
+        selectedFile = null;
+        flip = null;
+
+        await InvokeAsync(StateHasChanged);
+
+        var curIntegrator = integratorSelector.addedIntegrators.First();
+
+        await Task.Run(async () => {
+                var stopwatch = Stopwatch.StartNew();
+                var renderScene = currentSceneFile.MakeScene();
+                var renderIntegrator = CloneIntegrator(curIntegrator);
+
+                int targetSpp = quickPreviewSpp < 1 ? 1 : quickPreviewSpp;
+                SetBatchSpp(renderIntegrator, targetSpp);
+                SetMaxDepth(renderIntegrator, renderMaxDepth);
+
+                renderScene.FrameBuffer = new FrameBuffer(renderWidth, renderHeight, "");
+                renderScene.Prepare();
+                renderIntegrator.Render(renderScene); 
+
+                stopwatch.Stop();
+
+                var resultImg = new RgbImage(renderWidth, renderHeight);
+                CopyImage(resultImg, renderScene.FrameBuffer.Image);
+
+                await InvokeAsync(() => {
+                    UpdatePreviewFromMemory(resultImg);
+                });
+        });
+
+        isRendering = false;
+        await InvokeAsync(StateHasChanged);
+    }
+
+    Integrator CloneIntegrator(Integrator source) {
+        var type = source.GetType();
+        var clone = (Integrator)Activator.CreateInstance(type);
+        bool IsConfigParam(Type t) { 
+            return t == typeof(string) || t.IsValueType; 
+        }
+        foreach (var prop in type.GetProperties(BindingFlags.Public | BindingFlags.Instance).Where(p => p.CanRead && p.CanWrite))
+            if (IsConfigParam(prop.PropertyType)) 
+                prop.SetValue(clone, prop.GetValue(source));
+        foreach (var field in type.GetFields(BindingFlags.Public | BindingFlags.Instance))
+            if (IsConfigParam(field.FieldType)) 
+                field.SetValue(clone, field.GetValue(source));
+        return clone;
+    }
+
+    void SetMaxDepth(Integrator integrator, int depth) {
+        var type = integrator.GetType();
+        var flags = BindingFlags.Public | BindingFlags.Instance | BindingFlags.IgnoreCase;
+        var prop = type.GetProperty("MaxDepth", flags);
+        if (prop != null && prop.CanWrite) { 
+            prop.SetValue(integrator, depth); 
+            return; 
+        }
+        var field = type.GetField("MaxDepth", flags);
+        if (field != null) { 
+            field.SetValue(integrator, depth);
+        }
+    }
+
+    int GetTargetSpp(Integrator integrator) {
+        var type = integrator.GetType();
+        var flags = BindingFlags.Public | BindingFlags.Instance | BindingFlags.IgnoreCase;
+        var propSpp = type.GetProperty("TotalSpp", flags);
+        if (propSpp != null) 
+            return (int)propSpp.GetValue(integrator);
+
+        var fieldSpp = type.GetField("TotalSpp", flags);
+        if (fieldSpp != null) 
+            return (int)fieldSpp.GetValue(integrator);
+
+        var propIter = type.GetProperty("NumIterations", flags);
+        if (propIter != null) 
+            return (int)propIter.GetValue(integrator);
+
+        var fieldIter = type.GetField("NumIterations", flags);
+        if (fieldIter != null) 
+            return (int)fieldIter.GetValue(integrator);
+        return 16;
+    }
+
+    void SaveConfig(string folder, Integrator integrator) {
+        var options = new JsonSerializerOptions { WriteIndented = true, IncludeFields = true };
+        var rootNode = new JsonObject();
+        rootNode.Add("Name", integrator.GetType().Name);
+        var settingsNode = JsonSerializer.SerializeToNode(integrator, integrator.GetType(), options);
+        rootNode.Add("Settings", settingsNode);
+        File.WriteAllText(Path.Combine(folder, "Config.json"), rootNode.ToJsonString(options));
+    }
+
+    void SetBatchSpp(Integrator integrator, int batchCount) {
+        var type = integrator.GetType();
+        var flags = BindingFlags.Public | BindingFlags.Instance | BindingFlags.IgnoreCase;
+        var targetNames = new[] { "TotalSpp", "NumIterations"};
+        foreach (var name in targetNames) {
+            var prop = type.GetProperty(name, flags);
+            if (prop != null && prop.CanWrite) { 
+                prop.SetValue(integrator, batchCount); 
+                return;
+            }
+            var field = type.GetField(name, flags);
+            if (field != null) { 
+                field.SetValue(integrator, batchCount); 
+                return; 
+            }
+        }
+    }
+
+    void AddImage(RgbImage target, RgbImage source) {
+        Parallel.For(0, target.Height, y => {
+            for (int x = 0; x < target.Width; ++x) 
+                target.SetPixel(x, y, target.GetPixel(x, y) + source.GetPixel(x, y));
+        });
+    }
+
+    void WriteImageWithJson(RgbImage image, string filename, Integrator integrator, int spp, int depth, long timeMs, DateTime startTime)
+    {
+        var output = new RgbImage(image.Width, image.Height);
+        CopyImage(output, image);
+        if (spp > 0) output.Scale(1.0f / spp);
+        output.WriteToFile(filename);
+
+        var rootNode = new JsonObject();
+        rootNode.Add("RenderTime", timeMs);
+        rootNode.Add("NumIterations", spp);
+        rootNode.Add("RenderStartTime", startTime.ToString("yyyy-MM-dd HH:mm:ss"));
+        rootNode.Add("RenderWriteTime", DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss"));
+        rootNode.Add("SeeSharpVersion", typeof(Scene).Assembly.GetName().Version?.ToString() ?? "Unknown");
+        rootNode.Add("Name", integrator.GetType().Name);
+
+        var options = new JsonSerializerOptions { WriteIndented = true, IncludeFields = true };
+        var settingsNode = JsonSerializer.SerializeToNode(integrator, integrator.GetType(), options);
+        rootNode.Add("Settings", settingsNode);
+
+        string jsonPath = Path.ChangeExtension(filename, ".json");
+        File.WriteAllText(jsonPath, rootNode.ToJsonString(options));
+    }
+
+    uint GetBaseSeed(Integrator integrator) {
+        var flags = BindingFlags.Public | BindingFlags.Instance | BindingFlags.IgnoreCase;
+        var seedProp = integrator.GetType().GetProperty("BaseSeed", flags);
+        var seedField = integrator.GetType().GetField("BaseSeed", flags);
+        if (seedProp != null) return (uint)(seedProp.GetValue(integrator) ?? 0u);
+        if (seedField != null) return (uint)(seedField.GetValue(integrator) ?? 0u);
+        return 0;
+    }
+
+    void SetBaseSeed(Integrator integrator, uint seed) {
+        var flags = BindingFlags.Public | BindingFlags.Instance | BindingFlags.IgnoreCase;
+        var seedProp = integrator.GetType().GetProperty("BaseSeed", flags);
+        var seedField = integrator.GetType().GetField("BaseSeed", flags);
+        if (seedProp != null) seedProp.SetValue(integrator, seed);
+        else if (seedField != null) seedField.SetValue(integrator, seed);
+    }
+}

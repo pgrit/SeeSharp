@@ -37,16 +37,18 @@ def make_material(name, mat_json, base_path):
     links.new(principled.outputs["BSDF"], output.inputs["Surface"])
 
     # -------- Base color (texture or rgb)
-    base_color = mat_json["baseColor"]
-    if base_color["type"] == "rgb":
-        principled.inputs["Base Color"].default_value = base_color["value"] + [1.0]
-    elif base_color["type"] == "image":
-        img_path = os.path.join(base_path, base_color["filename"])
-        img = load_image(img_path)
-        if img:
-            tex = nodes.new("ShaderNodeTexImage")
-            tex.image = img
-            links.new(tex.outputs["Color"], principled.inputs["Base Color"])
+    # base_color = mat_json["baseColor"]
+    base_color = mat_json.get("baseColor")
+    if base_color:
+        if base_color["type"] == "rgb":
+            principled.inputs["Base Color"].default_value = base_color["value"] + [1.0]
+        elif base_color["type"] == "image":
+            img_path = os.path.join(base_path, base_color["filename"])
+            img = load_image(img_path)
+            if img:
+                tex = nodes.new("ShaderNodeTexImage")
+                tex.image = img
+                links.new(tex.outputs["Color"], principled.inputs["Base Color"])
 
     # -------- Roughness (texture or float)
     roughness = mat_json.get("roughness", 1.0)
@@ -69,25 +71,50 @@ def make_material(name, mat_json, base_path):
     # Emission
     emission_json = mat_json.get("emission")
     if emission_json and emission_json.get("type") == "rgb":
-        color = mat_json["emission_color"]["value"]
+        # color = mat_json["emission_color"]["value"]
+        if "emission_color" in mat_json:
+            color = mat_json["emission_color"].get("value", [1.0, 1.0, 1.0])
+        else:
+            # fallback to emission value itself
+            color = emission_json.get("value", [0.0, 0.0, 0.0])
+        strength = mat_json.get("emission_strength", 0.0)
         principled.inputs["Emission Color"].default_value = (*color[:3], 1.0)
-        principled.inputs["Emission Strength"].default_value = mat_json["emission_strength"]
-        if mat_json.get("emissionIsGlossy", False):
-            principled.inputs["Emission Strength"].default_value = mat_json["emissionExponent"]
+        principled.inputs["Emission Strength"].default_value = strength
+        # if mat_json.get("emissionIsGlossy", False):
+        #     principled.inputs["Emission Strength"].default_value = mat_json["emissionExponent"]
 
     return mat
 
+def load_mesh(filepath):
+    ext = os.path.splitext(filepath)[1].lower()
 
-def load_ply(filepath):
-    """Load a .ply mesh and return the created object."""
     before = set(bpy.data.objects)
-    bpy.ops.wm.ply_import(filepath=filepath)
-    after = set(bpy.data.objects)
 
+    if ext == ".ply":
+        bpy.ops.wm.ply_import(filepath=filepath)
+
+    elif ext == ".obj":
+        bpy.ops.wm.obj_import(filepath=filepath)
+
+    else:
+        raise RuntimeError(f"Unsupported mesh format: {ext}")
+
+    after = set(bpy.data.objects)
     new_objs = list(after - before)
     if new_objs:
         return new_objs[0]
     return None
+
+# def load_ply(filepath):
+#     """Load a .ply mesh and return the created object."""
+#     before = set(bpy.data.objects)
+#     bpy.ops.wm.ply_import(filepath=filepath)
+#     after = set(bpy.data.objects)
+
+#     new_objs = list(after - before)
+#     if new_objs:
+#         return new_objs[0]
+#     return None
 
 def import_trimesh_object(obj, mat_lookup):
     name = obj.get("name", "Trimesh")
@@ -254,7 +281,7 @@ def import_seesharp(filepath):
             else:
                 # fallback to existing PLY logic
                 ply_path = os.path.join(base_path, obj["relativePath"])
-                new_obj = load_ply(ply_path)
+                new_obj = load_mesh(ply_path)
                 if not new_obj:
                     print(f"Failed to load {ply_path}")
                     continue

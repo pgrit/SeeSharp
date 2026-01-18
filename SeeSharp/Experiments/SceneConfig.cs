@@ -12,12 +12,12 @@ public abstract class SceneConfig {
     /// <summary>
     /// Maximum path length used when rendering the scene. DI only = 2
     /// </summary>
-    public abstract int MaxDepth { get; }
+    public abstract int MaxDepth { get; set; }
 
     /// <summary>
     /// Minimum path length used when rendering the scene. No directly visible lights = 2
     /// </summary>
-    public abstract int MinDepth { get; }
+    public abstract int MinDepth { get; set; }
 
     /// <summary>
     /// Generates (or retrieves) the scene ready for rendering
@@ -30,6 +30,7 @@ public abstract class SceneConfig {
     /// </summary>
     /// <param name="width">Width of the image</param>
     /// <param name="height">Height of the image</param>
+    /// <param name="allowRender">If false, missing references are not rendered and null is returned instead</param>
     /// <returns>The reference image</returns>
-    public abstract RgbImage GetReferenceImage(int width, int height);
+    public abstract RgbImage GetReferenceImage(int width, int height, bool allowRender = true);
 }

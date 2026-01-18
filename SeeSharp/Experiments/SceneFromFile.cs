@@ -1,4 +1,3 @@
-using System.Linq;
 using System.Text.Json.Nodes;
 
 namespace SeeSharp.Experiments;
@@ -8,16 +7,14 @@ namespace SeeSharp.Experiments;
 /// </summary>
 public class SceneFromFile : SceneConfig {
     readonly FileInfo file;
-    readonly int maxDepth;
-    readonly int minDepth;
     readonly Scene scene;
     string name;
 
     /// <inheritdoc />
-    public override int MaxDepth => maxDepth;
+    public override int MaxDepth { get; set; }
 
     /// <inheritdoc />
-    public override int MinDepth => minDepth;
+    public override int MinDepth { get; set; }
 
     /// <inheritdoc />
     public override string Name => name;
@@ -88,8 +85,9 @@ public class SceneFromFile : SceneConfig {
     /// </summary>
     /// <param name="width">Width in pixels</param>
     /// <param name="height">Height in pixels</param>
+    /// <param name="allowRender">If false, missing references are not rendered and null is returned instead</param>
     /// <returns>The reference image</returns>
-    public override RgbImage GetReferenceImage(int width, int height) {
+    public override RgbImage GetReferenceImage(int width, int height, bool allowRender = true) {
         string refDir = Path.Join(file.DirectoryName, "References");
         Directory.CreateDirectory(refDir);
 
@@ -103,6 +101,11 @@ public class SceneFromFile : SceneConfig {
             else return InpaintNaNs(layers["default"]) as RgbImage;
 
             // TODO read the SeeSharp version from the .json and print a warning if it does not match (major/minor only, not patch)
+        }
+
+        if (!allowRender) {
+            Logger.Warning($"No reference available for {width} x {height}, {MinDepth} - {MaxDepth}");
+            return null;
         }
 
         string referenceSpecs = Path.Join(refDir, "Config.json");
@@ -177,8 +180,8 @@ IntegratorLoaded:
     public SceneFromFile(string filename, int minDepth, int maxDepth, string name = null) {
         file = new(filename);
         scene = Scene.LoadFromFile(filename);
-        this.maxDepth = maxDepth;
-        this.minDepth = minDepth;
+        MaxDepth = maxDepth;
+        MinDepth = minDepth;
         this.name = name ?? Path.GetFileNameWithoutExtension(filename);
         scene.Name = this.name;
     }

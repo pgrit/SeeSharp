@@ -1,3 +1,5 @@
+#pragma warning disable CS8019
+
 global using System;
 global using System.Collections.Concurrent;
 global using System.Collections.Generic;

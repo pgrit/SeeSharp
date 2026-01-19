@@ -19,13 +19,28 @@
     (
         int X,
         int Y,
-        bool CtrlKey
+
+        string key,
+        bool isPressed,
+
+        int mouseButton,
+        bool isButton,
+
+        int deltaY,
+        int selectedIndex,
+        string registryKey
     )
     {
     }
 
     [Parameter]
     public EventCallback<OnClickEventArgs> OnClick { get; set; }
+    [Parameter]
+    public EventCallback<OnClickEventArgs> OnWheel { get; set; } 
+    [Parameter]
+    public EventCallback<OnClickEventArgs> OnMouseOver { get; set; } 
+    [Parameter]
+    public EventCallback<OnClickEventArgs> OnKey { get; set; } 
 
     protected override async Task OnParametersSetAsync()
     {
@@ -54,13 +69,38 @@
 
     public struct _OnFlipClickArgs
     {
-        [JsonInclude] public bool ctrlKey;
+        [JsonInclude] public string key;
+        [JsonInclude] public bool isPressed;
+        [JsonInclude] public int mouseButtom;
+        [JsonInclude] public bool isButtom;
+        [JsonInclude] public int deltaY;
+        [JsonInclude] public int selectedIndex;
+        [JsonInclude] public string registryKey;
     }
 
     [JSInvokable]
-    public void _OnFlipClick(int x, int y, _OnFlipClickArgs eventArgs)
+    public void _OnFlipClick(int buttom)
     {
-        OnClick.InvokeAsync(new(x, y, eventArgs.ctrlKey)).Wait();
+        OnClick.InvokeAsync(new(X: -1, Y: -1, key: "", isPressed: false, mouseButton: buttom, isButton: false, deltaY: 0, selectedIndex: -1, registryKey: "")).Wait();
+    }
+
+    // IMPORTANT: There is a bool for altKey, but on the React side a wheel event only is fired when alt is pressed, so altKey is more or less redundant
+    [JSInvokable]
+    public void _OnFlipWheel(int deltaY)
+    {
+        OnWheel.InvokeAsync(new(X: -1, Y: -1, key: "", isPressed: false, mouseButton: -1, isButton: false, deltaY: deltaY, selectedIndex: -1, registryKey: "")).Wait();
+    }
+
+    [JSInvokable]
+    public void _OnFlipMouseOver(int x, int y)
+    {
+        OnMouseOver.InvokeAsync(new(X: x, Y: y, key: "", isPressed: false, mouseButton: -1, isButton: false, deltaY: 0, selectedIndex: -1, registryKey: "")).Wait();
+    }
+
+    [JSInvokable]
+    public void _OnFlipKey(int selectedIdx, string keyStr, string keyPressed, bool isPressed)
+    {
+        OnKey.InvokeAsync(new(X: -1, Y: -1, key: keyPressed, isPressed: isPressed, mouseButton: -1, isButton: false, deltaY: 0, selectedIndex: selectedIdx, registryKey: keyStr)).Wait();
     }
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
@@ -68,7 +108,18 @@
         // Need to wait with invoking the JS code until the HTML got added to the DOM on the client side
         if (flipJson != null)
         {
-            await JSRuntime.InvokeVoidAsync("makeFlipBook", flipJson, DotNetObjectReference.Create(this), nameof(_OnFlipClick));
+            await JSRuntime.InvokeVoidAsync(
+                "makeFlipBook", 
+                flipJson, 
+                DotNetObjectReference.Create(this), 
+                nameof(_OnFlipClick), 
+                DotNetObjectReference.Create(this), 
+                nameof(_OnFlipWheel),
+                DotNetObjectReference.Create(this), 
+                nameof(_OnFlipMouseOver),
+                DotNetObjectReference.Create(this), 
+                nameof(_OnFlipKey)
+                );
             flipJson = null;
         }
     }

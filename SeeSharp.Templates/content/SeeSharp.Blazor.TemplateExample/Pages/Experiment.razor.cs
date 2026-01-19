@@ -60,16 +60,16 @@ public partial class Experiment : BaseExperiment {
                 .SetToneMapper(FlipBook.InitialTMO.Exposure(scene.RecommendedExposure))
                 .SetGroupName("compare")
                 .SetToolVisibility(false)
-                .SetKey("1,0"),
+                .SetID("1,0"),
             new FlipBook(FlipWidth, FlipHeight)
                 .SetZoom(FlipBook.InitialZoom.FillWidth)
                 .SetToneMapper(FlipBook.InitialTMO.Exposure(scene.RecommendedExposure))
                 .SetGroupName("compare")
                 .SetToolVisibility(false)
-                .SetKey("0,1")
+                .SetID("0,1")
         );
-        registry.Add(compare.Item1.GetKey(), compare.Item1);
-        registry.Add(compare.Item2.GetKey(), compare.Item2);
+        registry.Add(compare.Item1.ID, compare.Item1);
+        registry.Add(compare.Item2.ID, compare.Item2);
     }
 
     /// <summary>
@@ -161,9 +161,9 @@ public partial class Experiment : BaseExperiment {
                 updateImageOther = imgGen.rndImage(0.4f, Width, Height, colored);
             }
 
-            FlipBook.GeneratedCode code = flipBook.UpdateImage(updateImage, state.selectedIndex);
+            FlipBook.GeneratedCode code = flipBook.ReplaceImage(updateImage, state.selectedIndex);
             JS.InvokeVoidAsync("updateImage", code.Data);
-            code = flipBookOther.UpdateImage(updateImageOther, state.selectedIndex);
+            code = flipBookOther.ReplaceImage(updateImageOther, state.selectedIndex);
             JS.InvokeVoidAsync("updateImage", code.Data);
 
             Console.WriteLine("Compare updated");
@@ -171,9 +171,9 @@ public partial class Experiment : BaseExperiment {
             updateImage = ptImage;
             updateImageOther = vcmImage;
 
-            FlipBook.GeneratedCode code = flipBook.UpdateImage(updateImage, state.selectedIndex);
+            FlipBook.GeneratedCode code = flipBook.ReplaceImage(updateImage, state.selectedIndex);
             JS.InvokeVoidAsync("updateImage", code.Data);
-            code = flipBookOther.UpdateImage(updateImageOther, state.selectedIndex);
+            code = flipBookOther.ReplaceImage(updateImageOther, state.selectedIndex);
             JS.InvokeVoidAsync("updateImage", code.Data);
 
             Console.WriteLine("Compare reset");

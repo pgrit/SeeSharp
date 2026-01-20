@@ -7,6 +7,36 @@ def handle_create_path(msg):
     json_string = msg.get("graph")
     user_group_id = msg.get("id")
     data = json.loads(json_string)
+
+    def flatten_tree(root):
+        nodes: list[dict] = []
+        pairs: list[tuple[str, str]] = []
+        visited = set()
+
+        def visit(node: dict):
+            node_id = node["Id"]
+            if node_id in visited:
+                return
+            visited.add(node_id)
+
+            # collect node
+
+            flat_node = {
+                k: v for k, v in node.items()
+                if k != "Successors"
+            }
+            nodes.append(flat_node)
+            # collect parent-child edge (skip roots)
+            parent_id = node.get("ancestorId")
+            if parent_id is not None:
+                pairs.append((parent_id, node_id))
+
+            # recurse
+            for child in node.get("Successors", []):
+                visit(child)
+
+        visit(root)
+        return nodes, pairs
     def create_fixed_arrow(A, B, properties, name="Arrow"):
         A = Vector(A)
         B = Vector(B)
@@ -115,13 +145,15 @@ def handle_create_path(msg):
         bpy.context.scene.collection.children.link(col)
 
         id_to_node = {}
-        for node in data["nodes"]:
-            pos = node["position"]
-            id_to_node[node["id"]] = {"pos": renderer_to_blender_world(Vector((pos["X"], pos["Y"], pos["Z"]))),
-                                        "data": node["data"],
-                                        "type": node["type"]}
+        nodes, pairs = flatten_tree(data)
+    
+        for node in nodes:
+            pos = node["Position"]
+            id_to_node[node["Id"]] = {"pos": renderer_to_blender_world(Vector((pos["X"], pos["Y"], pos["Z"]))),
+                                        "data": node,
+                                        "type": node["$type"]}
 
-        for start_id, end_id in data["edges"]:
+        for start_id, end_id in pairs:
             if (id_to_node[start_id]["type"] == "LightPathNode" or id_to_node[end_id]["type"] == "LightPathNode"):
                 # reverse the direction if its light path
                 temp_id = start_id

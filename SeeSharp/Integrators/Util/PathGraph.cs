@@ -2,9 +2,21 @@ using System.Linq;
 
 namespace SeeSharp.Integrators.Util;
 
+[JsonPolymorphic(TypeDiscriminatorPropertyName = "$type")]
+[JsonDerivedType(typeof(PathGraphNode), "PathGraphNode")]
+[JsonDerivedType(typeof(NextEventNode), "NextEventNode")]
+[JsonDerivedType(typeof(BSDFSampleNode), "BSDFSampleNode")]
+[JsonDerivedType(typeof(LightPathNode), "LightPathNode")]
+[JsonDerivedType(typeof(ConnectionNode), "ConnectionNode")]
+[JsonDerivedType(typeof(MergeNode), "MergeNode")]
+[JsonDerivedType(typeof(BackgroundNode), "BackgroundNode")]
 public class PathGraphNode(Vector3 pos, PathGraphNode ancestor = null) {
-    public Vector3 Position = pos;
-    public PathGraphNode Ancestor = ancestor;
+    public string Id { get; init; } = Guid.NewGuid().ToString("N")[..30];
+    public Vector3 Position { get; set; } = pos;
+    [JsonIgnore] public PathGraphNode Ancestor = ancestor;
+
+    [JsonPropertyName("ancestorId")]
+    public string? AncestorId => Ancestor?.Id;
     public List<PathGraphNode> Successors = [];
 
     public virtual bool IsBackground => false;
@@ -92,13 +104,13 @@ public class BSDFSampleNode : PathGraphNode {
     public readonly float SurvivalProbability;
     public readonly RgbColor Emission;
     public readonly float MISWeight;
-    public readonly SurfacePoint Point;
+    public SurfacePoint Point { get; }
 
     public override RgbColor ComputeVisualizerColor() => RgbColor.SrgbToLinear(41, 107, 177);
 }
 
 public class LightPathNode(PathVertex lightVertex) : PathGraphNode(lightVertex.Point.Position) {
-    public readonly PathVertex LightVertex = lightVertex;
+    public PathVertex LightVertex { get; } = lightVertex;
 
     public override RgbColor ComputeVisualizerColor() => RgbColor.SrgbToLinear(228, 135, 17);
 }
@@ -113,7 +125,7 @@ public class ConnectionNode : PathGraphNode, IContribNode {
 
     public RgbColor Contrib { get; init; }
     public float MISWeight { get; init; }
-    public readonly PathVertex LightVertex;
+    public PathVertex LightVertex { get; }
 
     public override RgbColor ComputeVisualizerColor() => RgbColor.SrgbToLinear(167, 214, 170);
 }
@@ -128,7 +140,7 @@ public class MergeNode : PathGraphNode, IContribNode {
 
     public RgbColor Contrib { get; init; }
     public float MISWeight { get; init; }
-    public readonly PathVertex LightVertex;
+    public PathVertex LightVertex { get; }
 
     public override RgbColor ComputeVisualizerColor() => RgbColor.SrgbToLinear(218, 152, 204);
 }

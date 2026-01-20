@@ -156,13 +156,17 @@
         (graph, estimate) = integrator.ReplayPixel(scene, new Pixel((int)pt.x, (int)pt.y), 0);
         PathGraphNode node = graph.Roots[0];
         viewer_root = graph.Roots[0];
-        string jsonGraph = GraphSerializer.SerializeGraph(node);
+        string jsonGraph = System.Text.Json.JsonSerializer.Serialize(node, new JsonSerializerOptions()
+        {
+            IncludeFields = true,
+        });
+        Console.WriteLine(jsonGraph);
         string path_id = Guid.NewGuid().ToString();
         viewer_roots.Add(path_id, graph.Roots[0]);
         await Commander.SendCommandAsync(new
         {
             command = "create_path",
-            id = path_id, 
+            id = path_id,
             graph = jsonGraph
         });
     }
@@ -183,7 +187,7 @@
         var node_list = new List<string>();
         for (var n = node; n != null; n = n.Ancestor)
         {
-            node_list.Add(n.GetHashCode().ToString("X"));
+            node_list.Add(n.Id);
         }
 
         node_list.Reverse();
@@ -206,7 +210,7 @@
         var node_list = new List<string>();
         for (var n = node; n != null; n = n.Ancestor)
         {
-            node_list.Add(n.GetHashCode().ToString("X"));
+            node_list.Add(n.Id);
         }
 
         node_list.Reverse();

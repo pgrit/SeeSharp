@@ -105,7 +105,7 @@
 
     public string FindJson(string folder)
     {
-        folder = "Data/" + folder;
+        folder = "../../Data/Scenes/" + folder;
         folder = Path.GetFullPath(folder);
         var files = Directory.GetFiles(folder, "*.json");
         if (files.Length == 0)

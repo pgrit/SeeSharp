@@ -1,16 +1,15 @@
-using System;
-using System.Collections.Generic;
-using System.IO;
-using System.Linq;
 using System.Reflection;
 using System.Text.RegularExpressions;
 using System.Xml.Linq;
 
 namespace SeeSharp.Blazor;
 
-public static class DocumentationHelper
+/// <summary>
+/// Load xml documentation files and retrieve summary to show description
+/// </summary>
+public static class DocumentationReader
 {
-    private static Dictionary<string, string> _loadedXmlDocumentation = new();
+    private static Dictionary<string, string> loadedXmlDocumentation = new();
 
     public static void LoadXmlDocumentation(Assembly assembly)
     {
@@ -30,13 +29,13 @@ public static class DocumentationHelper
                     if (!string.IsNullOrEmpty(name) && !string.IsNullOrEmpty(summary))
                     {
                         string cleanSummary = Regex.Replace(summary, @"\s+", " ");
-                        _loadedXmlDocumentation[name] = cleanSummary;
+                        loadedXmlDocumentation[name] = cleanSummary;
                     }
                 }
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"[DocHelper] Error loading XML: {ex.Message}");
+                Logger.Log($"Error loading XML: {ex.Message}", Verbosity.Error);
             }
         }
     }
@@ -61,7 +60,7 @@ public static class DocumentationHelper
 
         string key = $"{prefix}{typeName}.{member.Name}";
 
-        if (_loadedXmlDocumentation.TryGetValue(key, out var summary))
+        if (loadedXmlDocumentation.TryGetValue(key, out var summary))
         {
             return summary;
         }

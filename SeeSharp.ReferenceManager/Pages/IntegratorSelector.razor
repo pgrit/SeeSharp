@@ -9,10 +9,10 @@
 <div class="integrator-selector">
     <div style="display: flex; align-items: center; gap: 10px;">
         <label style="margin: 0; white-space: nowrap;">Integrator:</label>
-        <select @value="selectedIntegrator" @onchange="OnSelectionChanged" style="flex-grow: 1;">
+        <select value="@selectedIntegrator" @onchange="OnSelectionChanged" style="flex-grow: 1;">
             @foreach (var type in integratorTypes)
             {
-                <option value="@type.FullName">@FormatClassName(type)</option>
+                <option value="@type.FullName" selected="@(type.FullName == selectedIntegrator)">@FormatClassName(type)</option>
             }
         </select>
     </div>
@@ -33,211 +33,20 @@
                 <div>
                     @foreach (var prop in group.Properties) 
                     { 
-                        @RenderSetting(prop, () => prop.GetValue(CurrentIntegrator), v => prop.SetValue(CurrentIntegrator, v)) 
+                        <RenderSetting 
+                            Member="@prop" 
+                            Getter="() => prop.GetValue(CurrentIntegrator)" 
+                            Setter="v => { prop.SetValue(CurrentIntegrator, v); StateHasChanged(); }" />
                     }
                     @foreach (var field in group.Fields) 
                     { 
-                        @RenderSetting(field, () => field.GetValue(CurrentIntegrator), v => field.SetValue(CurrentIntegrator, v)) 
+                        <RenderSetting 
+                            Member="@field" 
+                            Getter="() => field.GetValue(CurrentIntegrator)" 
+                            Setter="v => { field.SetValue(CurrentIntegrator, v); StateHasChanged(); }" />
                     }
                 </div>
             </details>
         }
     }
 </div>
-
-@code {
-    [Parameter] public Scene scene { get; set; } = default!;
-    
-    public List<Integrator> addedIntegrators { get; private set; } = new();
-    
-    public Integrator? CurrentIntegrator => addedIntegrators.FirstOrDefault();
-
-    Type[] integratorTypes = Array.Empty<Type>();
-    string? selectedIntegrator;
-
-    class ParameterGroup
-    {
-        public string Title { get; set; } = "";
-        public List<PropertyInfo> Properties { get; set; } = new();
-        public List<FieldInfo> Fields { get; set; } = new();
-        public bool HasParameters => Properties.Any() || Fields.Any();
-    }
-
-    protected override void OnInitialized()
-    {
-        integratorTypes = new Type[] {typeof(PathTracer), typeof(VertexConnectionAndMerging)};
-        if (integratorTypes.Length > 0) {
-            selectedIntegrator = integratorTypes[0].FullName;
-            ReplaceIntegrator();
-        }
-        DocumentationHelper.LoadXmlDocumentation(typeof(Integrator).Assembly);
-    }
-
-    void OnSelectionChanged(ChangeEventArgs e)
-    {
-        selectedIntegrator = e.Value?.ToString();
-        if (!string.IsNullOrEmpty(selectedIntegrator))
-        {
-            ReplaceIntegrator();
-        }
-    }
-
-    void ReplaceIntegrator()
-    {
-        if (string.IsNullOrEmpty(selectedIntegrator)) return;
-        var type = integratorTypes.FirstOrDefault(t => t.FullName == selectedIntegrator);
-        if (type == null) return;
-
-        addedIntegrators.Clear();
-
-        var integrator = (Integrator)Activator.CreateInstance(type)!;
-        addedIntegrators.Add(integrator);
-
-        StateHasChanged();
-    }
-
-    List<ParameterGroup> GetParameterGroups(Integrator integrator)
-    {
-        var groups = new List<ParameterGroup>();
-        var currentType = integrator.GetType();
-        
-        var allProps = GetFilteredProps(currentType);
-        var allFields = GetFilteredFields(currentType);
-
-        while (currentType != null && currentType != typeof(object)) {
-            bool IsCurrentDeclared(MemberInfo m) 
-            {
-                var d = m.DeclaringType;
-                var cur = currentType;
-                if (d != null && d.IsGenericType && !d.IsGenericTypeDefinition) d = d.GetGenericTypeDefinition();
-                if (cur != null && cur.IsGenericType && !cur.IsGenericTypeDefinition) cur = cur.GetGenericTypeDefinition();
-                return d == cur;
-            }
-
-            string title = FormatClassName(currentType);
-            
-            if (currentType == typeof(Integrator)) title = "Global Settings";
-
-            var group = new ParameterGroup {
-                Title = title,
-                Properties = allProps.Where(p => IsCurrentDeclared(p)).ToList(),
-                Fields = allFields.Where(f => IsCurrentDeclared(f)).ToList()
-            };
-
-            if (group.HasParameters)
-                groups.Add(group);
-                
-            currentType = currentType.BaseType; 
-        }
-
-        return groups;
-    }
-    
-    string GetDescription(MemberInfo member)
-    {
-        return DocumentationHelper.GetSummary(member) ?? "";
-    }
-
-    string FormatClassName(Type t) {
-        string name = t.Name;
-        if (name.Contains('`')) name = name.Substring(0, name.IndexOf('`'));
-        return System.Text.RegularExpressions.Regex.Replace(name, "(\\B[A-Z])", " $1");
-    }
-
-    bool IsVisible(MemberInfo m)
-    {
-        if (m.Name == "Name" || m.Name == "Disabled") return false;
-        if (m is PropertyInfo p && (!p.CanRead || !p.CanWrite)) return false;
-        if (m is FieldInfo f && (f.IsLiteral || f.IsInitOnly)) return false;
-        
-        Type t = (m is PropertyInfo pi) ? pi.PropertyType : ((FieldInfo)m).FieldType;
-        Type underlyingType = Nullable.GetUnderlyingType(t) ?? t;
-
-        return underlyingType == typeof(int) || underlyingType == typeof(long) || 
-               underlyingType == typeof(uint) || underlyingType == typeof(ulong) || 
-               underlyingType == typeof(float) || underlyingType == typeof(double) ||
-               underlyingType == typeof(bool) || underlyingType.IsEnum || IsStruct(underlyingType);
-    }
-
-    IEnumerable<PropertyInfo> GetFilteredProps(Type type) => 
-        type.GetProperties(BindingFlags.Public | BindingFlags.Instance).Where(IsVisible);
-
-    IEnumerable<FieldInfo> GetFilteredFields(Type type) => 
-        type.GetFields(BindingFlags.Public | BindingFlags.Instance).Where(IsVisible);
-
-    bool IsStruct(Type t) => 
-        t.IsValueType && !t.IsPrimitive && !t.IsEnum && t != typeof(string) && t != typeof(decimal) && t != typeof(DateTime) && Nullable.GetUnderlyingType(t) == null;
-
-    RenderFragment RenderSetting(MemberInfo member, Func<object?> getter, Action<object> setter) => __builder =>
-    {
-        string name = member.Name;
-        string desc = GetDescription(member);
-        
-        Type type = (member is PropertyInfo p) ? p.PropertyType : ((FieldInfo)member).FieldType;
-        Type underlyingType = Nullable.GetUnderlyingType(type) ?? type;
-
-        if (underlyingType == typeof(int) || underlyingType == typeof(uint)) 
-        {
-            int val = Convert.ToInt32(getter() ?? 0);
-
-            <IntSetting Label="@name" Value="@val" HoverText="@desc"
-                        ValueChanged="@((int v) => {
-                            if (underlyingType == typeof(uint)) setter((uint)v);
-                            else setter(v);
-                        })" />
-        }
-        else if (underlyingType == typeof(long) || underlyingType == typeof(ulong))
-        {
-            long val = Convert.ToInt64(getter() ?? 0);
-
-            <LongSetting Label="@name" Value="@val" HoverText="@desc"
-                        ValueChanged="@((long v) => {
-                            if (underlyingType == typeof(ulong)) setter((ulong)v);
-                            else setter((long)v);
-                        })" />
-        }
-        else if (underlyingType == typeof(float) || underlyingType == typeof(double))
-        {
-            float val = Convert.ToSingle(getter() ?? 0.0f);
-
-            <FloatSetting Label="@name" Value="@val" HoverText="@desc"
-                          ValueChanged="@((float v) => {
-                              if (underlyingType == typeof(double)) setter((double)v);
-                              else setter(v);
-                          })" />
-        }
-        else if (underlyingType == typeof(bool))
-        {
-            bool val = Convert.ToBoolean(getter() ?? false);
-            
-            <BoolSetting Label="@name" Value="@val" HoverText="@desc" 
-                         ValueChanged="@((bool v) => setter(v))" />
-        }
-    };
-
-    public void TriggerReset()
-    {
-        if (CurrentIntegrator != null)
-        {
-            var type = CurrentIntegrator.GetType();
-            var defaultInstance = Activator.CreateInstance(type);
-            
-            if (defaultInstance != null)
-            {
-                foreach (var prop in GetFilteredProps(type)) {
-                    prop.SetValue(CurrentIntegrator, prop.GetValue(defaultInstance)); 
-                }
-                foreach (var field in GetFilteredFields(type)) {
-                    field.SetValue(CurrentIntegrator, field.GetValue(defaultInstance)); 
-                }
-                StateHasChanged();
-            }
-        }
-    }
-
-    public async Task TriggerApply()
-    {
-        await Task.Yield();
-        StateHasChanged();
-    }
-}

@@ -36,13 +36,6 @@
     padding: 10px;
 }
 
-.btn-success-anim {
-    background-color: #28a745 !important;
-    border-color: #28a745 !important;
-    color: white !important;
-    transition: all 0.1s ease;
-}
-
 .ref-item {
     padding: 1px;
     border: 1px solid #eee;
@@ -93,15 +86,6 @@
     justify-content: center;
     align-items: center;
     overflow: hidden; 
-}
-
-.slider-area {
-    flex: 0 0 auto;
-    padding: 5px 10px;
-    background: #f1f1f1;
-    border-top: 1px solid #ddd;
-    border-bottom: 1px solid #ddd;
-    z-index: 5;
 }
 
 .meta-box {

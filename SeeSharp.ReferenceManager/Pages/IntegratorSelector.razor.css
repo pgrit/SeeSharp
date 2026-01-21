@@ -11,23 +11,6 @@
     gap: 0.5em;
 }
 
-.integrator-header {
-    display: flex;
-    align-items: center;
-    padding: 4px 0;
-    cursor: pointer;
-    user-select: none;
-    background: transparent;
-    border: none;
-}
-
-.integrator-content {
-    border: 1px solid #e0e0e0;
-    border-radius: 4px;
-    padding: 10px;            
-    margin-top: 4px;
-}
-
 summary {
     cursor: pointer;
     font-weight: 600;
@@ -60,45 +43,4 @@ details > div {
 details:hover > div {
     border-left-color: #ccc;
 }
-
-
-.struct-details {
-    width: 100%;
-    margin-bottom: 2px;
-}
-
-.struct-summary {
-    cursor: pointer;
-    list-style: none; 
-    font-size: samller; 
-    font-weight: normal;
-    color: #000;
-    background-color: #f5f5f5; 
-    display: flex;
-    align-items: center;
-    transition: background-color 0.2s;
-}
-.struct-summary:hover {
-    background-color: #e9e9e9;
-}
-.struct-summary::before {
-    content: '▶';
-    display: inline-block;
-    font-size: 0.7em;
-    margin-right: 8px;
-    color: #000;
-    transition: transform 0.2s ease;
-}
-.struct-details[open] > .struct-summary::before {
-    transform: rotate(90deg);
-}
-
-.struct-content {
-    margin-left: 10px;
-    padding-left: 10px; 
-    padding-top: 5px;
-    padding-bottom: 5px;
-    border-left: 2px solid #e0e0e0;
-}
-
     

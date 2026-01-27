@@ -74,47 +74,57 @@ def make_material(name, mat_json, base_path):
         # color = mat_json["emission_color"]["value"]
         if "emission_color" in mat_json:
             color = mat_json["emission_color"].get("value", [1.0, 1.0, 1.0])
+            strength = mat_json.get("emission_strength", 0.0)
+            principled.inputs["Emission Color"].default_value = (*color[:3], 1.0)
+            principled.inputs["Emission Strength"].default_value = strength
         else:
             # fallback to emission value itself
-            color = emission_json.get("value", [0.0, 0.0, 0.0])
-        strength = mat_json.get("emission_strength", 0.0)
-        principled.inputs["Emission Color"].default_value = (*color[:3], 1.0)
-        principled.inputs["Emission Strength"].default_value = strength
+            raw = emission_json.get("value", [0.0, 0.0, 0.0])
+            strength = max(raw)
+            if strength > 0.0:
+                color = [c / strength for c in raw]
+            else:
+                color = [0.0, 0.0, 0.0]
+            principled.inputs["Emission Color"].default_value = (*color, 1.0)
+            principled.inputs["Emission Strength"].default_value = strength
+            # color = emission_json.get("value", [0.0, 0.0, 0.0])
+            # principled.inputs["Emission Color"].default_value = (*color[:3], 1.0)
+            # principled.inputs["Emission Strength"].default_value = color[0]
+        # strength = mat_json.get("emission_strength", 0.0)
+        # principled.inputs["Emission Color"].default_value = (*color[:3], 1.0)
+        # principled.inputs["Emission Strength"].default_value = strength
         # if mat_json.get("emissionIsGlossy", False):
         #     principled.inputs["Emission Strength"].default_value = mat_json["emissionExponent"]
 
     return mat
 
-def load_mesh(filepath):
-    ext = os.path.splitext(filepath)[1].lower()
-
+def load_mesh_with_transform(filepath, global_matrix):
+    """
+    Load a .ply or .obj mesh and apply a transformation to all imported objects.
+    Returns a list of imported objects.
+    """
     before = set(bpy.data.objects)
-
-    if ext == ".ply":
-        bpy.ops.wm.ply_import(filepath=filepath)
-
-    elif ext == ".obj":
-        bpy.ops.wm.obj_import(filepath=filepath)
-
-    else:
-        raise RuntimeError(f"Unsupported mesh format: {ext}")
-
+    bpy.ops.wm.obj_import(filepath=filepath)
+  
     after = set(bpy.data.objects)
+    new_objs = list(after - before)
+
+    # Apply the global transform to all imported objects
+    for obj in new_objs:
+        obj.matrix_world = global_matrix
+
+    return new_objs
+
+def load_ply(filepath):
+    """Load a .ply mesh and return the created object."""
+    before = set(bpy.data.objects)
+    bpy.ops.wm.ply_import(filepath=filepath)
+    after = set(bpy.data.objects)
+
     new_objs = list(after - before)
     if new_objs:
         return new_objs[0]
     return None
-
-# def load_ply(filepath):
-#     """Load a .ply mesh and return the created object."""
-#     before = set(bpy.data.objects)
-#     bpy.ops.wm.ply_import(filepath=filepath)
-#     after = set(bpy.data.objects)
-
-#     new_objs = list(after - before)
-#     if new_objs:
-#         return new_objs[0]
-#     return None
 
 def import_trimesh_object(obj, mat_lookup):
     name = obj.get("name", "Trimesh")
@@ -191,18 +201,31 @@ def import_camera(cam_json, transform_json, scene):
     scene.camera = cam_obj
 
     # ------------ Transform
-    pos = transform_json["position"]
-    rot = transform_json["rotation"]
+    if "matrix" in transform_json:
+        m = transform_json["matrix"]
 
-    cam_obj.location = (-pos[0], pos[2], pos[1])
+        # JSON is row-major → Blender needs column-major
+        mat = mathutils.Matrix((
+            (m[0],  m[4],  m[8],  m[12]),
+            (m[1],  m[5],  m[9],  m[13]),
+            (m[2],  m[6],  m[10], m[14]),
+            (m[3],  m[7],  m[11], m[15]),
+        ))
+        conv = axis_conversion(from_forward="Z", from_up="Y").to_4x4()
+        cam_obj.matrix_world = conv @ mat
+    else:
+        pos = transform_json.get("position", [0, 0, 0])
+        rot = transform_json.get("rotation", [0, 0, 0])
 
-    # inverse Euler mapping
-    eul = mathutils.Euler((
-        math.radians(rot[0] + 90),    # x_euler
-        math.radians(rot[2]),         # y_euler
-        math.radians(rot[1] - 180)    # z_euler
-    ), 'XYZ')
-    cam_obj.rotation_euler = eul
+        cam_obj.location = (-pos[0], pos[2], pos[1])
+
+        # inverse Euler mapping
+        eul = mathutils.Euler((
+            math.radians(rot[0] + 90),    # x_euler
+            math.radians(rot[2]),         # y_euler
+            math.radians(rot[1] - 180)    # z_euler
+        ), 'XYZ')
+        cam_obj.rotation_euler = eul
 
     # ------------ FOV (vertical → horizontal)
     vert_fov = math.radians(cam_json["fov"])
@@ -274,43 +297,76 @@ def import_seesharp(filepath):
     # ------------------------------------------------------------------
     global_matrix = axis_conversion(from_forward="Z", from_up="Y").to_4x4()
 
+    # APPLY OBJECT-LEVEL EMISSION FOR OLDER EXPORTER VERSION
+    def apply_object_emission(obj, emission_json):
+        if not emission_json:
+            return
+
+        mat = obj.data.materials[0]
+        mat.use_nodes = True
+        nt = mat.node_tree
+        principled = next(
+            n for n in nt.nodes
+            if n.type == "BSDF_PRINCIPLED"
+        )
+
+        color = emission_json.get("value", [0.0, 0.0, 0.0])
+
+        # SeeSharp uses radiance → treat magnitude as strength
+        strength = max(color)
+
+        principled.inputs["Emission Color"].default_value = (
+            color[0] / strength,
+            color[1] / strength,
+            color[2] / strength,
+            1.0
+        )
+        principled.inputs["Emission Strength"].default_value = strength
+
+
     if "objects" in data:
         for obj in data["objects"]:
             if obj.get("type") == "trimesh":
                 new_obj = import_trimesh_object(obj, mat_lookup)
+                new_obj.matrix_world = global_matrix
+
+                # APPLY OBJECT-LEVEL EMISSION
+                if "emission" in obj:
+                    apply_object_emission(new_obj, obj["emission"])
             else:
                 # fallback to existing PLY logic
-                ply_path = os.path.join(base_path, obj["relativePath"])
-                new_obj = load_mesh(ply_path)
-                if not new_obj:
-                    print(f"Failed to load {ply_path}")
-                    continue
+                path = os.path.join(base_path, obj["relativePath"])
+                ext = os.path.splitext(path)[1].lower()
 
-                if obj.get("material") in mat_lookup:
-                    new_obj.data.materials.append(mat_lookup[obj["material"]])
-            # Apply transform (shared)
-            new_obj.matrix_world = global_matrix.inverted()
-        # for obj in data["objects"]:    
-        #     # ply_path = os.path.join(base_path, obj["relativePath"])
-        #     rel_path = obj.get("relativePath")
+                if ext == ".ply":
+                    new_obj = load_ply(path)
+                    if not new_obj:
+                        print(f"Failed to load {path}")
+                        continue
+                    if obj.get("material") in mat_lookup:
+                        new_obj.data.materials.append(mat_lookup[obj["material"]])
+                    new_obj.matrix_world = global_matrix
 
-        #     if not rel_path:
-        #         print(f"⚠ Skipping object '{obj.get('name', 'UNKNOWN')}', no relativePath")
-        #         continue
+                    # APPLY OBJECT-LEVEL EMISSION
+                    if "emission" in obj:
+                        apply_object_emission(new_obj, obj["emission"])
+                elif ext == ".obj":
+                    new_objs = load_mesh_with_transform(path, global_matrix)
+                    if not new_objs:
+                        print(f"Failed to load {path}")
+                        continue
+                    # Assign material to all loaded objects
+                    for new_obj in new_objs:
+                        mat_name = new_obj.get("material")
+                        if mat_name in mat_lookup:
+                            new_obj.data.materials.append(mat_lookup[mat_name])
 
-        #     ply_path = os.path.join(base_path, rel_path)
-        #     new_obj = load_ply(ply_path)
-        #     if not new_obj:
-        #         print(f"Failed to load {ply_path}")
-        #         continue
-
-        #     # Apply SeeSharp → Blender inverse transform
-        #     new_obj.matrix_world = global_matrix.inverted()
-
-        #     # Assign material
-        #     if obj.get("material") in mat_lookup:
-        #         new_obj.data.materials.append(mat_lookup[obj["material"]])
-
+                        # APPLY OBJECT-LEVEL EMISSION
+                        if "emission" in obj:
+                            apply_object_emission(new_obj, obj["emission"])
+                else:
+                    raise RuntimeError(f"Unsupported mesh format: {ext}")
+              
     bpy.context.scene.render.engine = "SEE_SHARP"
 
     try:

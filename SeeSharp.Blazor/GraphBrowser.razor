@@ -1,0 +1,67 @@
+@using SeeSharp.Integrators.Util
+
+
+@namespace SeeSharp.Blazor
+@if (Node != null)
+{
+    <div class="tree-node">
+        <span class="toggle" @onclick="Toggle">
+            @if (HasChildren)
+            {
+                <span>@(expanded ? "▼" : "▶")</span>
+            }
+            else
+            {
+                <span style="opacity:0.3">•</span>
+            }
+        </span>
+
+        <span class="label" style="color:rgb(@(Node.ComputeVisualizerColor().R * 100)%,
+                                                @(Node.ComputeVisualizerColor().G * 100)%,
+                                                @(Node.ComputeVisualizerColor().B * 100)%)" @onclick="Click"
+            @ondblclick="DoubleClick">
+            @Node.GetType().Name
+        </span>
+    </div>
+
+    @if (expanded && HasChildren)
+    {
+        <div class="children">
+            @foreach (var child in Node.Successors)
+            {
+                <GraphBrowser Node="child" OnClick="OnClick" OnDoubleClick="OnDoubleClick" ForceExpand=AutoExpand />
+            }
+        </div>
+    }
+
+}
+
+@code {
+    [Parameter] public PathGraphNode Node { get; set; } = default!;
+    [Parameter] public Action<PathGraphNode> OnClick { get; set; } = default!;
+    [Parameter] public Action<PathGraphNode> OnDoubleClick { get; set; } = default!;
+    [Parameter] public bool ForceExpand { get; set; } = false;
+    bool expanded = false;
+    bool HasChildren => Node.Successors?.Count > 0;
+    void Toggle() => expanded = !expanded;
+
+    bool AutoExpand =>
+    Node is ConnectionNode || Node is MergeNode || ForceExpand;
+
+    protected override void OnParametersSet()
+    {
+        if (ForceExpand)
+        {
+            expanded = true;
+        }
+    }
+    void Click()
+    {
+        OnClick?.Invoke(Node);
+    }
+
+    void DoubleClick()
+    {
+        OnDoubleClick?.Invoke(Node);
+    }
+}

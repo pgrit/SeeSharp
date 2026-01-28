@@ -12,11 +12,11 @@ public class ReferenceInfo {
     public string IntegratorName { get; set; } = "";
     public int Spp { get; set; }
     public string RenderTimeDisplay { get; set; } = "";
-    public string Version { get; set; } = ""; 
+    public string Version { get; set; } = "";
     public string StartTimeDisplay { get; set; } = "";
     public string WriteTimeDisplay { get; set; } = "";
-    public string Timestamp { get; set; } = ""; 
-    public string RawJsonConfig { get; set; } = ""; 
+    public string Timestamp { get; set; } = "";
+    public string RawJsonConfig { get; set; } = "";
     public List<RenderStep> RenderSteps { get; set; } = new();
 }
 
@@ -80,7 +80,7 @@ public static class ReferenceUtils {
                 if (step == null) continue;
                 info.RenderSteps.Add(new RenderStep {
                     Type = step["Type"]?.ToString() ?? "Unknown",
-                    DurationMs = step["DurationMs"]?.GetValue<double>() ?? 0, 
+                    DurationMs = step["DurationMs"]?.GetValue<double>() ?? 0,
                     StartTime = step["StartTime"]?.ToString() ?? "",
                     WriteTime = step["WriteTime"]?.ToString() ?? ""
                 });
@@ -94,9 +94,9 @@ public static class ReferenceUtils {
             info.MaxDepth = settingsNode["MaxDepth"]?.GetValue<int>() ?? 0;
             info.MinDepth = settingsNode["MinDepth"]?.GetValue<int>() ?? 0;
         }
-        
+
         string integratorName = root["Name"]?.GetValue<string>();
-        info.IntegratorName = integratorName.Split('.').Last();
+        info.IntegratorName = integratorName?.Split('.')?.Last() ?? "Unknown";
     }
 
     public static string GetResolution(string filePath) {
@@ -110,23 +110,23 @@ public static class ReferenceUtils {
         if (target == null || source == null || target.GetType() != source.GetType()) return;
         var type = target.GetType();
 
-        bool IsConfigParam(Type t) { 
+        bool IsConfigParam(Type t) {
             return t == typeof(string) || t.IsValueType;
         }
 
         foreach (var prop in type.GetProperties(BindingFlags.Public | BindingFlags.Instance).Where(p => p.CanRead && p.CanWrite)) {
-            if (IsConfigParam(prop.PropertyType)) 
-                prop.SetValue(target, prop.GetValue(source)); 
+            if (IsConfigParam(prop.PropertyType))
+                prop.SetValue(target, prop.GetValue(source));
         }
         foreach (var field in type.GetFields(BindingFlags.Public | BindingFlags.Instance)) {
-            if (IsConfigParam(field.FieldType)) 
+            if (IsConfigParam(field.FieldType))
                 field.SetValue(target, field.GetValue(source));
         }
     }
 
     public static void CopyImage(RgbImage target, RgbImage source) {
         Parallel.For(0, target.Height, y => {
-            for (int x = 0; x < target.Width; ++x) 
+            for (int x = 0; x < target.Width; ++x)
                 target.SetPixel(x, y, source.GetPixel(x, y));
         });
     }
@@ -142,12 +142,12 @@ public static class ReferenceUtils {
         var type = integrator.GetType();
         var flags = BindingFlags.Public | BindingFlags.Instance | BindingFlags.IgnoreCase;
         var prop = type.GetProperty("MaxDepth", flags);
-        if (prop != null && prop.CanWrite) { 
-            prop.SetValue(integrator, depth); 
-            return; 
+        if (prop != null && prop.CanWrite) {
+            prop.SetValue(integrator, depth);
+            return;
         }
         var field = type.GetField("MaxDepth", flags);
-        if (field != null) { 
+        if (field != null) {
             field.SetValue(integrator, depth);
         }
     }
@@ -156,12 +156,12 @@ public static class ReferenceUtils {
         var type = integrator.GetType();
         var flags = BindingFlags.Public | BindingFlags.Instance | BindingFlags.IgnoreCase;
         var prop = type.GetProperty("MinDepth", flags);
-        if (prop != null && prop.CanWrite) { 
-            prop.SetValue(integrator, depth); 
-            return; 
+        if (prop != null && prop.CanWrite) {
+            prop.SetValue(integrator, depth);
+            return;
         }
         var field = type.GetField("MinDepth", flags);
-        if (field != null) { 
+        if (field != null) {
             field.SetValue(integrator, depth);
         }
     }
@@ -198,14 +198,14 @@ public static class ReferenceUtils {
         var targetNames = new[] { "TotalSpp", "NumIterations"};
         foreach (var name in targetNames) {
             var prop = type.GetProperty(name, flags);
-            if (prop != null && prop.CanWrite) { 
-                prop.SetValue(integrator, batchCount); 
+            if (prop != null && prop.CanWrite) {
+                prop.SetValue(integrator, batchCount);
                 return;
             }
             var field = type.GetField(name, flags);
-            if (field != null) { 
-                field.SetValue(integrator, batchCount); 
-                return; 
+            if (field != null) {
+                field.SetValue(integrator, batchCount);
+                return;
             }
         }
     }
@@ -231,18 +231,18 @@ public static class ReferenceUtils {
         if (scene == null) return;
 
         scene.FrameBuffer = new FrameBuffer(width, height, finalPath, flags);
-        
-        var options = new JsonSerializerOptions { 
+
+        var options = new JsonSerializerOptions {
             IncludeFields = true,
-            WriteIndented = true 
+            WriteIndented = true
         };
         var fullSettingsNode = JsonSerializer.SerializeToNode(integrator, integrator.GetType(), options);
 
         scene.FrameBuffer.MetaData["Name"] = integrator.GetType().Name;
-        scene.FrameBuffer.MetaData["Settings"] = fullSettingsNode; 
+        scene.FrameBuffer.MetaData["Settings"] = fullSettingsNode;
     }
 
-    public static string CurrentSeeSharpVersion { get; } = 
+    public static string CurrentSeeSharpVersion { get; } =
         typeof(Scene).Assembly
         .GetCustomAttribute<AssemblyInformationalVersionAttribute>()?
         .InformationalVersion ?? "Unknown";

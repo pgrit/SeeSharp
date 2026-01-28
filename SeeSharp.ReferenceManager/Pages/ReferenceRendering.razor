@@ -1,4 +1,4 @@
-@page "/ReferenceRendering"
+@page "/"
 @using SeeSharp.Experiments
 @using SeeSharp.Integrators
 @using SeeSharp.Blazor
@@ -10,10 +10,10 @@
 @using System.Text.Json.Nodes
 @using System.Diagnostics
 @using System.Linq
-@using System.Text.RegularExpressions; 
+@using System.Text.RegularExpressions;
 
 <div class="experiment-layout">
-    
+
     <div class="layout-header">
         <SceneSelector @ref="sceneSelector" OnSceneLoaded="OnSceneLoaded" />
     </div>
@@ -23,7 +23,7 @@
         <div class="col-content">
             <IntegratorSelector @ref="integratorSelector" scene="@scene" />
         </div>
-        
+
         <div style="padding: 10px; border-top: 1px solid #eee; display: flex; gap: 10px;">
             <button style="flex:1;" @onclick="ResetConfig">Reset</button>
             <button style="flex:1;" class="btn-primary" @onclick="SaveSceneConfig">Save</button>
@@ -39,18 +39,18 @@
             @foreach (var file in referenceFiles) {
                 <div class="ref-item @(selectedFile == file ? "active" : "")" @onclick="() => SelectReference(file)">
                     <div style="font-size: smaller; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
-                        @file.Resolution, max depth: @file.MaxDepth 
+                        @file.Resolution, max depth: @file.MaxDepth
                         @if (file.FilePath.EndsWith("-partial.exr")) {
                             <span> (Partial) </span>
                         }
-                    </div> 
+                    </div>
                 </div>
             }
         </div>
 
         <div class="render-form">
             <div style="font-weight:bold; margin-bottom:8px;">Render new</div>
-            
+
             <div class="form-group">
                 <label>Resolution:</label>
                 <div>
@@ -67,7 +67,7 @@
                 <label>Minimum Depth:</label>
                 <input type="number" @bind="renderMinDepth"  min="1" max="100" />
             </div>
-            
+
             <button style="width:100%; padding:6px; margin-top:5px;" @onclick="RenderReference" disabled="@isRendering">
                 @(isRendering ? "Rendering..." : "Render")
             </button>
@@ -81,23 +81,23 @@
             </div>
 
             <hr style="margin: 10px 0; border: 0; border-top: 1px dashed #ccc;" />
-            
+
             <div style="font-weight:bold; margin-bottom:8px;">Render more</div>
-            
+
             <div class="form-group">
                 <label>Add Spp:</label>
                 <input type="number" @bind="additionalSpp" min="1" />
             </div>
 
-            <button style="width:100%; padding:6px;" 
-                    @onclick="() => RenderMoreSamples(false)" 
+            <button style="width:100%; padding:6px;"
+                    @onclick="() => RenderMoreSamples(false)"
                     disabled="@(selectedFile == null || isRendering || isStructureMismatch || isVersionMismatch)">
                 Render More Samples
             </button>
 
-            <button style="width:100%; padding:6px; margin-top:5px;" 
-                    class="btn-primary" 
-                    @onclick="() => RenderMoreSamples(true)" 
+            <button style="width:100%; padding:6px; margin-top:5px;"
+                    class="btn-primary"
+                    @onclick="() => RenderMoreSamples(true)"
                     disabled="@(selectedFile == null || !selectedFile.FilePath.EndsWith("-partial.exr") || isRendering || isStructureMismatch || isVersionMismatch)">
                 Resume
             </button>
@@ -166,7 +166,7 @@
                             </details>
                         </div>
                     }
-                    
+
                     <div style="margin-top: 10px; border-top: 1px solid #eee; padding-top: 5px;">
                         @if (isStructureMismatch)
                         {
@@ -176,7 +176,7 @@
                             <summary style="cursor: pointer; font-size: 0.9em; color: #555; font-weight:bold; margin-bottom:5px;">Integrator Settings</summary>
 
                             <div style="margin-bottom: 8px; padding-left: 10px; border-left: 2px solid #e0e0e0;">
-                                <button style="padding: 4px 12px; font-size: 0.9em;" 
+                                <button style="padding: 4px 12px; font-size: 0.9em;"
                                         @onclick="ApplyReferenceSettings"
                                         title="Load these settings into the Parameters panel">
                                     Apply
@@ -194,7 +194,7 @@
                                         var node = System.Text.Json.Nodes.JsonNode.Parse(selectedFile.RawJsonConfig);
                                         if (node != null)
                                         {
-                                            var ignoredKeys = new HashSet<string> { 
+                                            var ignoredKeys = new HashSet<string> {
                                                 "RenderTime", "NumIterations", "RenderStartTime", "RenderWriteTime",
                                                 "SeeSharpVersion", "RenderSteps", "NaNWarnings"
                                             };

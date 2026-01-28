@@ -1,0 +1,52 @@
+@using SeeSharp.Experiments
+@using SeeSharp
+@using SeeSharp.Blazor
+@using SeeSharp.Integrators
+@using System.Reflection
+@using System.Collections.Generic
+@using System.ComponentModel
+
+<div class="integrator-selector">
+    <div style="display: flex; align-items: center; gap: 10px;">
+        <label style="margin: 0; white-space: nowrap;">Integrator:</label>
+        <select value="@selectedIntegrator" @onchange="OnSelectionChanged" style="flex-grow: 1;">
+            @foreach (var type in integratorTypes)
+            {
+                <option value="@type.FullName" selected="@(type.FullName == selectedIntegrator)">@FormatClassName(type)</option>
+            }
+        </select>
+    </div>
+</div>
+
+<div class="integrator-container">
+    @if (CurrentIntegrator != null)
+    {
+        var groups = GetParameterGroups(CurrentIntegrator);
+
+        @foreach (var group in groups)
+        {
+            <details open>
+                <summary>
+                    @group.Title
+                </summary>
+                
+                <div>
+                    @foreach (var prop in group.Properties) 
+                    { 
+                        <RenderSetting 
+                            Member="@prop" 
+                            Getter="() => prop.GetValue(CurrentIntegrator)" 
+                            Setter="v => { prop.SetValue(CurrentIntegrator, v); StateHasChanged(); }" />
+                    }
+                    @foreach (var field in group.Fields) 
+                    { 
+                        <RenderSetting 
+                            Member="@field" 
+                            Getter="() => field.GetValue(CurrentIntegrator)" 
+                            Setter="v => { field.SetValue(CurrentIntegrator, v); StateHasChanged(); }" />
+                    }
+                </div>
+            </details>
+        }
+    }
+</div>

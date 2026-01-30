@@ -41,12 +41,58 @@ public static class ReferenceUtils {
         foreach (var f in exrFiles) {
             var info = new ReferenceInfo {
                 FilePath = f,
-                Resolution = GetResolution(f),
                 Timestamp = File.GetLastWriteTime(f).ToString("yyyy-MM-dd HH:mm:ss")
             };
             ReadMetadataFromJson(info, f);
+            ParseExrName(info, f);
             referenceFiles.Add(info);
         }
+    }
+
+    public static void ParseExrName(ReferenceInfo info, string filePath) {
+        string filename = Path.GetFileNameWithoutExtension(filePath);
+        var match = Regex.Match(filename, @"(?:MinDepth(?<min>\d+)-)?MaxDepth(?<max>\d+)-Width(?<w>\d+)-Height(?<h>\d+)", RegexOptions.IgnoreCase);
+        
+        if (match.Success) {
+            info.MinDepth = match.Groups["min"].Success ? int.Parse(match.Groups["min"].Value) : 1;
+            info.MaxDepth = int.Parse(match.Groups["max"].Value);
+            info.Resolution = $"{match.Groups["w"].Value}x{match.Groups["h"].Value}";
+        } else {
+            if (string.IsNullOrEmpty(info.Resolution))
+                Logger.Warning($"Can't find resolution.");
+            else if (info.MaxDepth <= 0)
+                Logger.Warning($"The maximum depth is wrong.");
+        }
+    }
+
+    public static T InpaintNaNs<T>(T image) where T : Image {
+        bool hadAny = false;
+        for (int row = 0; row < image.Height; ++row) {
+            for (int col = 0; col < image.Width; ++col) {
+                for (int chan = 0; chan < image.NumChannels; ++chan) {
+                    if (!float.IsFinite(image[col, row, chan])) {
+                        float total = 0;
+                        int num = 0;
+                        void TryAdd(int c, int r) {
+                            if (c >= 0 && r >= 0 && c < image.Width && r < image.Height && float.IsFinite(image[c, r, chan])) {
+                                total += image[c, r, chan];
+                                num++;
+                            }
+                        }
+                        TryAdd(col - 1, row);
+                        TryAdd(col + 1, row);
+                        TryAdd(col, row - 1);
+                        TryAdd(col, row + 1);
+                        image[col, row, chan] = total / num;
+
+                        hadAny = true;
+                    }
+                }
+            }
+        }
+        if (hadAny)
+            Logger.Warning("Removed NaN / Inf from reference image (check the reference's .json in the scene directory for details)");
+        return image;
     }
 
     public static void ReadMetadataFromJson(ReferenceInfo info, string exrPath) {
@@ -91,19 +137,10 @@ public static class ReferenceUtils {
         if (settingsNode != null) {
             var options = new JsonSerializerOptions { WriteIndented = true };
             info.RawJsonConfig = settingsNode.ToJsonString(options);
-            info.MaxDepth = settingsNode["MaxDepth"]?.GetValue<int>() ?? 0;
-            info.MinDepth = settingsNode["MinDepth"]?.GetValue<int>() ?? 0;
         }
 
         string integratorName = root["Name"]?.GetValue<string>();
         info.IntegratorName = integratorName?.Split('.')?.Last() ?? "Unknown";
-    }
-
-    public static string GetResolution(string filePath) {
-        string filename = Path.GetFileNameWithoutExtension(filePath);
-        var match = Regex.Match(filename, @"Width(\d+)-Height(\d+)", RegexOptions.IgnoreCase);
-        if (match.Success) return $"{match.Groups[1].Value}x{match.Groups[2].Value}";
-        return "Unknown";
     }
 
     public static void CopyValues(object target, object source) {

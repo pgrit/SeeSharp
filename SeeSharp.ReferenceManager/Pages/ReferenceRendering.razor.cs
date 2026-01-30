@@ -97,12 +97,16 @@ public partial class ReferenceRendering
         flip = null;
         StateHasChanged();
 
-        if (!File.Exists(path)) return;
-        var layers = SimpleImageIO.Layers.LoadFromFile(path);
-        var img = layers.Values.OfType<RgbImage>().FirstOrDefault();
-
-        if (img != null) 
+        RgbImage img = null;
+        if (File.Exists(path)) {
+            // support legacy .exr files
+            var layers = Layers.LoadFromFile(path);
+            if (layers.TryGetValue("", out Image image)) 
+                img = ReferenceUtils.InpaintNaNs(image) as RgbImage;
+            else if (layers.TryGetValue("default", out var defaultImg)) 
+                img = ReferenceUtils.InpaintNaNs(defaultImg) as RgbImage;
             UpdatePreviewFromMemory(img);
+        }
     }
 
     private async void UpdatePreviewFromMemory(RgbImage image) {
@@ -170,16 +174,17 @@ public partial class ReferenceRendering
         await Task.Run(async () => {
             var renderIntegrator = ReferenceUtils.CloneIntegrator(curIntegrator);
 
-            string referencesRoot = Path.Combine(currentSceneDirectory, "References");
+            string referencesRoot = Path.Join(currentSceneDirectory, "References");
             Directory.CreateDirectory(referencesRoot);
 
             ReferenceUtils.SetMaxDepth(renderIntegrator, renderMaxDepth);
             ReferenceUtils.SetMinDepth(renderIntegrator, renderMinDepth);
             ReferenceUtils.SaveConfig(referencesRoot, renderIntegrator);
 
-            string baseName = $"MaxDepth{renderMaxDepth}-Width{renderWidth}-Height{renderHeight}";
-            string finalPath = Path.Combine(referencesRoot, baseName + ".exr");
-            string partialPath = Path.Combine(referencesRoot, baseName + "-partial.exr");
+            string minDepthString = renderMinDepth > 1 ? $"MinDepth{renderMinDepth}-" : "";
+            string baseName = $"{minDepthString}MaxDepth{renderMaxDepth}-Width{renderWidth}-Height{renderHeight}";
+            string finalPath = Path.Join(referencesRoot, baseName + ".exr");
+            string partialPath = Path.Join(referencesRoot, baseName + "-partial.exr");
 
             var fbFlags = FrameBuffer.Flags.WriteContinously | FrameBuffer.Flags.WriteExponentially | FrameBuffer.Flags.IgnoreNanAndInf;
 

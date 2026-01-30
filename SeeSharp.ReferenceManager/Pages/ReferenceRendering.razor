@@ -40,6 +40,10 @@
                 <div class="ref-item @(selectedFile == file ? "active" : "")" @onclick="() => SelectReference(file)">
                     <div style="font-size: smaller; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
                         @file.Resolution, max depth: @file.MaxDepth
+                        @if (file.MinDepth > 1)
+                        {
+                            <span>, min depth: @file.MinDepth</span>
+                        }
                         @if (file.FilePath.EndsWith("-partial.exr")) {
                             <span> (Partial) </span>
                         }

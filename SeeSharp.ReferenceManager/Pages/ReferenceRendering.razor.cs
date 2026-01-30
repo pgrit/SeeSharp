@@ -102,9 +102,9 @@ public partial class ReferenceRendering
             // support legacy .exr files
             var layers = Layers.LoadFromFile(path);
             if (layers.TryGetValue("", out Image image)) 
-                img = ReferenceUtils.InpaintNaNs(image) as RgbImage;
+                img = SceneFromFile.InpaintNaNs(image) as RgbImage;
             else if (layers.TryGetValue("default", out var defaultImg)) 
-                img = ReferenceUtils.InpaintNaNs(defaultImg) as RgbImage;
+                img = SceneFromFile.InpaintNaNs(defaultImg) as RgbImage;
             UpdatePreviewFromMemory(img);
         }
     }
@@ -170,55 +170,31 @@ public partial class ReferenceRendering
         await InvokeAsync(StateHasChanged);
 
         var curIntegrator = integratorSelector.addedIntegrators.First();
-
         await Task.Run(async () => {
             var renderIntegrator = ReferenceUtils.CloneIntegrator(curIntegrator);
-
-            string referencesRoot = Path.Join(currentSceneDirectory, "References");
-            Directory.CreateDirectory(referencesRoot);
-
-            ReferenceUtils.SetMaxDepth(renderIntegrator, renderMaxDepth);
-            ReferenceUtils.SetMinDepth(renderIntegrator, renderMinDepth);
-            ReferenceUtils.SaveConfig(referencesRoot, renderIntegrator);
-
-            string minDepthString = renderMinDepth > 1 ? $"MinDepth{renderMinDepth}-" : "";
-            string baseName = $"{minDepthString}MaxDepth{renderMaxDepth}-Width{renderWidth}-Height{renderHeight}";
-            string finalPath = Path.Join(referencesRoot, baseName + ".exr");
-            string partialPath = Path.Join(referencesRoot, baseName + "-partial.exr");
-
-            var fbFlags = FrameBuffer.Flags.WriteContinously | FrameBuffer.Flags.WriteExponentially | FrameBuffer.Flags.IgnoreNanAndInf;
-
-            ReferenceUtils.PrepareFrameBuffer(scene, renderWidth, renderHeight, partialPath, renderIntegrator, fbFlags);
-            scene.Prepare();
-
             int targetSpp = ReferenceUtils.GetTargetSpp(renderIntegrator);
             ReferenceUtils.SetBatchSpp(renderIntegrator, targetSpp);
 
-            renderIntegrator.Render(scene);
-            scene.FrameBuffer.WriteToFile();
+            currentSceneFile.MaxDepth = renderMaxDepth;
+            currentSceneFile.MinDepth = renderMinDepth;
 
-            int actualSpp = scene.FrameBuffer.CurIteration;
-            bool isCompleted = actualSpp >= targetSpp;
-            string finalPathToLoad = partialPath;
+            string referencesRoot = Path.Join(currentSceneDirectory, "References");
+            Directory.CreateDirectory(referencesRoot);
+            string minDepthString = renderMinDepth > 1 ? $"MinDepth{renderMinDepth}-" : "";
+            string finalPath = Path.Combine(referencesRoot, $"{minDepthString}MaxDepth{renderMaxDepth}-Width{renderWidth}-Height{renderHeight}.exr");    
+            if (File.Exists(finalPath)) File.Delete(finalPath);
 
-            if (isCompleted)
-            {
-                if (File.Exists(finalPath)) File.Delete(finalPath);
-                if (File.Exists(partialPath)) File.Move(partialPath, finalPath);
-
-                string pJson = Path.ChangeExtension(partialPath, ".json");
-                string fJson = Path.ChangeExtension(finalPath, ".json");
-                
-                if (File.Exists(fJson)) File.Delete(fJson);
-                if (File.Exists(pJson)) File.Move(pJson, fJson);
-
-                finalPathToLoad = finalPath;
-            }
+            var resultImg = currentSceneFile.GetReferenceImage(
+                renderWidth, 
+                renderHeight, 
+                allowRender: true, 
+                config: renderIntegrator
+            );
 
             await InvokeAsync(() => {
                 ReferenceUtils.ScanReferences(currentSceneDirectory, referenceFiles);
-                selectedFile = referenceFiles.FirstOrDefault(r => r.FilePath == finalPathToLoad);
-                if (selectedFile != null) UpdateViewerFromFile(finalPathToLoad);
+                selectedFile = referenceFiles.FirstOrDefault(r => r.FilePath == finalPath);
+                if (selectedFile != null) UpdateViewerFromFile(finalPath);
                 StateHasChanged();
             });
         });

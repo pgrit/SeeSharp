@@ -46,7 +46,7 @@ public class SceneFromFile : SceneConfig {
         WriteIndented = true
     };
 
-    static T InpaintNaNs<T>(T image) where T : Image {
+    public static T InpaintNaNs<T>(T image) where T : Image {
         bool hadAny = false;
         for (int row = 0; row < image.Height; ++row) {
             for (int col = 0; col < image.Width; ++col) {
@@ -86,8 +86,9 @@ public class SceneFromFile : SceneConfig {
     /// <param name="width">Width in pixels</param>
     /// <param name="height">Height in pixels</param>
     /// <param name="allowRender">If false, missing references are not rendered and null is returned instead</param>
+    /// <param name="config">Use integrator parameters if provided, otherwise read them from the JSON file</param>
     /// <returns>The reference image</returns>
-    public override RgbImage GetReferenceImage(int width, int height, bool allowRender = true) {
+    public override RgbImage GetReferenceImage(int width, int height, bool allowRender = true, Integrator config = null) {
         string refDir = Path.Join(file.DirectoryName, "References");
         Directory.CreateDirectory(refDir);
 
@@ -110,6 +111,11 @@ public class SceneFromFile : SceneConfig {
 
         string referenceSpecs = Path.Join(refDir, "Config.json");
         Integrator refIntegrator = DefaultReferenceIntegrator;
+        if (config != null) {
+            refIntegrator = config;
+            goto IntegratorLoaded;
+        }
+
         if (File.Exists(referenceSpecs)) {
             var json = JsonNode.Parse(File.ReadAllText(referenceSpecs));
 
@@ -150,7 +156,7 @@ IntegratorLoaded:
         // Overwrite the reference specs in case they got updated (e.g., migrated to new format)
         File.WriteAllText(referenceSpecs, $$"""
         {
-            "Name": "{{refIntegrator.GetType().FullName}}",
+            "Name": "{{refIntegrator.GetType().Name}}",
             "Settings": {{JsonSerializer.Serialize(refIntegrator, refIntegrator.GetType(), refSerializerOptions)}}
         }
         """);
@@ -158,15 +164,31 @@ IntegratorLoaded:
         refIntegrator.MaxDepth = MaxDepth;
         refIntegrator.MinDepth = MinDepth;
 
+        string partialFilename = Path.Join(refDir, $"{minDepthString}MaxDepth{MaxDepth}-Width{width}-Height{height}-partial.exr");
+        if (File.Exists(partialFilename)) File.Delete(partialFilename);
+
         using Scene scn = MakeScene();
-        scn.FrameBuffer = new(width, height, filename,
+        scn.FrameBuffer = new(width, height, partialFilename,
             FrameBuffer.Flags.IgnoreNanAndInf |
             FrameBuffer.Flags.WriteContinously |
             FrameBuffer.Flags.WriteExponentially); // output intermediate results exponentially to avoid loosing everything on a crash
+        
+        // Write settings to metadata for preview parameters in the info table
+        scn.FrameBuffer.MetaData["Name"] = refIntegrator.GetType().Name;
+        scn.FrameBuffer.MetaData["Settings"] =  JsonSerializer.SerializeToNode(refIntegrator, refIntegrator.GetType(), refSerializerOptions);
+        
         scn.Prepare();
         refIntegrator.Render(scn);
         scn.FrameBuffer.WriteToFile();
 
+        if (File.Exists(filename)) File.Delete(filename);
+        File.Move(partialFilename, filename);
+
+        string pJson = Path.ChangeExtension(partialFilename, ".json");
+        string fJson = Path.ChangeExtension(filename, ".json");
+        if (File.Exists(fJson)) File.Delete(fJson);
+        if (File.Exists(pJson)) File.Move(pJson, fJson);
+        
         return InpaintNaNs(scn.FrameBuffer.Image);
     }
 

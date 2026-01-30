@@ -65,36 +65,6 @@ public static class ReferenceUtils {
         }
     }
 
-    public static T InpaintNaNs<T>(T image) where T : Image {
-        bool hadAny = false;
-        for (int row = 0; row < image.Height; ++row) {
-            for (int col = 0; col < image.Width; ++col) {
-                for (int chan = 0; chan < image.NumChannels; ++chan) {
-                    if (!float.IsFinite(image[col, row, chan])) {
-                        float total = 0;
-                        int num = 0;
-                        void TryAdd(int c, int r) {
-                            if (c >= 0 && r >= 0 && c < image.Width && r < image.Height && float.IsFinite(image[c, r, chan])) {
-                                total += image[c, r, chan];
-                                num++;
-                            }
-                        }
-                        TryAdd(col - 1, row);
-                        TryAdd(col + 1, row);
-                        TryAdd(col, row - 1);
-                        TryAdd(col, row + 1);
-                        image[col, row, chan] = total / num;
-
-                        hadAny = true;
-                    }
-                }
-            }
-        }
-        if (hadAny)
-            Logger.Warning("Removed NaN / Inf from reference image (check the reference's .json in the scene directory for details)");
-        return image;
-    }
-
     public static void ReadMetadataFromJson(ReferenceInfo info, string exrPath) {
         string folder = Path.GetDirectoryName(exrPath);
         string fileNameNoExt = Path.GetFileNameWithoutExtension(exrPath);
@@ -262,21 +232,6 @@ public static class ReferenceUtils {
         var seedField = integrator.GetType().GetField("BaseSeed", flags);
         if (seedProp != null) seedProp.SetValue(integrator, seed);
         else if (seedField != null) seedField.SetValue(integrator, seed);
-    }
-
-    public static void PrepareFrameBuffer(Scene scene, int width, int height, string finalPath, Integrator integrator, FrameBuffer.Flags flags) {
-        if (scene == null) return;
-
-        scene.FrameBuffer = new FrameBuffer(width, height, finalPath, flags);
-
-        var options = new JsonSerializerOptions {
-            IncludeFields = true,
-            WriteIndented = true
-        };
-        var fullSettingsNode = JsonSerializer.SerializeToNode(integrator, integrator.GetType(), options);
-
-        scene.FrameBuffer.MetaData["Name"] = integrator.GetType().Name;
-        scene.FrameBuffer.MetaData["Settings"] = fullSettingsNode;
     }
 
     public static string CurrentSeeSharpVersion { get; } =

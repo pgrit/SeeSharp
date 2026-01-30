@@ -31,6 +31,7 @@ public abstract class SceneConfig {
     /// <param name="width">Width of the image</param>
     /// <param name="height">Height of the image</param>
     /// <param name="allowRender">If false, missing references are not rendered and null is returned instead</param>
+    /// <param name="config">Use integrator parameters if provided, otherwise read them from the JSON file</param>
     /// <returns>The reference image</returns>
-    public abstract RgbImage GetReferenceImage(int width, int height, bool allowRender = true);
+    public abstract RgbImage GetReferenceImage(int width, int height, bool allowRender = true, Integrator config = null);
 }

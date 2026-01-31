@@ -29,9 +29,9 @@ public struct ListenerState {
     public int currY = 0;
 
     /// <summary>
-    /// The key of the current flipbook
+    /// The ID of the current flipbook
     /// </summary>
-    public string currFlipKey = "";
+    public string currFlipID = "";
 }
 
 /// <summary>
@@ -66,19 +66,12 @@ public partial class BaseExperiment : ComponentBase {
         return new string(charArray);
     }
 
-    // SurfacePoint? selected;
-    // void OnFlipClick(FlipViewer.OnClickEventArgs args) {
-    //     if (args.CtrlKey) {
-    //         selected = scene.RayCast(new(args.X, args.Y));
-    //     }
-    // }
-
     /// <summary>
     /// Is fired when clicked on an image in the flipbook
     /// </summary>
     /// <param name="args">ListenerState from HMTL side</param>
     public virtual void OnFlipClick(FlipViewer.OnClickEventArgs args) {
-         updateFlipbook(FiredType.Click);
+        updateFlipbook(FiredType.Click);
     }
 
     /// <summary>
@@ -92,14 +85,14 @@ public partial class BaseExperiment : ComponentBase {
             if (args.deltaY < 0) {
                 if (state.currIteration < NumSamples - 1) {
                     state.currIteration++;
-                     updateFlipbook(FiredType.Wheel);
+                    updateFlipbook(FiredType.Wheel);
                 }
             }
             // scrolled down
             if (args.deltaY >= 0) {
                 if (state.currIteration > 0) {
                     state.currIteration--;
-                     updateFlipbook(FiredType.Wheel);
+                    updateFlipbook(FiredType.Wheel);
                 }
             }
         }
@@ -110,15 +103,15 @@ public partial class BaseExperiment : ComponentBase {
     /// </summary>
     /// <param name="args">ListenerState from HMTL side.</param>
     public virtual void OnFlipMouseOver(FlipViewer.OnClickEventArgs args) {
-        if (state.currX == args.X && state.currY == args.Y)
+        if (state.currX == args.mouseX && state.currY == args.mouseY)
             return;
 
-        if (args.X >= 0 && args.X <= Width - 1)
-            state.currX = args.X;
-        if (args.Y >= 0 && args.Y <= Height - 1)
-            state.currY = args.Y;
+        if (args.mouseX >= 0 && args.mouseX <= Width - 1)
+            state.currX = args.mouseX;
+        if (args.mouseY >= 0 && args.mouseY <= Height - 1)
+            state.currY = args.mouseY;
 
-         updateFlipbook(FiredType.Move);
+        updateFlipbook(FiredType.Move);
     }
 
     /// <summary>
@@ -126,22 +119,22 @@ public partial class BaseExperiment : ComponentBase {
     /// </summary>
     /// <param name="args">ListenerState from HMTL side.</param>
     public virtual void OnFlipKey(FlipViewer.OnClickEventArgs args) {
-        if (args.key == state.actionKey1)
+        if (args.keyPressed == state.actionKey1)
             state.actionKey1Pressed = args.isPressed;
 
-        if (args.key == state.actionKey2)
+        if (args.keyPressed == state.actionKey2)
             state.actionKey2Pressed = args.isPressed;
 
-        state.currFlipKey = args.registryKey;
+        state.currFlipID = args.FlipbookID;
         state.selectedIndex = args.selectedIndex;
 
-        if (args.key == state.actionKey1 && !args.isPressed)
+        if (args.keyPressed == state.actionKey1 && !args.isPressed)
             state.currIteration = 0;
 
         if (args.isPressed)
-             updateFlipbook(FiredType.KeyDown);
+            updateFlipbook(FiredType.KeyDown);
         else
-             updateFlipbook(FiredType.KeyUp);
+            updateFlipbook(FiredType.KeyUp);
     }
 
     /// <summary>
@@ -149,7 +142,7 @@ public partial class BaseExperiment : ComponentBase {
     /// </summary>
     /// <param name="fired">Fired type</param>
     public virtual void updateFlipbook(FiredType fired) {
-        if (String.IsNullOrEmpty(state.currFlipKey))
+        if (String.IsNullOrEmpty(state.currFlipID))
             return;
     }
 

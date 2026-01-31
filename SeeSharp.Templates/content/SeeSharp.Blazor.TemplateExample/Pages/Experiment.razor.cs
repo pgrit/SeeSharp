@@ -113,10 +113,10 @@ public partial class Experiment : BaseExperiment {
     /// </summary>
     /// <param name="fired">Fired type</param>
     public override void updateFlipbook(FiredType fired) {
-        if (String.IsNullOrEmpty(state.currFlipKey))
+        if (String.IsNullOrEmpty(state.currFlipID))
             return;
 
-        switch (state.currFlipKey) {
+        switch (state.currFlipID) {
             case "1,0":
             case "0,1": {
                     updateCompare(fired);
@@ -139,10 +139,10 @@ public partial class Experiment : BaseExperiment {
         if (fired == FiredType.Click || fired == FiredType.Move)
             return;
 
-        FlipBook flipBook = registry[state.currFlipKey];
+        FlipBook flipBook = registry[state.currFlipID];
         // TODO: some iteration over all pairs with the same number ex: (1,0,0,...) -> (0,1,0,0,..)
         // this is a fast solution (and maybe good enough) for now -> flip the string to get the other flipbook
-        FlipBook flipBookOther = registry[Reverse(state.currFlipKey)];
+        FlipBook flipBookOther = registry[Reverse(state.currFlipID)];
 
         Image updateImage = flipBook.GetImage(state.selectedIndex);
         Image updateImageOther = flipBookOther.GetImage(state.selectedIndex);

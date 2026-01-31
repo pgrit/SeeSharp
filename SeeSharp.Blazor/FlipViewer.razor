@@ -17,18 +17,16 @@
 
     public record struct OnClickEventArgs
     (
-        int X,
-        int Y,
-
-        string key,
-        bool isPressed,
-
-        int mouseButton,
-        bool isButton,
-
+        int mouseButtom,
+        int mouseX,
+        int mouseY,
         int deltaY,
+
+        string FlipbookID,
         int selectedIndex,
-        string registryKey
+
+        string keyPressed,
+        bool isPressed
     )
     {
     }
@@ -67,40 +65,28 @@
         lastFlip = Flip;
     }
 
-    public struct _OnFlipClickArgs
+    [JSInvokable]
+    public void _OnFlipClick(int mouseButtom, int mouseX, int mouseY, int deltaY, string ID, int selectedIdx, string keyPressed, bool isPressed)
     {
-        [JsonInclude] public string key;
-        [JsonInclude] public bool isPressed;
-        [JsonInclude] public int mouseButtom;
-        [JsonInclude] public bool isButtom;
-        [JsonInclude] public int deltaY;
-        [JsonInclude] public int selectedIndex;
-        [JsonInclude] public string registryKey;
+        OnClick.InvokeAsync(new(mouseButtom: mouseButtom, mouseX: mouseX, mouseY: mouseY, deltaY: deltaY, FlipbookID: ID, selectedIndex: selectedIdx, keyPressed: keyPressed, isPressed: isPressed)).Wait();
     }
 
     [JSInvokable]
-    public void _OnFlipClick(int buttom)
+    public void _OnFlipWheel(int mouseButtom, int mouseX, int mouseY, int deltaY, string ID, int selectedIdx, string keyPressed, bool isPressed)
     {
-        OnClick.InvokeAsync(new(X: -1, Y: -1, key: "", isPressed: false, mouseButton: buttom, isButton: false, deltaY: 0, selectedIndex: -1, registryKey: "")).Wait();
-    }
-
-    // IMPORTANT: There is a bool for altKey, but on the React side a wheel event only is fired when alt is pressed, so altKey is more or less redundant
-    [JSInvokable]
-    public void _OnFlipWheel(int deltaY)
-    {
-        OnWheel.InvokeAsync(new(X: -1, Y: -1, key: "", isPressed: false, mouseButton: -1, isButton: false, deltaY: deltaY, selectedIndex: -1, registryKey: "")).Wait();
+        OnWheel.InvokeAsync(new(mouseButtom: mouseButtom, mouseX: mouseX, mouseY: mouseY, deltaY: deltaY, FlipbookID: ID, selectedIndex: selectedIdx, keyPressed: keyPressed, isPressed: isPressed)).Wait();
     }
 
     [JSInvokable]
-    public void _OnFlipMouseOver(int x, int y)
+    public void _OnFlipMouseOver(int mouseButtom, int mouseX, int mouseY, int deltaY, string ID, int selectedIdx, string keyPressed, bool isPressed)
     {
-        OnMouseOver.InvokeAsync(new(X: x, Y: y, key: "", isPressed: false, mouseButton: -1, isButton: false, deltaY: 0, selectedIndex: -1, registryKey: "")).Wait();
+        OnMouseOver.InvokeAsync(new(mouseButtom: mouseButtom, mouseX: mouseX, mouseY: mouseY, deltaY: deltaY, FlipbookID: ID, selectedIndex: selectedIdx, keyPressed: keyPressed, isPressed: isPressed)).Wait();
     }
 
     [JSInvokable]
-    public void _OnFlipKey(int selectedIdx, string keyStr, string keyPressed, bool isPressed)
+    public void _OnFlipKey(int mouseButtom, int mouseX, int mouseY, int deltaY, string ID, int selectedIdx, string keyPressed, bool isPressed)
     {
-        OnKey.InvokeAsync(new(X: -1, Y: -1, key: keyPressed, isPressed: isPressed, mouseButton: -1, isButton: false, deltaY: 0, selectedIndex: selectedIdx, registryKey: keyStr)).Wait();
+        OnKey.InvokeAsync(new(mouseButtom: mouseButtom, mouseX: mouseX, mouseY: mouseY, deltaY: deltaY, FlipbookID: ID, selectedIndex: selectedIdx, keyPressed: keyPressed, isPressed: isPressed)).Wait();
     }
 
     protected override async Task OnAfterRenderAsync(bool firstRender)

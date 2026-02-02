@@ -23,26 +23,26 @@ public static class Scripts {
         function makeFlipBook(jsonArgs, onClickObj, onClickMethodName, onWheelObj, onWheelMethodName, onMouseOverObj, onMouseOverMethodName, onKeyObj, onKeyMethodName) {
             let onClick = null;
             if (onClickObj && onClickMethodName) {
-                onClick = (mouseButtom, mouseX, mouseY, deltaY, ID, selectedIdx, keyPressed, isPressed) =>
-                    onClickObj.invokeMethodAsync(onClickMethodName, mouseButtom, mouseX, mouseY, deltaY, ID, selectedIdx, keyPressed, isPressed)
+                onClick = (mouseButton, mouseX, mouseY, deltaY, ID, selectedIdx, keyPressed, isPressed) =>
+                    onClickObj.invokeMethodAsync(onClickMethodName, mouseButton, mouseX, mouseY, deltaY, ID, selectedIdx, keyPressed, isPressed)
             }
 
             let onWheel = null
             if (onWheelObj && onWheelMethodName) {
-                onWheel = (mouseButtom, mouseX, mouseY, deltaY, ID, selectedIdx, keyPressed, isPressed) =>
-                    onWheelObj.invokeMethodAsync(onWheelMethodName, mouseButtom, mouseX, mouseY, deltaY, ID, selectedIdx, keyPressed, isPressed)
+                onWheel = (mouseButton, mouseX, mouseY, deltaY, ID, selectedIdx, keyPressed, isPressed) =>
+                    onWheelObj.invokeMethodAsync(onWheelMethodName, mouseButton, mouseX, mouseY, deltaY, ID, selectedIdx, keyPressed, isPressed)
             }
 
             let onMouseOver = null
             if (onMouseOverObj && onMouseOverMethodName) {
-                onMouseOver = (mouseButtom, mouseX, mouseY, deltaY, ID, selectedIdx, keyPressed, isPressed) =>
-                    onMouseOverObj.invokeMethodAsync(onMouseOverMethodName, mouseButtom, mouseX, mouseY, deltaY, ID, selectedIdx, keyPressed, isPressed)
+                onMouseOver = (mouseButton, mouseX, mouseY, deltaY, ID, selectedIdx, keyPressed, isPressed) =>
+                    onMouseOverObj.invokeMethodAsync(onMouseOverMethodName, mouseButton, mouseX, mouseY, deltaY, ID, selectedIdx, keyPressed, isPressed)
             }
 
             let onKey = null
             if (onKeyObj && onKeyMethodName) {
-                onKey = (mouseButtom, mouseX, mouseY, deltaY, ID, selectedIdx, keyPressed, isPressed) =>
-                    onKeyObj.invokeMethodAsync(onKeyMethodName, mouseButtom, mouseX, mouseY, deltaY, ID, selectedIdx, keyPressed, isPressed)
+                onKey = (mouseButton, mouseX, mouseY, deltaY, ID, selectedIdx, keyPressed, isPressed) =>
+                    onKeyObj.invokeMethodAsync(onKeyMethodName, mouseButton, mouseX, mouseY, deltaY, ID, selectedIdx, keyPressed, isPressed)
             }
 
             window['flipbook']['MakeFlipBook'](jsonArgs, onClick, onWheel, onMouseOver, onKey);

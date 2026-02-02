@@ -1,7 +1,7 @@
 .experiment-layout {
     display: grid;
-    grid-template-columns: 350px 350px 1fr; 
-    grid-template-rows: auto 1fr;          
+    grid-template-columns: 350px 350px 1fr;
+    grid-template-rows: auto 1fr;
     gap: 15px;
     height: calc(100vh - 80px);
     padding: 10px;
@@ -18,8 +18,8 @@
     flex-direction: column;
     border: 1px solid #ccc;
     background: white;
-    overflow: hidden; 
-    height: 600px; 
+    overflow: hidden;
+    height: 600px;
 }
 
 .col-title {
@@ -62,14 +62,14 @@
 
 .right-col-wrapper {
     display: flex;
-    flex-direction: column; 
+    flex-direction: column;
     gap: 15px;
-    height: auto; 
-    overflow: visible; 
+    height: auto;
+    overflow: visible;
 }
 
 .viewer-box {
-    height: 600px;
+    height: auto;
     display: flex;
     flex-direction: column;
     border: 1px solid #ccc;
@@ -78,24 +78,24 @@
 }
 
 .viewer-area {
-    flex: 1; 
+    flex: 1;
     width: 100%;
-    background-color: #2e2e2e; 
+    background-color: #2e2e2e;
     position: relative;
     display: flex;
     justify-content: center;
     align-items: center;
-    overflow: hidden; 
+    overflow: hidden;
 }
 
 .meta-box {
     height: auto;
-    min-height: 100px; 
+    min-height: 100px;
     border: 1px solid #ccc;
     background: white;
     display: flex;
     flex-direction: column;
-    margin-bottom: 10px; 
+    margin-bottom: 10px;
 }
 
 .meta-content {
@@ -106,7 +106,7 @@
 
 .meta-grid {
     display: grid;
-    grid-template-columns: auto 1fr; 
+    grid-template-columns: auto 1fr;
     column-gap: 10px;
     row-gap: 5px;
     font-size: smaller;
@@ -114,7 +114,7 @@
 }
 .meta-grid .label {
     font-weight: bold;
-    text-align: right; 
+    text-align: right;
 }
 
 .empty-tip {

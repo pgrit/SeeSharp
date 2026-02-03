@@ -68,6 +68,14 @@ def make_material(name, mat_json, base_path):
     principled.inputs["IOR"].default_value = mat_json.get("IOR", 1.45)
     principled.inputs["Anisotropic"].default_value = mat_json.get("anisotropic", 0.0)
 
+    # Specular Tint
+    tint = mat_json.get("specularTintStrength", 0.0)
+    principled.inputs["Specular Tint"].default_value = (tint, tint, tint, 1.0)
+
+    # Specular Transmittance (Transmission)
+    principled.inputs["Transmission Weight"].default_value =  mat_json.get("specularTransmittance", 0.0)
+
+
     # Emission
     emission_json = mat_json.get("emission")
     if emission_json and emission_json.get("type") == "rgb":
@@ -125,6 +133,213 @@ def load_ply(filepath):
     if new_objs:
         return new_objs[0]
     return None
+
+# def load_ply(filepath):
+#     import struct
+#     with open(filepath, "rb") as f:
+#         data = f.read()
+
+#     # --------------------------------
+#     # Parse header
+#     # --------------------------------
+
+#     header_end = data.find(b"end_header\n") + len(b"end_header\n")
+#     header = data[:header_end].decode("ascii")
+#     body = data[header_end:]
+
+#     lines = header.splitlines()
+
+#     is_ascii = True
+#     vertex_count = 0
+#     face_count = 0
+#     vertex_props = []
+
+#     for line in lines:
+#         if line.startswith("format"):
+#             is_ascii = "ascii" in line
+#         elif line.startswith("element vertex"):
+#             vertex_count = int(line.split()[-1])
+#         elif line.startswith("element face"):
+#             face_count = int(line.split()[-1])
+#         elif line.startswith("property") and "vertex_indices" not in line:
+#             vertex_props.append(line.split()[-1])
+
+#     has_normals = "nx" in vertex_props
+#     has_uvs = "s" in vertex_props
+#     has_colors = "red" in vertex_props
+
+#     # --------------------------------
+#     # Read vertices
+#     # --------------------------------
+
+#     verts = []
+#     normals = []
+#     uvs = []
+#     colors = []
+
+#     offset = 0
+
+#     if is_ascii:
+#         lines = body.splitlines()
+#         for i in range(vertex_count):
+#             parts = lines[i].split()
+#             idx = 0
+
+#             x, y, z = map(float, parts[idx:idx+3])
+#             idx += 3
+#             verts.append((x, y, z))
+
+#             if has_normals:
+#                 nx, ny, nz = map(float, parts[idx:idx+3])
+#                 normals.append((nx, ny, nz))
+#                 idx += 3
+
+#             if has_uvs:
+#                 s, t = map(float, parts[idx:idx+2])
+#                 uvs.append((s, 1 - t))
+#                 idx += 2
+
+#             if has_colors:
+#                 r, g, b, a = map(int, parts[idx:idx+4])
+#                 colors.append((r / 255, g / 255, b / 255, a / 255))
+
+#         face_lines = lines[vertex_count:vertex_count + face_count]
+
+#     else:
+#         # for _ in range(vertex_count):
+#         #     # Position (always)
+#         #     x, y, z = struct.unpack_from("<3f", body, offset)
+#         #     offset += 12
+#         #     verts.append((x, y, z))
+
+#         #     # Normal
+#         #     if has_normals:
+#         #         nx, ny, nz = struct.unpack_from("<3f", body, offset)
+#         #         offset += 12
+#         #         normals.append((nx, ny, nz))
+#         #     else:
+#         #         normals.append((0.0, 0.0, 0.0))
+
+#         #     # UV
+#         #     if has_uvs:
+#         #         s, t = struct.unpack_from("<2f", body, offset)
+#         #         offset += 8
+#         #         uvs.append((s, 1 - t))
+#         #     else:
+#         #         uvs.append((0.0, 0.0))
+
+#         #     # Color
+#         #     if has_colors:
+#         #         r, g, b, a = struct.unpack_from("<4B", body, offset)
+#         #         offset += 4
+#         #         colors.append((r/255, g/255, b/255, a/255))
+#         #     else:
+#         #         colors.append((1.0, 1.0, 1.0, 1.0))
+#         for _ in range(vertex_count):
+#             x, y, z = struct.unpack_from("<3f", body, offset)
+#             offset += 12
+#             verts.append((x, y, z))
+
+#             if has_normals:
+#                 normals.append(struct.unpack_from("<3f", body, offset))
+#                 offset += 12
+
+#             if has_uvs:
+#                 s, t = struct.unpack_from("<2f", body, offset)
+#                 uvs.append((s, 1 - t))
+#                 offset += 8
+
+#             if has_colors:
+#                 r, g, b, a = struct.unpack_from("<4B", body, offset)
+#                 colors.append((r / 255, g / 255, b / 255, a / 255))
+#                 offset += 4
+
+#     print("Vertex count from header:", vertex_count)
+#     print("Estimated byte length for vertices:", offset)
+#     print("Body length:", len(body))
+#     remaining_bytes = len(body) - offset
+#     if remaining_bytes < 1:
+#         raise ValueError("No bytes left to read faces — check vertex reading offsets!")
+#     print("Offset after vertices:", offset)
+#     print("Bytes remaining for faces:", len(body) - offset)
+
+#     # --------------------------------
+#     # Read faces
+#     # --------------------------------
+
+#     faces = []
+
+#     if is_ascii:
+#         for line in face_lines:
+#             parts = list(map(int, line.split()))
+#             faces.append(parts[1:])
+
+#     else:
+#         for _ in range(face_count):
+#             while offset < len(body):
+#                 if offset + 1 > len(body):
+#                     print("Reached end of file before reading face length")
+#                     break
+
+#                 length = struct.unpack_from("<B", body, offset)[0]
+#                 offset += 1
+
+#                 if offset + length*4 > len(body):
+#                     print("Incomplete face at offset", offset-1)
+#                     break
+
+#                 indices = struct.unpack_from(f"<{length}I", body, offset)
+#                 offset += length*4
+#                 faces.append(list(indices))
+#             # length = struct.unpack_from("<B", body, offset)[0]
+#             # offset += 1
+#             # indices = struct.unpack_from(f"<{length}I", body, offset)
+#             # offset += length * 4
+#             # faces.append(list(indices))
+
+#     # --------------------------------
+#     # Build Blender mesh
+#     # --------------------------------
+
+#     mesh = bpy.data.meshes.new(os.path.basename(filepath))
+#     obj = bpy.data.objects.new(mesh.name, mesh)
+#     bpy.context.collection.objects.link(obj)
+
+#     bm = bmesh.new()
+
+#     bm_verts = [bm.verts.new(v) for v in verts]
+#     bm.verts.ensure_lookup_table()
+
+#     uv_layer = bm.loops.layers.uv.new() if has_uvs else None
+#     col_layer = bm.loops.layers.color.new() if has_colors else None
+
+#     max_index = len(bm_verts) - 1
+
+#     for face_indices in faces:
+#         if any(i > max_index for i in face_indices):
+#             print("Skipping invalid face:", face_indices)
+#             continue
+#         try:
+#             face = bm.faces.new([bm_verts[i] for i in face_indices])
+#         except ValueError:
+#             continue  # skip duplicate faces
+
+#         face.smooth = has_normals
+
+#         for loop, vi in zip(face.loops, face_indices):
+#             if uv_layer:
+#                 loop[uv_layer].uv = uvs[vi]
+
+#             if col_layer:
+#                 loop[col_layer] = colors[vi]
+
+#     bm.to_mesh(mesh)
+#     bm.free()
+
+#     if has_normals:
+#         mesh.normals_split_custom_set_from_vertices(normals)
+
+#     return obj
 
 def import_trimesh_object(obj, mat_lookup):
     name = obj.get("name", "Trimesh")
@@ -212,6 +427,7 @@ def import_camera(cam_json, transform_json, scene):
             (m[3],  m[7],  m[11], m[15]),
         ))
         conv = axis_conversion(from_forward="Z", from_up="Y").to_4x4()
+        #conv = axis_conversion(from_forward="Z", from_up="Y", to_forward='-Z', to_up='Y').to_4x4()
         cam_obj.matrix_world = conv @ mat
     else:
         pos = transform_json.get("position", [0, 0, 0])
@@ -222,6 +438,7 @@ def import_camera(cam_json, transform_json, scene):
         # inverse Euler mapping
         eul = mathutils.Euler((
             math.radians(rot[0] + 90),    # x_euler
+            # math.radians(90 - rot[0]),
             math.radians(rot[2]),         # y_euler
             math.radians(rot[1] - 180)    # z_euler
         ), 'XYZ')
@@ -240,22 +457,58 @@ def import_camera(cam_json, transform_json, scene):
 # Background HDR
 # ------------------------------------------------------------------------
 
+# def import_background(bg_json, base_path):
+#     world = bpy.context.scene.world
+#     world.use_nodes = True
+#     nt = world.node_tree
+
+#     env_tex = nt.nodes.new("ShaderNodeTexEnvironment")
+#     env_tex.location = (-300, 0)
+
+#     fname = os.path.join(base_path, bg_json["filename"])
+#     img = load_image(fname)
+#     if img:
+#         env_tex.image = img
+
+#     bg = nt.nodes["Background"]
+#     nt.links.new(env_tex.outputs["Color"], bg.inputs["Color"])
+
 def import_background(bg_json, base_path):
-    world = bpy.context.scene.world
+    scene = bpy.context.scene
+
+    if scene.world is None:
+        scene.world = bpy.data.worlds.new("World")
+
+    world = scene.world
     world.use_nodes = True
     nt = world.node_tree
 
-    env_tex = nt.nodes.new("ShaderNodeTexEnvironment")
-    env_tex.location = (-300, 0)
+    # Clear existing nodes
+    nt.nodes.clear()
 
+    # Create nodes
+    env_tex = nt.nodes.new("ShaderNodeTexEnvironment")
+    env_tex.location = (-600, 0)
+
+    bg = nt.nodes.new("ShaderNodeBackground")
+    bg.location = (-300, 0)
+
+    output = nt.nodes.new("ShaderNodeOutputWorld")
+    output.location = (0, 0)
+
+    # Load image
     fname = os.path.join(base_path, bg_json["filename"])
     img = load_image(fname)
     if img:
         env_tex.image = img
+        img.colorspace_settings.name = "Linear Rec.709"
+    # Optional strength
+    if "strength" in bg_json:
+        bg.inputs["Strength"].default_value = bg_json["strength"]
 
-    bg = nt.nodes["Background"]
+    # Connect nodes
     nt.links.new(env_tex.outputs["Color"], bg.inputs["Color"])
-
+    nt.links.new(bg.outputs["Background"], output.inputs["Surface"])
 
 # ------------------------------------------------------------------------
 # Main Import Logic
@@ -283,6 +536,7 @@ def import_seesharp(filepath):
     # ------------------------------------------------------------------
     if "background" in data:
         import_background(data["background"], base_path)
+        bpy.ops.seesharp.convert_world()
 
     # ------------------------------------------------------------------
     # Camera
@@ -323,7 +577,23 @@ def import_seesharp(filepath):
         )
         principled.inputs["Emission Strength"].default_value = strength
 
+    def normalize_material_name(name):
+        import re
+        if not name:
+            return None
+        match = re.match(r"^(.*?)(?:\.(\d+))?$", name)
+        base = match.group(1)
+        idx = match.group(2)
 
+        if idx is None:
+            return base
+
+        new_idx = int(idx) - 1
+        if new_idx <= 0:
+            return base
+        else:
+            return f"{base}.{str(new_idx).zfill(3)}"
+        
     if "objects" in data:
         for obj in data["objects"]:
             if obj.get("type") == "trimesh":
@@ -357,9 +627,12 @@ def import_seesharp(filepath):
                         continue
                     # Assign material to all loaded objects
                     for new_obj in new_objs:
-                        mat_name = new_obj.get("material")
-                        if mat_name in mat_lookup:
-                            new_obj.data.materials.append(mat_lookup[mat_name])
+                        for i, mat in enumerate(new_obj.data.materials):
+                            if not mat:
+                                continue
+                            norm_name = normalize_material_name(mat.name)
+                            if norm_name in mat_lookup:
+                                new_obj.data.materials[i] = mat_lookup[norm_name]
 
                         # APPLY OBJECT-LEVEL EMISSION
                         if "emission" in obj:

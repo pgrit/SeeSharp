@@ -32,16 +32,13 @@ public partial class ReferenceRendering
         currentSceneFile = sceneFromFile;
         scene = sceneFromFile.MakeScene();
 
-        if (!string.IsNullOrEmpty(sceneFromFile.Name))
+        if (sceneFromFile != null)
         {
-            string sceneName = Path.GetFileNameWithoutExtension(sceneFromFile.Name);
-            var dir = new DirectoryInfo(AppContext.BaseDirectory);
-            while (dir != null && dir.Name != "SeeSharp")
-                dir = dir.Parent;
-            if (dir != null)
-                currentSceneDirectory = Path.Combine(dir.FullName, "Data", "Scenes", sceneName);
-
-            ReferenceUtils.ScanReferences(currentSceneDirectory, referenceFiles);
+            currentSceneDirectory = sceneFromFile.SourceDirectory;
+            if (!string.IsNullOrEmpty(currentSceneDirectory))
+            {
+                ReferenceUtils.ScanReferences(currentSceneDirectory, referenceFiles);
+            }
         }
     }
 

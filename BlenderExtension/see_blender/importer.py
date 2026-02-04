@@ -123,223 +123,216 @@ def load_mesh_with_transform(filepath, global_matrix):
 
     return new_objs
 
-def load_ply(filepath):
-    """Load a .ply mesh and return the created object."""
-    before = set(bpy.data.objects)
-    bpy.ops.wm.ply_import(filepath=filepath)
-    after = set(bpy.data.objects)
-
-    new_objs = list(after - before)
-    if new_objs:
-        return new_objs[0]
-    return None
-
 # def load_ply(filepath):
-#     import struct
-#     with open(filepath, "rb") as f:
-#         data = f.read()
+#     """Load a .ply mesh and return the created object."""
+#     before = set(bpy.data.objects)
+#     bpy.ops.wm.ply_import(filepath=filepath)
+#     after = set(bpy.data.objects)
 
-#     # --------------------------------
-#     # Parse header
-#     # --------------------------------
+#     new_objs = list(after - before)
+#     if new_objs:
+#         return new_objs[0]
+#     return None
 
-#     header_end = data.find(b"end_header\n") + len(b"end_header\n")
-#     header = data[:header_end].decode("ascii")
-#     body = data[header_end:]
+def load_ply(filepath):
+    import struct
+    with open(filepath, "rb") as f:
+        data = f.read()
 
-#     lines = header.splitlines()
+    # --------------------------------
+    # Parse header
+    # --------------------------------
 
-#     is_ascii = True
-#     vertex_count = 0
-#     face_count = 0
-#     vertex_props = []
+    header_end = data.find(b"end_header\n") + len(b"end_header\n")
+    header = data[:header_end].decode("ascii")
+    body = data[header_end:]
 
-#     for line in lines:
-#         if line.startswith("format"):
-#             is_ascii = "ascii" in line
-#         elif line.startswith("element vertex"):
-#             vertex_count = int(line.split()[-1])
-#         elif line.startswith("element face"):
-#             face_count = int(line.split()[-1])
-#         elif line.startswith("property") and "vertex_indices" not in line:
-#             vertex_props.append(line.split()[-1])
+    lines = header.splitlines()
 
-#     has_normals = "nx" in vertex_props
-#     has_uvs = "s" in vertex_props
-#     has_colors = "red" in vertex_props
+    is_ascii = True
+    vertex_count = 0
+    face_count = 0
+    vertex_props = []
 
-#     # --------------------------------
-#     # Read vertices
-#     # --------------------------------
+    for line in lines:
+        if line.startswith("format"):
+            is_ascii = "ascii" in line
+        elif line.startswith("element vertex"):
+            vertex_count = int(line.split()[-1])
+        elif line.startswith("element face"):
+            face_count = int(line.split()[-1])
+        elif line.startswith("property") and "vertex_indices" not in line:
+            vertex_props.append(line.split()[-1])
 
-#     verts = []
-#     normals = []
-#     uvs = []
-#     colors = []
+    has_normals = "nx" in vertex_props
+    has_uvs = "s" in vertex_props
+    has_colors = "red" in vertex_props
 
-#     offset = 0
+    # --------------------------------
+    # Read vertices
+    # --------------------------------
 
-#     if is_ascii:
-#         lines = body.splitlines()
-#         for i in range(vertex_count):
-#             parts = lines[i].split()
-#             idx = 0
+    verts = []
+    normals = []
+    uvs = []
+    colors = []
 
-#             x, y, z = map(float, parts[idx:idx+3])
-#             idx += 3
-#             verts.append((x, y, z))
+    offset = 0
 
-#             if has_normals:
-#                 nx, ny, nz = map(float, parts[idx:idx+3])
-#                 normals.append((nx, ny, nz))
-#                 idx += 3
+    if is_ascii:
+        lines = body.splitlines()
+        for i in range(vertex_count):
+            parts = lines[i].split()
+            idx = 0
 
-#             if has_uvs:
-#                 s, t = map(float, parts[idx:idx+2])
-#                 uvs.append((s, 1 - t))
-#                 idx += 2
+            x, y, z = map(float, parts[idx:idx+3])
+            idx += 3
+            verts.append((x, y, z))
 
-#             if has_colors:
-#                 r, g, b, a = map(int, parts[idx:idx+4])
-#                 colors.append((r / 255, g / 255, b / 255, a / 255))
+            if has_normals:
+                nx, ny, nz = map(float, parts[idx:idx+3])
+                normals.append((nx, ny, nz))
+                idx += 3
 
-#         face_lines = lines[vertex_count:vertex_count + face_count]
+            if has_uvs:
+                s, t = map(float, parts[idx:idx+2])
+                uvs.append((s, 1 - t))
+                idx += 2
 
-#     else:
-#         # for _ in range(vertex_count):
-#         #     # Position (always)
-#         #     x, y, z = struct.unpack_from("<3f", body, offset)
-#         #     offset += 12
-#         #     verts.append((x, y, z))
+            if has_colors:
+                r, g, b, a = map(int, parts[idx:idx+4])
+                colors.append((r / 255, g / 255, b / 255, a / 255))
 
-#         #     # Normal
-#         #     if has_normals:
-#         #         nx, ny, nz = struct.unpack_from("<3f", body, offset)
-#         #         offset += 12
-#         #         normals.append((nx, ny, nz))
-#         #     else:
-#         #         normals.append((0.0, 0.0, 0.0))
+        face_lines = lines[vertex_count:vertex_count + face_count]
 
-#         #     # UV
-#         #     if has_uvs:
-#         #         s, t = struct.unpack_from("<2f", body, offset)
-#         #         offset += 8
-#         #         uvs.append((s, 1 - t))
-#         #     else:
-#         #         uvs.append((0.0, 0.0))
+    else:
+        for _ in range(vertex_count):
+            x, y, z = struct.unpack_from("<3f", body, offset)
+            offset += 12
+            verts.append((x, y, z))
 
-#         #     # Color
-#         #     if has_colors:
-#         #         r, g, b, a = struct.unpack_from("<4B", body, offset)
-#         #         offset += 4
-#         #         colors.append((r/255, g/255, b/255, a/255))
-#         #     else:
-#         #         colors.append((1.0, 1.0, 1.0, 1.0))
-#         for _ in range(vertex_count):
-#             x, y, z = struct.unpack_from("<3f", body, offset)
-#             offset += 12
-#             verts.append((x, y, z))
+            if has_normals:
+                normals.append(struct.unpack_from("<3f", body, offset))
+                offset += 12
 
-#             if has_normals:
-#                 normals.append(struct.unpack_from("<3f", body, offset))
-#                 offset += 12
+            if has_uvs:
+                s, t = struct.unpack_from("<2f", body, offset)
+                uvs.append((s, 1 - t))
+                offset += 8
 
-#             if has_uvs:
-#                 s, t = struct.unpack_from("<2f", body, offset)
-#                 uvs.append((s, 1 - t))
-#                 offset += 8
+            if has_colors:
+                r, g, b, a = struct.unpack_from("<4B", body, offset)
+                colors.append((r / 255, g / 255, b / 255, a / 255))
+                offset += 4
 
-#             if has_colors:
-#                 r, g, b, a = struct.unpack_from("<4B", body, offset)
-#                 colors.append((r / 255, g / 255, b / 255, a / 255))
-#                 offset += 4
+    # print("------------------------------------")
+    # print("Is ascii:", is_ascii)
+    # print("Vertex count:", vertex_count)
+    # print("Face count:", face_count)
+    # print("Vertex properties:", vertex_props)
+    # print("Body length:", len(body))
+    # print("Offset after vertices:", offset)
+    # print("Bytes remaining for faces:", len(body) - offset)
 
-#     print("Vertex count from header:", vertex_count)
-#     print("Estimated byte length for vertices:", offset)
-#     print("Body length:", len(body))
-#     remaining_bytes = len(body) - offset
-#     if remaining_bytes < 1:
-#         raise ValueError("No bytes left to read faces — check vertex reading offsets!")
-#     print("Offset after vertices:", offset)
-#     print("Bytes remaining for faces:", len(body) - offset)
+    # --------------------------------
+    # Read faces
+    # --------------------------------
 
-#     # --------------------------------
-#     # Read faces
-#     # --------------------------------
+    faces = []
 
-#     faces = []
+    if is_ascii:
+        for line in face_lines:
+            parts = list(map(int, line.split()))
+            faces.append(parts[1:])
 
-#     if is_ascii:
-#         for line in face_lines:
-#             parts = list(map(int, line.split()))
-#             faces.append(parts[1:])
+    else:
+        for _ in range(face_count):
+            length = struct.unpack_from("<B", body, offset)[0]
+            offset += 1
+            indices = struct.unpack_from(f"<{length}I", body, offset)
+            offset += length * 4
+            faces.append(list(indices))
 
-#     else:
-#         for _ in range(face_count):
-#             while offset < len(body):
-#                 if offset + 1 > len(body):
-#                     print("Reached end of file before reading face length")
-#                     break
+    # --------------------------------
+    # Build Blender mesh
+    # --------------------------------
 
-#                 length = struct.unpack_from("<B", body, offset)[0]
-#                 offset += 1
+    mesh = bpy.data.meshes.new(os.path.basename(filepath))
+    obj = bpy.data.objects.new(mesh.name, mesh)
+    bpy.context.collection.objects.link(obj)
 
-#                 if offset + length*4 > len(body):
-#                     print("Incomplete face at offset", offset-1)
-#                     break
+    bm = bmesh.new()
 
-#                 indices = struct.unpack_from(f"<{length}I", body, offset)
-#                 offset += length*4
-#                 faces.append(list(indices))
-#             # length = struct.unpack_from("<B", body, offset)[0]
-#             # offset += 1
-#             # indices = struct.unpack_from(f"<{length}I", body, offset)
-#             # offset += length * 4
-#             # faces.append(list(indices))
+    uv_layer = bm.loops.layers.uv.new() if has_uvs else None
+    col_layer = bm.loops.layers.color.new() if has_colors else None
 
-#     # --------------------------------
-#     # Build Blender mesh
-#     # --------------------------------
+    vertex_map = {}
+    bm_verts = []
+    final_normals = []
+    for i in range(vertex_count):
+        # create a key from all vertex attributes
+        key = (verts[i],)
+        if has_normals:
+            key += normals[i]
+        if has_uvs:
+            key += uvs[i]
+        if has_colors:
+            key += colors[i]
 
-#     mesh = bpy.data.meshes.new(os.path.basename(filepath))
-#     obj = bpy.data.objects.new(mesh.name, mesh)
-#     bpy.context.collection.objects.link(obj)
+        # only create new BMesh vertex if this combination doesn't exist
+        if key not in vertex_map:
+            v = bm.verts.new(verts[i])
+            bm_verts.append(v)
+            vertex_map[key] = len(bm_verts) - 1
 
-#     bm = bmesh.new()
+            if has_normals:
+                final_normals.append(normals[i])
 
-#     bm_verts = [bm.verts.new(v) for v in verts]
-#     bm.verts.ensure_lookup_table()
+    for face_indices in faces:
+        bm_face_verts = []
+        used_verts = set()
+        for i in face_indices:
+            # print(i)
+            key = (verts[i],)
+            if has_normals:
+                key += normals[i]
+            if has_uvs:
+                key += uvs[i]
+            if has_colors:
+                key += colors[i]
 
-#     uv_layer = bm.loops.layers.uv.new() if has_uvs else None
-#     col_layer = bm.loops.layers.color.new() if has_colors else None
+            v = bm_verts[vertex_map[key]]
+            if v not in used_verts:
+                bm_face_verts.append(v)
+                used_verts.add(v)
 
-#     max_index = len(bm_verts) - 1
+        if len(bm_face_verts) < 3:
+            # print("Skipping degenerate face:", face_indices)
+            continue
 
-#     for face_indices in faces:
-#         if any(i > max_index for i in face_indices):
-#             print("Skipping invalid face:", face_indices)
-#             continue
-#         try:
-#             face = bm.faces.new([bm_verts[i] for i in face_indices])
-#         except ValueError:
-#             continue  # skip duplicate faces
+        # face = bm.faces.new(bm_face_verts)
+        try:
+            face = bm.faces.new(bm_face_verts)
+        except ValueError:
+            # Face already exists
+            continue
 
-#         face.smooth = has_normals
+        face.smooth = has_normals
 
-#         for loop, vi in zip(face.loops, face_indices):
-#             if uv_layer:
-#                 loop[uv_layer].uv = uvs[vi]
+        for loop, vi in zip(face.loops, face_indices):
+            if uv_layer:
+                loop[uv_layer].uv = uvs[vi]
 
-#             if col_layer:
-#                 loop[col_layer] = colors[vi]
+            if col_layer:
+                loop[col_layer] = colors[vi]
 
-#     bm.to_mesh(mesh)
-#     bm.free()
+    bm.to_mesh(mesh)
+    bm.free()
 
-#     if has_normals:
-#         mesh.normals_split_custom_set_from_vertices(normals)
+    if has_normals:
+        mesh.normals_split_custom_set_from_vertices(final_normals)
 
-#     return obj
+    return obj
 
 def import_trimesh_object(obj, mat_lookup):
     name = obj.get("name", "Trimesh")

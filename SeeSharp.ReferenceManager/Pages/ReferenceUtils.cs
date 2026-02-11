@@ -52,7 +52,7 @@ public static class ReferenceUtils {
     public static void ParseExrName(ReferenceInfo info, string filePath) {
         string filename = Path.GetFileNameWithoutExtension(filePath);
         var match = Regex.Match(filename, @"(?:MinDepth(?<min>\d+)-)?MaxDepth(?<max>\d+)-Width(?<w>\d+)-Height(?<h>\d+)", RegexOptions.IgnoreCase);
-        
+
         if (match.Success) {
             info.MinDepth = match.Groups["min"].Success ? int.Parse(match.Groups["min"].Value) : 1;
             info.MaxDepth = int.Parse(match.Groups["max"].Value);
@@ -129,13 +129,6 @@ public static class ReferenceUtils {
             if (IsConfigParam(field.FieldType))
                 field.SetValue(target, field.GetValue(source));
         }
-    }
-
-    public static void CopyImage(RgbImage target, RgbImage source) {
-        Parallel.For(0, target.Height, y => {
-            for (int x = 0; x < target.Width; ++x)
-                target.SetPixel(x, y, source.GetPixel(x, y));
-        });
     }
 
     public static Integrator CloneIntegrator(Integrator source) {

@@ -46,17 +46,21 @@ public partial class ReferenceRendering
 
     private void SaveSceneConfig()
     {
-        if (integratorSelector?.CurrentIntegrator == null) return;
+        if (integratorSelector?.CurrentIntegrator == null)
+            return;
         string folder = Path.Combine(currentSceneDirectory, "References");
-        if (!Directory.Exists(folder)) Directory.CreateDirectory(folder);
+        if (!Directory.Exists(folder))
+            Directory.CreateDirectory(folder);
         ReferenceUtils.SaveConfig(folder, integratorSelector.CurrentIntegrator);
         StateHasChanged();
     }
 
     private void ApplyReferenceSettings()
     {
-        if (selectedFile == null || string.IsNullOrEmpty(selectedFile.RawJsonConfig)) return;
-        if (integratorSelector == null) return;
+        if (selectedFile == null || string.IsNullOrEmpty(selectedFile.RawJsonConfig))
+            return;
+        if (integratorSelector == null)
+            return;
 
         if (!string.IsNullOrEmpty(selectedFile.IntegratorName))
         {
@@ -64,17 +68,30 @@ public partial class ReferenceRendering
         }
 
         var currentIntegrator = integratorSelector.CurrentIntegrator;
-        if (currentIntegrator == null) return;
+        if (currentIntegrator == null)
+            return;
 
         var node = JsonNode.Parse(selectedFile.RawJsonConfig);
-        if (node != null) {
-            var options = new JsonSerializerOptions { IncludeFields = true, PropertyNameCaseInsensitive = true };
-            var loadedIntegrator = JsonSerializer.Deserialize(node, currentIntegrator.GetType(), options);
+        if (node != null)
+        {
+            var options = new JsonSerializerOptions
+            {
+                IncludeFields = true,
+                PropertyNameCaseInsensitive = true,
+            };
+            var loadedIntegrator = JsonSerializer.Deserialize(
+                node,
+                currentIntegrator.GetType(),
+                options
+            );
 
-            if (loadedIntegrator != null) {
+            if (loadedIntegrator != null)
+            {
                 ReferenceUtils.CopyValues(currentIntegrator, loadedIntegrator);
-                if (selectedFile.MaxDepth > 0) renderMaxDepth = selectedFile.MaxDepth;
-                if (selectedFile.MinDepth > 0) renderMinDepth = selectedFile.MinDepth;
+                if (selectedFile.MaxDepth > 0)
+                    renderMaxDepth = selectedFile.MaxDepth;
+                if (selectedFile.MinDepth > 0)
+                    renderMinDepth = selectedFile.MinDepth;
                 StateHasChanged();
             }
         }
@@ -95,7 +112,8 @@ public partial class ReferenceRendering
         StateHasChanged();
 
         RgbImage img = null;
-        if (File.Exists(path)) {
+        if (File.Exists(path))
+        {
             // support legacy .exr files
             var layers = Layers.LoadFromFile(path);
             if (layers.TryGetValue("", out Image image))
@@ -106,22 +124,23 @@ public partial class ReferenceRendering
         }
     }
 
-    private async void UpdatePreviewFromMemory(RgbImage image) {
-        var imgClone = new RgbImage(image.Width, image.Height);
-        ReferenceUtils.CopyImage(imgClone, image);
+    private async void UpdatePreviewFromMemory(RgbImage image)
+    {
+        var imgClone = image.Copy();
         flip = null;
         StateHasChanged();
         await Task.Delay(1);
-        var newFlip = new FlipBook(660, 580);
-        newFlip.Add("", imgClone);
-        newFlip.SetToolVisibility(false);
-        flip = newFlip;
+        flip = new FlipBook()
+            .Add("", imgClone)
+            .SetToolVisibility(false)
+            .SetCustomSizeCSS("width: 100%; height: 580px; resize: vertical; overflow: auto;");
         StateHasChanged();
     }
 
     async Task RenderQuickPreview()
     {
-        if (currentSceneFile == null || integratorSelector.addedIntegrators.Count == 0) return;
+        if (currentSceneFile == null || integratorSelector.addedIntegrators.Count == 0)
+            return;
 
         isRendering = true;
         selectedFile = null;
@@ -131,28 +150,29 @@ public partial class ReferenceRendering
 
         var curIntegrator = integratorSelector.addedIntegrators.First();
 
-        await Task.Run(async () => {
-                var stopwatch = Stopwatch.StartNew();
-                var renderScene = currentSceneFile.MakeScene();
-                var renderIntegrator = ReferenceUtils.CloneIntegrator(curIntegrator);
+        await Task.Run(async () =>
+        {
+            var stopwatch = Stopwatch.StartNew();
+            var renderScene = currentSceneFile.MakeScene();
+            var renderIntegrator = ReferenceUtils.CloneIntegrator(curIntegrator);
 
-                int targetSpp = quickPreviewSpp < 1 ? 1 : quickPreviewSpp;
-                ReferenceUtils.SetBatchSpp(renderIntegrator, targetSpp);
-                ReferenceUtils.SetMaxDepth(renderIntegrator, renderMaxDepth);
-                ReferenceUtils.SetMinDepth(renderIntegrator, renderMinDepth);
+            int targetSpp = quickPreviewSpp < 1 ? 1 : quickPreviewSpp;
+            ReferenceUtils.SetBatchSpp(renderIntegrator, targetSpp);
+            ReferenceUtils.SetMaxDepth(renderIntegrator, renderMaxDepth);
+            ReferenceUtils.SetMinDepth(renderIntegrator, renderMinDepth);
 
-                renderScene.FrameBuffer = new FrameBuffer(renderWidth, renderHeight, "");
-                renderScene.Prepare();
-                renderIntegrator.Render(renderScene);
+            renderScene.FrameBuffer = new FrameBuffer(renderWidth, renderHeight, "");
+            renderScene.Prepare();
+            renderIntegrator.Render(renderScene);
 
-                stopwatch.Stop();
+            stopwatch.Stop();
 
-                var resultImg = new RgbImage(renderWidth, renderHeight);
-                ReferenceUtils.CopyImage(resultImg, renderScene.FrameBuffer.Image);
+            var resultImg = renderScene.FrameBuffer.Image.Copy() as RgbImage;
 
-                await InvokeAsync(() => {
-                    UpdatePreviewFromMemory(resultImg);
-                });
+            await InvokeAsync(() =>
+            {
+                UpdatePreviewFromMemory(resultImg);
+            });
         });
 
         isRendering = false;
@@ -161,14 +181,16 @@ public partial class ReferenceRendering
 
     async Task RenderReference()
     {
-        if (currentSceneFile == null || integratorSelector.addedIntegrators.Count == 0) return;
+        if (currentSceneFile == null || integratorSelector.addedIntegrators.Count == 0)
+            return;
 
         isRendering = true;
         flip = null;
         await InvokeAsync(StateHasChanged);
 
         var curIntegrator = integratorSelector.addedIntegrators.First();
-        await Task.Run(async () => {
+        await Task.Run(async () =>
+        {
             var renderIntegrator = ReferenceUtils.CloneIntegrator(curIntegrator);
             int targetSpp = ReferenceUtils.GetTargetSpp(renderIntegrator);
             ReferenceUtils.SetBatchSpp(renderIntegrator, targetSpp);
@@ -179,8 +201,12 @@ public partial class ReferenceRendering
             string referencesRoot = Path.Join(currentSceneDirectory, "References");
             Directory.CreateDirectory(referencesRoot);
             string minDepthString = renderMinDepth > 1 ? $"MinDepth{renderMinDepth}-" : "";
-            string finalPath = Path.Combine(referencesRoot, $"{minDepthString}MaxDepth{renderMaxDepth}-Width{renderWidth}-Height{renderHeight}.exr");
-            if (File.Exists(finalPath)) File.Delete(finalPath);
+            string finalPath = Path.Combine(
+                referencesRoot,
+                $"{minDepthString}MaxDepth{renderMaxDepth}-Width{renderWidth}-Height{renderHeight}.exr"
+            );
+            if (File.Exists(finalPath))
+                File.Delete(finalPath);
 
             var resultImg = currentSceneFile.GetReferenceImage(
                 renderWidth,
@@ -189,10 +215,12 @@ public partial class ReferenceRendering
                 config: renderIntegrator
             );
 
-            await InvokeAsync(() => {
+            await InvokeAsync(() =>
+            {
                 ReferenceUtils.ScanReferences(currentSceneDirectory, referenceFiles);
                 selectedFile = referenceFiles.FirstOrDefault(r => r.FilePath == finalPath);
-                if (selectedFile != null) UpdateViewerFromFile(finalPath);
+                if (selectedFile != null)
+                    UpdateViewerFromFile(finalPath);
                 StateHasChanged();
             });
         });
@@ -203,21 +231,29 @@ public partial class ReferenceRendering
 
     async Task RenderMoreSamples(bool isResume)
     {
-        if (currentSceneFile == null || selectedFile == null || !File.Exists(selectedFile.FilePath)) return;
-        if (integratorSelector.addedIntegrators.Count == 0) return;
+        if (currentSceneFile == null || selectedFile == null || !File.Exists(selectedFile.FilePath))
+            return;
+        if (integratorSelector.addedIntegrators.Count == 0)
+            return;
 
         isRendering = true;
         await InvokeAsync(StateHasChanged);
 
-        await Task.Run(async () => {
-            try {
+        await Task.Run(async () =>
+        {
+            try
+            {
                 string filePath = selectedFile.FilePath;
                 var oldImg = new RgbImage(filePath);
                 int currentSpp = selectedFile.Spp;
 
                 string folder = Path.GetDirectoryName(filePath);
-                string baseNameNoSuffix = Path.GetFileNameWithoutExtension(filePath).Replace("-partial", "");
-                string jsonPath = Path.Combine(folder, baseNameNoSuffix + (filePath.Contains("-partial") ? "-partial.json" : ".json"));
+                string baseNameNoSuffix = Path.GetFileNameWithoutExtension(filePath)
+                    .Replace("-partial", "");
+                string jsonPath = Path.Combine(
+                    folder,
+                    baseNameNoSuffix + (filePath.Contains("-partial") ? "-partial.json" : ".json")
+                );
 
                 string thisStepStart = DateTime.Now.ToString("dd/MM/yyyy HH:mm:ss");
                 JsonNode rootNode = null;
@@ -225,35 +261,61 @@ public partial class ReferenceRendering
                 long totalPreviousMs = 0;
                 int settingsTargetSpp = 0;
 
-                if (File.Exists(jsonPath)) {
+                if (File.Exists(jsonPath))
+                {
                     rootNode = JsonNode.Parse(File.ReadAllText(jsonPath));
                     totalPreviousMs = (long)(rootNode?["RenderTime"]?.GetValue<double>() ?? 0);
                     var settingsNode = rootNode?["Settings"];
-                    if (settingsNode != null) {
-                        settingsTargetSpp = settingsNode["TotalSpp"]?.GetValue<int>() ?? settingsNode["NumIterations"]?.GetValue<int>() ?? 0;
-                        Type targetType = integratorSelector.GetIntegratorType(rootNode["Name"]?.GetValue<string>());
-                        if (targetType != null) {
-                            var options = new JsonSerializerOptions { IncludeFields = true, PropertyNameCaseInsensitive = true };
-                            renderIntegrator = JsonSerializer.Deserialize(settingsNode, targetType, options) as Integrator;
+                    if (settingsNode != null)
+                    {
+                        settingsTargetSpp =
+                            settingsNode["TotalSpp"]?.GetValue<int>()
+                            ?? settingsNode["NumIterations"]?.GetValue<int>()
+                            ?? 0;
+                        Type targetType = integratorSelector.GetIntegratorType(
+                            rootNode["Name"]?.GetValue<string>()
+                        );
+                        if (targetType != null)
+                        {
+                            var options = new JsonSerializerOptions
+                            {
+                                IncludeFields = true,
+                                PropertyNameCaseInsensitive = true,
+                            };
+                            renderIntegrator =
+                                JsonSerializer.Deserialize(settingsNode, targetType, options)
+                                as Integrator;
                         }
                     }
                 }
 
                 int batchSpp = isResume ? (settingsTargetSpp - currentSpp) : additionalSpp;
                 int finalTotalSpp = currentSpp + batchSpp;
-                if (batchSpp <= 0) return;
+                if (batchSpp <= 0)
+                    return;
 
                 ReferenceUtils.SetBatchSpp(renderIntegrator, batchSpp);
                 if (!isResume)
                 {
                     uint originalBaseSeed = ReferenceUtils.GetBaseSeed(renderIntegrator);
-                    ReferenceUtils.SetBaseSeed(renderIntegrator, originalBaseSeed + (uint)currentSpp);
+                    ReferenceUtils.SetBaseSeed(
+                        renderIntegrator,
+                        originalBaseSeed + (uint)currentSpp
+                    );
                 }
 
                 string currentPartialPath = Path.Combine(folder, baseNameNoSuffix + "-partial.exr");
-                var fbFlags = FrameBuffer.Flags.WriteContinously | FrameBuffer.Flags.WriteExponentially | FrameBuffer.Flags.IgnoreNanAndInf;
+                var fbFlags =
+                    FrameBuffer.Flags.WriteContinously
+                    | FrameBuffer.Flags.WriteExponentially
+                    | FrameBuffer.Flags.IgnoreNanAndInf;
 
-                scene.FrameBuffer = new FrameBuffer(oldImg.Width, oldImg.Height, currentPartialPath, fbFlags);
+                scene.FrameBuffer = new FrameBuffer(
+                    oldImg.Width,
+                    oldImg.Height,
+                    currentPartialPath,
+                    fbFlags
+                );
                 scene.Prepare();
 
                 var stopwatch = Stopwatch.StartNew();
@@ -268,51 +330,82 @@ public partial class ReferenceRendering
                 float wOld = (float)currentSpp / finalTotalSpp;
                 float wNew = (float)batchSpp / finalTotalSpp;
 
-                Parallel.For(0, finalImg.Height, row => {
-                    for (int col = 0; col < finalImg.Width; ++col) {
-                        finalImg.SetPixel(col, row, oldImg.GetPixel(col, row) * wOld + newImg.GetPixel(col, row) * wNew);
+                Parallel.For(
+                    0,
+                    finalImg.Height,
+                    row =>
+                    {
+                        for (int col = 0; col < finalImg.Width; ++col)
+                        {
+                            finalImg.SetPixel(
+                                col,
+                                row,
+                                oldImg.GetPixel(col, row) * wOld + newImg.GetPixel(col, row) * wNew
+                            );
+                        }
                     }
-                });
+                );
 
-                if (rootNode == null) rootNode = new JsonObject();
+                if (rootNode == null)
+                    rootNode = new JsonObject();
                 rootNode["RenderTime"] = totalPreviousMs + thisStepMs;
                 rootNode["RenderWriteTime"] = thisStepWrite;
                 rootNode["NumIterations"] = finalTotalSpp;
 
                 var steps = rootNode["RenderSteps"]?.AsArray() ?? new JsonArray();
-                steps.Add(new JsonObject {
-                    ["Type"] = isResume ? "Resume" : "More",
-                    ["DurationMs"] = thisStepMs,
-                    ["StartTime"] = thisStepStart,
-                    ["WriteTime"] = thisStepWrite
-                });
+                steps.Add(
+                    new JsonObject
+                    {
+                        ["Type"] = isResume ? "Resume" : "More",
+                        ["DurationMs"] = thisStepMs,
+                        ["StartTime"] = thisStepStart,
+                        ["WriteTime"] = thisStepWrite,
+                    }
+                );
                 rootNode["RenderSteps"] = steps;
 
-                if (!isResume && rootNode["Settings"] != null) {
+                if (!isResume && rootNode["Settings"] != null)
+                {
                     rootNode["Settings"]["TotalSpp"] = finalTotalSpp;
                 }
 
-                string finalSavePath = isResume ? Path.Combine(folder, baseNameNoSuffix + ".exr") : filePath;
+                string finalSavePath = isResume
+                    ? Path.Combine(folder, baseNameNoSuffix + ".exr")
+                    : filePath;
                 finalImg.WriteToFile(finalSavePath);
-                File.WriteAllText(Path.ChangeExtension(finalSavePath, ".json"), rootNode.ToJsonString(new JsonSerializerOptions { WriteIndented = true }));
+                File.WriteAllText(
+                    Path.ChangeExtension(finalSavePath, ".json"),
+                    rootNode.ToJsonString(new JsonSerializerOptions { WriteIndented = true })
+                );
 
-                if (File.Exists(currentPartialPath)) File.Delete(currentPartialPath);
+                if (File.Exists(currentPartialPath))
+                    File.Delete(currentPartialPath);
                 string partialJsonPath = Path.ChangeExtension(currentPartialPath, ".json");
-                if (File.Exists(partialJsonPath)) File.Delete(partialJsonPath);
+                if (File.Exists(partialJsonPath))
+                    File.Delete(partialJsonPath);
 
-                if (isResume && filePath != finalSavePath) {
-                    if (File.Exists(filePath)) File.Delete(filePath);
+                if (isResume && filePath != finalSavePath)
+                {
+                    if (File.Exists(filePath))
+                        File.Delete(filePath);
                     string oldJ = Path.ChangeExtension(filePath, ".json");
-                    if (File.Exists(oldJ)) File.Delete(oldJ);
+                    if (File.Exists(oldJ))
+                        File.Delete(oldJ);
                 }
 
-                await InvokeAsync(() => {
+                await InvokeAsync(() =>
+                {
                     ReferenceUtils.ScanReferences(currentSceneDirectory, referenceFiles);
                     selectedFile = referenceFiles.FirstOrDefault(r => r.FilePath == finalSavePath);
-                    if (selectedFile != null) UpdateViewerFromFile(finalSavePath);
+                    if (selectedFile != null)
+                        UpdateViewerFromFile(finalSavePath);
                     StateHasChanged();
                 });
-            } catch (Exception ex) { Console.WriteLine(ex.ToString()); }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine(ex.ToString());
+            }
         });
 
         isRendering = false;
@@ -327,14 +420,18 @@ public partial class ReferenceRendering
         extraKeys.Clear();
         missingKeys.Clear();
 
-        if (selectedFile == null) return;
-        if (string.IsNullOrEmpty(selectedFile.RawJsonConfig)) return;
+        if (selectedFile == null)
+            return;
+        if (string.IsNullOrEmpty(selectedFile.RawJsonConfig))
+            return;
 
         (int Major, int Minor, int Patch) ParseSemVer(string ver)
         {
-            if (string.IsNullOrEmpty(ver)) return (0, 0, 0);
+            if (string.IsNullOrEmpty(ver))
+                return (0, 0, 0);
             int idx = ver.IndexOfAny(new[] { '+', '-' });
-            if (idx >= 0) ver = ver.Substring(0, idx);
+            if (idx >= 0)
+                ver = ver.Substring(0, idx);
 
             var parts = ver.Split('.');
             int maj = parts.Length > 0 && int.TryParse(parts[0], out int m) ? m : 0;
@@ -350,11 +447,14 @@ public partial class ReferenceRendering
         var cur = ParseSemVer(currentVerStr);
         var file = ParseSemVer(fileVerStr);
 
-        if (cur.Major != file.Major || cur.Minor != file.Minor) isVersionMismatch = true;
-        else if (cur.Patch != file.Patch) isVersionWarning = true;
+        if (cur.Major != file.Major || cur.Minor != file.Minor)
+            isVersionMismatch = true;
+        else if (cur.Patch != file.Patch)
+            isVersionWarning = true;
 
         Type targetType = integratorSelector?.GetIntegratorType(selectedFile.IntegratorName);
-        if (targetType == null) {
+        if (targetType == null)
+        {
             isStructureMismatch = true;
             StateHasChanged();
             return;
@@ -371,13 +471,18 @@ public partial class ReferenceRendering
             var codeKeys = codeNode.Select(k => k.Key).ToHashSet();
             var fileKeys = fileNode.Select(k => k.Key).ToHashSet();
 
-            foreach (var key in fileKeys) {
-                if (!codeKeys.Contains(key)) extraKeys.Add(key);
+            foreach (var key in fileKeys)
+            {
+                if (!codeKeys.Contains(key))
+                    extraKeys.Add(key);
             }
-            foreach (var key in codeKeys) {
-                if (!fileKeys.Contains(key)) missingKeys.Add(key);
+            foreach (var key in codeKeys)
+            {
+                if (!fileKeys.Contains(key))
+                    missingKeys.Add(key);
             }
-            if (extraKeys.Count > 0 || missingKeys.Count > 0) isStructureMismatch = true;
+            if (extraKeys.Count > 0 || missingKeys.Count > 0)
+                isStructureMismatch = true;
         }
 
         StateHasChanged();

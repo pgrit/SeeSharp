@@ -12,7 +12,7 @@ class Program {
         scene.Prepare();
 
         var integrator = new PathTracer() {
-            TotalSpp = 498989,
+            NumIterations = 498989,
             MaximumRenderTimeMs = 4500,
             MaxDepth = 5
         };

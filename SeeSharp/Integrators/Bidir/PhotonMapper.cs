@@ -6,11 +6,6 @@
 /// </summary>
 public class PhotonMapper : Integrator {
     /// <summary>
-    /// Number of iterations to render.
-    /// </summary>
-    public int NumIterations = 2;
-
-    /// <summary>
     /// Maximum number of nearest neighbor photons to search for.
     /// </summary>
     public int MaxNumPhotons = 10;

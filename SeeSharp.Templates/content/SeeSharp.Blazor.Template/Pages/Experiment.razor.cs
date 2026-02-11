@@ -25,7 +25,7 @@ public partial class Experiment : ComponentBase
 
         PathTracer pathTracer = new()
         {
-            TotalSpp = NumSamples,
+            SampleCount = NumSamples,
             MaxDepth = MaxDepth,
         };
         pathTracer.Render(scene);
@@ -35,7 +35,7 @@ public partial class Experiment : ComponentBase
         scene.FrameBuffer = new(Width, Height, "");
         VertexConnectionAndMerging vcm = new()
         {
-            NumIterations = NumSamples,
+            SampleCount = NumSamples,
             MaxDepth = MaxDepth,
         };
         vcm.Render(scene);

@@ -37,18 +37,16 @@ scene.Prepare();
 #!csharp
 
 abstract class DirectIllum : Integrator {
-    public int TotalSpp = 20;
-
     protected Scene scene;
 
     public DirectIllum(int spp) {
-        TotalSpp = spp;
+        SampleCount = spp;
     }
 
     public override void Render(Scene scene) {
         this.scene = scene;
 
-        for (uint sampleIndex = 0; sampleIndex < TotalSpp; ++sampleIndex) {
+        for (uint sampleIndex = 0; sampleIndex < SampleCount; ++sampleIndex) {
             scene.FrameBuffer.StartIteration();
             Parallel.For(0, scene.FrameBuffer.Height, row => {
                 for (uint col = 0; col < scene.FrameBuffer.Width; ++col) {

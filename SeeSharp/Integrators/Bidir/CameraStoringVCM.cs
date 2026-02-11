@@ -5,8 +5,6 @@ namespace SeeSharp.Integrators.Bidir;
 public class CameraStoringVCM<TLightPathData> : Integrator where TLightPathData : new() {
     #region Parameters
 
-    public int NumIterations { get; set; } = 1;
-
     /// <summary>
     /// The maximum time in milliseconds that should be spent rendering.
     /// Excludes framebuffer overhead and other operations that are not part of the core rendering logic.

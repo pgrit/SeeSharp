@@ -1,5 +1,4 @@
-﻿using System.Linq;
-using TechniqueNames = System.Collections.Generic.Dictionary
+﻿using TechniqueNames = System.Collections.Generic.Dictionary
     <(int cameraPathEdges, int lightPathEdges, int totalEdges), string>;
 
 namespace SeeSharp.Integrators.Bidir;

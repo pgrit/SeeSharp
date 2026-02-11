@@ -157,9 +157,9 @@ public partial class ReferenceRendering
             var renderIntegrator = ReferenceUtils.CloneIntegrator(curIntegrator);
 
             int targetSpp = quickPreviewSpp < 1 ? 1 : quickPreviewSpp;
-            ReferenceUtils.SetBatchSpp(renderIntegrator, targetSpp);
-            ReferenceUtils.SetMaxDepth(renderIntegrator, renderMaxDepth);
-            ReferenceUtils.SetMinDepth(renderIntegrator, renderMinDepth);
+            renderIntegrator.NumIterations = (uint)targetSpp;
+            renderIntegrator.MinDepth = renderMinDepth;
+            renderIntegrator.MaxDepth = renderMaxDepth;
 
             renderScene.FrameBuffer = new FrameBuffer(renderWidth, renderHeight, "");
             renderScene.Prepare();
@@ -192,9 +192,6 @@ public partial class ReferenceRendering
         await Task.Run(async () =>
         {
             var renderIntegrator = ReferenceUtils.CloneIntegrator(curIntegrator);
-            int targetSpp = ReferenceUtils.GetTargetSpp(renderIntegrator);
-            ReferenceUtils.SetBatchSpp(renderIntegrator, targetSpp);
-
             currentSceneFile.MaxDepth = renderMaxDepth;
             currentSceneFile.MinDepth = renderMinDepth;
 
@@ -294,14 +291,11 @@ public partial class ReferenceRendering
                 if (batchSpp <= 0)
                     return;
 
-                ReferenceUtils.SetBatchSpp(renderIntegrator, batchSpp);
+                renderIntegrator.NumIterations = (uint)batchSpp;
                 if (!isResume)
                 {
-                    uint originalBaseSeed = ReferenceUtils.GetBaseSeed(renderIntegrator);
-                    ReferenceUtils.SetBaseSeed(
-                        renderIntegrator,
-                        originalBaseSeed + (uint)currentSpp
-                    );
+                    uint originalBaseSeed = renderIntegrator.BaseSeed;
+                    renderIntegrator.BaseSeed = originalBaseSeed + (uint)currentSpp;
                 }
 
                 string currentPartialPath = Path.Combine(folder, baseNameNoSuffix + "-partial.exr");

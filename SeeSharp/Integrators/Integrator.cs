@@ -15,7 +15,17 @@ public abstract class Integrator {
     /// </summary>
     public int MinDepth { get; set; } = 1;
 
+    /// <summary>
+    /// Seed used during rendering. Ideally, every call to <see cref="Render(Scene)" /> with the
+    /// same seed should produce the exact same image.
+    /// Might not be true due to non-determinism in the algorithm.
+    /// </summary>
     public uint BaseSeed { get; set; } = 0x0C030114;
+
+    /// <summary>
+    /// Number of samples per pixel (or closest equivalent) to use when calling <see cref="Render(Scene)" />
+    /// </summary>
+    public uint NumIterations { get; set; } = 1;
 
     /// <summary>
     /// Renders a scene to the frame buffer that is specified by the <see cref="Scene" /> object.

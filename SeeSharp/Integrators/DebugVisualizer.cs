@@ -5,15 +5,10 @@
 /// </summary>
 public class DebugVisualizer : Integrator {
     /// <summary>
-    /// Number of anti-aliasing samples to take in each pixel
-    /// </summary>
-    public int TotalSpp = 1;
-
-    /// <summary>
     /// Renders the given scene.
     /// </summary>
     public override void Render(Scene scene) {
-        for (uint sampleIndex = 0; sampleIndex < TotalSpp; ++sampleIndex) {
+        for (uint sampleIndex = 0; sampleIndex < NumIterations; ++sampleIndex) {
             scene.FrameBuffer.StartIteration();
             Parallel.For(0, scene.FrameBuffer.Height,
                 row => {

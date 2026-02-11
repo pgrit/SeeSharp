@@ -5,7 +5,7 @@ namespace SeeSharp.Template;
 class MyExperiment : Experiment {
     public override List<Method> MakeMethods() => [
         new("Path tracing", new PathTracer() { TotalSpp = 4 }),
-        new("VCM", new VertexConnectionAndMerging() { NumIterations = 2 })
+        new("VCM", new VertexConnectionAndMerging() { SampleCount = 2 })
     ];
 
     public override void OnDone(string workingDirectory, IEnumerable<string> sceneNames, IEnumerable<float> sceneExposures) {

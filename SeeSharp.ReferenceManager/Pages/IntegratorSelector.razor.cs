@@ -5,20 +5,20 @@ namespace SeeSharp.ReferenceManager.Pages;
 public partial class IntegratorSelector : ComponentBase
 {
     [Parameter] public Scene scene { get; set; } = default!;
-    
+
     public List<Integrator> addedIntegrators { get; private set; } = new();
-    
-    public Integrator? CurrentIntegrator => addedIntegrators.FirstOrDefault();
+
+    public Integrator CurrentIntegrator => addedIntegrators.FirstOrDefault();
 
     Type[] integratorTypes = Array.Empty<Type>();
-    string? selectedIntegrator;
+    string selectedIntegrator;
     private string lastIntegrator;
 
     protected override void OnInitialized()
     {
         var types = AppDomain.CurrentDomain.GetAssemblies()
                 .SelectMany(assembly => assembly.GetTypes())
-                .Where(type => type.IsClass && !type.IsAbstract && typeof(Integrator).IsAssignableFrom(type) && 
+                .Where(type => type.IsClass && !type.IsAbstract && typeof(Integrator).IsAssignableFrom(type) &&
                 !type.ContainsGenericParameters && !typeof(DebugVisualizer).IsAssignableFrom(type));
         integratorTypes = types.Where(t => !types.Any(other => other.IsSubclassOf(t))).ToArray();
 
@@ -54,7 +54,7 @@ public partial class IntegratorSelector : ComponentBase
         StateHasChanged();
     }
 
-    protected List<ParameterGroup> GetParameterGroups(Integrator integrator) 
+    protected List<ParameterGroup> GetParameterGroups(Integrator integrator)
         => IntegratorUtils.GetParameterGroups(integrator);
 
     protected string FormatClassName(Type t) => IntegratorUtils.FormatClassName(t);
@@ -68,7 +68,7 @@ public partial class IntegratorSelector : ComponentBase
     public bool TrySelectIntegrator(string simpleName)
     {
         var targetType = integratorTypes.FirstOrDefault(t => t.Name == simpleName || t.Name == simpleName + "`1");
-        
+
         if (targetType != null && targetType.FullName != selectedIntegrator)
         {
             selectedIntegrator = targetType.FullName;
@@ -78,11 +78,11 @@ public partial class IntegratorSelector : ComponentBase
         return targetType != null;
     }
 
-    public Type? GetIntegratorType(string simpleName)
+    public Type GetIntegratorType(string simpleName)
     {
         if (string.IsNullOrEmpty(simpleName)) return null;
-        return integratorTypes.FirstOrDefault(t => 
-            t.Name.Equals(simpleName, StringComparison.OrdinalIgnoreCase) || 
+        return integratorTypes.FirstOrDefault(t =>
+            t.Name.Equals(simpleName, StringComparison.OrdinalIgnoreCase) ||
             t.Name.Equals(simpleName + "`1", StringComparison.OrdinalIgnoreCase));
     }
 }

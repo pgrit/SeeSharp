@@ -7,7 +7,7 @@ using SeeSharp.Integrators.Bidir;
 SceneRegistry.AddSourceRelativeToScript("../data/scenes");
 
 BenchRender("PathTracer - 16spp", new PathTracer() {
-    TotalSpp = 16,
+    NumIterations = 16,
 });
 
 BenchRender("BDPT - 8spp", new VertexCacheBidir() {

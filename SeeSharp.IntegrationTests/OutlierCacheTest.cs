@@ -15,7 +15,7 @@ static class OutlierCacheTest {
         scene.Prepare();
 
         var integrator = new PathTracer() {
-            TotalSpp = 4,
+            NumIterations = 4,
             MaxDepth = 10,
             BaseSeed = 1234,
         };

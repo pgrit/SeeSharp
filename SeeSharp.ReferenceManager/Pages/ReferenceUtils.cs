@@ -138,49 +138,42 @@ public static class ReferenceUtils {
         return clone;
     }
 
-    public static void SetMaxDepth(Integrator integrator, int depth) {
-        var type = integrator.GetType();
-        var flags = BindingFlags.Public | BindingFlags.Instance | BindingFlags.IgnoreCase;
-        var prop = type.GetProperty("MaxDepth", flags);
-        if (prop != null && prop.CanWrite) {
-            prop.SetValue(integrator, depth);
-            return;
-        }
-        var field = type.GetField("MaxDepth", flags);
-        if (field != null) {
-            field.SetValue(integrator, depth);
-        }
+    static T GetFieldOrProperty<T>(object instance, string name)
+    {
+        var type = instance.GetType();
+        var flags = BindingFlags.Public | BindingFlags.Instance;
+
+        var propSpp = type.GetProperty(name, flags);
+        if (propSpp != null)
+            return (T)propSpp.GetValue(instance);
+
+        var fieldSpp = type.GetField(name, flags);
+        if (fieldSpp != null)
+            return (T)fieldSpp.GetValue(instance);
+
+        throw new ArgumentException($"No field or property named '{name}' in '{instance.GetType()}'");
     }
 
-    public static void SetMinDepth(Integrator integrator, int depth) {
-        var type = integrator.GetType();
-        var flags = BindingFlags.Public | BindingFlags.Instance | BindingFlags.IgnoreCase;
-        var prop = type.GetProperty("MinDepth", flags);
-        if (prop != null && prop.CanWrite) {
-            prop.SetValue(integrator, depth);
+    static void SetFieldOrProperty<T>(object instance, string name, T value)
+    {
+        var type = instance.GetType();
+        var flags = BindingFlags.Public | BindingFlags.Instance;
+
+        var prop = type.GetProperty(name, flags);
+        if (prop != null && prop.CanWrite)
+        {
+            prop.SetValue(instance, value);
             return;
         }
-        var field = type.GetField("MinDepth", flags);
-        if (field != null) {
-            field.SetValue(integrator, depth);
+
+        var field = type.GetField(name, flags);
+        if (field != null)
+        {
+            field.SetValue(instance, value);
+            return;
         }
-    }
 
-    public static int GetTargetSpp(Integrator integrator) {
-        var type = integrator.GetType();
-        var flags = BindingFlags.Public | BindingFlags.Instance | BindingFlags.IgnoreCase;
-        var propSpp = type.GetProperty("TotalSpp", flags);
-        if (propSpp != null) return (int)propSpp.GetValue(integrator);
-
-        var fieldSpp = type.GetField("TotalSpp", flags);
-        if (fieldSpp != null) return (int)fieldSpp.GetValue(integrator);
-
-        var propIter = type.GetProperty("NumIterations", flags);
-        if (propIter != null) return (int)propIter.GetValue(integrator);
-
-        var fieldIter = type.GetField("NumIterations", flags);
-        if (fieldIter != null) return (int)fieldIter.GetValue(integrator);
-        return 16;
+        throw new ArgumentException($"No field or property named '{name}' in '{instance.GetType()}'");
     }
 
     public static void SaveConfig(string folder, Integrator integrator) {
@@ -190,41 +183,6 @@ public static class ReferenceUtils {
         var settingsNode = JsonSerializer.SerializeToNode(integrator, integrator.GetType(), options);
         rootNode.Add("Settings", settingsNode);
         File.WriteAllText(Path.Combine(folder, "Config.json"), rootNode.ToJsonString(options));
-    }
-
-    public static void SetBatchSpp(Integrator integrator, int batchCount) {
-        var type = integrator.GetType();
-        var flags = BindingFlags.Public | BindingFlags.Instance | BindingFlags.IgnoreCase;
-        var targetNames = new[] { "TotalSpp", "NumIterations"};
-        foreach (var name in targetNames) {
-            var prop = type.GetProperty(name, flags);
-            if (prop != null && prop.CanWrite) {
-                prop.SetValue(integrator, batchCount);
-                return;
-            }
-            var field = type.GetField(name, flags);
-            if (field != null) {
-                field.SetValue(integrator, batchCount);
-                return;
-            }
-        }
-    }
-
-    public static uint GetBaseSeed(Integrator integrator) {
-        var flags = BindingFlags.Public | BindingFlags.Instance | BindingFlags.IgnoreCase;
-        var seedProp = integrator.GetType().GetProperty("BaseSeed", flags);
-        var seedField = integrator.GetType().GetField("BaseSeed", flags);
-        if (seedProp != null) return (uint)(seedProp.GetValue(integrator) ?? 0u);
-        if (seedField != null) return (uint)(seedField.GetValue(integrator) ?? 0u);
-        return 0;
-    }
-
-    public static void SetBaseSeed(Integrator integrator, uint seed) {
-        var flags = BindingFlags.Public | BindingFlags.Instance | BindingFlags.IgnoreCase;
-        var seedProp = integrator.GetType().GetProperty("BaseSeed", flags);
-        var seedField = integrator.GetType().GetField("BaseSeed", flags);
-        if (seedProp != null) seedProp.SetValue(integrator, seed);
-        else if (seedField != null) seedField.SetValue(integrator, seed);
     }
 
     public static string CurrentSeeSharpVersion { get; } =

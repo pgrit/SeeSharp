@@ -172,11 +172,11 @@ IntegratorLoaded:
             FrameBuffer.Flags.IgnoreNanAndInf |
             FrameBuffer.Flags.WriteContinously |
             FrameBuffer.Flags.WriteExponentially); // output intermediate results exponentially to avoid loosing everything on a crash
-        
+
         // Write settings to metadata for preview parameters in the info table
         scn.FrameBuffer.MetaData["Name"] = refIntegrator.GetType().Name;
         scn.FrameBuffer.MetaData["Settings"] =  JsonSerializer.SerializeToNode(refIntegrator, refIntegrator.GetType(), refSerializerOptions);
-        
+
         scn.Prepare();
         refIntegrator.Render(scn);
         scn.FrameBuffer.WriteToFile();
@@ -188,7 +188,7 @@ IntegratorLoaded:
         string fJson = Path.ChangeExtension(filename, ".json");
         if (File.Exists(fJson)) File.Delete(fJson);
         if (File.Exists(pJson)) File.Move(pJson, fJson);
-        
+
         return InpaintNaNs(scn.FrameBuffer.Image);
     }
 
@@ -214,7 +214,7 @@ IntegratorLoaded:
     public virtual Integrator DefaultReferenceIntegrator
     => new PathTracer() {
         BaseSeed = 571298512u,
-        TotalSpp = 512
+        NumIterations = 512
     };
 
     /// <summary>

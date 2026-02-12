@@ -1,0 +1,118 @@
+@using Microsoft.AspNetCore.Components.Server.ProtectedBrowserStorage
+@inject ProtectedSessionStorage ProtectedSessionStore
+@using SeeSharp.Experiments
+@using SeeSharp.Blazor
+@using System;
+@using System.IO;
+
+<div class="scene-picker">
+    <h3 style="margin-bottom: 0;
+        border-bottom-style: solid;
+        border-bottom-width: 2px;
+        border-bottom-color: black;
+        margin-top: 2px;">Select a scene</h3>
+
+    <div style="display: flex; flex-direction: row; gap: 16px;">
+        <AutocompleteInput Label="Scene name" @ref=sceneNameInput Candidates=availableSceneNames
+            OnTextChanged="@OnSceneNameUpdate" OnSubmit="@LoadScene" />
+        <div style="align-content: center;">
+            @if (isSceneNameValid && !loading && scene?.Name != sceneNameInput.Text)
+            {
+                <button class="btn" @onclick=LoadScene>Load</button>
+            }
+            else
+            {
+                <button class="btn" disabled>Load</button>
+
+                @if (!loading)
+                {
+                    <button class="btn" @onclick=LoadScene>Force reload</button>
+                }
+            }
+        </div>
+    </div>
+
+    <details>
+        <summary class="dropdown-header">Available scenes</summary>
+        <div class="dropdown-body">
+            @foreach (var s in availableSceneNames)
+            {
+                <p class="scene-button" @onclick=@(async () => { sceneNameInput.Text = s; await LoadScene(); })>@s</p>
+            }
+        </div>
+    </details>
+
+    @if (loading)
+    {
+        <p>Loading...</p>
+    }
+    else if (!string.IsNullOrEmpty(scene?.Name))
+    {
+        <p>Loaded "@(scene.Name)"</p>
+    }
+
+</div>
+
+@code {
+    [Parameter]
+    public EventCallback<SceneFromFile> OnSceneLoaded { get; set; }
+
+
+    IEnumerable<string> availableSceneNames
+    {
+        get
+        {
+            if (_availableSceneNames == null)
+                _availableSceneNames = SceneRegistry.FindAvailableScenes().Order();
+            return _availableSceneNames;
+        }
+    }
+    IEnumerable<string> _availableSceneNames;
+
+    public AutocompleteInput sceneNameInput { get; set; }
+
+    SceneFromFile scene;
+    bool loading = false;
+
+    SceneFromFile Scene => scene;
+
+    bool isSceneNameValid => sceneNameInput?.Valid == true;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            var result = await ProtectedSessionStore.GetAsync<string>("lastScene");
+            if (result.Success)
+                sceneNameInput.Text = result.Value;
+        }
+    }
+
+    async Task OnSceneNameUpdate(string newName)
+    {
+        await ProtectedSessionStore.SetAsync("lastScene", newName);
+    }
+
+    async Task LoadScene()
+    {
+        if (!isSceneNameValid || loading) return;
+        loading = true;
+        await Task.Run(() => scene = SceneRegistry.LoadScene(sceneNameInput.Text));
+        loading = false;
+        await OnSceneLoaded.InvokeAsync(scene);
+    }
+
+    public string FindJson(string folder)
+    {
+        folder = "../../Data/Scenes/" + folder;
+        folder = Path.GetFullPath(folder);
+        var files = Directory.GetFiles(folder, "*.json");
+        if (files.Length == 0)
+        {
+            Console.WriteLine("Error: No JSON file found in the folder.");
+            return null;
+        }
+
+        return Path.GetFullPath(files[0]);
+    }
+}

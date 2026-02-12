@@ -1,7 +1,5 @@
 # User specific editor and IDE configurations
 .vs
-launchSettings.json
-!SeeSharp.Templates/content/SeeSharp.Blazor.Template/Properties/launchSettings.json
 .idea
 SeeSharp.sln.DotSettings.user
 

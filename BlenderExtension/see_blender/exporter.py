@@ -140,6 +140,8 @@ def material_to_json(material, out_dir):
             material.emission_color[1] * material.emission_strength,
             material.emission_color[2] * material.emission_strength
         )),
+        "emission_color":  map_rgb(material.emission_color),
+        "emission_strength": material.emission_strength,
         "emissionIsGlossy": material.emission_is_glossy,
         "emissionExponent": material.emission_glossy_exponent
     }
@@ -179,25 +181,46 @@ def export_camera(result, scene):
         return
 
     aspect_ratio = scene.render.resolution_y / scene.render.resolution_x
+    import mathutils
+    blend_cam2world = camera.matrix_world.copy()
+    blend_world2see_world = axis_conversion(
+        to_forward="Z",
+        to_up="Y",
+    ).to_4x4()
+    def matrix_to_row_major_list(m):
+        return [
+            m[0][0], m[0][1], m[0][2], m[0][3],
+            m[1][0], m[1][1], m[1][2], m[1][3],
+            m[2][0], m[2][1], m[2][2], m[2][3],
+            m[3][0], m[3][1], m[3][2], m[3][3],
+        ]
+
     result["transforms"] = [
         {
             "name": "camera",
-            "position": [
-                -camera.location.x,
-                camera.location.z,
-                camera.location.y
-            ],
-            # At (0,0,0) rotation, the Blender camera faces towards negative z, with positive y pointing up
-            # We account for this extra rotation here, because we want it to face _our_ negative z with _our_
-            # y axis pointing upwards instead.
-            "rotation": [
-                degrees(camera.rotation_euler.x) - 90,
-                degrees(camera.rotation_euler.z) + 180,
-                degrees(camera.rotation_euler.y)
-            ],
-            "scale": [ 1.0, 1.0, 1.0 ]
+            "matrix": matrix_to_row_major_list((blend_world2see_world @  blend_cam2world).transposed())
         }
     ]
+
+    # result["transforms"] = [
+    #     {
+    #         "name": "camera",
+    #         "position": [
+    #             -camera.location.x,
+    #             camera.location.z,
+    #             camera.location.y
+    #         ],
+    #         # At (0,0,0) rotation, the Blender camera faces towards negative z, with positive y pointing up
+    #         # We account for this extra rotation here, because we want it to face _our_ negative z with _our_
+    #         # y axis pointing upwards instead.
+    #         "rotation": [
+    #             degrees(camera.rotation_euler.x) - 90,
+    #             degrees(camera.rotation_euler.z) + 180,
+    #             degrees(camera.rotation_euler.y)
+    #         ],
+    #         "scale": [ 1.0, 1.0, 1.0 ]
+    #     }
+    # ]
 
     result["cameras"] = [
         {

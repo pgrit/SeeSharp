@@ -15,10 +15,10 @@
     public SimpleImageIO.FlipBook Flip { get; set; }
     SimpleImageIO.FlipBook lastFlip;
 
-    public record struct OnClickEventArgs
+    public record struct OnClickEventArgs // TODO: rename
     (
         int mouseButton,
-        // Mouse X/Y relative to an image in Flipbook ((0, 0) at top left of image)
+        // Mouse X/Y pixel coordinates relative to an image in Flipbook (Pixel (0, 0) at top left of image)
         int mouseX,
         int mouseY,
         int deltaY,
@@ -26,8 +26,7 @@
         string FlipbookID,
         int selectedIndex,
 
-        string keyPressed,
-        bool isPressed
+        HashSet<String> keysPressed
     )
     {
     }
@@ -67,27 +66,33 @@
     }
 
     [JSInvokable]
-    public void _OnFlipClick(int mouseButton, int mouseX, int mouseY, int deltaY, string ID, int selectedIdx, string keyPressed, bool isPressed)
+    public void _OnFlipClick(int mouseButton, int mouseX, int mouseY, int deltaY, string ID, int selectedIdx, String[] keysPressed)
     {
-        OnClick.InvokeAsync(new(mouseButton: mouseButton, mouseX: mouseX, mouseY: mouseY, deltaY: deltaY, FlipbookID: ID, selectedIndex: selectedIdx, keyPressed: keyPressed, isPressed: isPressed)).Wait();
+        HashSet<string> set = new HashSet<string>(keysPressed);
+        OnClick.InvokeAsync(new(mouseButton: mouseButton, mouseX: mouseX, mouseY: mouseY, deltaY: deltaY, FlipbookID: ID, selectedIndex: selectedIdx, keysPressed: set)).Wait();
     }
 
     [JSInvokable]
-    public void _OnFlipWheel(int mouseButton, int mouseX, int mouseY, int deltaY, string ID, int selectedIdx, string keyPressed, bool isPressed)
+    
+    public void _OnFlipWheel(int mouseButton, int mouseX, int mouseY, int deltaY, string ID, int selectedIdx, String[] keysPressed)
     {
-        OnWheel.InvokeAsync(new(mouseButton: mouseButton, mouseX: mouseX, mouseY: mouseY, deltaY: deltaY, FlipbookID: ID, selectedIndex: selectedIdx, keyPressed: keyPressed, isPressed: isPressed)).Wait();
+        HashSet<string> set = new HashSet<string>(keysPressed);
+        OnWheel.InvokeAsync(new(mouseButton: mouseButton, mouseX: mouseX, mouseY: mouseY, deltaY: deltaY, FlipbookID: ID, selectedIndex: selectedIdx, keysPressed: set)).Wait();
     }
 
     [JSInvokable]
-    public void _OnFlipMouseOver(int mouseButton, int mouseX, int mouseY, int deltaY, string ID, int selectedIdx, string keyPressed, bool isPressed)
+    public void _OnFlipMouseOver(int mouseButton, int mouseX, int mouseY, int deltaY, string ID, int selectedIdx, String[] keysPressed)
     {
-        OnMouseOver.InvokeAsync(new(mouseButton: mouseButton, mouseX: mouseX, mouseY: mouseY, deltaY: deltaY, FlipbookID: ID, selectedIndex: selectedIdx, keyPressed: keyPressed, isPressed: isPressed)).Wait();
+        HashSet<string> set = new HashSet<string>(keysPressed);
+        OnMouseOver.InvokeAsync(new(mouseButton: mouseButton, mouseX: mouseX, mouseY: mouseY, deltaY: deltaY, FlipbookID: ID, selectedIndex: selectedIdx, keysPressed: set)).Wait();
     }
 
     [JSInvokable]
-    public void _OnFlipKey(int mouseButton, int mouseX, int mouseY, int deltaY, string ID, int selectedIdx, string keyPressed, bool isPressed)
+    
+    public void _OnFlipKey(int mouseButton, int mouseX, int mouseY, int deltaY, string ID, int selectedIdx, String[] keysPressed)
     {
-        OnKey.InvokeAsync(new(mouseButton: mouseButton, mouseX: mouseX, mouseY: mouseY, deltaY: deltaY, FlipbookID: ID, selectedIndex: selectedIdx, keyPressed: keyPressed, isPressed: isPressed)).Wait();
+        HashSet<string> set = new HashSet<string>(keysPressed);
+        OnKey.InvokeAsync(new(mouseButton: mouseButton, mouseX: mouseX, mouseY: mouseY, deltaY: deltaY, FlipbookID: ID, selectedIndex: selectedIdx, keysPressed: set)).Wait();
     }
 
     protected override async Task OnAfterRenderAsync(bool firstRender)

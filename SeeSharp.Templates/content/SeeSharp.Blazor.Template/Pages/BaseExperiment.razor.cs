@@ -41,8 +41,7 @@ public enum FiredType {
     Click = 0,
     Move = 1,
     Wheel = 2,
-    KeyDown = 4,
-    KeyUp = 8,
+    Key = 4,
 }
 
 public partial class BaseExperiment : ComponentBase {
@@ -119,22 +118,18 @@ public partial class BaseExperiment : ComponentBase {
     /// </summary>
     /// <param name="args">ListenerState from HMTL side.</param>
     public virtual void OnFlipKey(FlipViewer.OnClickEventArgs args) {
-        if (args.keyPressed == state.actionKey1)
-            state.actionKey1Pressed = args.isPressed;
+        bool wasKey1Pressed = state.actionKey1Pressed;
 
-        if (args.keyPressed == state.actionKey2)
-            state.actionKey2Pressed = args.isPressed;
+        state.actionKey1Pressed = args.keysPressed.Contains(state.actionKey1);
+        state.actionKey2Pressed = args.keysPressed.Contains(state.actionKey2);
 
         state.currFlipID = args.FlipbookID;
         state.selectedIndex = args.selectedIndex;
 
-        if (args.keyPressed == state.actionKey1 && !args.isPressed)
+        if (!state.actionKey1Pressed && wasKey1Pressed)
             state.currIteration = 0;
 
-        if (args.isPressed)
-            updateFlipbook(FiredType.KeyDown);
-        else
-            updateFlipbook(FiredType.KeyUp);
+        updateFlipbook(FiredType.Key);
     }
 
     /// <summary>

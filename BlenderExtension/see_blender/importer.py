@@ -340,19 +340,29 @@ def load_ply(filepath):
     obj = bpy.data.objects.new(mesh.name, mesh)
     bpy.context.collection.objects.link(obj)
 
-    with open(filepath, "rb") as f:
-        data = f.read()
-
     # --------------------
     # HEADER PARSING
     # --------------------
-    header_end = data.find(b"end_header\n")
-    # header_text = data[:header_end].decode("ascii")
-    header_text = data[:header_end].decode("ascii", errors="ignore")
-    body = data[header_end + len("end_header\n"):]
+    with open(filepath, "rb") as f:
 
-    lines = header_text.splitlines()
+        header_lines = []
+        
+        # --- Read header safely ---
+        while True:
+            line = f.readline()
+            if not line:
+                raise ValueError("Invalid PLY: no end_header found")
 
+            decoded = line.decode("ascii", errors="ignore").strip()
+            header_lines.append(decoded)
+
+            if decoded == "end_header":
+                break
+
+        # Now file pointer is EXACTLY at binary body start
+        body = f.read()
+
+    # --- Parse header ---
     is_binary = False
     big_endian = False
     vertex_count = 0
@@ -361,7 +371,7 @@ def load_ply(filepath):
     props = []
     reading_vertex_props = False
 
-    for line in lines:
+    for line in header_lines:
         if line.startswith("format"):
             if "binary_little_endian" in line:
                 is_binary = True

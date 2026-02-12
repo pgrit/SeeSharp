@@ -34,7 +34,7 @@ public partial class IntegratorTest : ComponentBase
 
     SurfacePoint? selected;
 
-    void OnFlipClick(FlipViewer.OnClickEventArgs args)
+    void OnFlipClick(FlipViewer.OnEventArgs args)
     {
         if (args.CtrlKey)
         {

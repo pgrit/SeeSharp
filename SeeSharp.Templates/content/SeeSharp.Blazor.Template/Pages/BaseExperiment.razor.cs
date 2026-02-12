@@ -69,7 +69,7 @@ public partial class BaseExperiment : ComponentBase {
     /// Is fired when clicked on an image in the flipbook
     /// </summary>
     /// <param name="args">ListenerState from HMTL side</param>
-    public virtual void OnFlipClick(FlipViewer.OnClickEventArgs args) {
+    public virtual void OnFlipClick(FlipViewer.OnEventArgs args) {
         updateFlipbook(FiredType.Click);
     }
 
@@ -78,7 +78,7 @@ public partial class BaseExperiment : ComponentBase {
     /// This gets only called when the alt key is pressed (from HTML side)
     /// </summary>
     /// <param name="args">ListenerState from HMTL side.</param>
-    public virtual void OnFlipWheel(FlipViewer.OnClickEventArgs args) {
+    public virtual void OnFlipWheel(FlipViewer.OnEventArgs args) {
         if (state.actionKey1Pressed) {
             // scrolled up
             if (args.deltaY < 0) {
@@ -101,7 +101,7 @@ public partial class BaseExperiment : ComponentBase {
     /// Is fired when mouse position changes over the selected flipbook
     /// </summary>
     /// <param name="args">ListenerState from HMTL side.</param>
-    public virtual void OnFlipMouseOver(FlipViewer.OnClickEventArgs args) {
+    public virtual void OnFlipMouseOver(FlipViewer.OnEventArgs args) {
         if (state.currX == args.mouseX && state.currY == args.mouseY)
             return;
 
@@ -117,7 +117,7 @@ public partial class BaseExperiment : ComponentBase {
     /// Is fired when key is pressed or released
     /// </summary>
     /// <param name="args">ListenerState from HMTL side.</param>
-    public virtual void OnFlipKey(FlipViewer.OnClickEventArgs args) {
+    public virtual void OnFlipKey(FlipViewer.OnEventArgs args) {
         bool wasKey1Pressed = state.actionKey1Pressed;
 
         state.actionKey1Pressed = args.keysPressed.Contains(state.actionKey1);

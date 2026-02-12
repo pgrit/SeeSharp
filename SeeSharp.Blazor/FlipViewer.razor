@@ -15,7 +15,7 @@
     public SimpleImageIO.FlipBook Flip { get; set; }
     SimpleImageIO.FlipBook lastFlip;
 
-    public record struct OnClickEventArgs // TODO: rename
+    public record struct OnEventArgs
     (
         int mouseButton,
         // Mouse X/Y pixel coordinates relative to an image in Flipbook (Pixel (0, 0) at top left of image)
@@ -32,13 +32,13 @@
     }
 
     [Parameter]
-    public EventCallback<OnClickEventArgs> OnClick { get; set; }
+    public EventCallback<OnEventArgs> OnClick { get; set; }
     [Parameter]
-    public EventCallback<OnClickEventArgs> OnWheel { get; set; } 
+    public EventCallback<OnEventArgs> OnWheel { get; set; } 
     [Parameter]
-    public EventCallback<OnClickEventArgs> OnMouseOver { get; set; } 
+    public EventCallback<OnEventArgs> OnMouseOver { get; set; } 
     [Parameter]
-    public EventCallback<OnClickEventArgs> OnKey { get; set; } 
+    public EventCallback<OnEventArgs> OnKey { get; set; } 
 
     protected override async Task OnParametersSetAsync()
     {

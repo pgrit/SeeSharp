@@ -283,7 +283,7 @@ public class FrameBuffer : IDisposable {
                 WriteToFile(name);
             }
 
-            if (flags.HasFlag(Flags.WriteContinously)) // TODO maybe do this in power-of-two steps so it becomes useful for reference rendering
+            if (flags.HasFlag(Flags.WriteContinously))
                 WriteToFile();
 
             tevIpc?.UpdateImage(filename);

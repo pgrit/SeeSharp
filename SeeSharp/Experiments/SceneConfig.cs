@@ -28,14 +28,15 @@ public abstract class SceneConfig
 
     /// <summary>
     /// Renders a reference image, or retrieves a cached one.
-    /// Use <see cref="GetReferenceImageDetails(int, int, bool)" /> to retrieve AOVs
+    /// Use <see cref="GetReferenceImageDetails(int, int, bool, bool)" /> to retrieve AOVs
     /// or query meta data like the render time.
     /// </summary>
     /// <param name="width">Width of the image</param>
     /// <param name="height">Height of the image</param>
     /// <param name="allowRender">If false, missing references are not rendered and null is returned instead</param>
+    /// <param name="forceRender">If true, re-renders and replaces any existing reference image</param>
     /// <returns>The reference image</returns>
-    public abstract RgbImage GetReferenceImage(int width, int height, bool allowRender = true);
+    public abstract RgbImage GetReferenceImage(int width, int height, bool allowRender = true, bool forceRender = false);
 
     /// <summary>
     /// Renders a reference image, or retrieves a cached one.
@@ -43,6 +44,7 @@ public abstract class SceneConfig
     /// <param name="width">Width of the image</param>
     /// <param name="height">Height of the image</param>
     /// <param name="allowRender">If false, missing references are not rendered and null is returned instead</param>
+    /// <param name="forceRender">If true, re-renders and replaces any existing reference image</param>
     /// <returns>
     /// All rendered layers present in the reference image and
     /// the .json metadata output by the rendering integrator
@@ -50,7 +52,7 @@ public abstract class SceneConfig
     public abstract (
         Dictionary<string, Image> Layers,
         string JsonMetadata
-    ) GetReferenceImageDetails(int width, int height, bool allowRender = true);
+    ) GetReferenceImageDetails(int width, int height, bool allowRender = true, bool forceRender = false);
 
     /// <summary>
     /// File path where the reference image for this scene is cached.
@@ -70,6 +72,7 @@ public abstract class SceneConfig
         int Width,
         int Height,
         int MinDepth,
-        int MaxDepth
+        int MaxDepth,
+        string Filename
     )> AvailableReferences { get; }
 }

@@ -28,48 +28,27 @@ public class RenderStep {
 }
 
 public static class ReferenceUtils {
-    public static void ScanReferences(string sceneDir, List<ReferenceInfo> referenceFiles) {
-        referenceFiles.Clear();
-        if (string.IsNullOrEmpty(sceneDir)) return;
-
-        string refDir = Path.Combine(sceneDir, "References");
-        if (!Directory.Exists(refDir)) return;
-
-        var exrFiles = Directory.GetFiles(refDir, "*.exr")
-                                .OrderByDescending(f => File.GetLastWriteTime(f));
-
-        foreach (var f in exrFiles) {
+    public static IEnumerable<ReferenceInfo> ScanReferences(SceneConfig scene) {
+        List<ReferenceInfo> refFiles = [];
+        foreach (var f in scene.AvailableReferences)
+        {
             var info = new ReferenceInfo {
-                FilePath = f,
-                Timestamp = File.GetLastWriteTime(f).ToString("yyyy-MM-dd HH:mm:ss")
+                FilePath = f.Filename,
+                Timestamp = File.GetLastWriteTime(f.Filename).ToString("yyyy-MM-dd HH:mm:ss")
             };
-            ReadMetadataFromJson(info, f);
-            ParseExrName(info, f);
-            referenceFiles.Add(info);
+
+            info.MinDepth = f.MinDepth;
+            info.MaxDepth = f.MaxDepth;
+            info.Resolution = $"{f.Width}x{f.Height}";
+
+            ReadMetadataFromJson(info, Path.ChangeExtension(f.Filename, ".json"));
+
+            refFiles.Add(info);
         }
+        return refFiles;
     }
 
-    public static void ParseExrName(ReferenceInfo info, string filePath) {
-        string filename = Path.GetFileNameWithoutExtension(filePath);
-        var match = Regex.Match(filename, @"(?:MinDepth(?<min>\d+)-)?MaxDepth(?<max>\d+)-Width(?<w>\d+)-Height(?<h>\d+)", RegexOptions.IgnoreCase);
-
-        if (match.Success) {
-            info.MinDepth = match.Groups["min"].Success ? int.Parse(match.Groups["min"].Value) : 1;
-            info.MaxDepth = int.Parse(match.Groups["max"].Value);
-            info.Resolution = $"{match.Groups["w"].Value}x{match.Groups["h"].Value}";
-        } else {
-            if (string.IsNullOrEmpty(info.Resolution))
-                Logger.Warning($"Can't find resolution.");
-            else if (info.MaxDepth <= 0)
-                Logger.Warning($"The maximum depth is wrong.");
-        }
-    }
-
-    public static void ReadMetadataFromJson(ReferenceInfo info, string exrPath) {
-        string folder = Path.GetDirectoryName(exrPath);
-        string fileNameNoExt = Path.GetFileNameWithoutExtension(exrPath);
-        string jsonPath = Path.Combine(folder, $"{fileNameNoExt}.json");
-
+    public static void ReadMetadataFromJson(ReferenceInfo info, string jsonPath) {
         if (!File.Exists(jsonPath)) return;
 
         string jsonContent = File.ReadAllText(jsonPath);
@@ -109,80 +88,8 @@ public static class ReferenceUtils {
             info.RawJsonConfig = settingsNode.ToJsonString(options);
         }
 
-        string integratorName = root["Name"]?.GetValue<string>();
+        string integratorName = root["Integrator"]?.GetValue<string>();
         info.IntegratorName = integratorName?.Split('.')?.Last() ?? "Unknown";
-    }
-
-    public static void CopyValues(object target, object source) {
-        if (target == null || source == null || target.GetType() != source.GetType()) return;
-        var type = target.GetType();
-
-        bool IsConfigParam(Type t) {
-            return t == typeof(string) || t.IsValueType;
-        }
-
-        foreach (var prop in type.GetProperties(BindingFlags.Public | BindingFlags.Instance).Where(p => p.CanRead && p.CanWrite)) {
-            if (IsConfigParam(prop.PropertyType))
-                prop.SetValue(target, prop.GetValue(source));
-        }
-        foreach (var field in type.GetFields(BindingFlags.Public | BindingFlags.Instance)) {
-            if (IsConfigParam(field.FieldType))
-                field.SetValue(target, field.GetValue(source));
-        }
-    }
-
-    public static Integrator CloneIntegrator(Integrator source) {
-        var type = source.GetType();
-        var clone = (Integrator)Activator.CreateInstance(type);
-        CopyValues(clone, source);
-        return clone;
-    }
-
-    static T GetFieldOrProperty<T>(object instance, string name)
-    {
-        var type = instance.GetType();
-        var flags = BindingFlags.Public | BindingFlags.Instance;
-
-        var propSpp = type.GetProperty(name, flags);
-        if (propSpp != null)
-            return (T)propSpp.GetValue(instance);
-
-        var fieldSpp = type.GetField(name, flags);
-        if (fieldSpp != null)
-            return (T)fieldSpp.GetValue(instance);
-
-        throw new ArgumentException($"No field or property named '{name}' in '{instance.GetType()}'");
-    }
-
-    static void SetFieldOrProperty<T>(object instance, string name, T value)
-    {
-        var type = instance.GetType();
-        var flags = BindingFlags.Public | BindingFlags.Instance;
-
-        var prop = type.GetProperty(name, flags);
-        if (prop != null && prop.CanWrite)
-        {
-            prop.SetValue(instance, value);
-            return;
-        }
-
-        var field = type.GetField(name, flags);
-        if (field != null)
-        {
-            field.SetValue(instance, value);
-            return;
-        }
-
-        throw new ArgumentException($"No field or property named '{name}' in '{instance.GetType()}'");
-    }
-
-    public static void SaveConfig(string folder, Integrator integrator) {
-        var options = new JsonSerializerOptions { WriteIndented = true, IncludeFields = true };
-        var rootNode = new JsonObject();
-        rootNode.Add("Name", integrator.GetType().Name);
-        var settingsNode = JsonSerializer.SerializeToNode(integrator, integrator.GetType(), options);
-        rootNode.Add("Settings", settingsNode);
-        File.WriteAllText(Path.Combine(folder, "Config.json"), rootNode.ToJsonString(options));
     }
 
     public static string CurrentSeeSharpVersion { get; } =

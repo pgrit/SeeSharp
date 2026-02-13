@@ -8,7 +8,6 @@ public partial class ReferenceRendering
     private IntegratorSelector integratorSelector;
     private Scene scene;
     private SceneFromFile currentSceneFile;
-    private string currentSceneDirectory = "";
     private FlipBook flip;
 
     private List<ReferenceInfo> referenceFiles = new();
@@ -31,69 +30,34 @@ public partial class ReferenceRendering
     {
         currentSceneFile = sceneFromFile;
         scene = sceneFromFile.MakeScene();
-
-        if (sceneFromFile != null)
-        {
-            currentSceneDirectory = sceneFromFile.SourceDirectory;
-            if (!string.IsNullOrEmpty(currentSceneDirectory))
-            {
-                ReferenceUtils.ScanReferences(currentSceneDirectory, referenceFiles);
-            }
-        }
+        referenceFiles = ReferenceUtils.ScanReferences(sceneFromFile).ToList();
     }
 
-    private void ResetConfig() => integratorSelector?.TriggerReset();
+    private void ResetConfig()
+    {
+        if (currentSceneFile == null)
+            return;
+        integratorSelector.CurrentIntegrator = currentSceneFile.ReferenceIntegrator;
+    }
 
     private void SaveSceneConfig()
     {
-        if (integratorSelector?.CurrentIntegrator == null)
+        if (integratorSelector.CurrentIntegrator == null || currentSceneFile == null)
             return;
-        string folder = Path.Combine(currentSceneDirectory, "References");
-        if (!Directory.Exists(folder))
-            Directory.CreateDirectory(folder);
-        ReferenceUtils.SaveConfig(folder, integratorSelector.CurrentIntegrator);
-        StateHasChanged();
+        currentSceneFile.ReferenceIntegrator = integratorSelector.CurrentIntegrator;
     }
 
     private void ApplyReferenceSettings()
     {
         if (selectedFile == null || string.IsNullOrEmpty(selectedFile.RawJsonConfig))
             return;
-        if (integratorSelector == null)
-            return;
 
         if (!string.IsNullOrEmpty(selectedFile.IntegratorName))
         {
-            bool success = integratorSelector.TrySelectIntegrator(selectedFile.IntegratorName);
-        }
-
-        var currentIntegrator = integratorSelector.CurrentIntegrator;
-        if (currentIntegrator == null)
-            return;
-
-        var node = JsonNode.Parse(selectedFile.RawJsonConfig);
-        if (node != null)
-        {
-            var options = new JsonSerializerOptions
-            {
-                IncludeFields = true,
-                PropertyNameCaseInsensitive = true,
-            };
-            var loadedIntegrator = JsonSerializer.Deserialize(
-                node,
-                currentIntegrator.GetType(),
-                options
+            integratorSelector.CurrentIntegrator = SceneFromFile.DeserializeIntegrator(
+                JsonNode.Parse(selectedFile.RawJsonConfig),
+                selectedFile.IntegratorName
             );
-
-            if (loadedIntegrator != null)
-            {
-                ReferenceUtils.CopyValues(currentIntegrator, loadedIntegrator);
-                if (selectedFile.MaxDepth > 0)
-                    renderMaxDepth = selectedFile.MaxDepth;
-                if (selectedFile.MinDepth > 0)
-                    renderMinDepth = selectedFile.MinDepth;
-                StateHasChanged();
-            }
         }
     }
 
@@ -139,7 +103,7 @@ public partial class ReferenceRendering
 
     async Task RenderQuickPreview()
     {
-        if (currentSceneFile == null || integratorSelector.addedIntegrators.Count == 0)
+        if (currentSceneFile == null || integratorSelector.CurrentIntegrator == null)
             return;
 
         isRendering = true;
@@ -148,22 +112,21 @@ public partial class ReferenceRendering
 
         await InvokeAsync(StateHasChanged);
 
-        var curIntegrator = integratorSelector.addedIntegrators.First();
+        var curIntegrator = integratorSelector.CurrentIntegrator;
 
         await Task.Run(async () =>
         {
             var stopwatch = Stopwatch.StartNew();
             var renderScene = currentSceneFile.MakeScene();
-            var renderIntegrator = ReferenceUtils.CloneIntegrator(curIntegrator);
 
             int targetSpp = quickPreviewSpp < 1 ? 1 : quickPreviewSpp;
-            renderIntegrator.NumIterations = (uint)targetSpp;
-            renderIntegrator.MinDepth = renderMinDepth;
-            renderIntegrator.MaxDepth = renderMaxDepth;
+            curIntegrator.NumIterations = (uint)targetSpp;
+            curIntegrator.MinDepth = renderMinDepth;
+            curIntegrator.MaxDepth = renderMaxDepth;
 
             renderScene.FrameBuffer = new FrameBuffer(renderWidth, renderHeight, "");
             renderScene.Prepare();
-            renderIntegrator.Render(renderScene);
+            curIntegrator.Render(renderScene);
 
             stopwatch.Stop();
 
@@ -181,43 +144,29 @@ public partial class ReferenceRendering
 
     async Task RenderReference()
     {
-        if (currentSceneFile == null || integratorSelector.addedIntegrators.Count == 0)
+        if (currentSceneFile == null || integratorSelector.CurrentIntegrator == null)
             return;
 
         isRendering = true;
         flip = null;
         await InvokeAsync(StateHasChanged);
 
-        var curIntegrator = integratorSelector.addedIntegrators.First();
+        currentSceneFile.ReferenceIntegrator = integratorSelector.CurrentIntegrator;
         await Task.Run(async () =>
         {
-            var renderIntegrator = ReferenceUtils.CloneIntegrator(curIntegrator);
             currentSceneFile.MaxDepth = renderMaxDepth;
             currentSceneFile.MinDepth = renderMinDepth;
-
-            string referencesRoot = Path.Join(currentSceneDirectory, "References");
-            Directory.CreateDirectory(referencesRoot);
-            string minDepthString = renderMinDepth > 1 ? $"MinDepth{renderMinDepth}-" : "";
-            string finalPath = Path.Combine(
-                referencesRoot,
-                $"{minDepthString}MaxDepth{renderMaxDepth}-Width{renderWidth}-Height{renderHeight}.exr"
-            );
-            if (File.Exists(finalPath))
-                File.Delete(finalPath);
 
             var resultImg = currentSceneFile.GetReferenceImage(
                 renderWidth,
                 renderHeight,
                 allowRender: true,
-                config: renderIntegrator
+                forceRender: true
             );
 
             await InvokeAsync(() =>
             {
-                ReferenceUtils.ScanReferences(currentSceneDirectory, referenceFiles);
-                selectedFile = referenceFiles.FirstOrDefault(r => r.FilePath == finalPath);
-                if (selectedFile != null)
-                    UpdateViewerFromFile(finalPath);
+                referenceFiles = ReferenceUtils.ScanReferences(currentSceneFile).ToList();
                 StateHasChanged();
             });
         });
@@ -230,7 +179,7 @@ public partial class ReferenceRendering
     {
         if (currentSceneFile == null || selectedFile == null || !File.Exists(selectedFile.FilePath))
             return;
-        if (integratorSelector.addedIntegrators.Count == 0)
+        if (integratorSelector.CurrentIntegrator == null)
             return;
 
         isRendering = true;
@@ -389,10 +338,7 @@ public partial class ReferenceRendering
 
                 await InvokeAsync(() =>
                 {
-                    ReferenceUtils.ScanReferences(currentSceneDirectory, referenceFiles);
-                    selectedFile = referenceFiles.FirstOrDefault(r => r.FilePath == finalSavePath);
-                    if (selectedFile != null)
-                        UpdateViewerFromFile(finalSavePath);
+                    referenceFiles = ReferenceUtils.ScanReferences(currentSceneFile).ToList();
                     StateHasChanged();
                 });
             }

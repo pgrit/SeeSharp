@@ -98,9 +98,14 @@ public class SceneFromFile : SceneConfig
     }
 
     /// <inheritdoc />
-    public override RgbImage GetReferenceImage(int width, int height, bool allowRender = true)
+    public override RgbImage GetReferenceImage(
+        int width,
+        int height,
+        bool allowRender = true,
+        bool forceRender = false
+    )
     {
-        var (layers, _) = GetReferenceImageDetails(width, height, allowRender);
+        var (layers, _) = GetReferenceImageDetails(width, height, allowRender, forceRender);
         return InpaintNaNs(layers[""] as RgbImage);
     }
 
@@ -124,7 +129,7 @@ public class SceneFromFile : SceneConfig
     /// <summary>
     /// The default integrator used when rendering reference images, if no config.json file is present.
     /// </summary>
-    public virtual Integrator DefaultReferenceIntegrator =>
+    public static Integrator DefaultReferenceIntegrator =>
         new PathTracer() { BaseSeed = 571298512u, NumIterations = 512 };
 
     public override string ReferenceLocation => Path.Join(file.DirectoryName, "References");
@@ -154,29 +159,7 @@ public class SceneFromFile : SceneConfig
                 return ReferenceIntegrator = integrator;
             }
 
-            // Find the integrator that is specified in the file
-            Type integratorType = null;
-            foreach (var a in AppDomain.CurrentDomain.GetAssemblies())
-            {
-                integratorType = a.GetType(name);
-                if (integratorType != null)
-                    break;
-            }
-            if (integratorType == null)
-            {
-                Logger.Error($"No such integrator: {name}");
-                return DefaultReferenceIntegrator;
-            }
-            if (!integratorType.IsAssignableTo(typeof(Integrator)))
-            {
-                Logger.Error(
-                    $"The integrator '{name}' was found, but is not a class derived from {nameof(Integrator)}"
-                );
-                return DefaultReferenceIntegrator;
-            }
-
-            Logger.Log("Deserializing reference integrator from Config.json");
-            return json["Settings"].Deserialize(integratorType, refSerializerOptions) as Integrator;
+            return DeserializeIntegrator(json, name);
         }
         set
         {
@@ -197,6 +180,34 @@ public class SceneFromFile : SceneConfig
     }
 
     /// <summary>
+    /// Deserializes an integrator from json
+    /// </summary>
+    public static Integrator DeserializeIntegrator(JsonNode json, string name)
+    {
+        Type integratorType = null;
+        foreach (var a in AppDomain.CurrentDomain.GetAssemblies())
+        {
+            integratorType = a.GetType(name);
+            if (integratorType != null)
+                break;
+        }
+        if (integratorType == null)
+        {
+            Logger.Error($"No such integrator: {name}");
+            return DefaultReferenceIntegrator;
+        }
+        if (!integratorType.IsAssignableTo(typeof(Integrator)))
+        {
+            Logger.Error(
+                $"The integrator '{name}' was found, but is not a class derived from {nameof(Integrator)}"
+            );
+            return DefaultReferenceIntegrator;
+        }
+
+        return json["Settings"].Deserialize(integratorType, refSerializerOptions) as Integrator;
+    }
+
+    /// <summary>
     /// Creates a scene ready for rendering
     /// </summary>
     /// <returns>A shallow copy of the "blueprint" scene</returns>
@@ -205,7 +216,12 @@ public class SceneFromFile : SceneConfig
     public override (
         Dictionary<string, Image> Layers,
         string JsonMetadata
-    ) GetReferenceImageDetails(int width, int height, bool allowRender = true)
+    ) GetReferenceImageDetails(
+        int width,
+        int height,
+        bool allowRender = true,
+        bool forceRender = false
+    )
     {
         Directory.CreateDirectory(ReferenceLocation);
 
@@ -216,7 +232,7 @@ public class SceneFromFile : SceneConfig
         );
         string fnameJson = Path.ChangeExtension(filename, ".json");
 
-        if (File.Exists(filename))
+        if (File.Exists(filename) && !forceRender)
         {
             string json = null;
             if (File.Exists(fnameJson))
@@ -234,7 +250,7 @@ public class SceneFromFile : SceneConfig
             }
         }
 
-        if (!allowRender)
+        if (!allowRender && !forceRender)
         {
             Logger.Warning(
                 $"No reference available for {width} x {height}, {MinDepth} - {MaxDepth}"
@@ -291,33 +307,38 @@ public class SceneFromFile : SceneConfig
         int Width,
         int Height,
         int MinDepth,
-        int MaxDepth
+        int MaxDepth,
+        string Filename
     )> AvailableReferences
     {
         get
         {
             DirectoryInfo dir = new(ReferenceLocation);
-            List<(int Width, int Height, int MinDepth, int MaxDepth)> files = [];
+            List<(int Width, int Height, int MinDepth, int MaxDepth, string Filename)> files = [];
 
-            foreach (var f in dir.EnumerateFiles()) {
-                var m = Regex.Match(f.Name, @"MinDepth(\d+)-MaxDepth(\d+)-Width(\d+)-Height(\d+).exr");
+            foreach (var f in dir.EnumerateFiles())
+            {
+                var m = Regex.Match(
+                    f.Name,
+                    @"MinDepth(\d+)-MaxDepth(\d+)-Width(\d+)-Height(\d+).exr"
+                );
                 if (m.Success)
                 {
-                    int w = int.Parse(m.Captures[3].Value);
-                    int h = int.Parse(m.Captures[4].Value);
-                    int min = int.Parse(m.Captures[1].Value);
-                    int max = int.Parse(m.Captures[2].Value);
-                    files.Add((w, h, min, max));
+                    int w = int.Parse(m.Groups[3].Value);
+                    int h = int.Parse(m.Groups[4].Value);
+                    int min = int.Parse(m.Groups[1].Value);
+                    int max = int.Parse(m.Groups[2].Value);
+                    files.Add((w, h, min, max, f.FullName));
                     continue;
                 }
 
                 m = Regex.Match(f.Name, @"MaxDepth(\d+)-Width(\d+)-Height(\d+).exr");
                 if (m.Success)
                 {
-                    int w = int.Parse(m.Captures[2].Value);
-                    int h = int.Parse(m.Captures[3].Value);
-                    int max = int.Parse(m.Captures[1].Value);
-                    files.Add((w, h, 1, max));
+                    int w = int.Parse(m.Groups[2].Value);
+                    int h = int.Parse(m.Groups[3].Value);
+                    int max = int.Parse(m.Groups[1].Value);
+                    files.Add((w, h, 1, max, f.FullName));
                     continue;
                 }
             }

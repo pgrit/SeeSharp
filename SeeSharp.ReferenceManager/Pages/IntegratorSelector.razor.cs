@@ -7,7 +7,15 @@ public partial class IntegratorSelector : ComponentBase
     [Parameter]
     public Scene scene { get; set; } = default!;
 
-    public Integrator CurrentIntegrator { get; set; }
+    public Integrator CurrentIntegrator
+    {
+        get;
+        set
+        {
+            TrySelectIntegrator(integratorTypes.First().FullName);
+            field = value;
+        }
+    }
 
     Type[] integratorTypes = Array.Empty<Type>();
     string selectedIntegrator => CurrentIntegrator?.GetType().FullName;

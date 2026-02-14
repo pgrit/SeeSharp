@@ -2,7 +2,7 @@ using System.Reflection;
 using System.Text.RegularExpressions;
 using System.Xml.Linq;
 
-namespace SeeSharp.Blazor;
+namespace SeeSharp.Common;
 
 /// <summary>
 /// Load xml documentation files and retrieve summary to show description

@@ -9,7 +9,7 @@ namespace SeeSharp.IntegrationTests;
 static class OutlierCacheTest {
     public static void RenderPT() {
         SceneRegistry.AddSourceRelativeToScript("../Data/Scenes");
-        using var scene = SceneRegistry.LoadScene("GlassCubes").MakeScene();
+        using var scene = SceneRegistry.Find("GlassCubes").SceneLoader.Scene;
 
         scene.FrameBuffer = new FrameBuffer(640, 480, "test.exr", FrameBuffer.Flags.SendToTev);
         scene.Prepare();
@@ -47,7 +47,7 @@ static class OutlierCacheTest {
 
     public static void RenderVCM() {
         SceneRegistry.AddSourceRelativeToScript("../Data/Scenes");
-        using var scene = SceneRegistry.LoadScene("GlassCubes").MakeScene();
+        using var scene = SceneRegistry.Find("GlassCubes").SceneLoader.Scene;
 
         scene.FrameBuffer = new FrameBuffer(640, 480, "testVCM.exr", FrameBuffer.Flags.SendToTev);
         scene.Prepare();

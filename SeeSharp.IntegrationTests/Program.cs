@@ -23,7 +23,7 @@ class Program {
     static void BlenderAutoImport() {
         Logger.Verbosity = Verbosity.Debug;
         SceneRegistry.AddSourceRelativeToScript("../Data/Scenes");
-        SceneRegistry.LoadScene("ExportTest");
+        SceneRegistry.Find("ExportTest");
     }
 
     static void Main(string[] args) {

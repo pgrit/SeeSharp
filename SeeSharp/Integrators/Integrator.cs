@@ -1,9 +1,12 @@
-﻿namespace SeeSharp.Integrators;
+﻿using System.Text.Json.Nodes;
+
+namespace SeeSharp.Integrators;
 
 /// <summary>
 /// Base class for all rendering algorithms.
 /// </summary>
-public abstract class Integrator {
+public abstract class Integrator
+{
     /// <summary>
     /// Maximum path length for global illumination algorithms. Default is 100.
     /// </summary>
@@ -37,6 +40,62 @@ public abstract class Integrator {
     /// Re-renders a pixel as it was rendered in a specific iteration.
     /// </summary>
     /// <returns>The paths that contributed to this pixel as a connected graph</returns>
-    public virtual (PathGraph Graph, RgbColor Estimate) ReplayPixel(Scene scene, Pixel pixel, int iteration)
-    => throw new NotSupportedException("This integrator does not implement path replay");
+    public virtual (PathGraph Graph, RgbColor Estimate) ReplayPixel(
+        Scene scene,
+        Pixel pixel,
+        int iteration
+    ) => throw new NotSupportedException("This integrator does not implement path replay");
+
+    static readonly JsonSerializerOptions refSerializerOptions = new()
+    {
+        IncludeFields = true,
+        WriteIndented = true,
+    };
+
+    /// <summary>
+    /// Deserializes an integrator from json.
+    /// </summary>
+    /// <returns>
+    /// Null if the derived type name was not found.
+    /// </returns>
+    public static Integrator Deserialize(string json)
+    {
+        var n = JsonNode.Parse(json);
+        string name = (string)n["Name"];
+        var settings = n["Settings"];
+
+        Type integratorType = null;
+        foreach (var a in AppDomain.CurrentDomain.GetAssemblies())
+        {
+            integratorType = a.GetType(name);
+            if (integratorType != null)
+                break;
+        }
+
+        if (integratorType == null)
+        {
+            Logger.Error($"No such integrator: {name}");
+            return null;
+        }
+        else if (!integratorType.IsAssignableTo(typeof(Integrator)))
+        {
+            Logger.Error(
+                $"The type '{name}' was found, but is not a class derived from {nameof(Integrator)}"
+            );
+            return null;
+        }
+
+        return settings.Deserialize(integratorType, refSerializerOptions) as Integrator;
+    }
+
+    public string Serialize()
+    {
+        var settings = JsonSerializer.Serialize(this, this.GetType(), refSerializerOptions);
+        return $$"""
+            {
+                "Name": "{{GetType().Name}}",
+                "Settings": {{settings}}
+            }
+            """;
+    }
 }

@@ -1,7 +1,4 @@
-﻿using System.Diagnostics;
-using SeeSharp.Experiments;
-using SeeSharp.Images;
-using SeeSharp.Examples;
+﻿using SeeSharp.Examples;
 
 // Register the directory as a scene file provider.
 // Asides from the geometry, it is also used as a reference image cache.
@@ -10,8 +7,8 @@ SceneRegistry.AddSource("Data/Scenes");
 // Configure a benchmark to compare path tracing and VCM on the CornellBox
 // at 512x512 resolution. Display images in tev during rendering (localhost, default port)
 Benchmark benchmark = new(new PathVsVcm(), [
-    SceneRegistry.LoadScene("CornellBox", maxDepth: 5),
-    // SceneRegistry.LoadScene("CornellBox", maxDepth: 2).WithName("CornellBoxDirectIllum")
+    new (SceneRegistry.Find("CornellBox"), maxDepth: 5),
+    new (SceneRegistry.Find("CornellBox"), maxDepth: 2, name: "CornellBoxDirectIllum"),
 ], "Results/PathVsVcm", 512, 512, FrameBuffer.Flags.SendToTev);
 
 // Render the images

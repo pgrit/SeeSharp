@@ -42,7 +42,7 @@ docs/*
 /SeeSharp.Benchmark/*.json
 /SeeSharp.Benchmark/*.exr
 /SeeSharp.Templates/content/SeeSharp.Template/Results
-/SeeSharp.Example/Results
+/SeeSharp.Examples/Results
 /Results
 
 # Profiler output

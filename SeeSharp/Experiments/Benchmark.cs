@@ -3,7 +3,8 @@
 /// <summary>
 /// Conducts an experiment by rendering all images.
 /// </summary>
-public class Benchmark {
+public class Benchmark
+{
     /// <summary>
     /// Sets up a new benchmark that runs an experiment on different scenes
     /// </summary>
@@ -16,10 +17,16 @@ public class Benchmark {
     /// <param name="height">Height of the rendered images in pixels</param>
     /// <param name="frameBufferFlags">Flags for the frame buffer, e.g., to sync with tev</param>
     /// <param name="computeErrorMetrics">Compute error metrics when reference is available</param>
-    public Benchmark(Experiment experiment, IEnumerable<SceneConfig> sceneConfigs,
-                     string workingDirectory, int width, int height,
-                     FrameBuffer.Flags frameBufferFlags = FrameBuffer.Flags.Recommended,
-                     bool computeErrorMetrics = false) {
+    public Benchmark(
+        Experiment experiment,
+        IEnumerable<SceneConfig> sceneConfigs,
+        string workingDirectory,
+        int width,
+        int height,
+        FrameBuffer.Flags frameBufferFlags = FrameBuffer.Flags.Recommended,
+        bool computeErrorMetrics = false
+    )
+    {
         this.experiment = experiment;
         this.sceneConfigs = sceneConfigs;
         this.workingDirectory = workingDirectory;
@@ -34,11 +41,13 @@ public class Benchmark {
     /// If the reference images do not exist yet, they are also rendered. Each method's
     /// images are placed in a separate folder, using the method's name as the folder's name.
     /// </summary>
-    public void Run(bool skipReference = false) {
+    public void Run(bool skipReference = false)
+    {
         experiment.OnStart(workingDirectory);
         List<string> sceneNames = [];
         List<float> sceneExposures = [];
-        foreach (SceneConfig scene in sceneConfigs) {
+        foreach (SceneConfig scene in sceneConfigs)
+        {
             float exposure = RunScene(scene, skipReference);
             sceneNames.Add(scene.Name);
             sceneExposures.Add(exposure);
@@ -46,32 +55,45 @@ public class Benchmark {
         experiment.OnDone(workingDirectory, sceneNames, sceneExposures);
     }
 
-    float RunScene(SceneConfig sceneConfig, bool skipReference) {
+    float RunScene(SceneConfig sceneConfig, bool skipReference)
+    {
         string dir = Path.Join(workingDirectory, sceneConfig.Name);
+        Directory.CreateDirectory(dir);
         Logger.Log($"Running scene '{sceneConfig.Name}'", Verbosity.Info);
 
+        var reference = sceneConfig.SceneDirectory.References.Get(
+            width,
+            height,
+            sceneConfig.MaxDepth,
+            sceneConfig.MinDepth,
+            !skipReference
+        );
         RgbImage refImg = null;
-        if (!skipReference) {
+        if (reference.HasValue)
+        {
             string refFilename = Path.Join(dir, "Reference.exr");
-            refImg = sceneConfig.GetReferenceImage(width, height);
-            refImg.WriteToFile(refFilename);
+            reference.Value.File.CopyTo(refFilename);
 
-            try {
+            try
+            {
                 if (frameBufferFlags.HasFlag(FrameBuffer.Flags.SendToTev))
                     TevIpc.ShowImage(refFilename, refImg);
-            } catch(Exception) {
+            }
+            catch (Exception)
+            {
                 Logger.Error("Could not connect to tev on the default port - is it running?");
             }
         }
 
         // Prepare a scene for rendering. We do it once to reduce overhead.
-        using Scene scene = sceneConfig.MakeScene();
+        Scene scene = sceneConfig.Scene;
         scene.FrameBuffer = MakeFrameBuffer("dummy");
         scene.Prepare();
 
         experiment.OnStartScene(scene, dir, sceneConfig.MinDepth, sceneConfig.MaxDepth);
         var methods = experiment.MakeMethods();
-        for (int i = 0; i < methods.Count; ++i) {
+        for (int i = 0; i < methods.Count; ++i)
+        {
             var method = methods[i];
 
             Logger.Log($"Rendering {sceneConfig.Name} with {method.Name}");
@@ -91,7 +113,8 @@ public class Benchmark {
             scene.FrameBuffer.MetaData["ShadeStats"] = ShadingStatCounter.Current;
             scene.FrameBuffer.WriteToFile();
 
-            if (experiment.DeleteMethodAfterRun) {
+            if (experiment.DeleteMethodAfterRun)
+            {
                 methods.RemoveAt(i);
                 i--;
             }
@@ -105,13 +128,14 @@ public class Benchmark {
     /// Creates a new frame buffer with the correct resolution
     /// </summary>
     /// <param name="filename">Desired file name</param>
-    protected virtual FrameBuffer MakeFrameBuffer(string filename)
-    => new(width, height, filename, frameBufferFlags);
+    protected virtual FrameBuffer MakeFrameBuffer(string filename) =>
+        new(width, height, filename, frameBufferFlags);
 
     /// <summary>
     /// Resolution of all images
     /// </summary>
-    protected int width, height;
+    protected int width,
+        height;
 
     /// <summary>
     /// The experiment to run on all scenes

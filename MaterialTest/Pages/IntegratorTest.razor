@@ -55,9 +55,9 @@
 
     SimpleImageIO.FlipBook flip;
 
-    async Task OnSceneLoaded(SceneFromFile sceneFromFile)
+    async Task OnSceneLoaded(SceneDirectory sceneDir)
     {
-        await Task.Run(() => scene = sceneFromFile.MakeScene());
+        await Task.Run(() => scene = sceneDir.SceneLoader.Scene);
         flip = null;
         resultsAvailable = false;
         readyToRun = true;

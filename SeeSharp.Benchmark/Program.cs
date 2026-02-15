@@ -20,8 +20,8 @@ BenchRender("VCM - 8spp", new VertexConnectionAndMerging() {
 
 void BenchRender(string name, Integrator integrator) {
     var scene =
-        // SceneRegistry.LoadScene("StillLife").MakeScene();
-        SceneRegistry.LoadScene("CornellBox").MakeScene();
+        // SceneRegistry.LoadScene("StillLife").SceneLoader.Scene;
+        SceneRegistry.Find("CornellBox").SceneLoader.Scene;
 
     // Dry run to eliminate JIT overhead
     scene.FrameBuffer = new(512, 512, "");

@@ -6,8 +6,7 @@ public partial class ReferenceRendering
 {
     private SceneSelector sceneSelector;
     private IntegratorSelector integratorSelector;
-    private Scene scene;
-    private SceneFromFile currentSceneFile;
+    private SceneDirectory currentSceneFile;
     private FlipBook flip;
 
     private List<ReferenceInfo> referenceFiles = new();
@@ -26,11 +25,10 @@ public partial class ReferenceRendering
     private HashSet<string> extraKeys = new();
     private HashSet<string> missingKeys = new();
 
-    private void OnSceneLoaded(SceneFromFile sceneFromFile)
+    private void OnSceneLoaded(SceneDirectory sceneDir)
     {
-        currentSceneFile = sceneFromFile;
-        scene = sceneFromFile.MakeScene();
-        referenceFiles = ReferenceUtils.ScanReferences(sceneFromFile).ToList();
+        currentSceneFile = sceneDir;
+        referenceFiles = ReferenceUtils.ScanReferences(sceneDir).ToList();
     }
 
     private void ResetConfig()

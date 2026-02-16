@@ -1,6 +1,6 @@
 using System.Security.Cryptography;
 
-namespace SeeSharp.Experiments;
+namespace SeeSharp.SceneManagement;
 
 /// <summary>
 /// Reference to a scene file that gets loaded the first time it is used

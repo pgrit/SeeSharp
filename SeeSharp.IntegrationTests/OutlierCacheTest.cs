@@ -1,4 +1,5 @@
 using SeeSharp.Experiments;
+using SeeSharp.SceneManagement;
 using SeeSharp.Images;
 using SeeSharp.Integrators;
 using SeeSharp.Integrators.Bidir;

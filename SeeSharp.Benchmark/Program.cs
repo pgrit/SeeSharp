@@ -1,6 +1,7 @@
 ﻿using System;
 using SeeSharp.Benchmark;
 using SeeSharp.Experiments;
+using SeeSharp.SceneManagement;
 using SeeSharp.Integrators;
 using SeeSharp.Integrators.Bidir;
 

@@ -1,5 +1,6 @@
 ﻿using SeeSharp.Common;
 using SeeSharp.Experiments;
+using SeeSharp.SceneManagement;
 using SeeSharp.Integrators;
 
 namespace SeeSharp.IntegrationTests;

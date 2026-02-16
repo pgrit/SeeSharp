@@ -2,7 +2,7 @@ using System.Linq;
 using System.Text.Json.Nodes;
 using System.Text.RegularExpressions;
 
-namespace SeeSharp.Experiments;
+namespace SeeSharp.SceneManagement;
 
 /// <summary>
 /// Renders, caches, and loads reference images for a scene

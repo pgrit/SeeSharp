@@ -1,4 +1,4 @@
-namespace SeeSharp.Experiments;
+namespace SeeSharp.SceneManagement;
 
 /// <summary>
 /// Tracks a scene including its cached reference images and potentially

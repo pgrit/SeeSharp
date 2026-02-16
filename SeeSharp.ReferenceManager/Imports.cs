@@ -17,6 +17,7 @@ global using SeeSharp;
 global using SeeSharp.Cameras;
 global using SeeSharp.Common;
 global using SeeSharp.Experiments;
+global using SeeSharp.SceneManagement;
 global using SeeSharp.Geometry;
 global using SeeSharp.Images;
 global using SeeSharp.Integrators;

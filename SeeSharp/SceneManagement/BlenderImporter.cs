@@ -1,26 +1,43 @@
 using System.Text.RegularExpressions;
 
-namespace SeeSharp.Experiments;
+namespace SeeSharp.SceneManagement;
 
-static class BlenderImporter {
+static class BlenderImporter
+{
     static string _blender;
-    static string blenderExecutable {
-        get {
-            if (_blender != null) return _blender;
+    static string blenderExecutable
+    {
+        get
+        {
+            if (_blender != null)
+                return _blender;
 
-            if (IsInPath("blender")) _blender = "blender";
-            if (IsInPath("blender.exe")) _blender = "blender.exe";
+            if (IsInPath("blender"))
+                _blender = "blender";
+            if (IsInPath("blender.exe"))
+                _blender = "blender.exe";
 
             // Check if it is in any of the default installation directories
-            if (OperatingSystem.IsWindows()) {
+            if (OperatingSystem.IsWindows())
+            {
                 var parentDir = @"C:\Program Files\Blender Foundation\";
-                if (Directory.Exists(parentDir)) {
+                if (Directory.Exists(parentDir))
+                {
                     double bestVersion = 0;
-                    foreach (var dir in Directory.EnumerateDirectories(parentDir)) {
+                    foreach (var dir in Directory.EnumerateDirectories(parentDir))
+                    {
                         string candidate = Path.Join(dir, "blender.exe");
-                        if (File.Exists(candidate)) {
-                            if (double.TryParse(Regex.Match(candidate, @"(\d+)\.(\d+)").Value, out var version)) {
-                                if (version > bestVersion) {
+                        if (File.Exists(candidate))
+                        {
+                            if (
+                                double.TryParse(
+                                    Regex.Match(candidate, @"(\d+)\.(\d+)").Value,
+                                    out var version
+                                )
+                            )
+                            {
+                                if (version > bestVersion)
+                                {
                                     bestVersion = version;
                                     _blender = candidate;
                                 }
@@ -38,12 +55,14 @@ static class BlenderImporter {
         }
     }
 
-    static bool IsInPath(string exe) {
+    static bool IsInPath(string exe)
+    {
         if (File.Exists(exe))
             return true;
 
         var paths = Environment.GetEnvironmentVariable("PATH").Split(Path.PathSeparator);
-        foreach (var path in paths) {
+        foreach (var path in paths)
+        {
             if (File.Exists(Path.Combine(path, exe)))
                 return true;
         }
@@ -51,9 +70,9 @@ static class BlenderImporter {
         return false;
     }
 
-    public static bool Import(string blendFile, string jsonFile) {
-        string python =
-            $"""
+    public static bool Import(string blendFile, string jsonFile)
+    {
+        string python = $"""
             import bpy
             bpy.ops.wm.open_mainfile(filepath='{blendFile.Replace('\\', '/')}')
             bpy.ops.export.to_seesharp(filepath='{jsonFile.Replace('\\', '/')}')
@@ -62,11 +81,10 @@ static class BlenderImporter {
         if (blenderExecutable == null)
             return false;
 
-        var p = Process.Start(blenderExecutable, new string[] {
-            "--background",
-            "--python-expr",
-            python
-        });
+        var p = Process.Start(
+            blenderExecutable,
+            new string[] { "--background", "--python-expr", python }
+        );
         p.WaitForExit();
         return p.ExitCode == 0;
     }

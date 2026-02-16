@@ -5,7 +5,6 @@
     <ImplicitUsings>enable</ImplicitUsings>
   </PropertyGroup>
 
-
   <ItemGroup>
     <SupportedPlatform Include="browser" />
   </ItemGroup>
@@ -14,10 +13,9 @@
     <FrameworkReference Include="Microsoft.AspNetCore.App" />
   </ItemGroup>
 
-
-  <ItemGroup>
-    <PackageReference Include="Microsoft.AspNetCore.Components.Web" Version="8.0.6" />
-  </ItemGroup>
+  <!-- <ItemGroup> -->
+  <!--   <PackageReference Include="Microsoft.AspNetCore.Components.Web" Version="10.0.3" /> -->
+  <!-- </ItemGroup> -->
 
   <ItemGroup>
     <ProjectReference Include="..\SeeSharp\SeeSharp.csproj" />

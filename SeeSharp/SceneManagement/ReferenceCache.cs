@@ -1,3 +1,4 @@
+using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using System.Text.Json.Nodes;
 using System.Text.RegularExpressions;
@@ -64,10 +65,37 @@ public class ReferenceCache(DirectoryInfo dirname, SceneLoader sceneLoader)
         /// All metadata that the <see cref="FrameBuffer.WriteToFile(string)" /> method
         /// stored in the accompanying .json file.
         /// </summary>
-        public readonly Dictionary<string, JsonNode> Metadata { get; init; }
+        public readonly JsonNode Metadata { get; init; }
 
         public readonly Dictionary<string, Image> Layers { get; init; }
         public readonly RgbImage Image => Layers[""] as RgbImage;
+
+        /// <summary>
+        /// Total render time of this reference image as written by <see cref="FrameBuffer" />
+        /// </summary>
+        public long? RenderTime => Metadata["RenderTime"]?.GetValue<long>();
+
+        /// <summary>
+        /// Number of iterations (usually samples per pixel) used for this reference image, as written by <see cref="FrameBuffer" />
+        /// </summary>
+        public int? NumIterations => Metadata["NumIterations"]?.GetValue<int>();
+
+        public override bool Equals([NotNullWhen(true)] object obj) {
+            return File.Equals(obj);
+        }
+
+        public override int GetHashCode() {
+            return File.GetHashCode();
+        }
+
+        public override string ToString() {
+            return File.ToString();
+        }
+
+        public static bool operator ==(ReferenceInfo a, ReferenceInfo b) => a.File == b.File;
+
+        public static bool operator !=(ReferenceInfo a, ReferenceInfo b) => a.File != b.File;
+
     }
 
     record struct Config(int Width, int Height, int MinDepth, int MaxDepth)
@@ -77,16 +105,15 @@ public class ReferenceCache(DirectoryInfo dirname, SceneLoader sceneLoader)
             && r.Resolution.Height == Height
             && r.MinDepth == MinDepth
             && r.MaxDepth == MaxDepth;
+
+        public override string ToString()
+        {
+            string minDepthString = MinDepth > 1 ? $"MinDepth{MinDepth}-" : "";
+            return $"{minDepthString}MaxDepth{MaxDepth}-Width{Width}-Height{Height}";
+        }
     }
 
-    string MakeBasename(Config cfg)
-    {
-        string minDepthString = cfg.MinDepth > 1 ? $"MinDepth{cfg.MinDepth}-" : "";
-        return Path.Join(
-            ReferenceDirname.FullName,
-            $"{minDepthString}MaxDepth{cfg.MaxDepth}-Width{cfg.Width}-Height{cfg.Height}"
-        );
-    }
+    string MakeBasename(Config cfg) => Path.Join(ReferenceDirname.FullName, cfg.ToString());
 
     ReferenceInfo Load(Config cfg)
     {
@@ -98,7 +125,17 @@ public class ReferenceCache(DirectoryInfo dirname, SceneLoader sceneLoader)
         if (File.Exists(fnameJson))
             json = File.ReadAllText(fnameJson);
 
-        // TODO load metadata, extract integrator and version
+        var metaRoot = JsonNode.Parse(json);
+
+        Integrator integrator = null;
+        try
+        {
+            integrator = Integrator.Deserialize(metaRoot["Integrator"]);
+        }
+        catch
+        {
+            Logger.Warning($"Invalid integrator JSON in reference meta data for {cfg}");
+        }
 
         return new()
         {
@@ -106,10 +143,10 @@ public class ReferenceCache(DirectoryInfo dirname, SceneLoader sceneLoader)
             Resolution = (cfg.Width, cfg.Height),
             MinDepth = cfg.MinDepth,
             MaxDepth = cfg.MaxDepth,
-            Integrator = null, // TODO read from json
+            Integrator = integrator,
             Layers = Layers.LoadFromFile(filename),
-            Metadata = null, // TODO copy
-            SeeSharpVersion = null, // TODO read from json
+            Metadata = metaRoot,
+            SeeSharpVersion = metaRoot["SeeSharpVersion"]?.ToString(),
         };
     }
 
@@ -136,14 +173,7 @@ public class ReferenceCache(DirectoryInfo dirname, SceneLoader sceneLoader)
                 | FrameBuffer.Flags.WriteExponentially
         );
 
-        // Include integrator config in the metadata. This preserves the render
-        // settings of each individual image if the current config changes.
-        scn.FrameBuffer.MetaData["Integrator"] = refIntegrator.GetType().Name;
-        scn.FrameBuffer.MetaData["Settings"] = JsonSerializer.SerializeToNode(
-            refIntegrator,
-            refIntegrator.GetType(),
-            refSerializerOptions
-        );
+        scn.FrameBuffer.MetaData["Integrator"] = refIntegrator.Serialize();
 
         scn.Prepare();
         refIntegrator.Render(scn);
@@ -219,7 +249,13 @@ public class ReferenceCache(DirectoryInfo dirname, SceneLoader sceneLoader)
     /// Renders a new reference with numSamples iterations and combines it with the
     /// existing image (weighting based on respective sample counts)
     /// </summary>
-    public ReferenceInfo AddSamples(int numSamples, int width, int height, int maxDepth, int minDepth = 1)
+    public ReferenceInfo AddSamples(
+        int numSamples,
+        int width,
+        int height,
+        int maxDepth,
+        int minDepth = 1
+    )
     {
         // TODO check it exists, if not render new
 

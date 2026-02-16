@@ -21,7 +21,7 @@
     <div class="col-box">
         <div class="col-title">Parameters</div>
         <div class="col-content">
-            <IntegratorSelector @ref="integratorSelector" scene="@scene" />
+            <IntegratorSelector @ref="integratorSelector" />
         </div>
 
         <div style="padding: 10px; border-top: 1px solid #eee; display: flex; gap: 10px;">
@@ -33,7 +33,7 @@
     <div class="col-box">
         <div class="col-title">Available references</div>
         <div class="col-content">
-            @if (referenceFiles.Count == 0) {
+            @if (referenceFiles.Any()) {
                 <div style="color:#999; text-align:center; margin-top:20px;">No references found</div>
             }
             @foreach (var file in referenceFiles) {
@@ -43,9 +43,6 @@
                         @if (file.MinDepth > 1)
                         {
                             <span>, min depth: @file.MinDepth</span>
-                        }
-                        @if (file.FilePath.EndsWith("-partial.exr")) {
-                            <span> (Partial) </span>
                         }
                     </div>
                 </div>
@@ -102,7 +99,7 @@
             <button style="width:100%; padding:6px; margin-top:5px;"
                     class="btn-primary"
                     @onclick="() => RenderMoreSamples(true)"
-                    disabled="@(selectedFile == null || !selectedFile.FilePath.EndsWith("-partial.exr") || isRendering || isStructureMismatch || isVersionMismatch)">
+                    disabled="@(selectedFile == null || isRendering || isStructureMismatch || isVersionMismatch)">
                 Resume
             </button>
         </div>
@@ -126,48 +123,23 @@
             <div class="meta-content">
                 @if (selectedFile != null) {
                     <div class="meta-grid">
-                        <span class="label">RenderTime:</span> <span>@selectedFile.RenderTimeDisplay</span>
-                        <span class="label">StartTime:</span> <span>@selectedFile.StartTimeDisplay</span>
-                        <span class="label">WriteTime:</span> <span>@selectedFile.WriteTimeDisplay</span>
-                        <span class="label">Iterations:</span> <span>@selectedFile.Spp</span>
-                        <span class="label">Version:</span> <span>@selectedFile.Version</span>
+                        <span class="label">RenderTime:</span> <span>@selectedFile?.RenderTime</span>
+                        @* <span class="label">StartTime:</span> <span>@selectedFile.StartTimeDisplay</span> *@
+                        @* <span class="label">WriteTime:</span> <span>@selectedFile.WriteTimeDisplay</span> *@
+                        <span class="label">Iterations:</span> <span>@selectedFile?.NumIterations</span>
+                        <span class="label">Version:</span> <span>@selectedFile?.SeeSharpVersion</span>
                     </div>
 
                     @if (isVersionMismatch)
                     {
                         <div style="color: #dc3545; font-size: 0.85em; font-weight: bold; margin-top: 2px;">
-                            Version Differs @ReferenceUtils.CurrentSeeSharpVersion
+                            Version Differs @CurrentVersion
                         </div>
                     }
                     else if (isVersionWarning)
                     {
                         <div style="color: #e6a700; font-size: 0.85em; font-weight: bold; margin-top: 2px; text-shadow: 0px 0px 1px #eee;">
-                            Version Differs @ReferenceUtils.CurrentSeeSharpVersion
-                        </div>
-                    }
-
-                    @if (selectedFile.RenderSteps != null && selectedFile.RenderSteps.Count > 0)
-                    {
-                        <div style="margin-top: 10px; border-top: 1px solid #eee; padding-top: 5px;">
-                            <details>
-                                <summary style="cursor: pointer; font-size: 0.9em; color: #555; font-weight:bold; margin-bottom:5px;">Render History</summary>
-                                <div class="config-tree">
-                                    @for (int i = 0; i < selectedFile.RenderSteps.Count; i++)
-                                    {
-                                        var step = selectedFile.RenderSteps[i];
-                                        <div class="config-item" style="display: block; margin-bottom: 5px; border-bottom: 1px dashed #f0f0f0; padding-bottom: 5px;">
-                                            <div style="font-weight: bold; font-size: 0.85em; margin-bottom: 2px;">
-                                                @(i + 1) @step.Type
-                                            </div>
-                                            <div style="font-size: smaller; line-height: 1.4em; padding-left: 8px;">
-                                                RenderTime: @(step.DurationMs)ms<br/>
-                                                StartTime: @step.StartTime<br/>
-                                                WriteTime: @step.WriteTime
-                                            </div>
-                                        </div>
-                                    }
-                                </div>
-                            </details>
+                            Version Differs @CurrentVersion
                         </div>
                     }
 
@@ -190,12 +162,12 @@
                             <div class="config-tree">
                                 <div class="config-item">
                                     <span class="config-key">Integrator:</span>
-                                    <span class="config-val str">@selectedFile.IntegratorName</span>
+                                    <span class="config-val str">@selectedFile?.Integrator?.GetType().Name</span>
                                 </div>
                                 @{
-                                    if (!string.IsNullOrEmpty(selectedFile.RawJsonConfig))
+                                    if (selectedFile?.Metadata != null)
                                     {
-                                        var node = System.Text.Json.Nodes.JsonNode.Parse(selectedFile.RawJsonConfig);
+                                        var node = selectedFile?.Metadata;
                                         if (node != null)
                                         {
                                             var ignoredKeys = new HashSet<string> {

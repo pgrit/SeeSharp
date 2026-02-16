@@ -4,9 +4,6 @@ namespace SeeSharp.ReferenceManager.Pages;
 
 public partial class IntegratorSelector : ComponentBase
 {
-    [Parameter]
-    public Scene scene { get; set; } = default!;
-
     public Integrator CurrentIntegrator
     {
         get;

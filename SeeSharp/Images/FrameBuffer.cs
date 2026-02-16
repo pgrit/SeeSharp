@@ -8,7 +8,8 @@ namespace SeeSharp.Images;
 /// be attached to store AOVs. If tev sync is used, this needs to be disposed of correctly, e.g., via
 /// a "using" block.
 /// </summary>
-public class FrameBuffer : IDisposable {
+public class FrameBuffer : IDisposable
+{
     /// <summary>
     /// Width of the frame buffer in pixels
     /// </summary>
@@ -53,6 +54,38 @@ public class FrameBuffer : IDisposable {
     readonly Dictionary<string, Layer> layers = new();
     readonly Stopwatch stopwatch = new Stopwatch();
 
+    public IEnumerable<(string, Image)> LayerImages
+    {
+        get
+        {
+            List<(string, Image)> outlierImages = [];
+            for (int i = 0; i < NumOutliersToTrack; ++i)
+                outlierImages.Add(($"outlier-{i}", new MonochromeImage(Width, Height)));
+            for (int row = 0; row < Height; ++row)
+            {
+                for (int col = 0; col < Width; ++col)
+                {
+                    var outliers = OutlierCache.GetPixelOutlier(new(col, row));
+                    var iterations = outliers
+                        .UnorderedItems.OrderByDescending(i => i.Priority)
+                        .Select(i => i.Element.Iteration)
+                        .ToList();
+                    for (int i = 0; i < iterations.Count; ++i)
+                    {
+                        outlierImages[i].Item2[col, row, 0] = iterations[i];
+                    }
+                }
+            }
+
+            return
+            [
+                .. layers.Select(kv => (kv.Key, kv.Value.Image)),
+                (null, Image),
+                .. outlierImages,
+            ];
+        }
+    }
+
     /// <summary>
     /// Adds a new layer to the frame buffer. Will be written with the final image, either as a layer or
     /// separately, depending on the file format.
@@ -66,7 +99,11 @@ public class FrameBuffer : IDisposable {
     /// 1-based index of the current iteration (i.e., the total number of iterations so far).
     /// If rendering has not started yet, this will be zero.
     /// </summary>
-    public int CurIteration { get => curIter; protected set => curIter = value; }
+    public int CurIteration
+    {
+        get => curIter;
+        protected set => curIter = value;
+    }
     int curIter = 0;
 
     public DateTime StartTime;
@@ -76,8 +113,10 @@ public class FrameBuffer : IDisposable {
     /// The full path to the final rendered image file, but without the extension. Can be used to
     /// generate adequate names for auxiliary files and debug data.
     /// </summary>
-    public string Basename {
-        get {
+    public string Basename
+    {
+        get
+        {
             if (string.IsNullOrEmpty(filename))
                 return "";
             string dir = Path.GetDirectoryName(filename);
@@ -98,7 +137,8 @@ public class FrameBuffer : IDisposable {
     /// Flags controlling some behaviour of the buffer
     /// </summary>
     [Flags]
-    public enum Flags {
+    public enum Flags
+    {
         /// <summary> Use default behaviour </summary>
         None = 0,
 
@@ -132,7 +172,14 @@ public class FrameBuffer : IDisposable {
         Recommended = IgnoreNanAndInf,
     }
 
-    public record ErrorMetric(long TimeMS, float MSE, float MSE_Outlier, float RelMSE, float RelMSE_Outlier);
+    public record ErrorMetric(
+        long TimeMS,
+        float MSE,
+        float MSE_Outlier,
+        float RelMSE,
+        float RelMSE_Outlier
+    );
+
     public List<ErrorMetric> Errors { get; private set; } = [];
 
     public record NaNWarning(Pixel Pixel, int Iteration, string StackTrace) { }
@@ -146,12 +193,14 @@ public class FrameBuffer : IDisposable {
     ///     never called without an explicit filename and no flags are set.
     /// </param>
     /// <param name="flags">Controls how incremental results are stored</param>
-    public FrameBuffer(int width, int height, string filename, Flags flags = Flags.Recommended) {
+    public FrameBuffer(int width, int height, string filename, Flags flags = Flags.Recommended)
+    {
         this.filename = filename;
         this.flags = flags;
         Width = width;
         Height = height;
-        if (flags.HasFlag(Flags.EstimatePixelVariance)) {
+        if (flags.HasFlag(Flags.EstimatePixelVariance))
+        {
             PixelVariance = new();
             AddLayer("variance", PixelVariance);
         }
@@ -163,17 +212,24 @@ public class FrameBuffer : IDisposable {
     /// <param name="col">Horizontal pixel coordinate, [0, Width), left to right</param>
     /// <param name="row">Vertical pixel coordinate, [0, Height), top to bottom</param>
     /// <param name="value">Color to add to the current value</param>
-    public virtual void Splat(int col, int row, RgbColor value) {
-        if (!float.IsFinite(value.Average)) {
+    public virtual void Splat(int col, int row, RgbColor value)
+    {
+        if (!float.IsFinite(value.Average))
+        {
             // Catch invalid values in long running Release mode renderings.
             // Ideally can be reproduced with a single sample from a correctly seeded RNG.
-            lock (NaNWarnings) {
+            lock (NaNWarnings)
+            {
                 if (NaNWarnings.Count < 4)
-                    Logger.Warning($"NaN or Inf written to frame buffer. Iteration: {CurIteration}, Pixel: ({col},{row}). " +
-                        $"See FrameBuffer.NaNWarnings (also in .json) for a stack trace, or re-render starting at iteration {CurIteration}.");
+                    Logger.Warning(
+                        $"NaN or Inf written to frame buffer. Iteration: {CurIteration}, Pixel: ({col},{row}). "
+                            + $"See FrameBuffer.NaNWarnings (also in .json) for a stack trace, or re-render starting at iteration {CurIteration}."
+                    );
                 else if (NaNWarnings.Count == 4)
-                    Logger.Warning($"NaN or Inf written to frame buffer. Iteration: {CurIteration}, Pixel: ({col},{row}). " +
-                        "Too many NaN / Inf, disabling this warning. Use FrameBuffer.NaNWarnings (also in .json) to see all.");
+                    Logger.Warning(
+                        $"NaN or Inf written to frame buffer. Iteration: {CurIteration}, Pixel: ({col},{row}). "
+                            + "Too many NaN / Inf, disabling this warning. Use FrameBuffer.NaNWarnings (also in .json) to see all."
+                    );
                 NaNWarnings.Add(new(new Pixel(col, row), CurIteration, Environment.StackTrace));
             }
 
@@ -184,10 +240,7 @@ public class FrameBuffer : IDisposable {
         Image.AtomicAdd(col, row, value / CurIteration);
         PixelVariance?.Splat(col, row, value);
 
-        OutlierCache?.Notify(new(col, row), new() {
-            Iteration = CurIteration - 1,
-            Weight = value
-        });
+        OutlierCache?.Notify(new(col, row), new() { Iteration = CurIteration - 1, Weight = value });
     }
 
     /// <summary>
@@ -195,8 +248,7 @@ public class FrameBuffer : IDisposable {
     /// </summary>
     /// <param name="pixel">Ppixel coordinate, [0, Width), left to right, top to bottom</param>
     /// <param name="value">Color to add to the current value</param>
-    public void Splat(Pixel pixel, RgbColor value)
-    => Splat(pixel.Col, pixel.Row, value);
+    public void Splat(Pixel pixel, RgbColor value) => Splat(pixel.Col, pixel.Row, value);
 
     public OutlierReplayCache OutlierCache { get; protected set; }
 
@@ -204,24 +256,32 @@ public class FrameBuffer : IDisposable {
     /// Initializes the memory for the image data and aux layers. Should be called exactly once before / at
     /// the start of the first rendering iteration.
     /// </summary>
-    protected virtual void Initialize() {
+    protected virtual void Initialize()
+    {
         Image = new RgbImage(Width, Height);
         foreach (var (_, layer) in layers)
             layer.Init(Width, Height);
 
-        if (flags.HasFlag(Flags.SendToTev)) {
-            try {
+        if (flags.HasFlag(Flags.SendToTev))
+        {
+            try
+            {
                 tevIpc = new TevIpc();
                 // If a file with the same name is open, close it to avoid conflicts
                 tevIpc.CloseImage(filename);
-                tevIpc.CreateImageSync(filename, Width, Height,
-                    layers.Select(kv => (kv.Key, kv.Value.Image))
-                        .Append(("", Image))
-                        .ToArray()
+                tevIpc.CreateImageSync(
+                    filename,
+                    Width,
+                    Height,
+                    layers.Select(kv => (kv.Key, kv.Value.Image)).Append(("", Image)).ToArray()
                 );
-            } catch (Exception exc) {
+            }
+            catch (Exception exc)
+            {
                 Logger.Warning(exc.ToString());
-                Logger.Warning("Could not connect to tev. Make sure it is running with the correct IP and port.");
+                Logger.Warning(
+                    "Could not connect to tev. Make sure it is running with the correct IP and port."
+                );
                 tevIpc = null;
             }
         }
@@ -235,8 +295,10 @@ public class FrameBuffer : IDisposable {
     /// Should be called before the start of each new rendering iteration. A rendering iteration is one of
     /// multiple equal-sized batches of samples per pixel.
     /// </summary>
-    public virtual void StartIteration() {
-        if (CurIteration == 0) {
+    public virtual void StartIteration()
+    {
+        if (CurIteration == 0)
+        {
             Initialize();
             MetaData["NumIterations"] = 0;
             StartTime = DateTime.Now;
@@ -246,7 +308,8 @@ public class FrameBuffer : IDisposable {
         CurIteration++;
 
         // Correct the division by the number of iterations from the previous iterations
-        if (CurIteration > 1) Normalize();
+        if (CurIteration > 1)
+            Normalize();
 
         foreach (var (_, layer) in layers)
             layer.OnStartIteration(CurIteration);
@@ -264,7 +327,8 @@ public class FrameBuffer : IDisposable {
     /// Notifies that the rendering iteration is finished, intermediate results can be written, and time
     /// measurments can be stopped.
     /// </summary>
-    public virtual void EndIteration() {
+    public virtual void EndIteration()
+    {
         stopwatch.Stop();
 
         MetaData["RenderTime"] = stopwatch.ElapsedMilliseconds;
@@ -276,10 +340,16 @@ public class FrameBuffer : IDisposable {
         if (ReferenceImage != null)
             Errors.Add(ComputeErrorMetric());
 
-        if (!flags.HasFlag(Flags.WriteExponentially) || int.IsPow2(CurIteration - 1)) {
-            if (flags.HasFlag(Flags.WriteIntermediate)) {
-                string name = Basename + "-iter" + CurIteration.ToString("D3")
-                    + $"-{stopwatch.ElapsedMilliseconds}ms" + Extension;
+        if (!flags.HasFlag(Flags.WriteExponentially) || int.IsPow2(CurIteration - 1))
+        {
+            if (flags.HasFlag(Flags.WriteIntermediate))
+            {
+                string name =
+                    Basename
+                    + "-iter"
+                    + CurIteration.ToString("D3")
+                    + $"-{stopwatch.ElapsedMilliseconds}ms"
+                    + Extension;
                 WriteToFile(name);
             }
 
@@ -293,7 +363,8 @@ public class FrameBuffer : IDisposable {
     /// <summary>
     /// Clears the image and all layers and resets the rendering time to zero
     /// </summary>
-    public virtual void Reset() {
+    public virtual void Reset()
+    {
         CurIteration = 0;
         stopwatch.Reset();
     }
@@ -301,7 +372,8 @@ public class FrameBuffer : IDisposable {
     /// <summary>
     /// Clears the image and all layers, but keeps the rendering time
     /// </summary>
-    public virtual void Clear() {
+    public virtual void Clear()
+    {
         CurIteration = 0;
     }
 
@@ -309,7 +381,8 @@ public class FrameBuffer : IDisposable {
     /// Writes the current rendered image to a file on disk.
     /// </summary>
     /// <param name="fname">The desired file name. If not given, uses the final image name.</param>
-    public void WriteToFile(string fname = null) {
+    public void WriteToFile(string fname = null)
+    {
         WriteTime = DateTime.Now;
 
         fname ??= filename;
@@ -318,31 +391,19 @@ public class FrameBuffer : IDisposable {
         string fileBase = Path.GetFileNameWithoutExtension(fname);
         string basename = Path.Combine(dir, fileBase);
 
-        // If we are caching outlier info, create extra layers for that
-        List<(string, Image)> outlierImages = [];
-        for (int i = 0; i < NumOutliersToTrack; ++i)
-            outlierImages.Add(($"outlier-{i}", new MonochromeImage(Width, Height)));
-        for (int row = 0; row < Height; ++row) {
-            for (int col = 0; col < Width; ++col) {
-                var outliers = OutlierCache.GetPixelOutlier(new(col, row));
-                var iterations = outliers.UnorderedItems.OrderByDescending(i => i.Priority)
-                    .Select(i => i.Element.Iteration)
-                    .ToList();
-                for (int i = 0; i < iterations.Count; ++i) {
-                    outlierImages[i].Item2[col, row, 0] = iterations[i];
-                }
-            }
+        if (Path.GetExtension(fname).ToLower() == ".exr")
+        {
+            Layers.WriteToExr(fname, LayerImages);
         }
-
-        if (Path.GetExtension(fname).ToLower() == ".exr") {
-            Layers.WriteToExr(fname, [.. layers.Select(kv => (kv.Key, kv.Value.Image)), (null, Image), .. outlierImages]);
-        } else {
+        else
+        {
             // write all layers into individual files
             Image.WriteToFile(fname);
 
             string ext = Path.GetExtension(fname);
-            foreach (var (name, layer) in layers) {
-                layer.Image.WriteToFile(basename + "-" + name + ext);
+            foreach (var (name, img) in LayerImages)
+            {
+                img.WriteToFile(basename + "-" + name + ext);
             }
         }
 
@@ -355,31 +416,32 @@ public class FrameBuffer : IDisposable {
 
         MetaData["RenderStartTime"] = StartTime.ToString("dd/M/yyyy HH:mm:ss");
         MetaData["RenderWriteTime"] = WriteTime.ToString("dd/M/yyyy HH:mm:ss");
-        MetaData["SeeSharpVersion"] =
-            typeof(FrameBuffer).Assembly
-            .GetCustomAttribute<AssemblyInformationalVersionAttribute>()
+        MetaData["SeeSharpVersion"] = typeof(FrameBuffer)
+            .Assembly.GetCustomAttribute<AssemblyInformationalVersionAttribute>()
             .InformationalVersion;
 
         // Write the metadata as json
-        string json = JsonSerializer.Serialize(MetaData, options: new() {
-            WriteIndented = true,
-        });
+        string json = JsonSerializer.Serialize(MetaData, options: new() { WriteIndented = true });
         File.WriteAllText(basename + ".json", json);
     }
 
     /// <summary>
     /// Closes the tev TCP connection, if it was set up.
     /// </summary>
-    public void Dispose() {
+    public void Dispose()
+    {
         tevIpc?.Dispose();
         tevIpc = null;
     }
 
-    private ErrorMetric ComputeErrorMetric() {
-        return new(stopwatch.ElapsedMilliseconds,
+    private ErrorMetric ComputeErrorMetric()
+    {
+        return new(
+            stopwatch.ElapsedMilliseconds,
             Metrics.MSE(Image, ReferenceImage),
             Metrics.MSE_OutlierRejection(Image, ReferenceImage),
             Metrics.RelMSE(Image, ReferenceImage),
-            Metrics.RelMSE_OutlierRejection(Image, ReferenceImage));
+            Metrics.RelMSE_OutlierRejection(Image, ReferenceImage)
+        );
     }
 }

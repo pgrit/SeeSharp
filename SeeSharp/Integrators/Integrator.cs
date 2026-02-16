@@ -58,11 +58,10 @@ public abstract class Integrator
     /// <returns>
     /// Null if the derived type name was not found.
     /// </returns>
-    public static Integrator Deserialize(string json)
+    public static Integrator Deserialize(JsonNode json)
     {
-        var n = JsonNode.Parse(json);
-        string name = (string)n["Name"];
-        var settings = n["Settings"];
+        string name = (string)json["Name"];
+        var settings = json["Settings"];
 
         Type integratorType = null;
         foreach (var a in AppDomain.CurrentDomain.GetAssemblies())
@@ -87,6 +86,14 @@ public abstract class Integrator
 
         return settings.Deserialize(integratorType, refSerializerOptions) as Integrator;
     }
+
+    /// <summary>
+    /// Deserializes an integrator from json.
+    /// </summary>
+    /// <returns>
+    /// Null if the derived type name was not found.
+    /// </returns>
+    public static Integrator Deserialize(string json) => Deserialize(JsonNode.Parse(json));
 
     public string Serialize()
     {

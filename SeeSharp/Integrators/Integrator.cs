@@ -105,4 +105,6 @@ public abstract class Integrator
             }
             """;
     }
+
+    public Integrator Clone() => Deserialize(Serialize());
 }

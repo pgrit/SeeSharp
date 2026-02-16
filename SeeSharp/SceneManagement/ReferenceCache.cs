@@ -80,22 +80,24 @@ public class ReferenceCache(DirectoryInfo dirname, SceneLoader sceneLoader)
         /// </summary>
         public int? NumIterations => Metadata["NumIterations"]?.GetValue<int>();
 
-        public override bool Equals([NotNullWhen(true)] object obj) {
+        public override bool Equals([NotNullWhen(true)] object obj)
+        {
             return File.Equals(obj);
         }
 
-        public override int GetHashCode() {
+        public override int GetHashCode()
+        {
             return File.GetHashCode();
         }
 
-        public override string ToString() {
+        public override string ToString()
+        {
             return File.ToString();
         }
 
         public static bool operator ==(ReferenceInfo a, ReferenceInfo b) => a.File == b.File;
 
         public static bool operator !=(ReferenceInfo a, ReferenceInfo b) => a.File != b.File;
-
     }
 
     record struct Config(int Width, int Height, int MinDepth, int MaxDepth)
@@ -257,17 +259,59 @@ public class ReferenceCache(DirectoryInfo dirname, SceneLoader sceneLoader)
         int minDepth = 1
     )
     {
-        // TODO check it exists, if not render new
+        Config cfg = new(width, height, minDepth, maxDepth);
 
-        // TODO Read integrator from .json of last render (not the Config.json)
+        var old = Get(width, height, maxDepth, minDepth, true).Value;
 
-        // TODO set the NumIterations to numSamples
-        // TODO set the seed to a new random value
+        var integrator = old.Integrator.Clone();
+        integrator.NumIterations = (uint)numSamples;
+        integrator.BaseSeed = BitConverter.ToUInt32(BitConverter.GetBytes(Random.Shared.Next()));
 
-        // TODO render
+        integrator.MaxDepth = cfg.MaxDepth;
+        integrator.MinDepth = cfg.MinDepth;
 
-        // TODO combine images weighted proportionally to their relative sample counts
-        // TODO update metadata: replace NumIterations in the .json by the sum of old value and newly added numSamples
+        // Output intermediate results exponentially to avoid loosing everything on a crash
+        string basename = MakeBasename(cfg);
+        string filename = basename + "-morespp.exr";
+
+        var scn = sceneLoader.Scene;
+        scn.FrameBuffer = new(
+            cfg.Width,
+            cfg.Height,
+            filename,
+            FrameBuffer.Flags.IgnoreNanAndInf
+                | FrameBuffer.Flags.WriteContinously
+                | FrameBuffer.Flags.WriteExponentially
+        );
+
+        scn.FrameBuffer.MetaData["Integrator"] = integrator.Serialize();
+
+        scn.Prepare();
+        integrator.Render(scn);
+
+        // Write to file so we get a metadata .json with the right sample count
+        scn.FrameBuffer.MetaData["NumIterations"] = old.NumIterations + numSamples;
+        scn.FrameBuffer.WriteToFile(basename + ".exr");
+
+        // Combine the images weigthed by their sample count
+        // (for main render, everything else uses initial run only)
+        float wNew = numSamples / (float)(old.NumIterations + numSamples);
+        var img = wNew * scn.FrameBuffer.Image + (1 - wNew) * old.Image;
+        old.Layers[""] = img;
+        Layers.WriteToExr(basename + ".exr", old.Layers);
+
+        // Delete the intermediate output
+        try
+        {
+            File.Delete(filename);
+            File.Delete(Path.ChangeExtension(filename, ".json"));
+        }
+        catch
+        {
+            Logger.Warning(
+                $"Intermediate output from reference rendering could not be deleted. Try deleting the files manually ('{filename}' and '.json')"
+            );
+        }
 
         return Get(width, height, maxDepth, minDepth, true).Value;
     }

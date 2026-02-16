@@ -136,7 +136,7 @@ public partial class ReferenceRendering
         isRendering = false;
     }
 
-    async Task RenderMoreSamples(bool isResume)
+    async Task RenderMoreSamples()
     {
         if (currentSceneFile == null || integratorSelector.CurrentIntegrator == null)
             return;

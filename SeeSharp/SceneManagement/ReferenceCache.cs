@@ -10,9 +10,9 @@ namespace SeeSharp.SceneManagement;
 /// </summary>
 public class ReferenceCache(DirectoryInfo dirname, SceneLoader sceneLoader)
 {
-    public DirectoryInfo ReferenceDirname => new(Path.Join(dirname.FullName, "References"));
+    public DirectoryInfo ReferenceDirectory => new(Path.Join(dirname.FullName, "References"));
 
-    string refJsonFilename => Path.Join(ReferenceDirname.FullName, "Config.json");
+    string refJsonFilename => Path.Join(ReferenceDirectory.FullName, "Config.json");
 
     static readonly JsonSerializerOptions refSerializerOptions = new()
     {
@@ -35,7 +35,11 @@ public class ReferenceCache(DirectoryInfo dirname, SceneLoader sceneLoader)
             return Integrator.Deserialize(File.ReadAllText(refJsonFilename))
                 ?? DefaultReferenceIntegrator;
         }
-        set { File.WriteAllText(refJsonFilename, value.Serialize()); }
+        set
+        {
+            ReferenceDirectory.Create();
+            File.WriteAllText(refJsonFilename, value.Serialize());
+        }
     }
 
     /// <summary>
@@ -115,7 +119,7 @@ public class ReferenceCache(DirectoryInfo dirname, SceneLoader sceneLoader)
         }
     }
 
-    string MakeBasename(Config cfg) => Path.Join(ReferenceDirname.FullName, cfg.ToString());
+    string MakeBasename(Config cfg) => Path.Join(ReferenceDirectory.FullName, cfg.ToString());
 
     ReferenceInfo Load(Config cfg)
     {
@@ -175,7 +179,7 @@ public class ReferenceCache(DirectoryInfo dirname, SceneLoader sceneLoader)
                 | FrameBuffer.Flags.WriteExponentially
         );
 
-        scn.FrameBuffer.MetaData["Integrator"] = refIntegrator.Serialize();
+        scn.FrameBuffer.MetaData["Integrator"] = JsonNode.Parse(refIntegrator.Serialize());
 
         scn.Prepare();
         refIntegrator.Render(scn);
@@ -189,7 +193,10 @@ public class ReferenceCache(DirectoryInfo dirname, SceneLoader sceneLoader)
     {
         get
         {
-            foreach (var f in ReferenceDirname.EnumerateFiles())
+            if (!ReferenceDirectory.Exists)
+                yield break;
+
+            foreach (var f in ReferenceDirectory.EnumerateFiles())
             {
                 var m = Regex.Match(f.Name, @"MaxDepth(\d+)-Width(\d+)-Height(\d+).exr$");
                 if (!m.Success)
@@ -263,6 +270,12 @@ public class ReferenceCache(DirectoryInfo dirname, SceneLoader sceneLoader)
 
         var old = Get(width, height, maxDepth, minDepth, true).Value;
 
+        if (old.Integrator == null)
+        {
+            Logger.Error($"Cannot add more samples, unknown integrator used for '{old}'. Render a new one and/or combine manually.");
+            return old;
+        }
+
         var integrator = old.Integrator.Clone();
         integrator.NumIterations = (uint)numSamples;
         integrator.BaseSeed = BitConverter.ToUInt32(BitConverter.GetBytes(Random.Shared.Next()));
@@ -284,7 +297,7 @@ public class ReferenceCache(DirectoryInfo dirname, SceneLoader sceneLoader)
                 | FrameBuffer.Flags.WriteExponentially
         );
 
-        scn.FrameBuffer.MetaData["Integrator"] = integrator.Serialize();
+        scn.FrameBuffer.MetaData["Integrator"] = JsonNode.Parse(integrator.Serialize());
 
         scn.Prepare();
         integrator.Render(scn);

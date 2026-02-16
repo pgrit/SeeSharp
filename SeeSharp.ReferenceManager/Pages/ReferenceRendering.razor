@@ -92,16 +92,9 @@
             </div>
 
             <button style="width:100%; padding:6px;"
-                    @onclick="() => RenderMoreSamples(false)"
-                    disabled="@(selectedFile == null || isRendering || isStructureMismatch || isVersionMismatch)">
+                    @onclick="() => RenderMoreSamples()"
+                    disabled="@(selectedFile == null || isRendering)">
                 Render More Samples
-            </button>
-
-            <button style="width:100%; padding:6px; margin-top:5px;"
-                    class="btn-primary"
-                    @onclick="() => RenderMoreSamples(true)"
-                    disabled="@(selectedFile == null || isRendering || isStructureMismatch || isVersionMismatch)">
-                Resume
             </button>
         </div>
     </div>

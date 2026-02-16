@@ -1,9 +1,10 @@
 using Microsoft.AspNetCore.Components;
+using Microsoft.JSInterop;
 using SeeSharp.Blazor;
 
 namespace SeeSharp.Blazor.Template.Pages;
 
-public partial class Experiment : ComponentBase
+public partial class Experiment(IJSRuntime js) : ComponentBase
 {
     const int Width = 1280;
     const int Height = 720;
@@ -12,6 +13,46 @@ public partial class Experiment : ComponentBase
     int NumSamples = 2;
 
     long renderTimePT, renderTimeVCM;
+
+    SceneSelector sceneSelector;
+    Scene scene;
+    bool readyToRun = false;
+    bool running = false;
+    bool sceneJustLoaded = false;
+    bool resultsAvailable = false;
+    ElementReference runButton;
+
+    SimpleImageIO.FlipBook flip;
+
+    async Task OnSceneLoaded(SceneFromFile sceneFromFile)
+    {
+        await Task.Run(() => scene = sceneFromFile.MakeScene());
+        flip = null;
+        resultsAvailable = false;
+        readyToRun = true;
+        sceneJustLoaded = true;
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (readyToRun && sceneJustLoaded)
+        {
+            await runButton.FocusAsync();
+        }
+
+        sceneJustLoaded = false;
+    }
+
+    async Task OnRunClick()
+    {
+        readyToRun = false;
+        resultsAvailable = false;
+        running = true;
+        await Task.Run(() => RunExperiment());
+        readyToRun = true;
+        running = false;
+        resultsAvailable = true;
+    }
 
     void RunExperiment()
     {
@@ -61,6 +102,6 @@ public partial class Experiment : ComponentBase
         $$ L_\mathrm{o} = \int_\Omega L_\mathrm{i} f_\mathrm{r} |\cos\theta_\mathrm{i}| \, d\omega_\mathrm{i} $$
         """);
         report.AddFlipBook(flip);
-        await SeeSharp.Blazor.Scripts.DownloadAsFile(JS, "report.html", report.ToString());
+        await SeeSharp.Blazor.Scripts.DownloadAsFile(js, "report.html", report.ToString());
     }
 }

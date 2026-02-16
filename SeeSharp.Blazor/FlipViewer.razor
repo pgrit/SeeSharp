@@ -66,33 +66,33 @@
     }
 
     [JSInvokable]
-    public void _OnFlipClick(int mouseButton, int mouseX, int mouseY, int deltaY, string ID, int selectedIdx, String[] keysPressed)
+    public void _OnFlipClick(int mouseButton, int mouseX, int mouseY, string ID, int selectedIdx, String[] keysPressed)
     {
         HashSet<string> set = new HashSet<string>(keysPressed);
-        OnClick.InvokeAsync(new(mouseButton: mouseButton, mouseX: mouseX, mouseY: mouseY, deltaY: deltaY, FlipbookID: ID, selectedIndex: selectedIdx, keysPressed: set)).Wait();
+        OnClick.InvokeAsync(new(mouseButton: mouseButton, mouseX: mouseX, mouseY: mouseY, deltaY: -1, FlipbookID: ID, selectedIndex: selectedIdx, keysPressed: set)).Wait();
     }
 
     [JSInvokable]
     
-    public void _OnFlipWheel(int mouseButton, int mouseX, int mouseY, int deltaY, string ID, int selectedIdx, String[] keysPressed)
+    public void _OnFlipWheel(int mouseX, int mouseY, int deltaY, string ID, int selectedIdx, String[] keysPressed)
     {
         HashSet<string> set = new HashSet<string>(keysPressed);
-        OnWheel.InvokeAsync(new(mouseButton: mouseButton, mouseX: mouseX, mouseY: mouseY, deltaY: deltaY, FlipbookID: ID, selectedIndex: selectedIdx, keysPressed: set)).Wait();
+        OnWheel.InvokeAsync(new(mouseButton: -1, mouseX: mouseX, mouseY: mouseY, deltaY: deltaY, FlipbookID: ID, selectedIndex: selectedIdx, keysPressed: set)).Wait();
     }
 
     [JSInvokable]
-    public void _OnFlipMouseOver(int mouseButton, int mouseX, int mouseY, int deltaY, string ID, int selectedIdx, String[] keysPressed)
+    public void _OnFlipMouseOver(int mouseX, int mouseY, string ID, int selectedIdx, String[] keysPressed)
     {
         HashSet<string> set = new HashSet<string>(keysPressed);
-        OnMouseOver.InvokeAsync(new(mouseButton: mouseButton, mouseX: mouseX, mouseY: mouseY, deltaY: deltaY, FlipbookID: ID, selectedIndex: selectedIdx, keysPressed: set)).Wait();
+        OnMouseOver.InvokeAsync(new(mouseButton: -1, mouseX: mouseX, mouseY: mouseY, deltaY: -1, FlipbookID: ID, selectedIndex: selectedIdx, keysPressed: set)).Wait();
     }
 
     [JSInvokable]
     
-    public void _OnFlipKey(int mouseButton, int mouseX, int mouseY, int deltaY, string ID, int selectedIdx, String[] keysPressed)
+    public void _OnFlipKey(int mouseX, int mouseY, string ID, int selectedIdx, String[] keysPressed)
     {
         HashSet<string> set = new HashSet<string>(keysPressed);
-        OnKey.InvokeAsync(new(mouseButton: mouseButton, mouseX: mouseX, mouseY: mouseY, deltaY: deltaY, FlipbookID: ID, selectedIndex: selectedIdx, keysPressed: set)).Wait();
+        OnKey.InvokeAsync(new(mouseButton: -1, mouseX: mouseX, mouseY: mouseY, deltaY: -1, FlipbookID: ID, selectedIndex: selectedIdx, keysPressed: set)).Wait();
     }
 
     protected override async Task OnAfterRenderAsync(bool firstRender)

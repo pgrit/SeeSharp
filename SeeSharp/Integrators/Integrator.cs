@@ -67,7 +67,7 @@ public abstract class Integrator
         var types = TypeFactory<Integrator>.AllTypes;
         foreach (var t in types)
         {
-            if (name == t.Name)
+            if (name == t.FullName)
             {
                 integratorType = t;
                 break;
@@ -96,7 +96,7 @@ public abstract class Integrator
         var settings = JsonSerializer.Serialize(this, this.GetType(), refSerializerOptions);
         return $$"""
             {
-                "Name": "{{GetType().Name}}",
+                "Name": "{{GetType().FullName}}",
                 "Settings": {{settings}}
             }
             """;

@@ -11,6 +11,7 @@ public partial class IntegratorSelector : ComponentBase
         {
             TrySelectIntegrator(integratorTypes.First().FullName);
             field = value;
+            StateHasChanged();
         }
     }
 

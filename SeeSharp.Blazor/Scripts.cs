@@ -1,12 +1,12 @@
+using Microsoft.AspNetCore.StaticAssets;
 using Microsoft.JSInterop;
+using System.Net.Http.Headers;
 using System.Reflection;
 
 namespace SeeSharp.Blazor;
 
-public static class Scripts
-{
-    static string ReadResourceText(string filename)
-    {
+public static class Scripts {
+    static string ReadResourceText(string filename) {
         var assembly = typeof(Scripts).GetTypeInfo().Assembly;
         var stream = assembly.GetManifestResourceStream("SeeSharp.Blazor." + filename)
             ?? throw new FileNotFoundException("resource file not found", filename);
@@ -20,14 +20,32 @@ public static class Scripts
     $$"""
     <script>
         {{SimpleImageIO.FlipBook.HeaderScript}}
-        function makeFlipBook(jsonArgs, onClickObj, onClickMethodName) {
+        function makeFlipBook(jsonArgs, onClickObj, onClickMethodName, onWheelObj, onWheelMethodName, onMouseOverObj, onMouseOverMethodName, onKeyObj, onKeyMethodName) {
             let onClick = null;
             if (onClickObj && onClickMethodName) {
-                onClick = (col, row, evt) =>
-                    onClickObj.invokeMethodAsync(onClickMethodName, col, row, { ctrlKey: evt.ctrlKey })
+                onClick = (mouseButton, mouseX, mouseY, ID, selectedIdx, keysPressed) =>
+                    onClickObj.invokeMethodAsync(onClickMethodName, mouseButton, mouseX, mouseY, ID, selectedIdx, keysPressed)
             }
 
-            window['flipbook']['MakeFlipBook'](jsonArgs, onClick);
+            let onWheel = null
+            if (onWheelObj && onWheelMethodName) {
+                onWheel = (mouseX, mouseY, deltaY, ID, selectedIdx, keysPressed) =>
+                    onWheelObj.invokeMethodAsync(onWheelMethodName, mouseX, mouseY, deltaY, ID, selectedIdx, keysPressed)
+            }
+
+            let onMouseOver = null
+            if (onMouseOverObj && onMouseOverMethodName) {
+                onMouseOver = (mouseX, mouseY, ID, selectedIdx, keysPressed) =>
+                    onMouseOverObj.invokeMethodAsync(onMouseOverMethodName, mouseX, mouseY, ID, selectedIdx, keysPressed)
+            }
+
+            let onKey = null
+            if (onKeyObj && onKeyMethodName) {
+                onKey = (mouseX, mouseY, ID, selectedIdx, keysPressed) =>
+                    onKeyObj.invokeMethodAsync(onKeyMethodName, mouseX, mouseY, ID, selectedIdx, keysPressed)
+            }
+
+            window['flipbook']['MakeFlipBook'](jsonArgs, onClick, onWheel, onMouseOver, onKey);
         }
     </script>
     """;
@@ -59,7 +77,17 @@ public static class Scripts
     </script>
     """;
 
-    public static readonly string AllScripts = FlipBookScript + DownloadScript + WidgetScripts;
+    public static readonly string UpdateImageScript =
+    $$"""
+    <script>
+        function updateImage(jsonArgs) {
+            window['flipbook']['UpdateImage'](jsonArgs);
+            return;
+        }
+    </script>
+    """;
+
+    public static readonly string AllScripts = FlipBookScript + DownloadScript + WidgetScripts + UpdateImageScript;
 
     /// <summary>
     /// Downloads a stream to the client with the given file name. Requires that <see cref="DownloadScript" />

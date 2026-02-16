@@ -46,6 +46,11 @@
                 } *@
                 @* <button @onclick="OnDownloadClick">Download results</button> *@
             </div>
+            <h3>Compare Example (PT, VCM)</h3> 
+            <div class="compare">
+                <FlipViewer Flip="@compare.Item1" OnClick="@OnFlipClick" OnWheel="@OnFlipWheel" OnMouseOver="@OnFlipMouseOver" OnKey="@OnFlipKey"></FlipViewer>
+                <FlipViewer Flip="@compare.Item2" OnClick="@OnFlipClick" OnWheel="@OnFlipWheel" OnMouseOver="@OnFlipMouseOver" OnKey="@OnFlipKey"></FlipViewer>
+            </div>
         }
     }
     else
@@ -70,6 +75,7 @@
         await Task.Run(() => scene = sceneFromFile.MakeScene());
 
         flip = null;
+        compare = (null, null);
 
         resultsAvailable = false;
         readyToRun = true;

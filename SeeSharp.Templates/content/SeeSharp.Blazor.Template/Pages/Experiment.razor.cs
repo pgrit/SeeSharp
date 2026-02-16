@@ -1,30 +1,35 @@
 using Microsoft.AspNetCore.Components;
+using Microsoft.JSInterop;
 using SeeSharp.Blazor;
 
 namespace SeeSharp.Blazor.Template.Pages;
 
-public partial class Experiment : ComponentBase
-{
-    const int Width = 1280;
-    const int Height = 720;
-    const int MaxDepth = 10;
-
-    int NumSamples = 2;
+public partial class Experiment : BaseExperiment {
+    public SimpleImageIO.FlipBook flip;
 
     long renderTimePT, renderTimeVCM;
 
-    void RunExperiment()
-    {
-        flip = new FlipBook(660, 580)
+    //Methods
+    PathTracer pathTracer;
+    VertexConnectionAndMerging vcm;
+
+    /// <summary>
+    /// Initializes all flipbooks
+    /// </summary>
+    void InitFlipbooks() {
+        flip = new FlipBook(FlipWidth, FlipHeight)
             .SetZoom(FlipBook.InitialZoom.FillWidth)
             .SetToneMapper(FlipBook.InitialTMO.Exposure(scene.RecommendedExposure))
             .SetToolVisibility(false);
+    }
+
+    public override void RunExperiment() {
+        InitFlipbooks();
 
         scene.FrameBuffer = new(Width, Height, "");
         scene.Prepare();
 
-        PathTracer pathTracer = new()
-        {
+        pathTracer = new() {
             TotalSpp = NumSamples,
             MaxDepth = MaxDepth,
         };
@@ -33,8 +38,7 @@ public partial class Experiment : ComponentBase
         renderTimePT = scene.FrameBuffer.RenderTimeMs;
 
         scene.FrameBuffer = new(Width, Height, "");
-        VertexConnectionAndMerging vcm = new()
-        {
+        vcm = new() {
             NumIterations = NumSamples,
             MaxDepth = MaxDepth,
         };
@@ -43,18 +47,11 @@ public partial class Experiment : ComponentBase
         renderTimeVCM = scene.FrameBuffer.RenderTimeMs;
     }
 
-    SurfacePoint? selected;
-
-    void OnFlipClick(FlipViewer.OnClickEventArgs args)
-    {
-        if (args.CtrlKey)
-        {
-            selected = scene.RayCast(new(args.X, args.Y));
-        }
-    }
-
-    async Task OnDownloadClick()
-    {
+    /// <summary>
+    /// Safes HTML of experiment
+    /// </summary>
+    /// <returns></returns>
+    public override async Task OnDownloadClick() {
         HtmlReport report = new();
         report.AddMarkdown("""
         # Example experiment

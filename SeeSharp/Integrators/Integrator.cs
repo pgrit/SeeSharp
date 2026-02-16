@@ -64,23 +64,19 @@ public abstract class Integrator
         var settings = json["Settings"];
 
         Type integratorType = null;
-        foreach (var a in AppDomain.CurrentDomain.GetAssemblies())
+        var types = TypeFactory<Integrator>.AllTypes;
+        foreach (var t in types)
         {
-            integratorType = a.GetType(name);
-            if (integratorType != null)
+            if (name == t.Name)
+            {
+                integratorType = t;
                 break;
+            }
         }
 
         if (integratorType == null)
         {
             Logger.Error($"No such integrator: {name}");
-            return null;
-        }
-        else if (!integratorType.IsAssignableTo(typeof(Integrator)))
-        {
-            Logger.Error(
-                $"The type '{name}' was found, but is not a class derived from {nameof(Integrator)}"
-            );
             return null;
         }
 

@@ -70,16 +70,10 @@ public partial class ReferenceRendering
 
     private async void UpdatePreviewFromMemory(IEnumerable<(string, Image)> layers)
     {
-        // TODO is this necessary?
-        // flip = null;
-        // StateHasChanged();
-        // await Task.Delay(1);
-
         flip = new FlipBook()
-            .AddAll(layers)
+            .AddAll(layers.OrderBy(kv => kv.Item1))
             .SetToolVisibility(false)
             .SetCustomSizeCSS("width: 100%; height: 580px; resize: vertical; overflow: auto;");
-        StateHasChanged();
     }
 
     async Task RenderQuickPreview()
@@ -116,7 +110,6 @@ public partial class ReferenceRendering
         });
 
         isRendering = false;
-        await InvokeAsync(StateHasChanged);
     }
 
     async Task RenderReference()
@@ -141,7 +134,6 @@ public partial class ReferenceRendering
         });
 
         isRendering = false;
-        await InvokeAsync(StateHasChanged);
     }
 
     async Task RenderMoreSamples(bool isResume)
@@ -166,7 +158,6 @@ public partial class ReferenceRendering
         });
 
         isRendering = false;
-        await InvokeAsync(StateHasChanged);
     }
 
     private void CheckParamsMatch()
@@ -206,10 +197,9 @@ public partial class ReferenceRendering
         else if (cur.Patch != file.Patch)
             isVersionWarning = true;
 
-        if (selectedFile?.Integrator.GetType() == null)
+        if (selectedFile?.Integrator?.GetType() == null)
         {
             isStructureMismatch = true;
-            StateHasChanged();
             return;
         }
 
@@ -239,7 +229,5 @@ public partial class ReferenceRendering
             if (extraKeys.Count > 0 || missingKeys.Count > 0)
                 isStructureMismatch = true;
         }
-
-        StateHasChanged();
     }
 }

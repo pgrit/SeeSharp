@@ -33,19 +33,20 @@
     <div class="col-box">
         <div class="col-title">Available references</div>
         <div class="col-content">
-            @if (referenceFiles.Any()) {
-                <div style="color:#999; text-align:center; margin-top:20px;">No references found</div>
-            }
-            @foreach (var file in referenceFiles) {
-                <div class="ref-item @(selectedFile == file ? "active" : "")" @onclick="() => SelectReference(file)">
-                    <div style="font-size: smaller; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
-                        @file.Resolution, max depth: @file.MaxDepth
-                        @if (file.MinDepth > 1)
-                        {
-                            <span>, min depth: @file.MinDepth</span>
-                        }
+            @if (referenceFiles?.Any() ?? false) {
+                @foreach (var file in referenceFiles) {
+                    <div class="ref-item @(selectedFile == file ? "active" : "")" @onclick="() => SelectReference(file)">
+                        <div style="font-size: smaller; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+                            @file.Resolution, max depth: @file.MaxDepth
+                            @if (file.MinDepth > 1)
+                            {
+                                <span>, min depth: @file.MinDepth</span>
+                            }
+                        </div>
                     </div>
-                </div>
+                }
+            } else {
+                <div style="color:#999; text-align:center; margin-top:20px;">No references found</div>
             }
         </div>
 
@@ -222,3 +223,5 @@
 
     </div>
 </div>
+
+<HtmlProgressBar></HtmlProgressBar>

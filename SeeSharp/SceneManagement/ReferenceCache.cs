@@ -223,16 +223,15 @@ public class ReferenceCache(DirectoryInfo dirname, SceneLoader sceneLoader)
     {
         // TODO check it exists, if not render new
 
-        // TODO Read integrator from .json of last render
+        // TODO Read integrator from .json of last render (not the Config.json)
 
-        // TODO set the numiterations
-        // set the seed to a new random value
+        // TODO set the NumIterations to numSamples
+        // TODO set the seed to a new random value
 
         // TODO render
 
-        // TODO combine images weighted by their relative sample counts
-
-        // TODO update metadata: replace num iterations
+        // TODO combine images weighted proportionally to their relative sample counts
+        // TODO update metadata: replace NumIterations in the .json by the sum of old value and newly added numSamples
 
         return Get(width, height, maxDepth, minDepth, true).Value;
     }

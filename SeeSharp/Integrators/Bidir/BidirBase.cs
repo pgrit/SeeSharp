@@ -10,11 +10,6 @@ public abstract partial class BidirBase<CameraPayloadType> : Integrator {
     #region Parameters
 
     /// <summary>
-    /// Number of iterations (batches of one sample per pixel) to render
-    /// </summary>
-    public int NumIterations { get; set; } = 2;
-
-    /// <summary>
     /// The maximum time in milliseconds that should be spent rendering.
     /// Excludes framebuffer overhead and other operations that are not part of the core rendering logic.
     /// </summary>
@@ -104,7 +99,7 @@ public abstract partial class BidirBase<CameraPayloadType> : Integrator {
         OnBeforeRender();
 
         ProgressBar progressBar = new(prefix: "Rendering...");
-        progressBar.Start(NumIterations);
+        progressBar.Start((int)NumIterations);
         RenderTimer timer = new();
         Stopwatch lightTracerTimer = new();
         Stopwatch pathTracerTimer = new();

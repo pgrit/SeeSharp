@@ -128,7 +128,7 @@ using SeeSharp.Integrators.Bidir;
 // Configure an experiment that compares VCM and path tracing.
 class PathVsVcm : Experiment {
     public override List<Method> MakeMethods() => new() {
-        new("PathTracer", new PathTracer() { MaxDepth = 5, TotalSpp = 4 }),
+        new("PathTracer", new PathTracer() { MaxDepth = 5, NumIterations = 4 }),
         new("Vcm", new VertexConnectionAndMerging() { MaxDepth = 5, NumIterations = 2 })
     };
 }

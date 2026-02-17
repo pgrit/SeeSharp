@@ -16,6 +16,8 @@ global using SeeSharp.Sampling;
 global using SeeSharp.Common;
 global using SeeSharp.Cameras;
 global using SeeSharp.Images;
+global using SeeSharp.Experiments;
+global using SeeSharp.SceneManagement;
 
 global using SeeSharp.Shading;
 global using SeeSharp.Shading.Background;

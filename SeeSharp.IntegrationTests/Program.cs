@@ -1,5 +1,6 @@
 ﻿using SeeSharp.Common;
 using SeeSharp.Experiments;
+using SeeSharp.SceneManagement;
 using SeeSharp.Integrators;
 
 namespace SeeSharp.IntegrationTests;
@@ -12,7 +13,7 @@ class Program {
         scene.Prepare();
 
         var integrator = new PathTracer() {
-            TotalSpp = 498989,
+            NumIterations = 498989,
             MaximumRenderTimeMs = 4500,
             MaxDepth = 5
         };
@@ -23,7 +24,7 @@ class Program {
     static void BlenderAutoImport() {
         Logger.Verbosity = Verbosity.Debug;
         SceneRegistry.AddSourceRelativeToScript("../Data/Scenes");
-        SceneRegistry.LoadScene("ExportTest");
+        SceneRegistry.Find("ExportTest");
     }
 
     static void Main(string[] args) {

@@ -1,5 +1,4 @@
 using Microsoft.AspNetCore.Components;
-using SeeSharp.Blazor;
 
 namespace MaterialTest.Pages;
 
@@ -22,7 +21,7 @@ public partial class IntegratorTest : ComponentBase
         scene.Prepare();
         VertexConnectionAndMerging vcm = new()
         {
-            NumIterations = NumSamples,
+            NumIterations = (uint)NumSamples,
             MaxDepth = MaxDepth,
             RenderTechniquePyramid = true
         };

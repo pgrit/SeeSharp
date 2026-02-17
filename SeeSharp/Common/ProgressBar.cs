@@ -85,12 +85,18 @@ public class ProgressBar {
             watcher.WriteCharEvent += OnOtherOutput;
         }
     }
+    /// <summary>
+    /// Notifies that the process has started.
+    /// </summary>
+    /// <param name="totalWork">Amount of steps that are performed in total (e.g., render iterations)</param>
+    public void Start(uint totalWork) => Start((int) totalWork);
 
     /// <summary>
     /// Notifies that the process has started.
     /// </summary>
     /// <param name="totalWork">Amount of steps that are performed in total (e.g., render iterations)</param>
-    public void Start(int totalWork) {
+    public void Start(int totalWork)
+    {
         total = totalWork;
         done = 0;
         accumSeconds = 0.0;

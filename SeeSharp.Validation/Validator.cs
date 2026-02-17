@@ -64,17 +64,17 @@ class Validator {
 
         var algorithms = new Dictionary<string, Integrator>() {
                 { "PathTracer", new PathTracer() {
-                   TotalSpp = sceneFactory.SamplesPerPixel,
+                   NumIterations = (uint)sceneFactory.SamplesPerPixel,
                    MaxDepth = sceneFactory.MaxDepth,
                    RenderTechniquePyramid = false,
                 }},
                 { "ClassicBidir", new ClassicBidir() {
-                    NumIterations = sceneFactory.SamplesPerPixel / 2,
+                    NumIterations = (uint)sceneFactory.SamplesPerPixel / 2,
                     MaxDepth = sceneFactory.MaxDepth,
                     RenderTechniquePyramid = false,
                 }},
                 { "Vcm", new VertexConnectionAndMerging() {
-                    NumIterations = sceneFactory.SamplesPerPixel / 2,
+                    NumIterations = (uint)sceneFactory.SamplesPerPixel / 2,
                     MaxDepth = sceneFactory.MaxDepth,
                     RenderTechniquePyramid = false,
                 }}

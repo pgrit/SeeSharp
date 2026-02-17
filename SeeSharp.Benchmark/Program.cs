@@ -1,13 +1,14 @@
 ﻿using System;
 using SeeSharp.Benchmark;
 using SeeSharp.Experiments;
+using SeeSharp.SceneManagement;
 using SeeSharp.Integrators;
 using SeeSharp.Integrators.Bidir;
 
 SceneRegistry.AddSourceRelativeToScript("../data/scenes");
 
 BenchRender("PathTracer - 16spp", new PathTracer() {
-    TotalSpp = 16,
+    NumIterations = 16,
 });
 
 BenchRender("BDPT - 8spp", new VertexCacheBidir() {
@@ -20,8 +21,8 @@ BenchRender("VCM - 8spp", new VertexConnectionAndMerging() {
 
 void BenchRender(string name, Integrator integrator) {
     var scene =
-        // SceneRegistry.LoadScene("StillLife").MakeScene();
-        SceneRegistry.LoadScene("CornellBox").MakeScene();
+        // SceneRegistry.LoadScene("StillLife").SceneLoader.Scene;
+        SceneRegistry.Find("CornellBox").SceneLoader.Scene;
 
     // Dry run to eliminate JIT overhead
     scene.FrameBuffer = new(512, 512, "");

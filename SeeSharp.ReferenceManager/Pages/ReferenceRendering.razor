@@ -1,0 +1,220 @@
+@page "/"
+@using SeeSharp.Experiments
+@using SeeSharp.Integrators
+@using SeeSharp.Blazor
+@using System.IO
+@using SimpleImageIO
+@using System.Reflection
+@using System.Threading.Tasks
+@using System.Text.Json
+@using System.Text.Json.Nodes
+@using System.Diagnostics
+@using System.Linq
+@using System.Text.RegularExpressions;
+
+<div class="experiment-layout">
+
+    <div class="layout-header">
+        <SceneSelector @ref="sceneSelector" OnSceneLoaded="OnSceneLoaded" />
+    </div>
+
+    <div class="col-box">
+        <div class="col-title">Parameters</div>
+        <div class="col-content">
+            <IntegratorSelector @ref="integratorSelector" />
+        </div>
+
+        <div style="padding: 10px; border-top: 1px solid #eee; display: flex; gap: 10px;">
+            <button style="flex:1;" @onclick="ResetConfig">Reset</button>
+            <button style="flex:1;" class="btn-primary" @onclick="SaveSceneConfig">Save</button>
+        </div>
+    </div>
+
+    <div class="col-box">
+        <div class="col-title">Available references</div>
+        <div class="col-content">
+            @if (referenceFiles?.Any() ?? false) {
+                @foreach (var file in referenceFiles) {
+                    <div class="ref-item @(selectedFile == file ? "active" : "")" @onclick="() => SelectReference(file)">
+                        <div style="font-size: smaller; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+                            @file.Resolution, max depth: @file.MaxDepth
+                            @if (file.MinDepth > 1)
+                            {
+                                <span>, min depth: @file.MinDepth</span>
+                            }
+                        </div>
+                    </div>
+                }
+            } else {
+                <div style="color:#999; text-align:center; margin-top:20px;">No references found</div>
+            }
+        </div>
+
+        <div class="render-form">
+            <div style="font-weight:bold; margin-bottom:8px;">Render new</div>
+
+            <div class="form-group">
+                <label>Resolution:</label>
+                <div>
+                    <input type="number" @bind="renderWidth" /> x <input type="number" @bind="renderHeight" />
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label>Maximum Depth:</label>
+                <input type="number" @bind="renderMaxDepth"  min="1" max="100" />
+            </div>
+
+            <div class="form-group">
+                <label>Minimum Depth:</label>
+                <input type="number" @bind="renderMinDepth"  min="1" max="100" />
+            </div>
+
+            <button style="width:100%; padding:6px; margin-top:5px;" @onclick="RenderReference" disabled="@isRendering">
+                @(isRendering ? "Rendering..." : "Render")
+            </button>
+
+            <div style="display: flex; gap: 5px; margin-top: 10px; align-items: center;">
+                <span style="font-size: smaller;">SPP:</span>
+                <input type="number" @bind="quickPreviewSpp" min="1" style="width: 60px; padding: 5px;" title="SPP for quick preview" />
+                <button style="flex-grow: 1; padding:6px;" @onclick="RenderQuickPreview" disabled="@isRendering">
+                    Render Quick Preview
+                </button>
+            </div>
+
+            <hr style="margin: 10px 0; border: 0; border-top: 1px dashed #ccc;" />
+
+            <div style="font-weight:bold; margin-bottom:8px;">Render more</div>
+
+            <div class="form-group">
+                <label>Add Spp:</label>
+                <input type="number" @bind="additionalSpp" min="1" />
+            </div>
+
+            <button style="width:100%; padding:6px;"
+                    @onclick="() => RenderMoreSamples()"
+                    disabled="@(selectedFile == null || isRendering)">
+                Render More Samples
+            </button>
+        </div>
+    </div>
+
+    <div class="right-col-wrapper">
+        <div class="col-box viewer-box">
+            <div class="col-title">Viewer</div>
+            <div class="viewer-area">
+                @if (flip != null) {
+                    <FlipViewer Flip="@flip" />
+                }
+                else {
+                    <span style="color:#666;">Select a reference or render</span>
+                }
+            </div>
+        </div>
+
+        <div class="col-box meta-box">
+            <div class="col-title">Info</div>
+            <div class="meta-content">
+                @if (selectedFile != null) {
+                    <div class="meta-grid">
+                        <span class="label">RenderTime:</span> <span>@selectedFile?.RenderTime</span>
+                        @* <span class="label">StartTime:</span> <span>@selectedFile.StartTimeDisplay</span> *@
+                        @* <span class="label">WriteTime:</span> <span>@selectedFile.WriteTimeDisplay</span> *@
+                        <span class="label">Iterations:</span> <span>@selectedFile?.NumIterations</span>
+                        <span class="label">Version:</span> <span>@selectedFile?.SeeSharpVersion</span>
+                    </div>
+
+                    @if (isVersionMismatch)
+                    {
+                        <div style="color: #dc3545; font-size: 0.85em; font-weight: bold; margin-top: 2px;">
+                            Version Differs @CurrentVersion
+                        </div>
+                    }
+                    else if (isVersionWarning)
+                    {
+                        <div style="color: #e6a700; font-size: 0.85em; font-weight: bold; margin-top: 2px; text-shadow: 0px 0px 1px #eee;">
+                            Version differs. Current: @CurrentVersion
+                        </div>
+                    }
+
+                    <div style="margin-top: 10px; border-top: 1px solid #eee; padding-top: 5px;">
+                        @if (isStructureMismatch)
+                        {
+                            <div style="color: #dc3545; font-size: smaller">Parameters Mismatch</div>
+                        }
+                        <details>
+                            <summary style="cursor: pointer; font-size: 0.9em; color: #555; font-weight:bold; margin-bottom:5px;">Integrator Settings</summary>
+
+                            <div style="margin-bottom: 8px; padding-left: 10px; border-left: 2px solid #e0e0e0;">
+                                <button style="padding: 4px 12px; font-size: 0.9em;"
+                                        @onclick="ApplyReferenceSettings"
+                                        title="Load these settings into the Parameters panel">
+                                    Apply
+                                </button>
+                            </div>
+
+                            <div class="config-tree">
+                                <div class="config-item">
+                                    <span class="config-key">Integrator:</span>
+                                    <span class="config-val str">@selectedFile?.Integrator?.GetType().Name</span>
+                                </div>
+                                @{
+                                    if (selectedFile?.Metadata != null)
+                                    {
+                                        var node = selectedFile?.Metadata;
+                                        if (node != null)
+                                        {
+                                            var ignoredKeys = new HashSet<string> {
+                                                "RenderTime", "NumIterations", "RenderStartTime", "RenderWriteTime",
+                                                "SeeSharpVersion", "RenderSteps", "NaNWarnings"
+                                            };
+                                            foreach (var kvp in node.AsObject())
+                                            {
+                                                bool isExtra = extraKeys.Contains(kvp.Key);
+                                                if (!isExtra && ignoredKeys.Contains(kvp.Key)) continue;
+
+                                                string valStr = kvp.Value?.ToString() ?? "null";
+                                                string typeClass = "val";
+                                                if (kvp.Value is System.Text.Json.Nodes.JsonValue jval) {
+                                                    if (jval.TryGetValue<bool>(out _)) typeClass = "bool";
+                                                    else if (jval.TryGetValue<string>(out _)) typeClass = "str";
+                                                }
+
+                                                string styleKey = isExtra ? "color: red; " : "";
+                                                string titleAttr = isExtra ? "Parameter not found in current code" : "";
+
+                                                <div class="config-item" title="@titleAttr">
+                                                    <span class="config-key" style="@styleKey">@kvp.Key:</span>
+                                                    <span class="config-val @typeClass">@valStr</span>
+                                                </div>
+                                            }
+
+                                            if (missingKeys.Count > 0)
+                                            {
+                                                <div style="margin-top: 6px; border-top: 1px dashed #ccc; padding-top: 4px;">
+                                                    <div style="font-size: 0.8em; color: #dc3545; font-weight:bold; margin-bottom: 2px;">Missing Parameters:</div>
+                                                    @foreach (var key in missingKeys)
+                                                    {
+                                                        <div class="config-item">
+                                                            <span class="config-key" style="color: #dc3545;">@key</span>
+                                                        </div>
+                                                    }
+                                                </div>
+                                            }
+                                        }
+                                    }
+                                }
+                            </div>
+                        </details>
+                    </div>
+                }
+                else {
+                    <div class="empty-tip">No image selected</div>
+                }
+            </div>
+        </div>
+
+    </div>
+</div>
+
+<HtmlProgressBar></HtmlProgressBar>

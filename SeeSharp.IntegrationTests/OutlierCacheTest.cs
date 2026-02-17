@@ -1,4 +1,5 @@
 using SeeSharp.Experiments;
+using SeeSharp.SceneManagement;
 using SeeSharp.Images;
 using SeeSharp.Integrators;
 using SeeSharp.Integrators.Bidir;
@@ -9,13 +10,13 @@ namespace SeeSharp.IntegrationTests;
 static class OutlierCacheTest {
     public static void RenderPT() {
         SceneRegistry.AddSourceRelativeToScript("../Data/Scenes");
-        using var scene = SceneRegistry.LoadScene("GlassCubes").MakeScene();
+        using var scene = SceneRegistry.Find("GlassCubes").SceneLoader.Scene;
 
         scene.FrameBuffer = new FrameBuffer(640, 480, "test.exr", FrameBuffer.Flags.SendToTev);
         scene.Prepare();
 
         var integrator = new PathTracer() {
-            TotalSpp = 4,
+            NumIterations = 4,
             MaxDepth = 10,
             BaseSeed = 1234,
         };
@@ -47,7 +48,7 @@ static class OutlierCacheTest {
 
     public static void RenderVCM() {
         SceneRegistry.AddSourceRelativeToScript("../Data/Scenes");
-        using var scene = SceneRegistry.LoadScene("GlassCubes").MakeScene();
+        using var scene = SceneRegistry.Find("GlassCubes").SceneLoader.Scene;
 
         scene.FrameBuffer = new FrameBuffer(640, 480, "testVCM.exr", FrameBuffer.Flags.SendToTev);
         scene.Prepare();

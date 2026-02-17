@@ -1,7 +1,5 @@
 # User specific editor and IDE configurations
 .vs
-launchSettings.json
-!SeeSharp.Templates/content/SeeSharp.Blazor.Template/Properties/launchSettings.json
 .idea
 SeeSharp.sln.DotSettings.user
 
@@ -44,7 +42,7 @@ docs/*
 /SeeSharp.Benchmark/*.json
 /SeeSharp.Benchmark/*.exr
 /SeeSharp.Templates/content/SeeSharp.Template/Results
-/SeeSharp.Example/Results
+/SeeSharp.Examples/Results
 /Results
 
 # Profiler output

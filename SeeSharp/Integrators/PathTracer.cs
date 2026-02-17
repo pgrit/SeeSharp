@@ -11,11 +11,6 @@ public class PathTracer : PathTracerBase<byte> { }
 /// </summary>
 public class PathTracerBase<PayloadType> : Integrator {
     /// <summary>
-    /// Number of samples per pixel to render
-    /// </summary>
-    public int TotalSpp = 20;
-
-    /// <summary>
     /// The maximum time in milliseconds that should be spent rendering.
     /// Excludes framebuffer overhead and other operations that are not part of the core rendering logic.
     /// </summary>
@@ -71,7 +66,7 @@ public class PathTracerBase<PayloadType> : Integrator {
                                        bool isNextEvent) {
         if (!RenderTechniquePyramid)
             return;
-        weight /= TotalSpp;
+        weight /= NumIterations;
         int cameraEdges = (int)depth - (isNextEvent ? 1 : 0);
         techPyramidRaw.Add(cameraEdges, 0, (int)depth, pixel, weight);
         techPyramidWeighted.Add(cameraEdges, 0, (int)depth, pixel, weight * misWeight);
@@ -208,11 +203,11 @@ public class PathTracerBase<PayloadType> : Integrator {
             denoiseBuffers = new(scene.FrameBuffer);
 
         ProgressBar progressBar = new(prefix: "Rendering...");
-        progressBar.Start(TotalSpp);
+        progressBar.Start((int)NumIterations);
         RenderTimer timer = new();
         ShadingStatCounter.Reset();
         scene.Raytracer.ResetStats();
-        for (uint sampleIndex = 0; sampleIndex < TotalSpp; ++sampleIndex) {
+        for (uint sampleIndex = 0; sampleIndex < NumIterations; ++sampleIndex) {
             long nextIterTime = timer.RenderTime + timer.PerIterationCost;
             if (MaximumRenderTimeMs.HasValue && nextIterTime > MaximumRenderTimeMs.Value) {
                 Logger.Log("Maximum render time exhausted.");
@@ -236,7 +231,7 @@ public class PathTracerBase<PayloadType> : Integrator {
             OnPostIteration(sampleIndex);
             timer.EndRender();
 
-            if (sampleIndex == TotalSpp - 1 && EnableDenoiser)
+            if (sampleIndex == NumIterations - 1 && EnableDenoiser)
                 denoiseBuffers.Denoise();
             PostprocessIteration(sampleIndex);
             scene.FrameBuffer.EndIteration();

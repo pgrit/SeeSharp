@@ -69,7 +69,7 @@ class GenericMaterial_Sampling {
         scene.Prepare();
 
         PathTracer integrator = new() {
-            TotalSpp = 1,
+            NumIterations = 1,
             NumShadowRays = 0,
             MaxDepth = 2,
         };

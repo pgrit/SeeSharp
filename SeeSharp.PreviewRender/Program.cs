@@ -44,12 +44,12 @@ class Program {
         if (algo == "PT") {
             new PathTracer() {
                 MaxDepth = maxdepth,
-                TotalSpp = samples,
+                NumIterations = (uint)samples,
             }.Render(sc);
         } else if (algo == "VCM") {
             new VertexConnectionAndMerging() {
                 MaxDepth = maxdepth,
-                NumIterations = samples,
+                NumIterations = (uint)samples,
             }.Render(sc);
         } else {
             Logger.Error($"Unknown rendering algorithm: {algo}. Use PT or VCM");

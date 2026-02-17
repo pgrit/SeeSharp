@@ -178,31 +178,3 @@ And here's the generated overview figure:
 ![](ExampleFigure.png)
 
 The project-file based version of this example, as well as the [MakeFigure.py](SeeSharp.Examples/MakeFigure.py) script, can be found in the [SeeSharp.Examples](SeeSharp.Examples) directory.
-
-## Coding conventions
-
-The framework loosely follows the following coding conventions:
-
-- Class names, method names, properties, and public fields are PascalCase
-- Private fields, parameters, and local variables are camelCase
-- Opening brackets are on the same line
-- Lines should be less than 110 characters long, for better readability and comparisons
-
-The .editorconfig and omnisharp.json files configure some of these conventions for Visual Studio and VS Code, respectively.
-
-Example:
-
-```C#
-class SomeClass {
-    public int PublicField = 1;
-    public int PublicProperty => 13;
-    public void ComputeSomething(byte complexParameterName, int anotherVeryLongParameterName,
-                                 SomeClass mysteriousParameterThatIsNotNamedWell) {
-        if (complexParameterName == PublicProperty) {
-            int localName = 5;
-            implementationDetail = $"SeeSharp {localName}";
-        }
-    }
-    string implementationDetail;
-}
-```

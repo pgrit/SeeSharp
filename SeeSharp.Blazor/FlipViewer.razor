@@ -15,17 +15,30 @@
     public SimpleImageIO.FlipBook Flip { get; set; }
     SimpleImageIO.FlipBook lastFlip;
 
-    public record struct OnClickEventArgs
+    public record struct OnEventArgs
     (
-        int X,
-        int Y,
-        bool CtrlKey
+        int mouseButton,
+        // Mouse X/Y pixel coordinates relative to an image in Flipbook (Pixel (0, 0) at top left of image)
+        int mouseX,
+        int mouseY,
+        int deltaY,
+
+        string FlipbookID,
+        int selectedIndex,
+
+        HashSet<String> keysPressed
     )
     {
     }
 
     [Parameter]
-    public EventCallback<OnClickEventArgs> OnClick { get; set; }
+    public EventCallback<OnEventArgs> OnClick { get; set; }
+    [Parameter]
+    public EventCallback<OnEventArgs> OnWheel { get; set; }
+    [Parameter]
+    public EventCallback<OnEventArgs> OnMouseOver { get; set; }
+    [Parameter]
+    public EventCallback<OnEventArgs> OnKey { get; set; }
 
     protected override async Task OnParametersSetAsync()
     {
@@ -52,15 +65,34 @@
         lastFlip = Flip;
     }
 
-    public struct _OnFlipClickArgs
+    [JSInvokable]
+    public void _OnFlipClick(int mouseButton, int mouseX, int mouseY, string ID, int selectedIdx, String[] keysPressed)
     {
-        [JsonInclude] public bool ctrlKey;
+        HashSet<string> set = new HashSet<string>(keysPressed);
+        OnClick.InvokeAsync(new(mouseButton: mouseButton, mouseX: mouseX, mouseY: mouseY, deltaY: -1, FlipbookID: ID, selectedIndex: selectedIdx, keysPressed: set)).Wait();
     }
 
     [JSInvokable]
-    public void _OnFlipClick(int x, int y, _OnFlipClickArgs eventArgs)
+
+    public void _OnFlipWheel(int mouseX, int mouseY, int deltaY, string ID, int selectedIdx, String[] keysPressed)
     {
-        OnClick.InvokeAsync(new(x, y, eventArgs.ctrlKey)).Wait();
+        HashSet<string> set = new HashSet<string>(keysPressed);
+        OnWheel.InvokeAsync(new(mouseButton: -1, mouseX: mouseX, mouseY: mouseY, deltaY: deltaY, FlipbookID: ID, selectedIndex: selectedIdx, keysPressed: set)).Wait();
+    }
+
+    [JSInvokable]
+    public void _OnFlipMouseOver(int mouseX, int mouseY, string ID, int selectedIdx, String[] keysPressed)
+    {
+        HashSet<string> set = new HashSet<string>(keysPressed);
+        OnMouseOver.InvokeAsync(new(mouseButton: -1, mouseX: mouseX, mouseY: mouseY, deltaY: -1, FlipbookID: ID, selectedIndex: selectedIdx, keysPressed: set)).Wait();
+    }
+
+    [JSInvokable]
+
+    public void _OnFlipKey(int mouseX, int mouseY, string ID, int selectedIdx, String[] keysPressed)
+    {
+        HashSet<string> set = new HashSet<string>(keysPressed);
+        OnKey.InvokeAsync(new(mouseButton: -1, mouseX: mouseX, mouseY: mouseY, deltaY: -1, FlipbookID: ID, selectedIndex: selectedIdx, keysPressed: set)).Wait();
     }
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
@@ -68,7 +100,18 @@
         // Need to wait with invoking the JS code until the HTML got added to the DOM on the client side
         if (flipJson != null)
         {
-            await JSRuntime.InvokeVoidAsync("makeFlipBook", flipJson, DotNetObjectReference.Create(this), nameof(_OnFlipClick));
+            await JSRuntime.InvokeVoidAsync(
+                "makeFlipBook",
+                flipJson,
+                DotNetObjectReference.Create(this),
+                nameof(_OnFlipClick),
+                DotNetObjectReference.Create(this),
+                nameof(_OnFlipWheel),
+                DotNetObjectReference.Create(this),
+                nameof(_OnFlipMouseOver),
+                DotNetObjectReference.Create(this),
+                nameof(_OnFlipKey)
+                );
             flipJson = null;
         }
     }

@@ -126,10 +126,10 @@ public partial class Experiment : ComponentBase {
         RunRenderTest();
     }
 
-    void OnFlipClick(FlipViewer.OnClickEventArgs args) {
-        if (args.CtrlKey) {
-            float p = args.X / (float)Width * 2.0f * float.Pi;
-            float t = args.Y / (float)Height * float.Pi;
+    void OnFlipClick(FlipViewer.OnEventArgs args) {
+        if (args.Control) {
+            float p = args.MouseX / (float)Width * 2.0f * float.Pi;
+            float t = args.MouseY / (float)Height * float.Pi;
             var dirLocalIn = SampleWarp.SphericalToCartesian(float.Sin(t), float.Cos(t), p);
             var inDir = ShadingSpace.ShadingToWorld(point.ShadingNormal, dirLocalIn);
 
@@ -141,10 +141,10 @@ public partial class Experiment : ComponentBase {
         }
     }
 
-    void OnFlipRenderClick(FlipViewer.OnClickEventArgs args) {
-        if (args.CtrlKey) {
-            RNG rng = new(1337, (uint)args.X, 1);
-            for (int j = 0; j < args.Y; ++j) {
+    void OnFlipRenderClick(FlipViewer.OnEventArgs args) {
+        if (args.Control) {
+            RNG rng = new(1337, (uint)args.MouseX, 1);
+            for (int j = 0; j < args.MouseY; ++j) {
                 rng.NextFloat();
                 rng.NextFloat2D();
             }

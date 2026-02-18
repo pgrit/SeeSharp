@@ -181,7 +181,6 @@ def export_camera(result, scene):
         return
 
     aspect_ratio = scene.render.resolution_y / scene.render.resolution_x
-    import mathutils
     blend_cam2world = camera.matrix_world.copy()
     blend_world2see_world = axis_conversion(
         to_forward="Z",
@@ -201,26 +200,6 @@ def export_camera(result, scene):
             "matrix": matrix_to_row_major_list((blend_world2see_world @  blend_cam2world).transposed())
         }
     ]
-
-    # result["transforms"] = [
-    #     {
-    #         "name": "camera",
-    #         "position": [
-    #             -camera.location.x,
-    #             camera.location.z,
-    #             camera.location.y
-    #         ],
-    #         # At (0,0,0) rotation, the Blender camera faces towards negative z, with positive y pointing up
-    #         # We account for this extra rotation here, because we want it to face _our_ negative z with _our_
-    #         # y axis pointing upwards instead.
-    #         "rotation": [
-    #             degrees(camera.rotation_euler.x) - 90,
-    #             degrees(camera.rotation_euler.z) + 180,
-    #             degrees(camera.rotation_euler.y)
-    #         ],
-    #         "scale": [ 1.0, 1.0, 1.0 ]
-    #     }
-    # ]
 
     result["cameras"] = [
         {

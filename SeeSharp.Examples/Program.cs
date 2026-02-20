@@ -2,7 +2,7 @@
 
 // Register the directory as a scene file provider.
 // Asides from the geometry, it is also used as a reference image cache.
-SceneRegistry.AddSource("Data/Scenes");
+SceneRegistry.AddSourceRelativeToScript("../Data/Scenes");
 
 // Configure a benchmark to compare path tracing and VCM on the CornellBox
 // at 512x512 resolution. Display images in tev during rendering (localhost, default port)

@@ -6,12 +6,11 @@ namespace SeeSharp.SceneManagement;
 /// Reference to a scene file that gets loaded the first time it is used
 /// and then cached for future reuse
 /// </summary>
-public class SceneLoader(FileInfo sceneFile, FileInfo blendFile) : IDisposable
+public class SceneLoader(FileInfo sceneFile, FileInfo blendFile, string name) : IDisposable
 {
     Scene scene;
     private bool disposedValue;
     string importFile = blendFile + ".import";
-    string name => sceneFile.Name;
 
     /// <summary>
     /// Loads the scene from file or retrieves the cached version.
@@ -28,7 +27,9 @@ public class SceneLoader(FileInfo sceneFile, FileInfo blendFile) : IDisposable
                 scene = null;
             }
 
-            return scene = scene ?? Scene.LoadFromFile(sceneFile.FullName);
+            scene = scene ?? Scene.LoadFromFile(sceneFile.FullName);
+            scene.Name = name;
+            return scene;
         }
     }
 

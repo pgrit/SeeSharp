@@ -1,0 +1,135 @@
+@using System.Reflection
+@using SeeSharp.Integrators
+@using SeeSharp.Blazor
+@using Microsoft.AspNetCore.Components.Forms
+
+@namespace SeeSharp.Blazor
+
+<div class="integrator-selector">
+    <div style="margin-top:0.5em;">
+        <SettingsGroup Title="Global Settings">
+            @foreach (var prop in IntegratorUtils.GetFilteredProps(typeof(Integrator)))
+            {
+                <RenderSetting
+                    Member="@prop"
+                    Getter="() => prop.GetValue(globalIntegratorSettings)"
+                    Setter="v => { prop.SetValue(globalIntegratorSettings, v); StateHasChanged(); }" />
+            }
+        </SettingsGroup>
+    </div>
+
+    <div style="display: flex; align-items: center; gap: 10px;">
+        <label style="margin: 0; white-space: nowrap;">Integrator:</label>
+        <select value="@selectedIntegrator" @onchange="OnSelectionChanged" style="flex: 0 1 120px; min-width: 0; width: 180px;">
+            @foreach (var type in integratorTypes)
+            {
+                <option value="@type.FullName" selected="@(type.FullName == selectedIntegrator)">@FormatClassName(type)</option>
+            }
+        </select>
+    </div>
+
+    <div style="display: flex; flex-direction: column; gap: 0.5em; margin-top: 0.5em;">
+        <div style="display: flex; gap: 0.5em;">
+            <button @onclick="AddIntegrator">Add</button>
+            <button @onclick="RunAllIntegrators">Run All</button>
+            @if (undoStack.Count > 0)
+            {
+                <button @onclick="UndoDelete" title="Restore last deleted integrator">↩</button>
+            }
+        </div>
+        <div style="display: flex; gap: 0.5em;">
+            <button @onclick="DownloadConfig" title="Save config to JSON file">Save</button>
+            <button type="button" onclick="document.getElementById('config-uploader').click()" title="Load config from JSON file">Load</button>
+            <InputFile id="config-uploader" OnChange="UploadConfig" style="display: none;" accept=".json" />
+        </div>
+    </div>
+</div>
+
+<div class="integrator-container">
+    @foreach (var integrator in addedIntegrators)
+    {
+        <div @key="integrator"
+             class="integrator-box @(draggedItem == integrator ? "dragging" : "")"
+             @ondrop="() => HandleDrop(integrator)"
+             @ondragenter="() => HandleDragEnter(integrator)"
+             @ondragover="() => {}"
+             @ondragover:preventDefault>
+
+            <div class="integrator-header" @onclick="() => ToggleExpand(integrator)">
+                <span class="drag-handle" draggable="true" @ondragstart="() => HandleDragStart(integrator)">⋮⋮</span>
+                <span class="arrow @(IsExpanded(integrator) ? "down" : "")">▶</span>
+
+                <button class="header-icon-btn" style="color: green;" @onclick="() => RunIntegrator(integrator)" @onclick:stopPropagation title="Run">▶</button>
+                <button class="header-icon-btn" @onclick="() => DuplicateIntegrator(integrator)" @onclick:stopPropagation title="Duplicate">📑</button>
+                <button class="header-icon-btn" @onclick="() => DeleteIntegrator(integrator)" @onclick:stopPropagation title="Delete">🗑️</button>
+
+                <input class="title-input" @bind="Names[integrator]" @onclick:stopPropagation />
+            </div>
+
+            @if (IsExpanded(integrator))
+            {
+                <div class="integrator-content" @onmousedown:stopPropagation>
+                    @{
+                        var groups = GetParameterGroups(integrator);
+                        bool isGlobalMuted = IsGlobalMuted(integrator);
+                        var globalActive = isGlobalMuted ? globalIntegratorSettings : integrator;
+                    }
+
+                    <SettingsGroup Title="">
+                        @foreach (var group in groups)
+                        {
+                            bool isRoot = group.IsGlobal;
+                            var target = (isRoot && isGlobalMuted) ? globalActive : integrator;
+
+                            RenderFragment renderContent = @<div>
+                                @foreach (var prop in group.Properties)
+                                {
+                                    <RenderSetting
+                                        Member="@prop"
+                                        Getter="() => prop.GetValue(target)"
+                                        Setter="v => { prop.SetValue(target, v); StateHasChanged(); }" />
+                                }
+                                @foreach (var field in group.Fields)
+                                {
+                                    <RenderSetting
+                                        Member="@field"
+                                        Getter="() => field.GetValue(target)"
+                                        Setter="v => { field.SetValue(target, v); StateHasChanged(); }" />
+                                }
+                            </div>;
+
+                            RenderFragment actionButtons = @<span class="group-actions" @onclick:stopPropagation>
+                                <button class="icon-btn-small" title="Copy Settings" @onclick="() => CopyGroupSettings(target, group)"> 🗐</button>
+
+                                @if (settingsClipboard?.GroupTitle == group.Title)
+                                {
+                                    <button class="icon-btn-small" title="Paste Settings" @onclick="() => PasteGroupSettings(target, group)">📋</button>
+                                }
+                            </span>;
+
+                            if (isRoot)
+                            {
+                                <details>
+                                    <summary>
+                                        Global Settings @actionButtons
+                                        <span class="mute-label" @onclick:stopPropagation @onclick="() => ToggleGlobalMute(integrator)">
+                                            <input type="checkbox" checked="@(!isGlobalMuted)" style="vertical-align: middle;" readonly />
+                                        </span>
+                                    </summary>
+                                    <div class="@(isGlobalMuted ? "muted-container" : "")">@renderContent</div>
+                                </details>
+                            }
+                            else
+                            {
+                                <details open>
+                                    <summary>@group.Title @actionButtons</summary>
+                                    <div>@renderContent</div>
+                                </details>
+                            }
+                        }
+                    </SettingsGroup>
+                </div>
+            }
+        </div>
+    }
+</div>

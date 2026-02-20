@@ -22,8 +22,17 @@ public class SceneConfig
 
     /// <summary>
     /// Shortcut for <see cref="SceneLoader.Scene" /> to import / load the scene
+    /// Replaces the scene's name by the configured name if set
     /// </summary>
-    public Scene Scene => SceneDirectory.SceneLoader.Scene;
+    public Scene Scene
+    {
+        get
+        {
+            var scn = SceneDirectory.SceneLoader.Scene.Copy();
+            scn.Name = Name;
+            return scn;
+        }
+    }
 
     public SceneDirectory SceneDirectory { get; set; }
 
@@ -32,9 +41,6 @@ public class SceneConfig
         MinDepth = minDepth;
         MaxDepth = maxDepth;
         SceneDirectory = sceneDir;
-        if (string.IsNullOrEmpty(name))
-        {
-            name = SceneDirectory.Name;
-        }
+        Name = name ?? SceneDirectory.Name;
     }
 }

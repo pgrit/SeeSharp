@@ -26,7 +26,7 @@ public class SceneDirectory
     {
         this.Directory = file.Directory;
         BlenderFile = new(Path.ChangeExtension(file.FullName, ".blend"));
-        SceneLoader = new(file, BlenderFile);
+        SceneLoader = new(file, BlenderFile, Name);
         References = new(Directory, SceneLoader);
     }
 }

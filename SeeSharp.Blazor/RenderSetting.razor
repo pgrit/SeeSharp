@@ -1,0 +1,41 @@
+@using System.Reflection
+
+@namespace SeeSharp.Blazor
+
+@{
+    string name = Member.Name;
+    string desc = IntegratorUtils.GetDescription(Member);
+
+    Type type = (Member is PropertyInfo p) ? p.PropertyType : ((FieldInfo)Member).FieldType;
+    Type underlyingType = Nullable.GetUnderlyingType(type) ?? type;
+    TypeCode typeCode = Type.GetTypeCode(underlyingType);
+
+    if (typeCode == TypeCode.Boolean)
+    {
+        bool val = Convert.ToBoolean(Getter() ?? false);
+        <BoolSetting Label="@name" Value="@val" HoverText="@desc"
+                     ValueChanged="@(v => Setter(v))" />
+    }
+    else if (typeCode == TypeCode.Single || typeCode == TypeCode.Double)
+    {
+        float val = (float)Convert.ToDouble(Getter() ?? 0.0);
+        <FloatSetting Label="@name" Value="@val" HoverText="@desc"
+                      ValueChanged="@(v => {
+                          Setter(Convert.ChangeType(v, underlyingType));
+                      })" />
+    }
+    else if (typeCode >= TypeCode.SByte && typeCode <= TypeCode.UInt64)
+    {
+        long val = Convert.ToInt64(Getter() ?? 0);
+        <LongSetting Label="@name" Value="@val" HoverText="@desc"
+                     ValueChanged="@(v => {
+                        Setter(Convert.ChangeType(v, underlyingType));
+                     })" />
+    }
+}
+
+@code {
+    [Parameter] public MemberInfo Member { get; set; } = default!;
+    [Parameter] public Func<object> Getter { get; set; } = default!;
+    [Parameter] public Action<object> Setter { get; set; } = default!;
+}

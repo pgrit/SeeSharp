@@ -178,3 +178,13 @@ summary:hover .group-actions,
     background-color: rgba(0, 0, 0, 0.05);
     color: #000;
 }
+
+.main-actions button {
+    flex: 0 0 80px;
+    height: 30px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    box-sizing: border-box;
+    white-space: nowrap;
+}

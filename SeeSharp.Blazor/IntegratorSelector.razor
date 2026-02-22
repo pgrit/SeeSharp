@@ -28,7 +28,7 @@
         </select>
     </div>
 
-    <div style="display: flex; flex-direction: column; gap: 0.5em; margin-top: 0.5em;">
+    <div class="main-actions" style="display: flex; flex-direction: column; gap: 0.5em; margin-top: 0.5em;">
         <div style="display: flex; gap: 0.5em;">
             <button @onclick="AddIntegrator">Add</button>
             <button @onclick="RunAllIntegrators">Run All</button>
@@ -58,12 +58,10 @@
             <div class="integrator-header" @onclick="() => ToggleExpand(integrator)">
                 <span class="drag-handle" draggable="true" @ondragstart="() => HandleDragStart(integrator)">⋮⋮</span>
                 <span class="arrow @(IsExpanded(integrator) ? "down" : "")">▶</span>
-
+                <input class="title-input" @bind="Names[integrator]" @onclick:stopPropagation />
                 <button class="header-icon-btn" style="color: green;" @onclick="() => RunIntegrator(integrator)" @onclick:stopPropagation title="Run">▶</button>
                 <button class="header-icon-btn" @onclick="() => DuplicateIntegrator(integrator)" @onclick:stopPropagation title="Duplicate">📑</button>
                 <button class="header-icon-btn" @onclick="() => DeleteIntegrator(integrator)" @onclick:stopPropagation title="Delete">🗑️</button>
-
-                <input class="title-input" @bind="Names[integrator]" @onclick:stopPropagation />
             </div>
 
             @if (IsExpanded(integrator))
@@ -99,7 +97,7 @@
                             </div>;
 
                             RenderFragment actionButtons = @<span class="group-actions" @onclick:stopPropagation>
-                                <button class="icon-btn-small" title="Copy Settings" @onclick="() => CopyGroupSettings(target, group)"> 🗐</button>
+                                <button class="icon-btn-small" title="Copy Settings" @onclick="() => CopyGroupSettings(target, group)"> ⧉</button>
 
                                 @if (settingsClipboard?.GroupTitle == group.Title)
                                 {

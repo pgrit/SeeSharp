@@ -123,9 +123,9 @@ def load_mesh_with_transform(filepath, global_matrix):
 
     return new_objs
 
-def load_ply(filepath):
+def load_ply(filepath, name):
     import struct
-    mesh = bpy.data.meshes.new(os.path.basename(filepath))
+    mesh = bpy.data.meshes.new(name)
     obj = bpy.data.objects.new(mesh.name, mesh)
     bpy.context.collection.objects.link(obj)
 
@@ -570,7 +570,7 @@ def import_seesharp(filepath):
                 ext = os.path.splitext(path)[1].lower()
 
                 if ext == ".ply":
-                    new_obj = load_ply(path)
+                    new_obj = load_ply(path, obj["name"])
                     if not new_obj:
                         print(f"Failed to load {path}")
                         continue

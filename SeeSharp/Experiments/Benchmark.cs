@@ -72,7 +72,7 @@ public class Benchmark
         if (reference.HasValue)
         {
             string refFilename = Path.Join(dir, "Reference.exr");
-            reference.Value.File.CopyTo(refFilename);
+            reference.Value.File.CopyTo(refFilename, true);
 
             try
             {

@@ -23,7 +23,7 @@ public class SceneLoader(FileInfo sceneFile, FileInfo blendFile, string name) : 
             // Reload if there are changes in the .blend file
             if (blendFile.Exists && ImportBlendFile())
             {
-                scene.Dispose();
+                scene?.Dispose();
                 scene = null;
             }
 

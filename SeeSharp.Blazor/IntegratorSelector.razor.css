@@ -68,11 +68,11 @@
     text-overflow: clip;
 }
 
-details {
+::deep details {
     margin-top: 2px;
     width: 100%;
 }
-summary {
+::deep summary {
     cursor: pointer;
     font-weight: normal;
     font-size: smaller;
@@ -81,8 +81,8 @@ summary {
     display: flex;
     align-items: center;
 }
-summary:hover { color: #000; }
-summary::before {
+::deep summary:hover { color: #000; }
+::deep summary::before {
     content: '▶';
     font-size: 0.7em;
     margin-right: 6px;
@@ -90,17 +90,17 @@ summary::before {
     transition: transform 0.2s;
     color: black;
 }
-details[open] > summary::before { transform: rotate(90deg); }
-summary::-webkit-details-marker { display: none; }
+::deep details[open] > summary::before { transform: rotate(90deg); }
+::deep summary::-webkit-details-marker { display: none; }
 
-details > div {
+::deep details > div {
     margin-left: 6px;
     padding-left: 12px;
     border-left: 2px solid #e0e0e0;
     margin-top: 2px;
     margin-bottom: 2px;
 }
-details:hover > div {
+::deep details:hover > div {
     border-left-color: #ccc;
 }
 

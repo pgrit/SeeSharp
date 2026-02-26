@@ -80,13 +80,13 @@ public static class IntegratorUtils
         Type t = (m is PropertyInfo pi) ? pi.PropertyType : ((FieldInfo)m).FieldType;
         Type underlyingType = Nullable.GetUnderlyingType(t) ?? t;
 
-        return underlyingType.IsPrimitive;
+        return underlyingType.IsValueType;
     }
 
-    public static IEnumerable<PropertyInfo> GetFilteredProps(Type type) => 
+    public static IEnumerable<PropertyInfo> GetFilteredProps(Type type) =>
         type.GetProperties(BindingFlags.Public | BindingFlags.Instance).Where(IsVisible);
 
-    public static IEnumerable<FieldInfo> GetFilteredFields(Type type) => 
+    public static IEnumerable<FieldInfo> GetFilteredFields(Type type) =>
         type.GetFields(BindingFlags.Public | BindingFlags.Instance).Where(IsVisible);
 
     public static string GetDescription(MemberInfo member)

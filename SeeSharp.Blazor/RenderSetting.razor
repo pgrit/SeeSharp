@@ -32,6 +32,14 @@
                         Setter(Convert.ChangeType(v, underlyingType));
                      })" />
     }
+    else if (underlyingType.IsValueType && !underlyingType.IsPrimitive && !underlyingType.IsEnum)
+    {
+        <StructSetting
+            Name="@name"
+            TargetType="@underlyingType"
+            Getter="@Getter"
+            Setter="@Setter" />
+    }
 }
 
 @code {

@@ -70,7 +70,17 @@ public partial class IntegratorSelector : ComponentBase
 
         var integrator = (Integrator)Activator.CreateInstance(type)!;
         ApplyGlobalSettings(integrator);
-        Names[integrator] = FormatClassName(type);
+
+        string baseName = FormatClassName(type);
+        string finalName = baseName;
+        int cnt = 2;
+        while (Names.Values.Contains(finalName))
+        {
+            finalName = $"{baseName} {cnt}";
+            cnt++;
+        }
+        Names[integrator] = finalName;
+
         mutedIntegrators.Add(integrator);
         addedIntegrators.Add(integrator);
         expandedItems.Add(integrator);

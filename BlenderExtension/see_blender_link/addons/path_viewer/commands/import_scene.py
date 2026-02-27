@@ -3,6 +3,9 @@ import bpy
 def handle_import_scene(msg):
     file_name = msg.get("scene_name")
     def run():
+        if bpy.context.mode != 'OBJECT':
+            bpy.ops.object.mode_set(mode='OBJECT')
+            
         # clear the current scene
         bpy.ops.object.select_all(action='SELECT')
         bpy.ops.object.delete()

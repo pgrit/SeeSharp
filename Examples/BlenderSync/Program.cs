@@ -8,10 +8,10 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddRazorPages();
 builder.Services.AddServerSideBlazor();
 
-builder.Services.AddSingleton<SeeSharp.Blender.IBlenderEventHandler, CreatedHandler>();
-builder.Services.AddSingleton<SeeSharp.Blender.IBlenderEventHandler, DeletedHandler>();
-builder.Services.AddSingleton<SeeSharp.Blender.IBlenderEventHandler, SelectedHandler>();
-builder.Services.AddSingleton<SeeSharp.Blender.IBlenderEventHandler, CursorTrackedHandler>();
+builder.Services.AddSingleton<SeeSharp.Blender.IBlenderEventHandler, SeeSharp.Blender.CreatedHandler>();
+builder.Services.AddSingleton<SeeSharp.Blender.IBlenderEventHandler, SeeSharp.Blender.DeletedHandler>();
+builder.Services.AddSingleton<SeeSharp.Blender.IBlenderEventHandler, SeeSharp.Blender.SelectedHandler>();
+builder.Services.AddSingleton<SeeSharp.Blender.IBlenderEventHandler, SeeSharp.Blender.CursorTrackedHandler>();
 
 
 builder.Services.AddSingleton<SeeSharp.Blender.BlenderCommandSender>();

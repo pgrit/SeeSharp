@@ -1,34 +1,29 @@
 using System.Text.Json;
+using SeeSharp.Common;
 
-namespace SeeSharp.Blender
-{
-    public interface IBlenderEventHandler
-{
+namespace SeeSharp.Blender;
+
+public interface IBlenderEventHandler {
     string EventType { get; }
     void Handle(JsonElement root);
 }
 
-public class BlenderEventDispatcher
-{
+public class BlenderEventDispatcher {
     private readonly Dictionary<string, IBlenderEventHandler> _handlers;
 
-    public BlenderEventDispatcher(IEnumerable<IBlenderEventHandler> handlers)
-    {
+    public BlenderEventDispatcher(IEnumerable<IBlenderEventHandler> handlers) {
         _handlers = handlers.ToDictionary(h => h.EventType);
     }
 
-    public void Register(IBlenderEventHandler handler)
-    {
+    public void Register(IBlenderEventHandler handler) {
         _handlers.Add(handler.EventType, handler);
     }
 
-    public void Unregister(IBlenderEventHandler handler)
-    {
+    public void Unregister(IBlenderEventHandler handler) {
         _handlers.Remove(handler.EventType);
     }
 
-    public void Dispatch(JsonElement root)
-    {
+    public void Dispatch(JsonElement root) {
         if (!root.TryGetProperty("event", out var evtProp))
             return;
 
@@ -39,8 +34,6 @@ public class BlenderEventDispatcher
         if (_handlers.TryGetValue(evt, out var handler))
             handler.Handle(root);
         else
-            Console.WriteLine($"⚠️ Unknown Blender event: {evt}");
+            Logger.Warning($"⚠️ Unknown Blender event: {evt}");
     }
-}
-    
-}
+}    

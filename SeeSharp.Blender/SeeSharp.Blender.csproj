@@ -7,6 +7,6 @@
   </PropertyGroup>
 
     <ItemGroup>
-        <Compile Remove="Example/**/*.cs" />
+        <ProjectReference Include="..\SeeSharp\SeeSharp.csproj" />
     </ItemGroup>
 </Project>

@@ -12,13 +12,13 @@
 else
 {
     <div>
-        @if (_data.Hit_Position != null)
+        @if (_data.HitPosition != null)
         {
-            <p><b>Cursor:</b> @Format(_data.Cursor_Position)</p>
+            <p><b>Cursor:</b> @Format(_data.CursorPosition)</p>
             <p><b>Object:</b> @_data.Object</p>
-            <p><b>Hit Position:</b> @Format(_data.Hit_Position)</p>
+            <p><b>Hit Position:</b> @Format(_data.HitPosition)</p>
             <p><b>Normal:</b> @Format(_data.Normal)</p>
-            <p><b>Face Index:</b> @_data.Face_Index</p>
+            <p><b>Face Index:</b> @_data.FaceIndex</p>
         }
         else
         {
@@ -31,7 +31,7 @@ else
     private BlenderCursorData? _data;
     protected override void OnInitialized()
     {
-        Client._cursor_tracked.OnCursorTracked += data =>
+        Client._cursorTracked.OnCursorTracked += data =>
         {
             Console.WriteLine("RAW JSON: " + JsonSerializer.Serialize(data));
             _data = data;

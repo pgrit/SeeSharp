@@ -35,14 +35,13 @@
 }
 
 .list {
-    overflow: scroll;
+    overflow: hidden;
     resize: both;
     background: #e6f1f4;
     border-style: solid;
     border-width: 1pt;
     border-color: #2b3f44;
 
-    width: 500px;
     min-width: 100px;
     height: 125px;
     min-height: 50px;
@@ -52,7 +51,7 @@
 }
 
 .container {
-    overflow: scroll;
+    overflow: auto;
     flex-grow: 1;
 }
 

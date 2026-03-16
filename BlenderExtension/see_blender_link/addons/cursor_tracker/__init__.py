@@ -52,60 +52,55 @@ def update_view_data():
 # TCP sending loop (runs in background thread)
 # --------------------------------------------------------------------
 
-def raycast_and_send_loop():
+def raycast_and_send():
     global stop_flag, last_pos
 
-    while not stop_flag:
+    # Ensure viewport data is available
+    if not current_rv3d:
+        return 0.25
 
-        # Ensure viewport data is available
-        if not current_rv3d:
-            time.sleep(0.05)
-            continue
+    try:
+        scene = bpy.context.scene
+        cursor_pos = scene.cursor.location.copy()
 
-        try:
-            scene = bpy.context.scene
-            cursor_pos = scene.cursor.location.copy()
+        view_matrix = current_rv3d.view_matrix
+        origin = view_matrix.inverted().translation
+        direction = (cursor_pos - origin).normalized()
 
-            # Get ray origin = user view position
-            view_matrix = current_rv3d.view_matrix
-            origin = view_matrix.inverted().translation
+        depsgraph = bpy.context.evaluated_depsgraph_get()
+        hit, loc, normal, face_idx, obj, _ = scene.ray_cast(
+            depsgraph, origin, direction
+        )
 
-            direction = (cursor_pos - origin).normalized()
+        if loc != last_pos:
+            last_pos = loc
 
-            depsgraph = bpy.context.evaluated_depsgraph_get()
-            hit, loc, normal, face_idx, obj, _ = scene.ray_cast(
-                depsgraph, origin, direction
-            )
-            if loc != last_pos:
-                last_pos = loc
-                if hit:
-                    data = {
-                        "event": "cursor_tracked",
-                        "object": obj.name,
-                        "hit_position": [round(loc.x, 4), round(loc.y, 4), round(loc.z, 4)],
-                        "normal": [round(normal.x, 4), round(normal.y, 4), round(normal.z, 4)],
-                        "face_index": face_idx,
-                        "cursor_position": [round(cursor_pos.x, 4), round(cursor_pos.y, 4), round(cursor_pos.z, 4)]
-                    }
-                else:
-                    data = {
-                        "event": "cursor_tracked",
-                        "object": None,
-                        "cursor_position": [round(cursor_pos.x, 4), round(cursor_pos.y, 4), round(cursor_pos.z, 4)]
-                    }
-                # s.sendall((json.dumps(data) + "\n").encode("utf8"))
-                send_to_blazor(data)
-                # print(data)
-                print("Sending JSON:", json.dumps(data))
-        except Exception as e:
-            print("Error in thread loop:", e)
-            break
+            if hit:
+                data = {
+                    "event": "cursor_tracked",
+                    "object": obj.name,
+                    "hit_position": [round(loc.x,4), round(loc.y,4), round(loc.z,4)],
+                    "normal": [round(normal.x,4), round(normal.y,4), round(normal.z,4)],
+                    "face_index": face_idx,
+                    "cursor_position": [round(cursor_pos.x,4), round(cursor_pos.y,4), round(cursor_pos.z,4)],
+                    "view_origin": [round(-origin.x,4), round(origin.z,4), round(origin.y,4)]
+                }
+            else:
+                data = {
+                    "event": "cursor_tracked",
+                    "object": None,
+                    "cursor_position": [round(cursor_pos.x,4), round(cursor_pos.y,4), round(cursor_pos.z,4)]
+                }
 
-        time.sleep(0.25)
+            send_to_blazor(data)
+            print("Sending JSON:", json.dumps(data))
 
-    # s.close()
-    print("Stopped sending")
+    except Exception as e:
+        print("Timer error:", e)
 
+    if stop_flag:
+        return None
+    return 0.25
 
 # --------------------------------------------------------------------
 # Start / Stop Functions
@@ -115,8 +110,7 @@ def start_sender():
     global stop_flag, send_thread
     stop_flag = False
 
-    send_thread = threading.Thread(target=raycast_and_send_loop, daemon=True)
-    send_thread.start()
+    bpy.app.timers.register(raycast_and_send)
     print("Sender started")
 
 

@@ -24,9 +24,9 @@ public partial class Experiment(IJSRuntime js) : ComponentBase
 
     SimpleImageIO.FlipBook flip;
 
-    async Task OnSceneLoaded(SceneFromFile sceneFromFile)
+    async Task OnSceneLoaded(SceneDirectory sceneDir)
     {
-        await Task.Run(() => scene = sceneFromFile.MakeScene());
+        await Task.Run(() => scene = sceneDir.SceneLoader.Scene);
         flip = null;
         resultsAvailable = false;
         readyToRun = true;
@@ -66,7 +66,7 @@ public partial class Experiment(IJSRuntime js) : ComponentBase
 
         PathTracer pathTracer = new()
         {
-            SampleCount = NumSamples,
+            NumIterations = (uint)NumSamples,
             MaxDepth = MaxDepth,
         };
         pathTracer.Render(scene);
@@ -76,7 +76,7 @@ public partial class Experiment(IJSRuntime js) : ComponentBase
         scene.FrameBuffer = new(Width, Height, "");
         VertexConnectionAndMerging vcm = new()
         {
-            SampleCount = NumSamples,
+            NumIterations = (uint)NumSamples,
             MaxDepth = MaxDepth,
         };
         vcm.Render(scene);
@@ -86,11 +86,11 @@ public partial class Experiment(IJSRuntime js) : ComponentBase
 
     SurfacePoint? selected;
 
-    void OnFlipClick(FlipViewer.OnClickEventArgs args)
+    void OnFlipClick(FlipViewer.OnEventArgs args)
     {
-        if (args.CtrlKey)
+        if (args.Control)
         {
-            selected = scene.RayCast(new(args.X, args.Y));
+            selected = scene.RayCast(new(args.MouseX, args.MouseY));
         }
     }
 

@@ -1,5 +1,3 @@
-using System.Security.Cryptography;
-
 namespace SeeSharp.SceneManagement;
 
 /// <summary>
@@ -72,7 +70,6 @@ public class SceneLoader(FileInfo sceneFile, FileInfo blendFile, string name) : 
         }
 
         long timestamp = long.Parse(lines[0]);
-        string md5 = lines[1];
 
         long newTime = blendFile.LastWriteTime.ToFileTime();
         if (newTime == timestamp)
@@ -84,14 +81,7 @@ public class SceneLoader(FileInfo sceneFile, FileInfo blendFile, string name) : 
             return false;
         }
 
-        var newMd5 = Convert.ToHexString(MD5.HashData(File.ReadAllBytes(blendFile.FullName)));
-        if (md5 == newMd5)
-        {
-            Logger.Log($"Scene {name}: no reimport, md5 matches last known value", Verbosity.Debug);
-            return false;
-        }
-
-        Logger.Log($"Scene {name}: reimporting .blend - md5 changed", Verbosity.Info);
+        Logger.Log($"Scene {name}: reimporting .blend changed", Verbosity.Info);
         return true;
     }
 
@@ -120,8 +110,7 @@ public class SceneLoader(FileInfo sceneFile, FileInfo blendFile, string name) : 
         }
 
         long time = blendFile.LastWriteTime.ToFileTime();
-        var md5 = Convert.ToHexString(MD5.HashData(File.ReadAllBytes(blendFile.FullName)));
-        File.WriteAllLines(importFile, [time.ToString(), md5]);
+        File.WriteAllLines(importFile, [time.ToString()]);
 
         return true;
     }

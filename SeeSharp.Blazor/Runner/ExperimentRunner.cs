@@ -10,12 +10,13 @@ public abstract class ExperimentRunner
     [Flags]
     public enum RunnerState
     {
+        AwaitingInput = 0,
         Ready = 1,
         Running = 2,
         ResultsAvailable = 4,
     }
 
-    public static RunnerState State { get; private set; } = RunnerState.Ready;
+    public static RunnerState State { get; protected set; } = RunnerState.AwaitingInput;
 
     public static bool IsReady => State.HasFlag(RunnerState.Ready);
     public static bool IsRunning => State.HasFlag(RunnerState.Running);

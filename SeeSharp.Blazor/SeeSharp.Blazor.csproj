@@ -13,12 +13,10 @@
     <FrameworkReference Include="Microsoft.AspNetCore.App" />
   </ItemGroup>
 
-  <!-- <ItemGroup> -->
-  <!--   <PackageReference Include="Microsoft.AspNetCore.Components.Web" Version="10.0.3" /> -->
-  <!-- </ItemGroup> -->
-
   <ItemGroup>
     <ProjectReference Include="..\SeeSharp\SeeSharp.csproj" />
+
+    <PackageReference Include="Microsoft.CodeAnalysis.CSharp.Scripting" Version="5.3.0" />
   </ItemGroup>
 
   <ItemGroup>

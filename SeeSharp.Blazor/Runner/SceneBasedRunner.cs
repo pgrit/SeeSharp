@@ -17,6 +17,7 @@ public abstract class SceneBasedRunner : ExperimentRunner
             lock (runnerLock)
                 Scene = sceneDir.SceneLoader.Scene;
         });
+        State = RunnerState.Ready;
         NotifyUpdate();
     }
 }

@@ -3,13 +3,10 @@
 
 <SceneSelector OnSceneLoaded="@SceneBasedRunner.LoadScene" />
 
-@if (SceneBasedRunner.Scene != null)
-{
-    <p>
-        <button @onclick="ExperimentRunner.Run" disabled="@(!ExperimentRunner.IsReady)">Run</button>
-        (Scene: @SceneBasedRunner.Scene.Name)
-    </p>
-}
+<p>
+    <button @onclick="ExperimentRunner.Run" disabled="@(!ExperimentRunner.IsReady)">Run</button>
+    (Scene: @(SceneBasedRunner.Scene?.Name ?? "[No scene loaded]"))
+</p>
 
 @if (ExperimentRunner.HasResults)
 {

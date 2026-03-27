@@ -2,7 +2,6 @@ set windows-powershell # uses powershell instead of cygwin on Windows
 
 default: blender
 
-
 _build_dotnet:
   dotnet publish ./SeeSharp.PreviewRender -c Release -o ./BlenderExtension/seesharp_binaries/bin
 

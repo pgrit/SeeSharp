@@ -1,0 +1,17 @@
+@inherits ViewComponent
+@attribute [ExperimentView(typeof(ExampleRunner))]
+
+<SceneSelector OnSceneLoaded="@SceneBasedRunner.LoadScene" />
+
+@if (SceneBasedRunner.Scene != null)
+{
+    <p>
+        <button @onclick="ExperimentRunner.Run" disabled="@(!ExperimentRunner.IsReady)">Run</button>
+        (Scene: @SceneBasedRunner.Scene.Name)
+    </p>
+}
+
+@if (ExperimentRunner.HasResults)
+{
+    <FlipViewer Flip="@ExampleRunner.RenderedImageFlip"></FlipViewer>
+}

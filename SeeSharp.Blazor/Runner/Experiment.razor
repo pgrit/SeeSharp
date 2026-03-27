@@ -1,0 +1,33 @@
+@namespace SeeSharp.Blazor
+
+@inherits ViewComponent
+
+<div>
+    @if (ActiveViewType != null)
+    {
+        <DynamicComponent @ref=viewComponent Type=ActiveViewType />
+    }
+    else
+    {
+        <p>No experiment is currently running. Click one below to start it.</p>
+    }
+</div>
+
+<div>
+    <hr />
+    <LogOutput />
+    <p>
+        Start a new experiment by clicking on an available one below. 
+        All current state will be lost.
+    </p>
+    <ul>
+        @foreach (var t in AllViews)
+        {
+            var curType = t;
+            <li><button @onclick="(evt) => StartExperiment(curType)">@(t)</button></li>
+
+        }
+    </ul>
+</div>
+
+<HtmlProgressBar />

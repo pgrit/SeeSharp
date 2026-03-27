@@ -54,7 +54,7 @@ public class FrameBuffer : IDisposable
     readonly Dictionary<string, Layer> layers = new();
     readonly Stopwatch stopwatch = new Stopwatch();
 
-    public IEnumerable<(string, Image)> LayerImages
+    public IEnumerable<(string Name, Image Image)> LayerImages
     {
         get
         {

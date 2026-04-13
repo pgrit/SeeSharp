@@ -22,8 +22,7 @@ public partial class FlipViewer(IJSRuntime JSRuntime) : ComponentBase
     /// <param name="FlipbookID">ID of the flip book in the DOM</param>
     /// <param name="ActiveImage">0-based index of the current image in the flip book</param>
     /// <param name="KeysPressed">Contains the string "key" names (JS convention) of the pressed keys</param>
-    public record struct OnEventArgs
-    (
+    public record struct EventArgs(
         int MouseButton,
         int MouseX,
         int MouseY,
@@ -39,13 +38,16 @@ public partial class FlipViewer(IJSRuntime JSRuntime) : ComponentBase
     }
 
     [Parameter]
-    public EventCallback<OnEventArgs> OnClick { get; set; }
+    public EventCallback<EventArgs> OnClick { get; set; }
+
     [Parameter]
-    public EventCallback<OnEventArgs> OnWheel { get; set; }
+    public EventCallback<EventArgs> OnWheel { get; set; }
+
     [Parameter]
-    public EventCallback<OnEventArgs> OnMouseOver { get; set; }
+    public EventCallback<EventArgs> OnMouseOver { get; set; }
+
     [Parameter]
-    public EventCallback<OnEventArgs> OnKey { get; set; }
+    public EventCallback<EventArgs> OnKey { get; set; }
 
     protected override async Task OnParametersSetAsync()
     {
@@ -56,10 +58,13 @@ public partial class FlipViewer(IJSRuntime JSRuntime) : ComponentBase
             return;
         }
 
-        if (lastFlip == Flip) return;
+        if (lastFlip == Flip)
+            return;
 
-        await Task.Run(() => {
-            if (Flip.Count == 0) {
+        await Task.Run(() =>
+        {
+            if (Flip.Count == 0)
+            {
                 flipJson = null;
                 flipCode = "<p>empty flip book</p>";
                 return;
@@ -73,33 +78,99 @@ public partial class FlipViewer(IJSRuntime JSRuntime) : ComponentBase
     }
 
     [JSInvokable]
-    public void _OnFlipClick(int mouseButton, int mouseX, int mouseY, string ID, int selectedIdx, String[] keysPressed)
+    public void _OnFlipClick(
+        int mouseButton,
+        int mouseX,
+        int mouseY,
+        string ID,
+        int selectedIdx,
+        String[] keysPressed
+    )
     {
         HashSet<string> set = new HashSet<string>(keysPressed);
-        OnClick.InvokeAsync(new(MouseButton: mouseButton, MouseX: mouseX, MouseY: mouseY, WheelDelta: -1, FlipbookID: ID, ActiveImage: selectedIdx, KeysPressed: set)).Wait();
+        OnClick
+            .InvokeAsync(
+                new(
+                    MouseButton: mouseButton,
+                    MouseX: mouseX,
+                    MouseY: mouseY,
+                    WheelDelta: -1,
+                    FlipbookID: ID,
+                    ActiveImage: selectedIdx,
+                    KeysPressed: set
+                )
+            )
+            .Wait();
     }
 
     [JSInvokable]
-
-    public void _OnFlipWheel(int mouseX, int mouseY, int deltaY, string ID, int selectedIdx, String[] keysPressed)
+    public void _OnFlipWheel(
+        int mouseX,
+        int mouseY,
+        int deltaY,
+        string ID,
+        int selectedIdx,
+        String[] keysPressed
+    )
     {
         HashSet<string> set = new HashSet<string>(keysPressed);
-        OnWheel.InvokeAsync(new(MouseButton: -1, MouseX: mouseX, MouseY: mouseY, WheelDelta: deltaY, FlipbookID: ID, ActiveImage: selectedIdx, KeysPressed: set)).Wait();
+        OnWheel
+            .InvokeAsync(
+                new(
+                    MouseButton: -1,
+                    MouseX: mouseX,
+                    MouseY: mouseY,
+                    WheelDelta: deltaY,
+                    FlipbookID: ID,
+                    ActiveImage: selectedIdx,
+                    KeysPressed: set
+                )
+            )
+            .Wait();
     }
 
     [JSInvokable]
-    public void _OnFlipMouseOver(int mouseX, int mouseY, string ID, int selectedIdx, String[] keysPressed)
+    public void _OnFlipMouseOver(
+        int mouseX,
+        int mouseY,
+        string ID,
+        int selectedIdx,
+        String[] keysPressed
+    )
     {
         HashSet<string> set = new HashSet<string>(keysPressed);
-        OnMouseOver.InvokeAsync(new(MouseButton: -1, MouseX: mouseX, MouseY: mouseY, WheelDelta: -1, FlipbookID: ID, ActiveImage: selectedIdx, KeysPressed: set)).Wait();
+        OnMouseOver
+            .InvokeAsync(
+                new(
+                    MouseButton: -1,
+                    MouseX: mouseX,
+                    MouseY: mouseY,
+                    WheelDelta: -1,
+                    FlipbookID: ID,
+                    ActiveImage: selectedIdx,
+                    KeysPressed: set
+                )
+            )
+            .Wait();
     }
 
     [JSInvokable]
-
     public void _OnFlipKey(int mouseX, int mouseY, string ID, int selectedIdx, String[] keysPressed)
     {
         HashSet<string> set = new HashSet<string>(keysPressed);
-        OnKey.InvokeAsync(new(MouseButton: -1, MouseX: mouseX, MouseY: mouseY, WheelDelta: -1, FlipbookID: ID, ActiveImage: selectedIdx, KeysPressed: set)).Wait();
+        OnKey
+            .InvokeAsync(
+                new(
+                    MouseButton: -1,
+                    MouseX: mouseX,
+                    MouseY: mouseY,
+                    WheelDelta: -1,
+                    FlipbookID: ID,
+                    ActiveImage: selectedIdx,
+                    KeysPressed: set
+                )
+            )
+            .Wait();
     }
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
@@ -118,7 +189,7 @@ public partial class FlipViewer(IJSRuntime JSRuntime) : ComponentBase
                 nameof(_OnFlipMouseOver),
                 DotNetObjectReference.Create(this),
                 nameof(_OnFlipKey)
-                );
+            );
             flipJson = null;
         }
     }

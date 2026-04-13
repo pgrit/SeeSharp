@@ -63,7 +63,7 @@ public partial class IntegratorTest : ComponentBase
         {
             NumIterations = (uint)NumSamples,
             MaxDepth = MaxDepth,
-            RenderTechniquePyramid = true
+            RenderTechniquePyramid = true,
         };
         vcm.Render(scene);
         flip.Add($"VCM", scene.FrameBuffer.Image);
@@ -73,12 +73,14 @@ public partial class IntegratorTest : ComponentBase
 
     SurfacePoint? selected;
 
-    void OnFlipClick(FlipViewer.OnEventArgs args)
+    void OnFlipClick(FlipViewer.EventArgs args)
     {
         if (args.Control)
         {
             RNG rng = new(1241512);
-            var ray = scene.Camera.GenerateRay(new Vector2(args.MouseX + 0.5f, args.MouseY + 0.5f), ref rng).Ray;
+            var ray = scene
+                .Camera.GenerateRay(new Vector2(args.MouseX + 0.5f, args.MouseY + 0.5f), ref rng)
+                .Ray;
             selected = (SurfacePoint)scene.Raytracer.Trace(ray);
 
             SurfaceShader shader = new(selected.Value, -ray.Direction, false);

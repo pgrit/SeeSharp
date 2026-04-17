@@ -12,6 +12,9 @@ public partial class FunctionScript : ComponentBase
     [Parameter]
     public string Script { get; set; } = "";
 
+    [Parameter]
+    public EventCallback<string> ScriptChanged { get; set; }
+
     string usings = """
         using System.Numerics;
         using static System.MathF;
@@ -36,5 +39,11 @@ public partial class FunctionScript : ComponentBase
             Logger.Error(string.Join(Environment.NewLine, e.Diagnostics));
             return null;
         }
+    }
+
+    private async Task OnValueChanged(ChangeEventArgs e)
+    {
+        Script = (string)e.Value;
+        await ScriptChanged.InvokeAsync(Script);
     }
 }

@@ -1,4 +1,3 @@
-using Microsoft.AspNetCore.Components;
 using Microsoft.JSInterop;
 
 namespace SeeSharp.Blazor;
@@ -48,6 +47,11 @@ public partial class FlipViewer(IJSRuntime JSRuntime) : ComponentBase
 
     [Parameter]
     public EventCallback<EventArgs> OnKey { get; set; }
+
+    public record struct CropEventArgs(int X, int Y, int Width, int Height) { }
+
+    [Parameter]
+    public EventCallback<CropEventArgs> OnCrop { get; set; }
 
     protected override async Task OnParametersSetAsync()
     {
@@ -173,22 +177,31 @@ public partial class FlipViewer(IJSRuntime JSRuntime) : ComponentBase
             .Wait();
     }
 
+    [JSInvokable]
+    public async Task _OnCrop(int x, int y, int width, int height)
+    {
+        await OnCrop.InvokeAsync(new(x, y, width, height));
+    }
+
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
         // Need to wait with invoking the JS code until the HTML got added to the DOM on the client side
         if (flipJson != null)
         {
+            var thisRef = DotNetObjectReference.Create(this);
             await JSRuntime.InvokeVoidAsync(
                 "makeFlipBook",
                 flipJson,
-                DotNetObjectReference.Create(this),
+                thisRef,
                 nameof(_OnFlipClick),
-                DotNetObjectReference.Create(this),
+                thisRef,
                 nameof(_OnFlipWheel),
-                DotNetObjectReference.Create(this),
+                thisRef,
                 nameof(_OnFlipMouseOver),
-                DotNetObjectReference.Create(this),
-                nameof(_OnFlipKey)
+                thisRef,
+                nameof(_OnFlipKey),
+                thisRef,
+                nameof(_OnCrop)
             );
             flipJson = null;
         }

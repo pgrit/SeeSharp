@@ -1,15 +1,15 @@
+import pkgutil
+import importlib
 from ...core.dispatcher import Dispatcher
-from .commands.create_path import handle_create_path
-from .commands.delete_path import handle_delete_path
-from .commands.select_path import handle_select_path
-from .commands.click_on_node import handle_click_on_node
-from .commands.dbclick_on_node import handle_dbclick_on_node
-from .commands.import_scene import handle_import_scene
+from . import commands
 
 dispatcher = Dispatcher()
-dispatcher.register("create_path", handle_create_path)
-dispatcher.register("delete_path", handle_delete_path)
-dispatcher.register("select_path", handle_select_path)
-dispatcher.register("click_on_node", handle_click_on_node)
-dispatcher.register("dbclick_on_node", handle_dbclick_on_node)
-dispatcher.register("import_scene", handle_import_scene)
+
+for _, module_name, _ in pkgutil.iter_modules(commands.__path__):
+    module = importlib.import_module(f"{commands.__name__}.{module_name}")
+
+    for attr_name in dir(module):
+        if attr_name.startswith("handle_"):
+            handler = getattr(module, attr_name)
+            command_name = attr_name.replace("handle_", "")
+            dispatcher.register(command_name, handler)

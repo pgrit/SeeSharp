@@ -6,6 +6,7 @@ public class BlenderCursorData {
     public float[]? HitPosition { get; set; }
     public int? FaceIndex { get; set; }
     public float[]? Normal { get; set; }
+    public float[]? ViewOrigin {get; set;}
 }
 
 public class CursorTrackedHandler : IBlenderEventHandler {
@@ -24,6 +25,8 @@ public class CursorTrackedHandler : IBlenderEventHandler {
                 face.GetInt32() : null,
             Normal = root.TryGetProperty("normal", out var norm) ?
                 JsonSerializer.Deserialize<float[]>(norm.GetRawText()) : null,
+            ViewOrigin = root.TryGetProperty("view_origin", out var org) ?
+                JsonSerializer.Deserialize<float[]>(org.GetRawText()) : null,    
         });
     }
 }

@@ -26,3 +26,33 @@ def renderer_to_blender_world(hit_render_pos):
         to_up="Y",
     ).to_4x4()
     return global_matrix.inverted() @ Vector(hit_render_pos)
+
+
+def get_debug_scene():
+    SCENE_NAME = "__DEBUG_SCENE__"
+    if SCENE_NAME in bpy.data.scenes:
+        return bpy.data.scenes[SCENE_NAME]
+    # Create new and link the main scene to debug scene
+    debug_scene = bpy.data.scenes.new(SCENE_NAME)
+    main_scene = get_scene()
+    for obj in main_scene.objects:
+        if obj.type not in {'MESH', 'CURVE', 'EMPTY'}:
+            continue
+
+        # Avoid double-linking
+        # if obj in debug_scene.collection.objects:
+        #     continue
+
+        new_obj = obj.copy()           # new object
+        new_obj.data = obj.data        # same mesh (no duplication)
+        debug_scene.collection.objects.link(new_obj)
+        # debug_scene.collection.objects.link(obj)
+    return debug_scene
+
+
+def get_scene():
+    SCENE_NAME = "Scene"
+    if SCENE_NAME in bpy.data.scenes:
+        return bpy.data.scenes[SCENE_NAME]
+    return bpy.data.scenes.new(SCENE_NAME)
+

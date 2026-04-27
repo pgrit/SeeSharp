@@ -306,7 +306,7 @@ public partial class GenericMaterial  : Material
         float selectTransmit = (1 - diffuseWeight) * (1 - fresnelT) * parameters.SpecularTransmittance;
 
         var fresnelTIn = Fresnel.Dielectric(Vector3.Dot(inDir, halfVectorTransmitIn), 1, parameters.IndexOfRefraction);
-        float selectTransmitIn = (1 - diffuseWeight) * (1 - fresnelT) * parameters.SpecularTransmittance;
+        float selectTransmitIn = (1 - diffuseWeight) * (1 - fresnelTIn) * parameters.SpecularTransmittance;
 
         float pdf = pdfsFwd[0] * diffuseWeight + pdfsFwd[1] * selectReflect + pdfsFwd[2] * selectTransmit;
         float pdfReverse = pdfsRev[0] * diffuseWeight + pdfsRev[1] * selectReflect + pdfsRev[2] * selectTransmitIn;

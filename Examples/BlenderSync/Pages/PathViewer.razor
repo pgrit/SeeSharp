@@ -12,13 +12,14 @@
 @using SeeSharp.Integrators;
 @using SeeSharp.Integrators.Bidir;
 @using SeeSharp.Blender;
+@using SeeSharp.SceneManagement;
 @inject IJSRuntime JS
 <h3>Render Scene</h3>
 
-<div style="display: flex; gap: 5px; flex-wrap: wrap;">
-    <div style="flex-grow: 1">
-        <BlenderImporter @ref=sceneSelector OnSceneLoaded="@OnSceneLoaded"></BlenderImporter>
-    </div>
+<div id="sceneSelector">
+    <SceneSelector OnSceneLoaded="@OnSceneLoaded"></SceneSelector>
+</div>
+<div id="logOutput" style="margin-top: 0.25em; margin-bottom: 0.25em;">
     <LogOutput></LogOutput>
 </div>
 
@@ -55,7 +56,6 @@
 }
 
 @code {
-    BlenderImporter sceneSelector;
     private string renderedImage;
     private string hitInfo;
 
@@ -64,11 +64,12 @@
     public PathGraphNode? viewer_root = null;
     public Dictionary<string, PathGraphNode>? viewer_roots = new Dictionary<string, PathGraphNode>();
 
+    SceneDirectory LoadedSceneDirectory;
     Scene scene;
     Integrator path_tracer = new PathTracer()
     {
         MaxDepth = 5,
-        TotalSpp = 1,
+        @* TotalSpp = 1, *@
         EnableDenoiser = false
     };
 
@@ -81,7 +82,7 @@
     Integrator integrator = new PathTracer()
     {
         MaxDepth = 5,
-        TotalSpp = 1,
+        @* TotalSpp = 1, *@
         EnableDenoiser = false
     };
 
@@ -100,18 +101,20 @@
     PathGraph graph;
     RgbColor estimate;
 
-    async Task OnSceneLoaded(SceneFromFile sceneFromFile)
+    async Task OnSceneLoaded(SceneDirectory sceneDirectory)
     {
-        await Task.Run(() => scene = sceneFromFile.MakeScene());
-        Console.WriteLine("About to load this scene: " + sceneSelector.FindJson(sceneSelector.sceneNameInput.Text));
-
+        LoadedSceneDirectory = sceneDirectory;
+        await Task.Run(() => scene = LoadedSceneDirectory.SceneLoader.Scene);
         paths.Clear();
         viewer_roots.Clear();
 
         await Commander.SendCommandAsync(new
         {
             command = "import_scene",
-            scene_name = sceneSelector.FindJson(sceneSelector.sceneNameInput.Text)
+            scene_name = Path.Combine(
+                LoadedSceneDirectory.Directory.FullName,
+                $"{LoadedSceneDirectory.Name}.json"
+            )
         });
     }
 

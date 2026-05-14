@@ -1,6 +1,7 @@
 @using SeeSharp.Experiments
 @using SeeSharp
 @using SeeSharp.Blazor
+@using SeeSharp.SceneManagement
 
 @inject IJSRuntime JS
 
@@ -8,10 +9,10 @@
 
 <h1>Example experiment</h1>
 
-<div style="display: flex; gap: 5px; flex-wrap: wrap;">
-    <div style="flex-grow: 1">
-        <SceneSelector @ref=sceneSelector OnSceneLoaded="@OnSceneLoaded"></SceneSelector>
-    </div>
+<div id="sceneSelector">
+    <SceneSelector OnSceneLoaded="@OnSceneLoaded"></SceneSelector>
+</div>
+<div id="logOutput" style="margin-top: 0.25em; margin-bottom: 0.25em;">
     <LogOutput></LogOutput>
 </div>
 
@@ -56,6 +57,7 @@
 
 @code {
     SceneSelector sceneSelector;
+    SceneDirectory LoadedSceneDirectory;
     Scene scene;
     bool readyToRun = false;
     bool running = false;
@@ -65,9 +67,10 @@
 
     SimpleImageIO.FlipBook flip;
 
-    async Task OnSceneLoaded(SceneFromFile sceneFromFile)
+    async Task OnSceneLoaded(SceneDirectory sceneDirectory)
     {
-        await Task.Run(() => scene = sceneFromFile.MakeScene());
+        LoadedSceneDirectory = sceneDirectory;
+        await Task.Run(() => scene = LoadedSceneDirectory.SceneLoader.Scene);
         flip = null;
         resultsAvailable = false;
         readyToRun = true;

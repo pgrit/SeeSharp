@@ -189,6 +189,8 @@ def unregister():
     for cls in reversed(classes):
         bpy.utils.unregister_class(cls)
 
-    del bpy.types.Scene.cursor_sender_props
+    # del bpy.types.Scene.cursor_sender_props
+    if hasattr(bpy.types.Scene, "cursor_sender_props"):
+        del bpy.types.Scene.cursor_sender_props
 
     print("Add-on unregistered.")

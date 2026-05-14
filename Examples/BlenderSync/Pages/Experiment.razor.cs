@@ -24,7 +24,7 @@ public partial class Experiment : ComponentBase
 
         PathTracer pathTracer = new()
         {
-            TotalSpp = NumSamples,
+            // TotalSpp = NumSamples,
             MaxDepth = MaxDepth,
         };
         pathTracer.Render(scene);
@@ -34,7 +34,7 @@ public partial class Experiment : ComponentBase
         scene.FrameBuffer = new(Width, Height, "");
         VertexConnectionAndMerging vcm = new()
         {
-            NumIterations = NumSamples,
+            NumIterations = (uint)NumSamples,
             MaxDepth = MaxDepth,
         };
         vcm.Render(scene);
@@ -44,11 +44,11 @@ public partial class Experiment : ComponentBase
 
     SurfacePoint? selected;
 
-    void OnFlipClick(FlipViewer.OnClickEventArgs args)
+    void OnFlipClick(FlipViewer.EventArgs args)
     {
-        if (args.CtrlKey)
+        if (args.Control)
         {
-            selected = scene.RayCast(new(args.X, args.Y));
+            selected = scene.RayCast(new(args.MouseX, args.MouseY));
         }
     }
 

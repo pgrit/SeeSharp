@@ -5,8 +5,8 @@
 /// traces a certain number of paths from the light sources and one camera path per pixel.
 /// Derived classes can control the sampling decisions and techniques.
 /// </summary>
-public abstract partial class BidirBase<CameraPayloadType> : Integrator {
-
+public abstract partial class BidirBase<CameraPayloadType> : Integrator
+{
     #region Parameters
 
     /// <summary>
@@ -24,10 +24,11 @@ public abstract partial class BidirBase<CameraPayloadType> : Integrator {
     /// <summary>
     /// The base seed to generate camera paths.
     /// </summary>
-    public uint BaseSeedCamera {
+    public uint BaseSeedCamera
+    {
         get => (uint)(BaseSeed >> 16);
-        set {
-            Debug.Assert(value <= 0xFFFF);
+        set
+        {
             BaseSeed &= 0x0000FFFF;
             BaseSeed |= value << 16;
         }
@@ -36,10 +37,11 @@ public abstract partial class BidirBase<CameraPayloadType> : Integrator {
     /// <summary>
     /// The base seed used when sampling paths from the light sources
     /// </summary>
-    public uint BaseSeedLight {
+    public uint BaseSeedLight
+    {
         get => BaseSeed & 0x0000FFFF;
-        set {
-            Debug.Assert(value <= 0xFFFF);
+        set
+        {
             BaseSeed &= 0xFFFF0000;
             BaseSeed |= value & 0x0000FFFF;
         }
@@ -55,12 +57,14 @@ public abstract partial class BidirBase<CameraPayloadType> : Integrator {
     /// <summary>
     /// The scene that is currently being rendered
     /// </summary>
-    [JsonIgnore] protected Scene Scene;
+    [JsonIgnore]
+    protected Scene Scene;
 
     /// <summary>
     /// Logs denoiser-related features at the primary hit points of all camera paths
     /// </summary>
-    [JsonIgnore] protected DenoiseBuffers DenoiseBuffers;
+    [JsonIgnore]
+    protected DenoiseBuffers DenoiseBuffers;
 
     /// <summary>
     /// Called once after the end of each rendering iteration (one sample per pixel)
@@ -89,13 +93,15 @@ public abstract partial class BidirBase<CameraPayloadType> : Integrator {
     /// Renders the scene with the current settings. Not thread-safe: Only one scene can be rendered at a
     /// time by the same object of this class.
     /// </summary>
-    public override void Render(Scene scene) {
+    public override void Render(Scene scene)
+    {
         Scene = scene;
 
         if (NumLightPaths < 0)
             NumLightPaths = scene.FrameBuffer.Width * scene.FrameBuffer.Height;
 
-        if (EnableDenoiser) DenoiseBuffers = new(scene.FrameBuffer);
+        if (EnableDenoiser)
+            DenoiseBuffers = new(scene.FrameBuffer);
         OnBeforeRender();
 
         ProgressBar progressBar = new(prefix: "Rendering...");
@@ -105,11 +111,14 @@ public abstract partial class BidirBase<CameraPayloadType> : Integrator {
         Stopwatch pathTracerTimer = new();
         ShadingStatCounter.Reset();
         scene.Raytracer.ResetStats();
-        for (uint iter = 0; iter < NumIterations; ++iter) {
+        for (uint iter = 0; iter < NumIterations; ++iter)
+        {
             long nextIterTime = timer.RenderTime + timer.PerIterationCost;
-            if (MaximumRenderTimeMs.HasValue && nextIterTime > MaximumRenderTimeMs.Value) {
+            if (MaximumRenderTimeMs.HasValue && nextIterTime > MaximumRenderTimeMs.Value)
+            {
                 Logger.Log("Maximum render time exhausted.");
-                if (EnableDenoiser) DenoiseBuffers.Denoise();
+                if (EnableDenoiser)
+                    DenoiseBuffers.Denoise();
                 progressBar.Terminate();
                 break;
             }
@@ -120,7 +129,8 @@ public abstract partial class BidirBase<CameraPayloadType> : Integrator {
             timer.EndFrameBuffer();
 
             OnStartIteration(iter);
-            try {
+            try
+            {
                 lightTracerTimer.Start();
                 TraceLightPaths(BaseSeedLight, iter);
                 ProcessPathCache();
@@ -128,8 +138,13 @@ public abstract partial class BidirBase<CameraPayloadType> : Integrator {
                 pathTracerTimer.Start();
                 TraceAllCameraPaths(iter);
                 pathTracerTimer.Stop();
-            } catch {
-                Logger.Log($"Exception in iteration {iter} out of {NumIterations}.", Verbosity.Error);
+            }
+            catch
+            {
+                Logger.Log(
+                    $"Exception in iteration {iter} out of {NumIterations}.",
+                    Verbosity.Error
+                );
                 throw;
             }
             OnEndIteration(iter);
@@ -166,7 +181,12 @@ public abstract partial class BidirBase<CameraPayloadType> : Integrator {
     /// <param name="cameraPathLength">Number of edges in the camera sub-path (0 if light tracer).</param>
     /// <param name="lightPathLength">Number of edges in the light sub-path (0 when hitting the light).</param>
     /// <param name="fullLength">Number of edges forming the full path. Used to disambiguate techniques.</param>
-    protected virtual void RegisterSample(RgbColor weight, float misWeight, Pixel pixel,
-                                          int cameraPathLength, int lightPathLength, int fullLength) { }
-
+    protected virtual void RegisterSample(
+        RgbColor weight,
+        float misWeight,
+        Pixel pixel,
+        int cameraPathLength,
+        int lightPathLength,
+        int fullLength
+    ) { }
 }

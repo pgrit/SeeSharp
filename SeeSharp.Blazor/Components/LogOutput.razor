@@ -32,8 +32,19 @@
                             _ => ""
                         })">
                     <td>@m.Time.ToString("HH:mm:ss")</td>
+                    <td>
+                        @(m.Verbosity switch {
+                            Verbosity.Error => "error",
+                            Verbosity.Warning => "warning",
+                            Verbosity.Debug => "debug",
+                            _ => "info"
+                        })
+                    </td>
                     <td class="msg">
                         @m.Message
+                    </td>
+                    <td>
+                        @m.Caller
                     </td>
                 </tr>
             }
@@ -43,9 +54,9 @@
 
 @code {
     Lock msgLock = new();
-    List<(Verbosity Verbosity, string Message, DateTime Time)> messages = [];
+    List<(Verbosity Verbosity, string Message, string Caller, DateTime Time)> messages = [];
 
-    IEnumerable<(Verbosity Verbosity, string Message, DateTime Time)> Iterate()
+    IEnumerable<(Verbosity Verbosity, string Message, string Caller, DateTime Time)> Iterate()
     {
         try {
             msgLock.Enter();
@@ -56,9 +67,9 @@
         }
     }
 
-    public void Write(Verbosity verbosity, string message) {
+    public void Write(Verbosity verbosity, string message, string caller) {
         lock (msgLock)
-            messages.Insert(0, (verbosity, message, DateTime.Now));
+            messages.Insert(0, (verbosity, message, caller, DateTime.Now));
         InvokeAsync(StateHasChanged);
     }
 

@@ -30,7 +30,7 @@ public enum Verbosity
 
 public interface ILogOutput
 {
-    void Write(Verbosity verbosity, string message);
+    void Write(Verbosity verbosity, string message, string caller);
 }
 
 /// <summary>
@@ -70,7 +70,7 @@ public static class Logger
         string caller = $"{memberName} in {Path.GetFileName(sourceFilePath)}:{sourceLineNumber}";
         foreach (var l in logWriters)
         {
-            l.Write(verbosity, message + $" -- {caller}");
+            l.Write(verbosity, message, caller);
         }
 
         if (Verbosity < verbosity)
@@ -97,7 +97,7 @@ public static class Logger
                     Console.Write("[DEBUG] ");
                     break;
             }
-            Console.WriteLine(message + $" -- {caller}");
+            Console.WriteLine(message + $" [{caller}]");
             Console.ResetColor();
         }
     }

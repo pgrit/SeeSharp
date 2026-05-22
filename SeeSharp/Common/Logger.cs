@@ -84,17 +84,17 @@ public static class Logger
             {
                 case Verbosity.Error:
                     Console.ForegroundColor = ConsoleColor.Red;
-                    Console.Write("⛔ Error: ");
+                    Console.Write("❌ Error: ");
                     break;
                 case Verbosity.Warning:
                     Console.ForegroundColor = ConsoleColor.Yellow;
                     Console.Write("⚠️ Warning: ");
                     break;
                 case Verbosity.Info:
-                    Console.Write("💡 Info: ");
+                    Console.Write("Info: ");
                     break;
                 case Verbosity.Debug:
-                    Console.Write("[DEBUG] ");
+                    Console.Write("🔎 Debug: ");
                     break;
             }
             Console.WriteLine(message + $" [{caller}]");

@@ -1,0 +1,47 @@
+@using System.Reflection
+
+@namespace SeeSharp.Blazor
+
+<details>
+    <summary>@Name</summary>
+    <div>
+        @foreach (var prop in TargetType.GetProperties())
+        {
+            <RenderSetting
+                Member="@prop"
+                Getter="() => prop.GetValue(StructInstance)"
+                Setter="v => UpdateProperty(prop, v)" />
+        }
+
+        @foreach (var field in TargetType.GetFields())
+        {
+            <RenderSetting
+                Member="@field"
+                Getter="() => field.GetValue(StructInstance)"
+                Setter="v => UpdateField(field, v)" />
+        }
+    </div>
+</details>
+
+@code {
+    [Parameter] public string Name { get; set; } = string.Empty;
+    [Parameter] public Type TargetType { get; set; } = default!;
+    [Parameter] public Func<object> Getter { get; set; } = default!;
+    [Parameter] public Action<object> Setter { get; set; } = default!;
+
+    private object StructInstance => Getter() ?? Activator.CreateInstance(TargetType)!;
+
+    private void UpdateProperty(PropertyInfo prop, object val)
+    {
+        var obj = StructInstance;
+        prop.SetValue(obj, val);
+        Setter(obj);
+    }
+
+    private void UpdateField(FieldInfo field, object val)
+    {
+        var obj = StructInstance;
+        field.SetValue(obj, val);
+        Setter(obj);
+    }
+}

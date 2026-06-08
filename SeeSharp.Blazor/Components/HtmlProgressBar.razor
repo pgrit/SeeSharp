@@ -10,7 +10,8 @@
     border-style: solid;
     border-radius: 4px;
     display: flex;
-    align-items: center;">
+    align-items: center;
+    z-index: 2000;">
 
     @if(progressBar != null && progressBar.NumWorkDone < progressBar.TotalWork && FunStuff != null) {
         <img src="@FunStuff[imageIdx]" height="100px" style="

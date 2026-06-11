@@ -32,14 +32,6 @@
                             _ => ""
                         })">
                     <td>@m.Time.ToString("HH:mm:ss")</td>
-                    <td>
-                        @(m.Verbosity switch {
-                            Verbosity.Error => "error",
-                            Verbosity.Warning => "warning",
-                            Verbosity.Debug => "debug",
-                            _ => "info"
-                        })
-                    </td>
                     <td class="msg">
                         @m.Message
                     </td>

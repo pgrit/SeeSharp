@@ -1,0 +1,25 @@
+@namespace SeeSharp.Blazor
+
+<li class="node-item" style="list-style: none;">
+    <div class="node-label @(SelectedNode?.Id == Node.Id ? "selected" : "")"
+         @onclick="() => OnNodeSelected.InvokeAsync(Node)"
+         style="cursor: pointer; padding: 4px; border-radius: 4px; display: flex; align-items: center; gap: 8px;">
+         <span class="name">@Node.Name</span>
+    </div>
+
+    @if (Node.Children.Any())
+    {
+        <ul style="padding-left: 20px; border-left: 1px dashed #ccc; margin-left: 10px;">
+            @foreach (var child in Node.Children)
+            {
+                <IntegratorTreeNode @key="child.Id" Node="child" SelectedNode="SelectedNode" OnNodeSelected="OnNodeSelected" />
+            }
+        </ul>
+    }
+</li>
+
+@code {
+    [Parameter] public ModuleNode Node { get; set; } = default!;
+    [Parameter] public ModuleNode? SelectedNode { get; set; }
+    [Parameter] public EventCallback<ModuleNode> OnNodeSelected { get; set; }
+}

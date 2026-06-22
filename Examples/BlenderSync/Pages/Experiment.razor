@@ -2,7 +2,7 @@
 @using SeeSharp
 @using SeeSharp.Blazor
 @using SeeSharp.SceneManagement
-
+@inject SeeSharp.Blender.BlenderCommandSender Commander
 @inject IJSRuntime JS
 
 @page "/Experiment"
@@ -75,6 +75,15 @@
         resultsAvailable = false;
         readyToRun = true;
         sceneJustLoaded = true;
+
+        await Commander.SendCommandAsync(new
+        {
+            command = "import_scene",
+            scene_name = Path.Combine(
+                LoadedSceneDirectory.Directory.FullName,
+                $"{LoadedSceneDirectory.Name}.json"
+            )
+        });
     }
 
     protected override async Task OnAfterRenderAsync(bool firstRender)

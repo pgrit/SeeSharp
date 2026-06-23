@@ -1,0 +1,109 @@
+@using SeeSharp.Experiments
+@using SeeSharp
+@using SeeSharp.Blazor
+@using SeeSharp.SceneManagement
+@inject SeeSharp.Blender.BlenderCommandSender Commander
+@inject IJSRuntime JS
+
+@page "/Experiment"
+
+<h1>Example experiment</h1>
+
+<div id="sceneSelector">
+    <SceneSelector OnSceneLoaded="@OnSceneLoaded"></SceneSelector>
+</div>
+<div id="logOutput" style="margin-top: 0.25em; margin-bottom: 0.25em;">
+    <LogOutput></LogOutput>
+</div>
+
+<div>
+    <div class="experiment-settings">
+        @if (readyToRun)
+        {
+            <p><button @onclick="OnRunClick" @ref="runButton">Run</button></p>
+        }
+        <SettingsGroup Title="Experiment settings">
+            <IntSetting Label="Num samples" @bind-Value=NumSamples HoverText="Number of samples per pixel" />
+        </SettingsGroup>
+    </div>
+
+    @if (!running)
+    {
+        @if (resultsAvailable)
+        {
+            <div class="experiment-results">
+                <FlipViewer Flip="@flip" OnClick="@OnFlipClick"></FlipViewer>
+
+                @if (selected.HasValue && selected.Value)
+                {
+                    <table>
+                        <tr><th>Mesh</th><td>@(selected.Value.Mesh.Name)</td></tr>
+                        <tr><th>Material</th><td>@(selected.Value.Mesh.Material.Name) (roughness: @(selected.Value.Mesh.Material.GetRoughness(selected.Value)), transmissive: @(selected.Value.Mesh.Material.IsTransmissive(selected.Value)))</td></tr>
+                        <tr><th>Distance</th><td>@(selected.Value.Distance)</td></tr>
+                        <tr><th>Position</th><td>@(selected.Value.Position)</td></tr>
+                    </table>
+                }
+                <button @onclick="OnDownloadClick">Download results</button>
+            </div>
+        }
+    }
+    else
+    {
+        <p>Rendering...</p>
+    }
+</div>
+
+<HtmlProgressBar></HtmlProgressBar>
+
+@code {
+    SceneSelector sceneSelector;
+    SceneDirectory LoadedSceneDirectory;
+    Scene scene;
+    bool readyToRun = false;
+    bool running = false;
+    bool sceneJustLoaded = false;
+    bool resultsAvailable = false;
+    ElementReference runButton;
+
+    SimpleImageIO.FlipBook flip;
+
+    async Task OnSceneLoaded(SceneDirectory sceneDirectory)
+    {
+        LoadedSceneDirectory = sceneDirectory;
+        await Task.Run(() => scene = LoadedSceneDirectory.SceneLoader.Scene);
+        flip = null;
+        resultsAvailable = false;
+        readyToRun = true;
+        sceneJustLoaded = true;
+
+        await Commander.SendCommandAsync(new
+        {
+            command = "import_scene",
+            scene_name = Path.Combine(
+                LoadedSceneDirectory.Directory.FullName,
+                $"{LoadedSceneDirectory.Name}.json"
+            )
+        });
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (readyToRun && sceneJustLoaded)
+        {
+            await runButton.FocusAsync();
+        }
+
+        sceneJustLoaded = false;
+    }
+
+    async Task OnRunClick()
+    {
+        readyToRun = false;
+        resultsAvailable = false;
+        running = true;
+        await Task.Run(() => RunExperiment());
+        readyToRun = true;
+        running = false;
+        resultsAvailable = true;
+    }
+}

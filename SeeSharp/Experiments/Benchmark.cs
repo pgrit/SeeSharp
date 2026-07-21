@@ -73,6 +73,7 @@ public class Benchmark
         {
             string refFilename = Path.Join(dir, "Reference.exr");
             reference.Value.File.CopyTo(refFilename, true);
+            refImg = new RgbImage(refFilename);
 
             try
             {

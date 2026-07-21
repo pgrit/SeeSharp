@@ -354,13 +354,11 @@ public class VertexConnectionAndMergingBase<CameraPayloadType>
         var dirToAncestor = Vector3.Normalize(ancestor.Point.Position - shader.Point.Position);
         var bsdfValue = shader.Evaluate(dirToAncestor);
         float cosGeometry = float.Abs(Vector3.Dot(photon.Point.Normal, dirToAncestor));
-        bsdfValue *= cosGeometry > 1e-6f
-            ? float.Abs(Vector3.Dot(shader.Point.ShadingNormal, dirToAncestor)) / cosGeometry
-            : 0.0f;    
+        bsdfValue *= float.Abs(Vector3.Dot(shader.Point.ShadingNormal, dirToAncestor)) / cosGeometry;    
         var photonContrib = photon.Weight * bsdfValue / NumLightPaths;
 
         // Early exit + prevent NaN / Inf
-        if (photonContrib == RgbColor.Black)
+        if (photonContrib == RgbColor.Black || cosGeometry == 0.0f)
             return RgbColor.Black;
         // Prevent outliers due to numerical issues with photons arriving almost parallel to the surface
         if (Math.Abs(Vector3.Dot(dirToAncestor, shader.Point.Normal)) < 1e-4f)

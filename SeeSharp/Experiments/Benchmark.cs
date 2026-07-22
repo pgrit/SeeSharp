@@ -73,7 +73,7 @@ public class Benchmark
         {
             string refFilename = Path.Join(dir, "Reference.exr");
             reference.Value.File.CopyTo(refFilename, true);
-            refImg = new RgbImage(refFilename);
+            refImg = reference.Value.Image;
 
             try
             {
@@ -102,8 +102,7 @@ public class Benchmark
             method.Integrator.MaxDepth = sceneConfig.MaxDepth;
             method.Integrator.MinDepth = sceneConfig.MinDepth;
 
-            if (computeErrorMetrics && refImg != null)
-                scene.FrameBuffer.ReferenceImage = refImg;
+            scene.FrameBuffer.ReferenceImage = computeErrorMetrics ? refImg : null;
 
             scene.Raytracer.ResetStats();
             ShadingStatCounter.Reset();

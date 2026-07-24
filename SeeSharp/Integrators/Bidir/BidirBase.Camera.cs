@@ -330,20 +330,26 @@ public abstract partial class BidirBase<CameraPayloadType> {
     }
 
     /// <summary>
-    /// Computes the pdf used by <see cref="SampleNextEvent" />
+    /// Computes the pdf used by <see cref="SampleNextEvent" /> for an area light source. Assumes that `to` is a valid point on an emitter.
     /// </summary>
     /// <param name="from">The shading point</param>
     /// <param name="to">The point on the light source</param>
     /// <returns>PDF of next event estimation</returns>
-    protected virtual float NextEventPdf(SurfacePoint from, SurfacePoint to) {
+    public virtual float NextEventPdf(SurfacePoint from, SurfacePoint to) {
         float backgroundProbability = ComputeNextEventBackgroundProbability(/*hit*/);
-        if (to.Mesh == null) { // Background
-            var direction = to.Position - from.Position;
-            return Scene.Background.DirectionPdf(direction) * backgroundProbability * NumShadowRays;
-        } else { // Emissive object
-            var emitter = Scene.QueryEmitter(to);
-            return emitter.PdfUniformArea(to) * SelectLightPmf(from, emitter) * (1 - backgroundProbability) * NumShadowRays;
-        }
+        var emitter = Scene.QueryEmitter(to);
+        return emitter.PdfUniformArea(to) * SelectLightPmf(from, emitter) * (1 - backgroundProbability) * NumShadowRays;
+    }
+
+    /// <summary>
+    /// Computes the pdf used by <see cref="SampleNextEvent" /> for a background ray direction. 
+    /// </summary>
+    /// <param name="from">The shading point</param>
+    /// <param name="direction">The direction from the shading point to the background</param>
+    /// <returns>PDF of next event estimation</returns>
+    public virtual float NextEventPdf(SurfacePoint from, Vector3 direction) {
+        float backgroundProbability = ComputeNextEventBackgroundProbability(/*hit*/);
+        return Scene.Background.DirectionPdf(direction) * backgroundProbability * NumShadowRays;
     }
 
     /// <summary>
@@ -503,7 +509,7 @@ public abstract partial class BidirBase<CameraPayloadType> {
 
         // Compute pdf values
         float pdfEmit = ComputeEmitterPdf(emitter, hit, outDir, reversePdfJacobian);
-        float pdfNextEvent = NextEventPdf(new SurfacePoint(), hit); // TODO get the actual previous point!
+        float pdfNextEvent = NextEventPdf(SurfacePoint.Invalid, hit); // TODO get the actual previous point!
 
         int numPdfs = path.Vertices.Count;
         int lastCameraVertexIdx = numPdfs - 1;
@@ -538,7 +544,7 @@ public abstract partial class BidirBase<CameraPayloadType> {
 
         // Compute the pdf of sampling the same connection via next event estimation.
         // TODO get the actual previous point (need the mesh, not just the position)
-        float pdfNextEvent = NextEventPdf(new SurfacePoint(), SurfacePoint.Invalid);
+        float pdfNextEvent = NextEventPdf(SurfacePoint.Invalid, ray.Direction);
 
         int numPdfs = path.Vertices.Count;
         int lastCameraVertexIdx = numPdfs - 1;

@@ -74,7 +74,9 @@ public abstract partial class BidirBase<CameraPayloadType> {
         pathPdfs.PdfsCameraToLight[0] = response.PdfEmit;
         pathPdfs.PdfsCameraToLight[1] = pdfReverse;
         if (vertex.Depth == 1)
-            pathPdfs.PdfNextEvent = NextEventPdf(vertex.Point, ancestor.Point);
+            pathPdfs.PdfNextEvent = ancestor.Point 
+                ? NextEventPdf(vertex.Point, ancestor.Point) 
+                : NextEventPdf(vertex.Point, ancestor.Point.Position - vertex.Point.Position);
 
         float misWeight = LightTracerMis(vertex, pathPdfs, response.Pixel, distToCam);
 
@@ -201,7 +203,7 @@ public abstract partial class BidirBase<CameraPayloadType> {
         else
             PathCache.Clear();
 
-        LightPathWalk walkModifier = new(PathCache, (to, from, _) => NextEventPdf(from, to));
+        LightPathWalk walkModifier = new(PathCache, (to, from, _) => to ? NextEventPdf(from, to) : NextEventPdf(from, to.Position - from.Position));
 
         Parallel.For(0, NumLightPaths, idx => {
             var rng = new RNG(seed, (uint)idx, iter);

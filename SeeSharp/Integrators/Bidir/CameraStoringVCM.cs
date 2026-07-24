@@ -420,7 +420,7 @@ public class CameraStoringVCM<TLightPathData> : Integrator where TLightPathData 
         float pdfEmit = ComputeBackgroundPdf(ray.Origin, -ray.Direction);
 
         // Compute the pdf of sampling the same connection via next event estimation.
-        float pdfNextEvent = NextEventPdf(state.Vertices[^1].Point, SurfacePoint.Invalid);
+        float pdfNextEvent = NextEventPdf(state.Vertices[^1].Point, ray.Direction);
 
         var pathPdfs = new BidirPathPdfs(stackalloc float[state.Depth], stackalloc float[state.Depth]);
         pathPdfs.GatherCameraPdfs(state, state.Depth - 2);
@@ -497,20 +497,26 @@ public class CameraStoringVCM<TLightPathData> : Integrator where TLightPathData 
     }
 
     /// <summary>
-    /// Computes the pdf used by <see cref="SampleNextEvent" />
+    /// Computes the pdf used by <see cref="SampleNextEvent" /> for an area light source. Assumes that `to` is a valid point on an emitter.
     /// </summary>
     /// <param name="from">The shading point</param>
     /// <param name="to">The point on the light source</param>
     /// <returns>PDF of next event estimation</returns>
     public virtual float NextEventPdf(SurfacePoint from, SurfacePoint to) {
         float backgroundProbability = ComputeNextEventBackgroundProbability(/*hit*/);
-        if (to.Mesh == null) { // Background
-            var direction = to.Position - from.Position;
-            return Scene.Background.DirectionPdf(direction) * backgroundProbability * NumShadowRays;
-        } else { // Emissive object
-            var emitter = Scene.QueryEmitter(to);
-            return emitter.PdfUniformArea(to) * SelectLightPmf(from, emitter) * (1 - backgroundProbability) * NumShadowRays;
-        }
+        var emitter = Scene.QueryEmitter(to);
+        return emitter.PdfUniformArea(to) * SelectLightPmf(from, emitter) * (1 - backgroundProbability) * NumShadowRays;
+    }
+
+    /// <summary>
+    /// Computes the pdf used by <see cref="SampleNextEvent" /> for a background ray direction. 
+    /// </summary>
+    /// <param name="from">The shading point</param>
+    /// <param name="direction">The direction from the shading point to the background</param>
+    /// <returns>PDF of next event estimation</returns>
+    public virtual float NextEventPdf(SurfacePoint from, Vector3 direction) {
+        float backgroundProbability = ComputeNextEventBackgroundProbability(/*hit*/);
+        return Scene.Background.DirectionPdf(direction) * backgroundProbability * NumShadowRays;
     }
 
     /// <summary>

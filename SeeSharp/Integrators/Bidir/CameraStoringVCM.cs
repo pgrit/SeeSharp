@@ -163,10 +163,8 @@ public class CameraStoringVCM<TLightPathData> : Integrator where TLightPathData 
 
     public override void Render(Scene scene) => Render(scene, 0);
 
-    public void Render(Scene scene, int startAtIteration) 
-    {
-        try 
-        {
+    public void Render(Scene scene, int startAtIteration) {
+        try {
             Scene = scene;
             IsolatedPixel = null;
 
@@ -272,9 +270,7 @@ public class CameraStoringVCM<TLightPathData> : Integrator where TLightPathData 
                 if (!string.IsNullOrEmpty(scene.FrameBuffer.Basename))
                     TechPyramidWeighted.WriteToFiles(Path.Join(scene.FrameBuffer.Basename, "techs-weighted"));
             }
-        }
-        finally
-        {
+        } finally {
             photonMap?.Dispose();
             photonMap = null;
         }
@@ -290,7 +286,7 @@ public class CameraStoringVCM<TLightPathData> : Integrator where TLightPathData 
     public override (PathGraph Graph, RgbColor Estimate) ReplayPixel(Scene scene, Pixel pixel, int iteration) {
         Scene = scene;
         IsolatedPixel = pixel;
-        ReplayValue = new(1,1);
+        ReplayValue = new(1, 1);
 
         if (NumLightPaths < 0)
             NumLightPaths = scene.FrameBuffer.Width * scene.FrameBuffer.Height;
@@ -420,7 +416,7 @@ public class CameraStoringVCM<TLightPathData> : Integrator where TLightPathData 
         float pdfEmit = ComputeBackgroundPdf(ray.Origin, -ray.Direction);
 
         // Compute the pdf of sampling the same connection via next event estimation.
-        float pdfNextEvent = NextEventPdf(state.Vertices[^1].Point, ray.Direction);
+        float pdfNextEvent = state.Depth > 1 ? NextEventPdf(state.Vertices[^1].Point, ray.Direction) : 0;
 
         var pathPdfs = new BidirPathPdfs(stackalloc float[state.Depth], stackalloc float[state.Depth]);
         pathPdfs.GatherCameraPdfs(state, state.Depth - 2);
@@ -1231,7 +1227,7 @@ public class CameraStoringVCM<TLightPathData> : Integrator where TLightPathData 
 
         graph?.Roots.Add(new(sample.Ray.Origin));
         state.GraphVertex = graph?.Roots[^1];
-        if (graph != null) replayPathNodes = [ state.GraphVertex ];
+        if (graph != null) replayPathNodes = [state.GraphVertex];
 
         RgbColor estimate = RgbColor.Black;
         RgbColor approxThroughput = RgbColor.White;

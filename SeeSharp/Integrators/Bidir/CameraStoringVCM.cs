@@ -420,8 +420,7 @@ public class CameraStoringVCM<TLightPathData> : Integrator where TLightPathData 
         float pdfEmit = ComputeBackgroundPdf(ray.Origin, -ray.Direction);
 
         // Compute the pdf of sampling the same connection via next event estimation.
-        float pdfNextEvent = NextEventPdf(new SurfacePoint { Position = ray.Origin },
-                                          new SurfacePoint { Position = ray.Origin + ray.Direction });
+        float pdfNextEvent = NextEventPdf(state.Vertices[^1].Point, SurfacePoint.Invalid);
 
         var pathPdfs = new BidirPathPdfs(stackalloc float[state.Depth], stackalloc float[state.Depth]);
         pathPdfs.GatherCameraPdfs(state, state.Depth - 2);

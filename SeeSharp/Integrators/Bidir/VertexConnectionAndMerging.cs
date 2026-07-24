@@ -240,7 +240,15 @@ public class VertexConnectionAndMergingBase<CameraPayloadType>
         if (photonMap == null)
             photonMap = new();
 
-        base.Render(scene);
+        try
+        {
+            base.Render(scene);
+        }
+        finally
+        {
+            photonMap?.Dispose();
+            photonMap = null;
+        }
 
         // Store the technique pyramids
         if (RenderTechniquePyramid)
@@ -257,9 +265,6 @@ public class VertexConnectionAndMergingBase<CameraPayloadType>
                     Path.Join(scene.FrameBuffer.Basename, "techs-weighted")
                 );
         }
-
-        photonMap.Dispose();
-        photonMap = null;
     }
 
     Stopwatch mergeBuildTimer;

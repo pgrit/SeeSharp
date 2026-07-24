@@ -163,115 +163,121 @@ public class CameraStoringVCM<TLightPathData> : Integrator where TLightPathData 
 
     public override void Render(Scene scene) => Render(scene, 0);
 
-    public void Render(Scene scene, int startAtIteration) {
-        Scene = scene;
-        IsolatedPixel = null;
+    public void Render(Scene scene, int startAtIteration) 
+    {
+        try 
+        {
+            Scene = scene;
+            IsolatedPixel = null;
 
-        if (NumLightPaths < 0)
-            NumLightPaths = scene.FrameBuffer.Width * scene.FrameBuffer.Height;
+            if (NumLightPaths < 0)
+                NumLightPaths = scene.FrameBuffer.Width * scene.FrameBuffer.Height;
 
-        if (EnableDenoiser)
-            DenoiseBuffers = new(scene.FrameBuffer);
+            if (EnableDenoiser)
+                DenoiseBuffers = new(scene.FrameBuffer);
 
-        OnBeforeRender();
+            OnBeforeRender();
 
-        if (RenderTechniquePyramid && MaxDepth > 10) {
-            Logger.Warning("MaxDepth is set above 10, but a technique pyramid was requested (RenderTechniquePyramid == true). To avoid excessive memory consumption, the RenderTechniquePyramid flag will be ignored.");
-            RenderTechniquePyramid = false;
-        }
-
-        if (RenderTechniquePyramid) {
-            TechPyramidRaw = new TechPyramid(scene.FrameBuffer.Width, scene.FrameBuffer.Height,
-                                             minDepth: 1, maxDepth: MaxDepth, merges: EnableMerging);
-            TechPyramidWeighted = new TechPyramid(scene.FrameBuffer.Width, scene.FrameBuffer.Height,
-                                                  minDepth: 1, maxDepth: MaxDepth, merges: EnableMerging);
-        }
-
-        CameraPaths = new(scene.FrameBuffer.Width * scene.FrameBuffer.Height, Math.Min(MaxDepth + 1, 10));
-        photonMap ??= new();
-
-        ProgressBar progressBar = new(prefix: "Rendering...");
-        progressBar.Start(NumIterations);
-        RenderTimer timer = new();
-        Stopwatch lightTracerTimer = new();
-        Stopwatch pathTracerTimer = new();
-        Stopwatch accelBuildTimer = new();
-        ShadingStatCounter.Reset();
-        scene.Raytracer.ResetStats();
-        for (uint iter = (uint)startAtIteration; iter - startAtIteration < NumIterations; ++iter) {
-            long nextIterTime = timer.RenderTime + timer.PerIterationCost;
-            if (MaximumRenderTimeMs.HasValue && nextIterTime > MaximumRenderTimeMs.Value) {
-                Logger.Log("Maximum render time exhausted.");
-                // if (EnableDenoiser) DenoiseBuffers.Denoise();
-                progressBar.Terminate();
-                break;
+            if (RenderTechniquePyramid && MaxDepth > 10) {
+                Logger.Warning("MaxDepth is set above 10, but a technique pyramid was requested (RenderTechniquePyramid == true). To avoid excessive memory consumption, the RenderTechniquePyramid flag will be ignored.");
+                RenderTechniquePyramid = false;
             }
 
-            timer.StartIteration();
-
-            scene.FrameBuffer.StartIteration();
-            timer.EndFrameBuffer();
-
-            OnStartIteration(iter);
-            try {
-                pathTracerTimer.Start();
-                Parallel.For(0, Scene.FrameBuffer.Height, row => {
-                    for (uint col = 0; col < Scene.FrameBuffer.Width; ++col) {
-                        uint pixelIndex = (uint)(row * Scene.FrameBuffer.Width + col);
-                        var rng = new RNG(BaseSeedCamera, pixelIndex, iter);
-                        TraceCameraPath((uint)row, col, ref rng);
-                    }
-                });
-                pathTracerTimer.Stop();
-
-                accelBuildTimer.Start();
-                if (EnableMerging)
-                    BuildImportonAccel();
-                accelBuildTimer.Stop();
-
-                lightTracerTimer.Start();
-                TraceLightPaths(iter);
-                lightTracerTimer.Stop();
-            } catch {
-                Logger.Log($"Exception in iteration {iter} out of {NumIterations}.", Verbosity.Error);
-                throw;
+            if (RenderTechniquePyramid) {
+                TechPyramidRaw = new TechPyramid(scene.FrameBuffer.Width, scene.FrameBuffer.Height,
+                                                 minDepth: 1, maxDepth: MaxDepth, merges: EnableMerging);
+                TechPyramidWeighted = new TechPyramid(scene.FrameBuffer.Width, scene.FrameBuffer.Height,
+                                                      minDepth: 1, maxDepth: MaxDepth, merges: EnableMerging);
             }
-            OnEndIteration(iter);
-            CameraPaths.Clear();
-            timer.EndRender();
 
-            // if (iter == NumIterations - 1 && EnableDenoiser)
-            //     DenoiseBuffers.Denoise();
+            CameraPaths = new(scene.FrameBuffer.Width * scene.FrameBuffer.Height, Math.Min(MaxDepth + 1, 10));
+            photonMap ??= new();
 
-            scene.FrameBuffer.EndIteration();
-            timer.EndFrameBuffer();
+            ProgressBar progressBar = new(prefix: "Rendering...");
+            progressBar.Start(NumIterations);
+            RenderTimer timer = new();
+            Stopwatch lightTracerTimer = new();
+            Stopwatch pathTracerTimer = new();
+            Stopwatch accelBuildTimer = new();
+            ShadingStatCounter.Reset();
+            scene.Raytracer.ResetStats();
+            for (uint iter = (uint)startAtIteration; iter - startAtIteration < NumIterations; ++iter) {
+                long nextIterTime = timer.RenderTime + timer.PerIterationCost;
+                if (MaximumRenderTimeMs.HasValue && nextIterTime > MaximumRenderTimeMs.Value) {
+                    Logger.Log("Maximum render time exhausted.");
+                    // if (EnableDenoiser) DenoiseBuffers.Denoise();
+                    progressBar.Terminate();
+                    break;
+                }
 
-            progressBar.ReportDone(1);
-            timer.EndIteration();
+                timer.StartIteration();
+
+                scene.FrameBuffer.StartIteration();
+                timer.EndFrameBuffer();
+
+                OnStartIteration(iter);
+                try {
+                    pathTracerTimer.Start();
+                    Parallel.For(0, Scene.FrameBuffer.Height, row => {
+                        for (uint col = 0; col < Scene.FrameBuffer.Width; ++col) {
+                            uint pixelIndex = (uint)(row * Scene.FrameBuffer.Width + col);
+                            var rng = new RNG(BaseSeedCamera, pixelIndex, iter);
+                            TraceCameraPath((uint)row, col, ref rng);
+                        }
+                    });
+                    pathTracerTimer.Stop();
+
+                    accelBuildTimer.Start();
+                    if (EnableMerging)
+                        BuildImportonAccel();
+                    accelBuildTimer.Stop();
+
+                    lightTracerTimer.Start();
+                    TraceLightPaths(iter);
+                    lightTracerTimer.Stop();
+                } catch {
+                    Logger.Log($"Exception in iteration {iter} out of {NumIterations}.", Verbosity.Error);
+                    throw;
+                }
+                OnEndIteration(iter);
+                CameraPaths.Clear();
+                timer.EndRender();
+
+                // if (iter == NumIterations - 1 && EnableDenoiser)
+                //     DenoiseBuffers.Denoise();
+
+                scene.FrameBuffer.EndIteration();
+                timer.EndFrameBuffer();
+
+                progressBar.ReportDone(1);
+                timer.EndIteration();
+            }
+
+            scene.FrameBuffer.MetaData["RenderTime"] = timer.RenderTime;
+            scene.FrameBuffer.MetaData["FrameBufferTime"] = timer.FrameBufferTime;
+            scene.FrameBuffer.MetaData["PathTracerTime"] = pathTracerTimer.ElapsedMilliseconds;
+            scene.FrameBuffer.MetaData["LightTracerTime"] = lightTracerTimer.ElapsedMilliseconds;
+            scene.FrameBuffer.MetaData["ShadingStats"] = ShadingStatCounter.Current;
+            scene.FrameBuffer.MetaData["RayTracerStats"] = scene.Raytracer.Stats;
+            scene.FrameBuffer.MetaData["BaseSeed"] = BaseSeed;
+
+            OnAfterRender();
+
+            if (RenderTechniquePyramid) {
+                TechPyramidRaw.Normalize(1.0f / Scene.FrameBuffer.CurIteration);
+                if (!string.IsNullOrEmpty(scene.FrameBuffer.Basename))
+                    TechPyramidRaw.WriteToFiles(Path.Join(scene.FrameBuffer.Basename, "techs-raw"));
+
+                TechPyramidWeighted.Normalize(1.0f / Scene.FrameBuffer.CurIteration);
+                if (!string.IsNullOrEmpty(scene.FrameBuffer.Basename))
+                    TechPyramidWeighted.WriteToFiles(Path.Join(scene.FrameBuffer.Basename, "techs-weighted"));
+            }
         }
-
-        scene.FrameBuffer.MetaData["RenderTime"] = timer.RenderTime;
-        scene.FrameBuffer.MetaData["FrameBufferTime"] = timer.FrameBufferTime;
-        scene.FrameBuffer.MetaData["PathTracerTime"] = pathTracerTimer.ElapsedMilliseconds;
-        scene.FrameBuffer.MetaData["LightTracerTime"] = lightTracerTimer.ElapsedMilliseconds;
-        scene.FrameBuffer.MetaData["ShadingStats"] = ShadingStatCounter.Current;
-        scene.FrameBuffer.MetaData["RayTracerStats"] = scene.Raytracer.Stats;
-        scene.FrameBuffer.MetaData["BaseSeed"] = BaseSeed;
-
-        OnAfterRender();
-
-        if (RenderTechniquePyramid) {
-            TechPyramidRaw.Normalize(1.0f / Scene.FrameBuffer.CurIteration);
-            if (!string.IsNullOrEmpty(scene.FrameBuffer.Basename))
-                TechPyramidRaw.WriteToFiles(Path.Join(scene.FrameBuffer.Basename, "techs-raw"));
-
-            TechPyramidWeighted.Normalize(1.0f / Scene.FrameBuffer.CurIteration);
-            if (!string.IsNullOrEmpty(scene.FrameBuffer.Basename))
-                TechPyramidWeighted.WriteToFiles(Path.Join(scene.FrameBuffer.Basename, "techs-weighted"));
+        finally
+        {
+            photonMap?.Dispose();
+            photonMap = null;
         }
-
-        photonMap.Dispose();
-        photonMap = null;
     }
 
     /// <summary>
@@ -413,10 +419,8 @@ public class CameraStoringVCM<TLightPathData> : Integrator where TLightPathData 
         // Compute the pdf of sampling the previous point by emission from the background
         float pdfEmit = ComputeBackgroundPdf(ray.Origin, -ray.Direction);
 
-        // Compute the pdf of sampling the same connection via next event estimation
-        float pdfNextEvent = Scene.Background.DirectionPdf(ray.Direction);
-        float backgroundProbability = ComputeNextEventBackgroundProbability(/*hit*/);
-        pdfNextEvent *= backgroundProbability;
+        // Compute the pdf of sampling the same connection via next event estimation.
+        float pdfNextEvent = NextEventPdf(state.Vertices[^1].Point, ray.Direction);
 
         var pathPdfs = new BidirPathPdfs(stackalloc float[state.Depth], stackalloc float[state.Depth]);
         pathPdfs.GatherCameraPdfs(state, state.Depth - 2);
@@ -493,20 +497,29 @@ public class CameraStoringVCM<TLightPathData> : Integrator where TLightPathData 
     }
 
     /// <summary>
-    /// Computes the pdf used by <see cref="SampleNextEvent" />
+    /// Computes the pdf used by <see cref="SampleNextEvent" /> for an area light source. Assumes that `to` is a valid point on an emitter.
     /// </summary>
     /// <param name="from">The shading point</param>
     /// <param name="to">The point on the light source</param>
     /// <returns>PDF of next event estimation</returns>
     public virtual float NextEventPdf(SurfacePoint from, SurfacePoint to) {
+        // Switch to background case if "to" is a position in free space, not on a mesh
+        if (!to) return NextEventPdf(from, to.Position - from.Position);
+
         float backgroundProbability = ComputeNextEventBackgroundProbability(/*hit*/);
-        if (to.Mesh == null) { // Background
-            var direction = to.Position - from.Position;
-            return Scene.Background.DirectionPdf(direction) * backgroundProbability * NumShadowRays;
-        } else { // Emissive object
-            var emitter = Scene.QueryEmitter(to);
-            return emitter.PdfUniformArea(to) * SelectLightPmf(from, emitter) * (1 - backgroundProbability) * NumShadowRays;
-        }
+        var emitter = Scene.QueryEmitter(to);
+        return emitter.PdfUniformArea(to) * SelectLightPmf(from, emitter) * (1 - backgroundProbability) * NumShadowRays;
+    }
+
+    /// <summary>
+    /// Computes the pdf used by <see cref="SampleNextEvent" /> for a background ray direction. 
+    /// </summary>
+    /// <param name="from">The shading point</param>
+    /// <param name="direction">The direction from the shading point to the background</param>
+    /// <returns>PDF of next event estimation</returns>
+    public virtual float NextEventPdf(SurfacePoint from, Vector3 direction) {
+        float backgroundProbability = ComputeNextEventBackgroundProbability(/*hit*/);
+        return Scene.Background.DirectionPdf(direction) * backgroundProbability * NumShadowRays;
     }
 
     /// <summary>
@@ -539,8 +552,8 @@ public class CameraStoringVCM<TLightPathData> : Integrator where TLightPathData 
                 return RgbColor.Black; // There is no background
 
             var sample = Scene.Background.SampleDirection(state.Rng.NextFloat2D());
-            sample.Pdf *= backgroundProbability;
-            sample.Weight /= backgroundProbability;
+            sample.Pdf *= backgroundProbability * NumShadowRays;
+            sample.Weight /= backgroundProbability * NumShadowRays;
 
             if (sample.Pdf == 0) // Prevent NaN
                 return RgbColor.Black;

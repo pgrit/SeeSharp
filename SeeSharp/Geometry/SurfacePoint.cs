@@ -4,41 +4,70 @@
 /// Represents a point on the surface of a mesh in the scene. Wrapper around <see cref="Hit"/> with
 /// additional SeeSharp specific material information.
 /// </summary>
-public struct SurfacePoint {
+public struct SurfacePoint
+{
     /// <summary>
     /// Position in world space
     /// </summary>
-    public Vector3 Position { get => hit.Position; set => hit.Position = value; }
+    public Vector3 Position
+    {
+        get => hit.Position;
+        set => hit.Position = value;
+    }
 
     /// <summary>
     /// Face normal at the point (i.e., actual geometric normal, not the shading normal)
     /// </summary>
-    public Vector3 Normal { get => hit.Normal; set => hit.Normal = value; }
+    public Vector3 Normal
+    {
+        get => hit.Normal;
+        set => hit.Normal = value;
+    }
 
     /// <summary>
     /// Barycentric coordinates within the primitive
     /// </summary>
-    public Vector2 BarycentricCoords { get => hit.BarycentricCoords; set => hit.BarycentricCoords = value; }
+    public Vector2 BarycentricCoords
+    {
+        get => hit.BarycentricCoords;
+        set => hit.BarycentricCoords = value;
+    }
 
     /// <summary>
     /// The mesh on which this point lies
     /// </summary>
-    public Mesh Mesh { get => hit.Mesh as Mesh; set => hit.Mesh = value; }
+    public Mesh Mesh
+    {
+        get => hit.Mesh as Mesh;
+        set => hit.Mesh = value;
+    }
 
     /// <summary>
     /// Index of the primitive within the mesh
     /// </summary>
-    public uint PrimId { get => hit.PrimId; set => hit.PrimId = value; }
+    public uint PrimId
+    {
+        get => hit.PrimId;
+        set => hit.PrimId = value;
+    }
 
     /// <summary>
     /// Offset that should be used to avoid self-intersection during ray tracing
     /// </summary>
-    public float ErrorOffset { get => hit.ErrorOffset; set => hit.ErrorOffset = value; }
+    public float ErrorOffset
+    {
+        get => hit.ErrorOffset;
+        set => hit.ErrorOffset = value;
+    }
 
     /// <summary>
     /// Distance from a previous point if this is a ray intersection
     /// </summary>
-    public float Distance { get => hit.Distance; set => hit.Distance = value; }
+    public float Distance
+    {
+        get => hit.Distance;
+        set => hit.Distance = value;
+    }
 
     /// <summary>
     /// Checks if the point is valid
@@ -54,7 +83,8 @@ public struct SurfacePoint {
     /// Implicit cast from a TinyEmbree hit object for convenience
     /// </summary>
     /// <param name="hit"></param>
-    public static implicit operator SurfacePoint(Hit hit) {
+    public static implicit operator SurfacePoint(Hit hit)
+    {
         return new SurfacePoint { hit = hit };
     }
 
@@ -72,6 +102,8 @@ public struct SurfacePoint {
     /// The material of the intersected mesh
     /// </summary>
     public Material Material => Mesh.Material;
+
+    public static SurfacePoint Invalid => new() { Mesh = null };
 
     Hit hit;
 }

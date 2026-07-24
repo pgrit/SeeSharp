@@ -240,7 +240,17 @@ public class VertexConnectionAndMergingBase<CameraPayloadType>
         if (photonMap == null)
             photonMap = new();
 
-        base.Render(scene);
+        try
+        {
+            base.Render(scene);
+        }
+        catch
+        {
+            // Always dispose the photon map or memory might leak
+            photonMap.Dispose();
+            photonMap = null;
+            throw;
+        }
 
         // Store the technique pyramids
         if (RenderTechniquePyramid)

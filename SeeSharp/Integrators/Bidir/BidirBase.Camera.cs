@@ -537,8 +537,8 @@ public abstract partial class BidirBase<CameraPayloadType> {
         float pdfEmit = ComputeBackgroundPdf(ray.Origin, -ray.Direction);
 
         // Compute the pdf of sampling the same connection via next event estimation.
-        float pdfNextEvent = NextEventPdf(new SurfacePoint { Position = ray.Origin },
-                                          new SurfacePoint { Position = ray.Origin + ray.Direction });
+        // TODO get the actual previous point (need the mesh, not just the position)
+        float pdfNextEvent = NextEventPdf(new SurfacePoint(), SurfacePoint.Invalid);
 
         int numPdfs = path.Vertices.Count;
         int lastCameraVertexIdx = numPdfs - 1;

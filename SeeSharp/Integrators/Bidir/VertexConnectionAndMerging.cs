@@ -244,12 +244,10 @@ public class VertexConnectionAndMergingBase<CameraPayloadType>
         {
             base.Render(scene);
         }
-        catch
+        finally
         {
-            // Always dispose the photon map or memory might leak
-            photonMap.Dispose();
+            photonMap?.Dispose();
             photonMap = null;
-            throw;
         }
 
         // Store the technique pyramids
@@ -267,9 +265,6 @@ public class VertexConnectionAndMergingBase<CameraPayloadType>
                     Path.Join(scene.FrameBuffer.Basename, "techs-weighted")
                 );
         }
-
-        photonMap.Dispose();
-        photonMap = null;
     }
 
     Stopwatch mergeBuildTimer;

@@ -503,6 +503,9 @@ public class CameraStoringVCM<TLightPathData> : Integrator where TLightPathData 
     /// <param name="to">The point on the light source</param>
     /// <returns>PDF of next event estimation</returns>
     public virtual float NextEventPdf(SurfacePoint from, SurfacePoint to) {
+        // Switch to background case if "to" is a position in free space, not on a mesh
+        if (!to) return NextEventPdf(from, to.Position - from.Position);
+
         float backgroundProbability = ComputeNextEventBackgroundProbability(/*hit*/);
         var emitter = Scene.QueryEmitter(to);
         return emitter.PdfUniformArea(to) * SelectLightPmf(from, emitter) * (1 - backgroundProbability) * NumShadowRays;

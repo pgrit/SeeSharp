@@ -19,11 +19,6 @@ public class VertexCacheBidirBase<CameraPayloadType> : BidirBase<CameraPayloadTy
     public int NumConnections = 1;
 
     /// <summary>
-    /// Number of shadow rays to use for next event. Disabled if zero.
-    /// </summary>
-    public int NumShadowRays = 1;
-
-    /// <summary>
     /// Set to false to disable connections between light vertices and the camera
     /// </summary>
     public bool EnableLightTracer = true;
@@ -46,18 +41,6 @@ public class VertexCacheBidirBase<CameraPayloadType> : BidirBase<CameraPayloadTy
     /// The light vertex resampler
     /// </summary>
     protected VertexSelector vertexSelector;
-
-    /// <inheritdoc />
-    protected override float NextEventPdf(SurfacePoint from, SurfacePoint to) {
-        return base.NextEventPdf(from, to) * NumShadowRays;
-    }
-
-    /// <inheritdoc />
-    protected override (Emitter, SurfaceSample) SampleNextEvent(SurfacePoint from, ref RNG rng) {
-        var (light, sample) = base.SampleNextEvent(from, ref rng);
-        sample.Pdf *= NumShadowRays;
-        return (light, sample);
-    }
 
     /// <inheritdoc />
     protected override (int, int, float) SelectBidirPath(SurfacePoint cameraPoint, Vector3 outDir,

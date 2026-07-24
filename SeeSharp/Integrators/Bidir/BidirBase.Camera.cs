@@ -325,7 +325,7 @@ public abstract partial class BidirBase<CameraPayloadType> {
     protected virtual (Emitter, SurfaceSample) SampleNextEvent(SurfacePoint from, ref RNG rng) {
         var (light, lightProb) = SelectLight(from, ref rng);
         var lightSample = light.SampleUniformArea(rng.NextFloat2D());
-        lightSample.Pdf *= lightProb;
+        lightSample.Pdf *= lightProb * NumShadowRays;
         return (light, lightSample);
     }
 
@@ -339,10 +339,10 @@ public abstract partial class BidirBase<CameraPayloadType> {
         float backgroundProbability = ComputeNextEventBackgroundProbability(/*hit*/);
         if (to.Mesh == null) { // Background
             var direction = to.Position - from.Position;
-            return Scene.Background.DirectionPdf(direction) * backgroundProbability;
+            return Scene.Background.DirectionPdf(direction) * backgroundProbability * NumShadowRays;
         } else { // Emissive object
             var emitter = Scene.QueryEmitter(to);
-            return emitter.PdfUniformArea(to) * SelectLightPmf(from, emitter) * (1 - backgroundProbability);
+            return emitter.PdfUniformArea(to) * SelectLightPmf(from, emitter) * (1 - backgroundProbability) * NumShadowRays;
         }
     }
 
@@ -383,8 +383,8 @@ public abstract partial class BidirBase<CameraPayloadType> {
                 return RgbColor.Black; // There is no background
 
             var sample = Scene.Background.SampleDirection(rng.NextFloat2D());
-            sample.Pdf *= backgroundProbability;
-            sample.Weight /= backgroundProbability;
+            sample.Pdf *= backgroundProbability * NumShadowRays;
+            sample.Weight /= backgroundProbability * NumShadowRays;
 
             if (sample.Pdf == 0) // Prevent NaN
                 return RgbColor.Black;
@@ -536,10 +536,9 @@ public abstract partial class BidirBase<CameraPayloadType> {
         // Compute the pdf of sampling the previous point by emission from the background
         float pdfEmit = ComputeBackgroundPdf(ray.Origin, -ray.Direction);
 
-        // Compute the pdf of sampling the same connection via next event estimation
-        float pdfNextEvent = Scene.Background.DirectionPdf(ray.Direction);
-        float backgroundProbability = ComputeNextEventBackgroundProbability(/*hit*/);
-        pdfNextEvent *= backgroundProbability;
+        // Compute the pdf of sampling the same connection via next event estimation.
+        float pdfNextEvent = NextEventPdf(new SurfacePoint { Position = ray.Origin },
+                                          new SurfacePoint { Position = ray.Origin + ray.Direction });
 
         int numPdfs = path.Vertices.Count;
         int lastCameraVertexIdx = numPdfs - 1;

@@ -22,6 +22,12 @@ public abstract partial class BidirBase<CameraPayloadType> : Integrator
     public int NumLightPaths { get; set; } = -1;
 
     /// <summary>
+    /// Number of shadow rays (next event estimation samples) per camera vertex. Zero disables the technique. 
+    /// Must only be changed in-between rendering iterations. Otherwise: mayhem.
+    /// </summary>
+    public int NumShadowRays = 1;
+
+    /// <summary>
     /// The base seed to generate camera paths.
     /// </summary>
     public uint BaseSeedCamera

@@ -29,26 +29,8 @@ public class ClassicBidirBase<CameraPayloadType> : BidirBase<CameraPayloadType> 
     /// </summary>
     public bool EnableLightTracer = true;
 
-    /// <summary>
-    /// Number of shadow rays to use for next event estimation along the camera path. If set to zero,
-    /// no next event estimation is performed.
-    /// </summary>
-    public int NumShadowRays = 1;
-
     TechPyramid techPyramidRaw;
     TechPyramid techPyramidWeighted;
-
-    /// <inheritdoc />
-    protected override float NextEventPdf(SurfacePoint from, SurfacePoint to) {
-        return base.NextEventPdf(from, to) * NumShadowRays;
-    }
-
-    /// <inheritdoc />
-    protected override (Emitter, SurfaceSample) SampleNextEvent(SurfacePoint from, ref RNG rng) {
-        var (light, sample) = base.SampleNextEvent(from, ref rng);
-        sample.Pdf *= NumShadowRays;
-        return (light, sample);
-    }
 
     /// <inheritdoc />
     protected override void RegisterSample(RgbColor weight, float misWeight, Pixel pixel,

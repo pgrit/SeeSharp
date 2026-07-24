@@ -413,10 +413,9 @@ public class CameraStoringVCM<TLightPathData> : Integrator where TLightPathData 
         // Compute the pdf of sampling the previous point by emission from the background
         float pdfEmit = ComputeBackgroundPdf(ray.Origin, -ray.Direction);
 
-        // Compute the pdf of sampling the same connection via next event estimation
-        float pdfNextEvent = Scene.Background.DirectionPdf(ray.Direction);
-        float backgroundProbability = ComputeNextEventBackgroundProbability(/*hit*/);
-        pdfNextEvent *= backgroundProbability;
+        // Compute the pdf of sampling the same connection via next event estimation.
+        float pdfNextEvent = NextEventPdf(new SurfacePoint { Position = ray.Origin },
+                                          new SurfacePoint { Position = ray.Origin + ray.Direction });
 
         var pathPdfs = new BidirPathPdfs(stackalloc float[state.Depth], stackalloc float[state.Depth]);
         pathPdfs.GatherCameraPdfs(state, state.Depth - 2);
@@ -539,8 +538,8 @@ public class CameraStoringVCM<TLightPathData> : Integrator where TLightPathData 
                 return RgbColor.Black; // There is no background
 
             var sample = Scene.Background.SampleDirection(state.Rng.NextFloat2D());
-            sample.Pdf *= backgroundProbability;
-            sample.Weight /= backgroundProbability;
+            sample.Pdf *= backgroundProbability * NumShadowRays;
+            sample.Weight /= backgroundProbability * NumShadowRays;
 
             if (sample.Pdf == 0) // Prevent NaN
                 return RgbColor.Black;

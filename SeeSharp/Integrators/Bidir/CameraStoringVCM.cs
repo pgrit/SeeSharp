@@ -1236,7 +1236,7 @@ public class CameraStoringVCM<TLightPathData> : Integrator where TLightPathData 
         SurfacePoint previousPoint = sample.Point;
         float pdfDirection = sample.PdfRay;
 
-        for (; state.Depth < MaxDepth; ++state.Depth) {
+        for (; state.Depth <= MaxDepth; ++state.Depth) {
 
             var hit = Scene.Raytracer.Trace(ray);
             if (!hit) {
@@ -1270,7 +1270,7 @@ public class CameraStoringVCM<TLightPathData> : Integrator where TLightPathData 
             estimate += OnHitCameraPath(shader, pdfFromAncestor, jacobian, ref state);
 
             // Don't sample continuations if we are going to terminate anyway
-            if (state.Depth + 1 >= MaxDepth)
+            if (state.Depth + 1 > MaxDepth)
                 break;
 
             // Terminate with Russian roulette

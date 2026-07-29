@@ -267,7 +267,8 @@ public class VertexConnectionAndMergingBase<CameraPayloadType>
         }
     }
 
-    Stopwatch mergeBuildTimer;
+    /// <summary>Accumulates the photon-map build time across iterations; reported as MergeAccelBuildTime.</summary>
+    protected Stopwatch mergeBuildTimer;
 
     /// <summary>
     /// Generates the acceleration structure for merging

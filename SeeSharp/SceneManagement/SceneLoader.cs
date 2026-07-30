@@ -60,7 +60,7 @@ public class SceneLoader(FileInfo sceneFile, FileInfo blendFile, string name) : 
         }
 
         var lines = File.ReadAllLines(importFile);
-        if (lines.Length < 2)
+        if (lines.Length < 1)
         {
             Logger.Log(
                 $"Scene {name}: corrupted import file, reimporting .blend",

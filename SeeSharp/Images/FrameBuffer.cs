@@ -420,8 +420,11 @@ public class FrameBuffer : IDisposable
             .Assembly.GetCustomAttribute<AssemblyInformationalVersionAttribute>()
             .InformationalVersion;
 
-        // Write the metadata as json
-        string json = JsonSerializer.Serialize(MetaData, options: new() { WriteIndented = true });
+        string json = JsonSerializer.Serialize(MetaData, options: new()
+        {
+            WriteIndented = true,
+            NumberHandling = JsonNumberHandling.AllowNamedFloatingPointLiterals,
+        });
         File.WriteAllText(basename + ".json", json);
     }
 

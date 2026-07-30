@@ -41,6 +41,13 @@ public class PathTracerBase<PayloadType> : Integrator {
     TechPyramid techPyramidRaw;
     TechPyramid techPyramidWeighted;
 
+    ThreadLocal<ulong> totalCamPathLen;
+
+    /// <summary>
+    /// Average number of camera path vertices per pixel, of the last finished iteration.
+    /// </summary>
+    public float AverageCameraPathLength { get; private set; }
+
     protected DenoiseBuffers denoiseBuffers;
 
     /// <summary>
@@ -220,6 +227,7 @@ public class PathTracerBase<PayloadType> : Integrator {
             scene.FrameBuffer.StartIteration();
             timer.EndFrameBuffer();
 
+            totalCamPathLen = new(true);
             OnPreIteration(sampleIndex);
             Parallel.For(0, scene.FrameBuffer.Height, row => {
                 for (uint col = 0; col < scene.FrameBuffer.Width; ++col) {
@@ -228,6 +236,9 @@ public class PathTracerBase<PayloadType> : Integrator {
                     RenderPixel((uint)row, col, ref rng, null);
                 }
             });
+            ulong totalVertices = 0;
+            foreach (ulong v in totalCamPathLen.Values) totalVertices += v;
+            AverageCameraPathLength = totalVertices / (float)(scene.FrameBuffer.Width * scene.FrameBuffer.Height);
             OnPostIteration(sampleIndex);
             timer.EndRender();
 
@@ -305,6 +316,7 @@ public class PathTracerBase<PayloadType> : Integrator {
 
     protected virtual RgbColor EstimateIncidentRadiance(Ray ray, ref PathState state, PathGraphNode graphVertex = null) {
         RgbColor radianceEstimate = RgbColor.Black;
+        ulong numVertices = 0;
 
         while (state.Depth <= MaxDepth) {
             var hit = scene.Raytracer.Trace(ray);
@@ -320,6 +332,7 @@ public class PathTracerBase<PayloadType> : Integrator {
                 break;
             }
 
+            numVertices++;
             OnHit(ray, hit, ref state);
 
             SurfaceShader shader = new(hit, -ray.Direction, false);
@@ -368,6 +381,8 @@ public class PathTracerBase<PayloadType> : Integrator {
             state.PreviousScatterWeight = bsdfSampleWeight / survivalProb;
             state.PreviousSurvivalProbability = survivalProb;
         }
+
+        totalCamPathLen?.Value += numVertices;
 
         return radianceEstimate;
     }

@@ -1,11 +1,11 @@
 .header {
-	background: #8ecbdc;
-	border-top-style: none;
-	border-bottom-style: solid;
-	border-bottom-width: 1pt;
-	margin: 0;
-	padding-bottom: 0.2em;
-	text-align: center;
+    background: #8ecbdc;
+    border-top-style: none;
+    border-bottom-style: solid;
+    border-bottom-width: 1pt;
+    margin: 0;
+    padding-bottom: 0.2em;
+    text-align: center;
 }
 
 .error {
@@ -20,18 +20,6 @@
 
 .debug {
     background-color: rgb(196, 196, 196);
-}
-
-.error>.msg::before {
-    content: "[Error] "
-}
-
-.warning>.msg::before {
-    content: "[Warning] "
-}
-
-.debug>.msg::before {
-    content: "[Debug] "
 }
 
 .list {

@@ -42,6 +42,8 @@ class Program {
 
         // BlenderAutoImport();
         // OutlierCacheTest.RenderPT();
-        OutlierCacheTest.RenderVCM();
+        // OutlierCacheTest.RenderVCM();
+
+        RenderTest.RenderVCM();
     }
 }

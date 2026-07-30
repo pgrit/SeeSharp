@@ -1,0 +1,4 @@
+# config.py
+HOST = "127.0.0.1"
+PORT_IN = 5051
+PORT_OUT = 5052

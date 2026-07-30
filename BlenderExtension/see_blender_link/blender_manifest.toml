@@ -1,0 +1,21 @@
+schema_version = "1.0.0"
+
+id = "see_sharp_link"
+version = "1.0.0"
+name = "SeeSharp link"
+tagline = "Extension to link Blender with SeeSharp"
+maintainer = "Pascal Grittmann"
+type = "add-on"
+
+website = "https://github.com/pgrit/SeeSharp"
+
+tags = ["Render", "Import-Export"]
+
+blender_version_min = "4.2.0"
+
+license = [
+  "SPDX:MIT",
+]
+copyright = [
+  "2020-2025 Pascal Grittmann",
+]

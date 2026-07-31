@@ -1,0 +1,19 @@
+<Solution>
+  <Configurations>
+    <Platform Name="Any CPU" />
+    <Platform Name="x64" />
+    <Platform Name="x86" />
+  </Configurations>
+  <Project Path="MaterialTest/MaterialTest.csproj" />
+  <Project Path="SeeSharp.Benchmark/SeeSharp.Benchmark.csproj" />
+  <Project Path="SeeSharp.Blazor/SeeSharp.Blazor.csproj" />
+  <Project Path="SeeSharp.Examples/SeeSharp.Examples.csproj" />
+  <Project Path="SeeSharp.IntegrationTests/SeeSharp.IntegrationTests.csproj" />
+  <Project Path="SeeSharp.PreviewRender/SeeSharp.PreviewRender.csproj" />
+  <Project Path="SeeSharp.ReferenceManager/SeeSharp.ReferenceManager.csproj" />
+  <Project Path="SeeSharp.Templates/SeeSharp.Templates.csproj" />
+  <Project Path="SeeSharp.Tests/SeeSharp.Tests.csproj" />
+  <Project Path="SeeSharp.ToMitsuba/SeeSharp.ToMitsuba.csproj" />
+  <Project Path="SeeSharp.Validation/SeeSharp.Validation.csproj" />
+  <Project Path="SeeSharp/SeeSharp.csproj" />
+</Solution>

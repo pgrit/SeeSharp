@@ -1,0 +1,38 @@
+@using Microsoft.AspNetCore.Components
+@namespace SeeSharp.Blazor
+
+<label class="enum-setting" title="@HoverText">@Label
+    <select value="@(Value?.ToString())" @oninput="OnValueChanged" @ref="Input" @attributes="CustomAttributes">
+        @if (TargetType != null)
+        {
+            @foreach (var item in Enum.GetNames(TargetType))
+            {
+                <option value="@item">@item</option>
+            }
+        }
+    </select>
+</label>
+
+@code {
+    [Parameter] public string HoverText { get; set; } = "";
+    [Parameter] public string Label { get; set; } = "";
+    [Parameter] public Type TargetType { get; set; } = default!;
+    [Parameter] public object Value { get; set; } = default!;
+    [Parameter] public EventCallback<object> ValueChanged { get; set; }
+    protected ElementReference Input;
+    protected virtual Dictionary<string, object> CustomAttributes { get => new(); }
+
+    protected virtual object ParseValue(ChangeEventArgs e)
+    {
+        return Enum.Parse(TargetType, (string)e.Value!);
+    }
+
+    private async Task OnValueChanged(ChangeEventArgs e)
+    {
+        if (e.Value != null && TargetType != null)
+        {
+            Value = ParseValue(e);
+            await ValueChanged.InvokeAsync(Value);
+        }
+    }
+}

@@ -9,6 +9,7 @@ from ...transport.sender import send_to_blazor
 stop_flag = False
 send_thread = None
 last_pos = (None, None, None)
+last_cursor_pos = None
 # Continuously updated viewport data
 current_area = None
 current_region = None
@@ -54,6 +55,7 @@ def update_view_data():
 
 def raycast_and_send():
     global stop_flag, last_pos
+    global last_cursor_pos
 
     # Ensure viewport data is available
     if not current_rv3d:
@@ -62,6 +64,13 @@ def raycast_and_send():
     try:
         scene = bpy.context.scene
         cursor_pos = scene.cursor.location.copy()
+
+        if last_cursor_pos is not None:
+            if cursor_pos == last_cursor_pos:
+                if stop_flag:
+                    return None
+                return 0.25
+        last_cursor_pos = cursor_pos.copy()
 
         view_matrix = current_rv3d.view_matrix
         origin = view_matrix.inverted().translation

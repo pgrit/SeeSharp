@@ -128,12 +128,21 @@ public class CameraStoringVCM<TLightPathData> : Integrator where TLightPathData 
     protected NearestNeighborSearch<ImportonPayload> photonMap;
 
     /// <summary>
+    /// Rate at which the photon mapping is reduced each iteration.
+    /// Corresponds to "alpha" in the PPM / VCM paper.
+    /// Must be between 0 (maximum reduction) and 1 (fixed radius).
+    /// </summary>
+    public float RadiusReductionRate { get; set; } = 0.7f;
+
+    /// <summary>
     /// Shrinks the global maximum radius based on the current camera path.
     /// </summary>
     /// <param name="pixelFootprint">Radius of the pixel footprint at the primary hit point</param>
     /// <returns>The shrunk radius</returns>
     protected virtual float ComputeLocalMergeRadius(float pixelFootprint) {
-        return pixelFootprint;
+        float rate = 0.5f * (RadiusReductionRate - 1.0f);
+        float initialRadius = pixelFootprint;
+        return initialRadius * float.Pow(Scene.FrameBuffer.CurIteration, rate);
     }
 
     protected float maxRadius;

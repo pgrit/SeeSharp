@@ -13,8 +13,7 @@ public class VertexConnectionAndMerging : VertexConnectionAndMergingBase<byte> {
 /// (we are using the vertex caching flavor) and photon mapping (aka merging).
 /// </summary>
 public class VertexConnectionAndMergingBase<CameraPayloadType>
-    : VertexCacheBidirBase<CameraPayloadType>
-{
+    : VertexCacheBidirBase<CameraPayloadType> {
     /// <summary>Whether or not to use merging at the first hit from the camera.</summary>
     public bool MergePrimary = false;
 
@@ -32,9 +31,11 @@ public class VertexConnectionAndMergingBase<CameraPayloadType>
     public TechPyramid TechPyramidWeighted;
 
     /// <summary>
-    /// The maximum radius used by any merge in the current iteration. Only initialized after rendering started.
+    /// Rate at which the photon mapping is reduced each iteration.
+    /// Corresponds to "alpha" in the PPM / VCM paper.
+    /// Must be between 0 (maximum reduction) and 1 (fixed radius).
     /// </summary>
-    public float MaximumRadius { get; protected set; }
+    public float RadiusReductionRate { get; set; } = 0.7f;
 
     /// <summary>
     /// Indices of the photons in the scene. To be used in conjunction with <see cref="photonMap"/>
@@ -75,72 +76,8 @@ public class VertexConnectionAndMergingBase<CameraPayloadType>
     /// </summary>
     public bool DisableCorrelAwareMIS { get; set; } = false;
 
-    /// <summary>
-    /// Initializes the radius for photon mapping. The default implementation samples three rays
-    /// on the diagonal of the image. The average pixel footprints at these positions are used to compute
-    /// a radius that roughly spans a 3x3 pixel area in the image plane.
-    /// </summary>
-    protected virtual void InitializeRadius(Scene scene)
-    {
-        // Sample a small number of primary rays and compute the average pixel footprint area
-        var primarySamples = new[]
-        {
-            new Vector2(0.5f, 0.5f),
-            new Vector2(0.25f, 0.25f),
-            new Vector2(0.75f, 0.75f),
-            new Vector2(0.1f, 0.9f),
-            new Vector2(0.9f, 0.1f),
-        };
-        var resolution = new Vector2(scene.FrameBuffer.Width, scene.FrameBuffer.Height);
-        float averageArea = 0;
-        int numHits = 0;
-        RNG dummyRng = new RNG();
-        for (int i = 0; i < primarySamples.Length; ++i)
-        {
-            Ray ray = scene.Camera.GenerateRay(primarySamples[i] * resolution, ref dummyRng).Ray;
-            var hit = scene.Raytracer.Trace(ray);
-            if (!hit)
-                continue;
-
-            float areaToAngle = scene.Camera.SurfaceAreaToSolidAngleJacobian(
-                hit.Position,
-                hit.Normal
-            );
-            float angleToPixel = scene.Camera.SolidAngleToPixelJacobian(ray.Direction);
-            float pixelFootprintArea = 1 / (angleToPixel * areaToAngle);
-            averageArea += pixelFootprintArea;
-            numHits++;
-        }
-
-        if (numHits == 0)
-        {
-            Console.WriteLine(
-                "Error determining pixel footprint: no intersections reported."
-                    + "Falling back to scene radius fraction."
-            );
-            MaximumRadius = scene.Radius / 300.0f;
-            return;
-        }
-
-        averageArea /= numHits;
-
-        // Compute the radius based on the approximated average footprint area
-        // Our heuristic aims to have each photon cover roughly a 1.5 x 1.5 region on the image
-        MaximumRadius = MathF.Sqrt(averageArea) * 1.5f / 2.0f;
-    }
-
-    /// <summary>
-    /// Override this to make merging use progressive photon mapping, by shrinking the maximum radius
-    /// in each iteration.
-    /// </summary>
-    /// <param name="iteration">The 0-based index of the iteration that just finished.</param>
-    protected virtual void ShrinkRadius(uint iteration) { }
-
     /// <inheritdoc />
-    protected override void OnEndIteration(uint iteration)
-    {
-        ShrinkRadius(iteration);
-
+    protected override void OnEndIteration(uint iteration) {
         float numPixels = Scene.FrameBuffer.Width * Scene.FrameBuffer.Height;
         AverageCameraPathLength = TotalCameraPathLength / numPixels;
         AveragePhotonsPerQuery =
@@ -148,8 +85,7 @@ public class VertexConnectionAndMergingBase<CameraPayloadType>
         AverageLightPathLength = ComputeAverageLightPathLength();
     }
 
-    protected override void OnAfterRender()
-    {
+    protected override void OnAfterRender() {
         base.OnAfterRender();
         Scene.FrameBuffer.MetaData["AverageCameraPathLength"] = AverageCameraPathLength;
         Scene.FrameBuffer.MetaData["AverageLightPathLength"] = AverageLightPathLength;
@@ -157,14 +93,12 @@ public class VertexConnectionAndMergingBase<CameraPayloadType>
         Scene.FrameBuffer.MetaData["MergeAccelBuildTime"] = mergeBuildTimer.ElapsedMilliseconds;
     }
 
-    protected override void OnBeforeRender()
-    {
+    protected override void OnBeforeRender() {
         base.OnBeforeRender();
         mergeBuildTimer = new();
     }
 
-    protected override void OnStartIteration(uint iteration)
-    {
+    protected override void OnStartIteration(uint iteration) {
         base.OnStartIteration(iteration);
 
         // Reset statistics
@@ -176,14 +110,12 @@ public class VertexConnectionAndMergingBase<CameraPayloadType>
     protected override void OnCameraPathTerminate(ref CameraPath path) =>
         totalCamPathLen.Value += (ulong)path.Vertices.Count;
 
-    private float ComputeAverageLightPathLength()
-    {
+    private float ComputeAverageLightPathLength() {
         float average = 0;
         if (PathCache == null)
             return 0;
 
-        for (int i = 0; i < PathCache.NumPaths; ++i)
-        {
+        for (int i = 0; i < PathCache.NumPaths; ++i) {
             int length = PathCache.Length(i);
             average = (length + i * average) / (i + 1);
         }
@@ -199,8 +131,7 @@ public class VertexConnectionAndMergingBase<CameraPayloadType>
         int cameraPathLength,
         int lightPathLength,
         int fullLength
-    )
-    {
+    ) {
         if (!RenderTechniquePyramid)
             return;
 
@@ -215,10 +146,8 @@ public class VertexConnectionAndMergingBase<CameraPayloadType>
     }
 
     /// <inheritdoc />
-    public override void Render(Scene scene)
-    {
-        if (RenderTechniquePyramid)
-        {
+    public override void Render(Scene scene) {
+        if (RenderTechniquePyramid) {
             TechPyramidRaw = new TechPyramid(
                 scene.FrameBuffer.Width,
                 scene.FrameBuffer.Height,
@@ -235,24 +164,18 @@ public class VertexConnectionAndMergingBase<CameraPayloadType>
             );
         }
 
-        InitializeRadius(scene);
-
         if (photonMap == null)
             photonMap = new();
 
-        try
-        {
+        try {
             base.Render(scene);
-        }
-        finally
-        {
+        } finally {
             photonMap?.Dispose();
             photonMap = null;
         }
 
         // Store the technique pyramids
-        if (RenderTechniquePyramid)
-        {
+        if (RenderTechniquePyramid) {
             // TODO the base class also creates and writes a tech pyramid (but never accumulates samples).
             //      We are overwriting those files here -> wasteful
             TechPyramidRaw.Normalize(1.0f / Scene.FrameBuffer.CurIteration);
@@ -273,19 +196,15 @@ public class VertexConnectionAndMergingBase<CameraPayloadType>
     /// <summary>
     /// Generates the acceleration structure for merging
     /// </summary>
-    protected override void ProcessPathCache()
-    {
+    protected override void ProcessPathCache() {
         base.ProcessPathCache();
 
-        if (EnableMerging)
-        {
+        if (EnableMerging) {
             mergeBuildTimer.Start();
 
             photonMap.Clear();
-            for (int pathIdx = 0; pathIdx < NumLightPaths; ++pathIdx)
-            {
-                for (int vertIdx = 1; vertIdx < PathCache.Length(pathIdx); ++vertIdx)
-                {
+            for (int pathIdx = 0; pathIdx < NumLightPaths; ++pathIdx) {
+                for (int vertIdx = 1; vertIdx < PathCache.Length(pathIdx); ++vertIdx) {
                     ref var vertex = ref PathCache[pathIdx, vertIdx];
                     if (vertex.Weight != RgbColor.Black)
                         photonMap.AddPoint(vertex.Point.Position, (pathIdx, vertIdx));
@@ -339,8 +258,7 @@ public class VertexConnectionAndMergingBase<CameraPayloadType>
         (int pathIdx, int vertexIdx) idx,
         float distSqr,
         float radiusSquared
-    )
-    {
+    ) {
         var photon = PathCache[idx.pathIdx, idx.vertexIdx];
 
         // Check that the path does not exceed the maximum length
@@ -350,8 +268,7 @@ public class VertexConnectionAndMergingBase<CameraPayloadType>
 
         // Discard photons on (almost) perpendicular surfaces. This avoids outliers and somewhat reduces
         // light leaks, but slightly amplifies darkening from kernel estimation bias.
-        if (float.Abs(Vector3.Dot(shader.Point.Normal, photon.Point.Normal)) < 0.4f)
-        {
+        if (float.Abs(Vector3.Dot(shader.Point.Normal, photon.Point.Normal)) < 0.4f) {
             return RgbColor.Black;
         }
 
@@ -360,7 +277,7 @@ public class VertexConnectionAndMergingBase<CameraPayloadType>
         var dirToAncestor = Vector3.Normalize(ancestor.Point.Position - shader.Point.Position);
         var bsdfValue = shader.Evaluate(dirToAncestor);
         float cosGeometry = float.Abs(Vector3.Dot(photon.Point.Normal, dirToAncestor));
-        bsdfValue *= float.Abs(Vector3.Dot(shader.Point.ShadingNormal, dirToAncestor)) / cosGeometry;    
+        bsdfValue *= float.Abs(Vector3.Dot(shader.Point.ShadingNormal, dirToAncestor)) / cosGeometry;
         var photonContrib = photon.Weight * bsdfValue / NumLightPaths;
 
         // Early exit + prevent NaN / Inf
@@ -434,13 +351,13 @@ public class VertexConnectionAndMergingBase<CameraPayloadType>
     /// </summary>
     /// <param name="pixelFootprint">Radius of the pixel footprint at the primary hit point</param>
     /// <returns>The shrunk radius</returns>
-    protected virtual float ComputeLocalMergeRadius(float pixelFootprint)
-    {
-        return pixelFootprint;
+    protected virtual float ComputeLocalMergeRadius(float pixelFootprint) {
+        float rate = 0.5f * (RadiusReductionRate - 1.0f);
+        float initialRadius = pixelFootprint;
+        return initialRadius * float.Pow(Scene.FrameBuffer.CurIteration, rate);
     }
 
-    struct MergeState
-    {
+    struct MergeState {
         public RgbColor Estimate;
         public readonly float CameraJacobian;
         public float LocalRadiusSquared;
@@ -452,8 +369,7 @@ public class VertexConnectionAndMergingBase<CameraPayloadType>
             float localRadius,
             in CameraPath path,
             in SurfaceShader shader
-        )
-        {
+        ) {
             CameraJacobian = cameraJacobian;
             LocalRadiusSquared = localRadius;
             CameraPath = path;
@@ -476,8 +392,7 @@ public class VertexConnectionAndMergingBase<CameraPayloadType>
         ref RNG rng,
         ref CameraPath path,
         float cameraJacobian
-    )
-    {
+    ) {
         if (!EnableMerging)
             return RgbColor.Black;
         if (!MergePrimary && path.Depth == 1)
@@ -503,8 +418,7 @@ public class VertexConnectionAndMergingBase<CameraPayloadType>
         int numFound,
         float distToFurthest,
         ref MergeState userData
-    )
-    {
+    ) {
         float radiusSquared =
             numFound == MaxNumPhotons
                 ? distToFurthest * distToFurthest
@@ -519,8 +433,7 @@ public class VertexConnectionAndMergingBase<CameraPayloadType>
         );
     }
 
-    protected override RgbColor OnBackgroundHit(Ray ray, ref CameraPath path)
-    {
+    protected override RgbColor OnBackgroundHit(Ray ray, ref CameraPath path) {
         if (!EnableHitting && path.Vertices.Count > 1)
             return RgbColor.Black;
         return base.OnBackgroundHit(ray, ref path);
@@ -535,14 +448,12 @@ public class VertexConnectionAndMergingBase<CameraPayloadType>
         RgbColor throughput,
         int depth,
         float toAncestorJacobian
-    )
-    {
+    ) {
         RgbColor value = RgbColor.Black;
 
         // Was a light hit?
         Emitter light = Scene.QueryEmitter(shader.Point);
-        if (light != null && (EnableHitting || depth == 1) && depth >= MinDepth)
-        {
+        if (light != null && (EnableHitting || depth == 1) && depth >= MinDepth) {
             value +=
                 throughput
                 * OnEmitterHit(
@@ -555,20 +466,16 @@ public class VertexConnectionAndMergingBase<CameraPayloadType>
         }
 
         // Perform connections and merging if the maximum depth has not yet been reached
-        if (depth < MaxDepth)
-        {
-            for (int i = 0; i < NumConnections; ++i)
-            {
+        if (depth < MaxDepth) {
+            for (int i = 0; i < NumConnections; ++i) {
                 value +=
                     throughput * BidirConnections(shader, ref rng, ref path, toAncestorJacobian);
             }
             value += throughput * PerformMerging(shader, ref rng, ref path, toAncestorJacobian);
         }
 
-        if (depth < MaxDepth && depth + 1 >= MinDepth)
-        {
-            for (int i = 0; i < NumShadowRays; ++i)
-            {
+        if (depth < MaxDepth && depth + 1 >= MinDepth) {
+            for (int i = 0; i < NumShadowRays; ++i) {
                 value +=
                     throughput
                     * PerformNextEventEstimation(shader, ref rng, ref path, toAncestorJacobian);
@@ -582,8 +489,7 @@ public class VertexConnectionAndMergingBase<CameraPayloadType>
     /// Tracks the unitless ratio of surrogate probabilities used for correlation-aware MIS
     /// See Grittmann et al. 2021 for details
     /// </summary>
-    public readonly ref struct CorrelAwareRatios
-    {
+    public readonly ref struct CorrelAwareRatios {
         readonly Span<float> cameraToLight;
         readonly Span<float> lightToCamera;
 
@@ -593,8 +499,7 @@ public class VertexConnectionAndMergingBase<CameraPayloadType>
             bool fromBackground,
             Span<float> cameraToLight,
             Span<float> lightToCamera
-        )
-        {
+        ) {
             float radius = distToCam * 0.0174550649f; // distance * tan(1°)
             float acceptArea = radius * radius * MathF.PI;
             int numSurfaceVertices = pdfs.PdfsCameraToLight.Length - 1;
@@ -604,16 +509,14 @@ public class VertexConnectionAndMergingBase<CameraPayloadType>
 
             // Gather camera probability
             float product = 1.0f;
-            for (int i = 0; i < numSurfaceVertices; ++i)
-            {
+            for (int i = 0; i < numSurfaceVertices; ++i) {
                 product *= MathF.Min(pdfs.PdfsCameraToLight[i] * acceptArea, 1.0f);
                 cameraToLight[i] = product;
             }
 
             // Gather light probability
             product = 1.0f;
-            for (int i = numSurfaceVertices - 1; i >= 0; --i)
-            {
+            for (int i = numSurfaceVertices - 1; i >= 0; --i) {
                 float next = pdfs.PdfsLightToCamera[i] * acceptArea;
 
                 if (i == numSurfaceVertices - 1 && !fromBackground)
@@ -624,10 +527,8 @@ public class VertexConnectionAndMergingBase<CameraPayloadType>
             }
         }
 
-        public float this[int idx]
-        {
-            get
-            {
+        public float this[int idx] {
+            get {
                 if (idx == 0)
                     return 1; // primary merges are not correlated
 
@@ -654,8 +555,7 @@ public class VertexConnectionAndMergingBase<CameraPayloadType>
         in CameraPath cameraPath,
         in PathVertex lightVertex,
         in BidirPathPdfs pathPdfs
-    )
-    {
+    ) {
         // Compute the acceptance probability approximation
         int lastCameraVertexIdx = cameraPath.Vertices.Count - 1;
         float radius = ComputeLocalMergeRadius(cameraPath.FootprintRadius);
@@ -706,8 +606,7 @@ public class VertexConnectionAndMergingBase<CameraPayloadType>
         in CameraPath cameraPath,
         in BidirPathPdfs pathPdfs,
         bool isBackground
-    )
-    {
+    ) {
         var correlRatio = new CorrelAwareRatios(
             pathPdfs,
             cameraPath.Distances[0],
@@ -742,8 +641,7 @@ public class VertexConnectionAndMergingBase<CameraPayloadType>
         in BidirPathPdfs pathPdfs,
         Pixel pixel,
         float distToCam
-    )
-    {
+    ) {
         var correlRatio = new CorrelAwareRatios(
             pathPdfs,
             distToCam,
@@ -774,8 +672,7 @@ public class VertexConnectionAndMergingBase<CameraPayloadType>
         in CameraPath cameraPath,
         PathVertex lightVertex,
         in BidirPathPdfs pathPdfs
-    )
-    {
+    ) {
         var correlRatio = new CorrelAwareRatios(
             pathPdfs,
             cameraPath.Distances[0],
@@ -808,8 +705,7 @@ public class VertexConnectionAndMergingBase<CameraPayloadType>
         in CameraPath cameraPath,
         in BidirPathPdfs pathPdfs,
         bool isBackground
-    )
-    {
+    ) {
         var correlRatio = new CorrelAwareRatios(
             pathPdfs,
             cameraPath.Distances[0],
@@ -847,15 +743,12 @@ public class VertexConnectionAndMergingBase<CameraPayloadType>
         in CameraPath cameraPath,
         float radius,
         in CorrelAwareRatios correlRatio
-    )
-    {
+    ) {
         float sumReciprocals = 0.0f;
         float nextReciprocal = 1.0f;
-        for (int i = lastCameraVertexIdx; i > 0; --i)
-        {
+        for (int i = lastCameraVertexIdx; i > 0; --i) {
             // Merging at this vertex
-            if (EnableMerging)
-            {
+            if (EnableMerging) {
                 float acceptProb = pdfs.PdfsLightToCamera[i] * MathF.PI * radius * radius;
                 if (!DisableCorrelAwareMIS)
                     acceptProb *= correlRatio[i];
@@ -900,20 +793,16 @@ public class VertexConnectionAndMergingBase<CameraPayloadType>
         float distToCam,
         float radius,
         in CorrelAwareRatios correlRatio
-    )
-    {
+    ) {
         float sumReciprocals = 0.0f;
         float nextReciprocal = 1.0f;
-        for (int i = lastCameraVertexIdx + 1; i < pdfs.NumPdfs; ++i)
-        {
+        for (int i = lastCameraVertexIdx + 1; i < pdfs.NumPdfs; ++i) {
             if (i == pdfs.NumPdfs - 1) // Next event
                 sumReciprocals += nextReciprocal * pdfs.PdfNextEvent / pdfs.PdfsLightToCamera[i];
 
-            if (i < pdfs.NumPdfs - 1 && (MergePrimary || i > 0))
-            { // no merging on the emitter itself
+            if (i < pdfs.NumPdfs - 1 && (MergePrimary || i > 0)) { // no merging on the emitter itself
                 // Account for merging at this vertex
-                if (EnableMerging)
-                {
+                if (EnableMerging) {
                     float acceptProb = pdfs.PdfsCameraToLight[i] * MathF.PI * radius * radius;
                     if (!DisableCorrelAwareMIS)
                         acceptProb *= correlRatio[i];

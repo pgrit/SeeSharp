@@ -43,6 +43,12 @@ def handle_import_scene(msg):
             print(f"Loading blend file: {blend_path}")
 
             bpy.ops.wm.open_mainfile(filepath=blend_path)
+            scene = bpy.context.scene
+            if hasattr(scene, "path_viewer_props"):
+                scene.path_viewer_props.enabled = True
+
+            if hasattr(scene, "cursor_sender_props"):
+                scene.cursor_sender_props.sending_enabled = True
             return None
 
         # only .json exists -> import and save blend

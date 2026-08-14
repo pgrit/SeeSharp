@@ -6,6 +6,7 @@ namespace SeeSharp.Blender;
 public class BlenderEventListener {
     private TcpListener? _listener;
     private BlenderEventDispatcher _dispatcher;
+    private TaskCompletionSource<bool>? _blenderReady;
 
     public BlenderEventListener(BlenderEventDispatcher dispatcher) {
         _dispatcher = dispatcher;
@@ -26,6 +27,7 @@ public class BlenderEventListener {
             {
                 var client = await _listener.AcceptTcpClientAsync();
                 Logger.Log("🔌 Blender connected to Blazor Event Listener");
+                _blenderReady?.TrySetResult(true);
 
                 _ = HandleClientAsync(client);
             }
@@ -50,5 +52,12 @@ public class BlenderEventListener {
                 Logger.Error("❌ Parse error: " + ex.Message);
             }
         }
+    }
+    public async Task WaitForBlenderAsync()
+    {
+        _blenderReady = new TaskCompletionSource<bool>(
+            TaskCreationOptions.RunContinuationsAsynchronously);
+
+        await _blenderReady.Task;
     }
 }

@@ -2,7 +2,6 @@ import bpy
 from bpy.props import EnumProperty, IntProperty, BoolProperty, PointerProperty
 import os
 import tempfile
-import seesharp_binaries
 
 from . import exporter
 
@@ -23,6 +22,7 @@ class SeeSharpRenderEngine(bpy.types.RenderEngine):
         with tempfile.TemporaryDirectory() as tempdir:
             exporter.export_scene(tempdir + "/scene.json", scene, depsgraph)
 
+            import seesharp_binaries
             seesharp_binaries.preview_render(
                 tempdir + "/scene.json",
                 tempdir + "/Render.hdr",
@@ -74,6 +74,7 @@ class SeeSharpPanel(bpy.types.Panel):
         col.prop(config, "engine", text="Algorithm")
         col.prop(config, "maxdepth", text="Max. depth")
         col.prop(config, "denoise", text="Denoise")
+
 
 PATH_DESC = (
     "Simple unidirectional path tracer with next event estimation.\n"
@@ -137,6 +138,7 @@ def unregister():
     for panel in get_panels():
         if 'SEE_SHARP' in panel.COMPAT_ENGINES:
             panel.COMPAT_ENGINES.remove('SEE_SHARP')
+
 
 if __name__ == "__main__":
     register()

@@ -1,6 +1,6 @@
 set windows-powershell # uses powershell instead of cygwin on Windows
 
-default: blender
+default: blender_install
 
 _build_dotnet:
   dotnet publish ./SeeSharp.PreviewRender -c Release -o ./BlenderExtension/seesharp_binaries/bin
@@ -14,9 +14,10 @@ _blender_binaries:
 [working-directory: "./BlenderExtension/see_blender/"]
 blender: _build_dotnet _blender_binaries
   blender --command extension build --output-dir ..
-  @echo ""
-  @echo "Blender plugin built. Open Blender and go to 'Edit - Preferences - Addons - Install from Disk' (dropdown menu in the top-right corner)"
-  @echo "Browse to the 'BlenderExtension/see_sharp_renderer-VERSION.zip' file in this directory and install it."
+
+[working-directory: "./BlenderExtension/"]
+blender_install: blender
+  blender --command extension install-file ./see_sharp_renderer-1.0.0.zip -r user_default
 
 template:
   dotnet new install ./SeeSharp.Templates --force

@@ -13,13 +13,14 @@ from .ply import save_mesh
 def sanitize_path(path):
     # Remove forbidden characters from the filename, make sure it does not end on a . or space
     path = re.sub('[<>:"/\\\\|?*]', "_", path).strip()
-    if path.endswith('.'): path = path[:-1]
+    if path.endswith('.'):
+        path = path[:-1]
     path = path.strip()
     assert path != ""
     return path
 
 def map_rgb(rgb):
-    return { "type": "rgb", "value": [ rgb[0], rgb[1], rgb[2] ] }
+    return {"type": "rgb", "value": [rgb[0], rgb[1], rgb[2]]}
 
 def map_texture(texture, out_dir):
     path = texture.filepath_raw.replace('//', '')
@@ -63,10 +64,10 @@ def map_texture(texture, out_dir):
     try:
         texture.filepath_raw = f"{out_dir}/Textures/{name}"
         texture.save()
-    finally: # Never break the scene!
+    finally:  # Never break the scene!
         texture.filepath_raw = old
 
-    return { "type": "image", "filename": f"Textures/{name}" }
+    return {"type": "image", "filename": f"Textures/{name}"}
 
 def map_texture_filename(texture, out_dir):
     path = texture.filepath_raw.replace('//', '')
@@ -110,7 +111,7 @@ def map_texture_filename(texture, out_dir):
     try:
         texture.filepath_raw = f"{out_dir}/Textures/{name}"
         texture.save()
-    finally: # Never break the scene!
+    finally:  # Never break the scene!
         texture.filepath_raw = old
 
     return f"Textures/{name}"
@@ -147,9 +148,11 @@ def material_to_json(material, out_dir):
 def export_materials(result, out_dir):
     result["materials"] = []
     for material in list(bpy.data.materials):
-        result["materials"].append(material_to_json(material.seesharp, out_dir))
-        # TODO If .obj export is used, spaces need to be replaced to match the name in the output file
-        # result["materials"][-1]["name"] = material.name.replace(" ", "_")
+        try:
+            result["materials"].append(material_to_json(material.seesharp, out_dir))
+        except:
+            print(f"Exporting material {material.name} failed")
+            raise
         result["materials"][-1]["name"] = material.name
 
 def export_background(result, out_dir, scene):
@@ -163,9 +166,9 @@ def export_camera(result, scene):
         result["transforms"] = [
             {
                 "name": "camera",
-                "position": [ 0, 0, 0 ],
-                "rotation": [ 0, 0, 0 ],
-                "scale": [ 1.0, 1.0, 1.0 ]
+                "position": [0, 0, 0],
+                "rotation": [0, 0, 0],
+                "scale": [1.0, 1.0, 1.0]
             }
         ]
         result["cameras"] = [
@@ -195,7 +198,7 @@ def export_camera(result, scene):
                 degrees(camera.rotation_euler.z) + 180,
                 degrees(camera.rotation_euler.y)
             ],
-            "scale": [ 1.0, 1.0, 1.0 ]
+            "scale": [1.0, 1.0, 1.0]
         }
     ]
 
@@ -242,10 +245,10 @@ def export_ply_object(result, obj, filepath):
 
         path = os.path.join(os.path.dirname(filepath), 'Meshes', filename)
         save_mesh(path, bm,
-            use_ascii=False,
-            use_normals=True,
-            use_uv=True,
-            use_color=False)
+                  use_ascii=False,
+                  use_normals=True,
+                  use_uv=True,
+                  use_color=False)
 
         result['objects'].append({
             "name": obj.name,
@@ -309,10 +312,11 @@ class SeeSharpExport(Operator, ExportHelper):
             context.window.cursor_set('WAIT')
 
         if self.animations is True:
-            for frame in range(context.scene.frame_start, context.scene.frame_end+1):
+            for frame in range(context.scene.frame_start, context.scene.frame_end + 1):
                 context.scene.frame_set(frame)
                 depsgraph = context.evaluated_depsgraph_get()
-                export_scene(self.filepath.replace('.json', f'{frame:04}.json'), context.scene, depsgraph)
+                export_scene(self.filepath.replace(
+                    '.json', f'{frame:04}.json'), context.scene, depsgraph)
         else:
             depsgraph = context.evaluated_depsgraph_get()
             export_scene(self.filepath, context.scene, depsgraph)
@@ -331,6 +335,7 @@ def register():
 def unregister():
     bpy.utils.unregister_class(SeeSharpExport)
     bpy.types.TOPBAR_MT_file_export.remove(menu_func_export)
+
 
 if __name__ == "__main__":
     register()

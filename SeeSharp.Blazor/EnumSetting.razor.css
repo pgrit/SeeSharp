@@ -1,0 +1,22 @@
+.enum-setting {
+    padding: 0;
+    margin: 0;
+    display: flex;
+    justify-content: space-between;
+    font-size: smaller;
+}
+
+.enum-setting:hover {
+    background-color: #f8fbfc;
+}
+
+.enum-setting select {
+    background-color: white;
+    margin-left: 1em;
+    border: 1px solid transparent;
+}
+
+element {
+    background-color: #e6f1f4;
+    padding: 1em;
+}

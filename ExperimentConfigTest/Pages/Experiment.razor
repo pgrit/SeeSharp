@@ -1,0 +1,108 @@
+@using SeeSharp.Experiments
+@using SeeSharp
+@using SeeSharp.Blazor
+
+@inject IJSRuntime JS
+
+@page "/Experiment"
+
+<h1>Experiment Config</h1>
+
+<SceneSelector @ref=sceneSelector OnSceneLoaded="@OnSceneLoaded"></SceneSelector>
+
+<div style="display: flex; align-items: flex-start; gap: 1.5em;">
+    <div style="display: flex; flex-direction: column; gap: 1.5em; width: 250px; flex-shrink: 0;">
+        <IntegratorSelector 
+                @ref="integratorSelector"
+                scene="@scene"
+                OnRunIntegrator="OnRunIntegrator"
+                OnDeleteIntegrator="OnDeleteIntegrator"
+                OnRunAllIntegrators="OnRunAllIntegrators"/>
+    </div>
+
+    @if (resultsAvailable)
+    {
+        <button @onclick="OnDownloadClick">Download results</button>
+    }
+
+    @if (!running)
+    {
+        @if (resultsAvailable)
+        {
+            <div class="experiment-results">
+                <FlipViewer Flip="@flip" OnClick="@OnFlipClick"></FlipViewer>
+
+                @if (selected.HasValue && selected.Value)
+                {
+                    <table>
+                        <tr><th>Mesh</th><td>@(selected.Value.Mesh.Name)</td></tr>
+                        <tr><th>Material</th><td>@(selected.Value.Mesh.Material.Name) (roughness: @(selected.Value.Mesh.Material.GetRoughness(selected.Value)), transmissive: @(selected.Value.Mesh.Material.IsTransmissive(selected.Value)))</td></tr>
+                        <tr><th>Distance</th><td>@(selected.Value.Distance)</td></tr>
+                        <tr><th>Position</th><td>@(selected.Value.Position)</td></tr>
+                    </table>
+                }
+            </div>
+        }
+    }
+    else
+    {
+        <p>Rendering...</p>
+    }
+</div>
+
+@code {
+    SceneSelector sceneSelector;
+    Scene scene;
+    bool running = false;
+    bool resultsAvailable = false;
+
+    SimpleImageIO.FlipBook flip;
+    IntegratorSelector integratorSelector;
+
+    async Task OnSceneLoaded(SceneDirectory sceneDir)
+    {
+        await Task.Run(() => scene = sceneDir.SceneLoader.Scene);
+        flip = null;
+        resultsAvailable = false;
+    }
+
+    async Task OnRunIntegrator(Integrator integrator)
+    {
+        running = true;
+        resultsAvailable = false;
+        
+        integratorSelector.Names.TryGetValue(integrator, out string customName);
+        await Task.Run(() => RunSingleIntegrator(integrator, customName));
+
+        running = false;
+        resultsAvailable = true;
+    }
+
+    void OnDeleteIntegrator(Integrator integrator)
+    {
+        if (integrator == null || flip == null) return;
+        integratorSelector.Names.TryGetValue(integrator, out string customName);
+        string name = customName ?? IntegratorUtils.FormatClassName(integrator.GetType());
+        flip.Remove(name);
+    }
+
+    async Task OnRunAllIntegrators()
+    {
+        running = true;
+        resultsAvailable = false;
+
+        flip = new FlipBook(660, 580)
+            .SetZoom(FlipBook.InitialZoom.FillWidth)
+            .SetToneMapper(FlipBook.InitialTMO.Exposure(scene.RecommendedExposure))
+            .SetToolVisibility(false);
+
+        foreach (var integrator in integratorSelector.addedIntegrators)
+        {
+            integratorSelector.Names.TryGetValue(integrator, out string customName);
+            await Task.Run(() => RunSingleIntegrator(integrator, customName));
+        }
+
+        running = false;
+        resultsAvailable = true;
+    }
+}

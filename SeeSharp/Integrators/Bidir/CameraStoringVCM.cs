@@ -74,6 +74,11 @@ public class CameraStoringVCM<TLightPathData> : Integrator where TLightPathData 
     public bool EnableDenoiser { get; set; } = true;
 
     /// <summary>
+    /// Provides the light sampling strategy used by the integrator.
+    /// </summary>
+    public LightSampling LightSampler {get;} = new LightSampling(new LightSampling.PowerLightSampling()) ;
+
+    /// <summary>
     /// If set to true, renders all techniques for all path lengths as separate images, with and without MIS.
     /// This is expensive and should only be used for debugging purposes.
     /// </summary>
@@ -468,15 +473,10 @@ public class CameraStoringVCM<TLightPathData> : Integrator where TLightPathData 
     /// <param name="primarySelect">Primary sample value used to select the light</param>
     /// <returns>The selected light and the discrete probability of selecting that light</returns>
     public virtual (Emitter, float) SelectLight(in SurfacePoint from, float primarySelect) {
-        int idx = Math.Clamp((int)(primarySelect * Scene.Emitters.Count), 0, Scene.Emitters.Count - 1);
-        return (Scene.Emitters[idx], 1.0f / Scene.Emitters.Count);
-    }
 
-    /// <returns>
-    /// The discrete probability of selecting the given light when performing next event at the given
-    /// shading point.
-    /// </returns>
-    public virtual float SelectLightPmf(in SurfacePoint from, Emitter em) => 1.0f / Scene.Emitters.Count;
+        return LightSampler.SampleEmitter(Scene, primarySelect);
+
+    }
 
     /// <summary>
     /// Samples an emitter and a point on its surface for next event estimation
@@ -505,7 +505,7 @@ public class CameraStoringVCM<TLightPathData> : Integrator where TLightPathData 
             return Scene.Background.DirectionPdf(direction) * backgroundProbability * NumShadowRays;
         } else { // Emissive object
             var emitter = Scene.QueryEmitter(to);
-            return emitter.PdfUniformArea(to) * SelectLightPmf(from, emitter) * (1 - backgroundProbability) * NumShadowRays;
+            return emitter.PdfUniformArea(to) * LightSampler.EmitterPmf(Scene, emitter) * (1 - backgroundProbability) * NumShadowRays;
         }
     }
 
@@ -1343,13 +1343,7 @@ public class CameraStoringVCM<TLightPathData> : Integrator where TLightPathData 
     /// </summary>
     /// <returns>The emitter and its selection probability</returns>
     public virtual (Emitter, float) SelectLightForEmission(float primarySelect) {
-        if (BackgroundProbability > 0 && primarySelect <= BackgroundProbability) {
-            return (null, BackgroundProbability);
-        } else {
-            float u = (primarySelect - BackgroundProbability) * (1 - BackgroundProbability);
-            var emitter = Scene.Emitters[Math.Clamp((int)(u * Scene.Emitters.Count), 0, Scene.Emitters.Count - 1)];
-            return (emitter, (1 - BackgroundProbability) / Scene.Emitters.Count);
-        }
+        return LightSampler.SampleEmission(Scene, primarySelect, BackgroundProbability);
     }
 
     /// <summary>
@@ -1358,11 +1352,7 @@ public class CameraStoringVCM<TLightPathData> : Integrator where TLightPathData 
     /// <param name="em">An emitter in the scene</param>
     /// <returns>The selection probability</returns>
     public virtual float SelectLightForEmissionProbability(Emitter em) {
-        if (em == null) { // background
-            return BackgroundProbability;
-        } else {
-            return (1 - BackgroundProbability) / Scene.Emitters.Count;
-        }
+        return LightSampler.EmissionPmf(Scene, em, BackgroundProbability);
     }
 
     /// <summary>

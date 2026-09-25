@@ -38,6 +38,11 @@ public class PathTracerBase<PayloadType> : Integrator {
     /// </summary>
     public bool EnableDenoiser = true;
 
+    /// <summary>
+    /// Provides the light sampling strategy used by the integrator.
+    /// </summary>
+    public LightSampling LightSampler {get;} = new LightSampling(new LightSampling.PowerLightSampling()) ;
+
     TechPyramid techPyramidRaw;
     TechPyramid techPyramidWeighted;
 
@@ -441,15 +446,20 @@ public class PathTracerBase<PayloadType> : Integrator {
         }
         return RgbColor.Black;
     }
+    protected virtual (Emitter, float) SelectLight(ref PathState state) {
+        
+        return LightSampler.SampleEmitter(scene, state.Rng.NextFloat());
+
+    }
 
     protected virtual RgbColor PerformNextEventEstimation(in SurfaceShader shader, ref PathState state, PathGraphNode graphVertex) {
         if (scene.Emitters.Count == 0)
             return RgbColor.Black;
 
-        // Select a light source
-        int idx = state.Rng.NextInt(scene.Emitters.Count);
-        var light = scene.Emitters[idx];
-        float lightSelectProb = 1.0f / scene.Emitters.Count;
+        Emitter light;
+        float lightSelectProb;
+
+        (light,lightSelectProb) = SelectLight(ref state);
 
         // Sample a point on the light source
         var lightSample = light.SampleUniformArea(state.Rng.NextFloat2D());

@@ -66,21 +66,32 @@ public abstract partial class BidirBase<CameraPayloadType> {
     }
 
     /// <summary>
+    /// Provides the light sampling strategy used by the integrator.
+    /// </summary>
+    public LightSampling LightSampler {get;} = new LightSampling(new LightSampling.PowerLightSampling()) ;
+
+    /// <summary>
     /// Used by next event estimation to select a light source
     /// </summary>
     /// <param name="from">A point on a surface where next event is performed</param>
     /// <param name="rng">Random number generator</param>
+    /// <param name="method">Method used to select light</param>
     /// <returns>The selected light and the discrete probability of selecting that light</returns>
     protected virtual (Emitter, float) SelectLight(in SurfacePoint from, ref RNG rng) {
-        int idx = rng.NextInt(Scene.Emitters.Count);
-        return (Scene.Emitters[idx], 1.0f / Scene.Emitters.Count);
+
+        return LightSampler.SampleEmitter(Scene, rng.NextFloat());
+
     }
 
     /// <returns>
     /// The discrete probability of selecting the given light when performing next event at the given
     /// shading point.
     /// </returns>
-    protected virtual float SelectLightPmf(in SurfacePoint from, Emitter em) => 1.0f / Scene.Emitters.Count;
+    protected virtual float SelectLightPmf(in SurfacePoint from, Emitter em) {
+
+        return LightSampler.EmitterPmf(Scene, em);
+ 
+    } 
 
     protected virtual void TraceAllCameraPaths(uint iter) {
         CameraRandomWalk walkMod = new(this);

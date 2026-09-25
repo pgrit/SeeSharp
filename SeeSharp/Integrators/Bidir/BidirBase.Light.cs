@@ -104,12 +104,7 @@ public abstract partial class BidirBase<CameraPayloadType> {
     /// </summary>
     /// <returns>The emitter and its selection probability</returns>
     public virtual (Emitter, float) SelectLight(ref RNG rng) {
-        if (BackgroundProbability > 0 && rng.NextFloat() <= BackgroundProbability) {
-            return (null, BackgroundProbability);
-        } else {
-            var emitter = Scene.Emitters[rng.NextInt(Scene.Emitters.Count)];
-            return (emitter, (1 - BackgroundProbability) / Scene.Emitters.Count);
-        }
+        return LightSampler.SampleEmission(Scene, rng.NextFloat(), BackgroundProbability );
     }
 
     /// <summary>
@@ -118,11 +113,7 @@ public abstract partial class BidirBase<CameraPayloadType> {
     /// <param name="em">An emitter in the scene</param>
     /// <returns>The selection probability</returns>
     public virtual float SelectLightPmf(Emitter em) {
-        if (em == null) { // background
-            return BackgroundProbability;
-        } else {
-            return (1 - BackgroundProbability) / Scene.Emitters.Count;
-        }
+        return LightSampler.EmissionPmf(Scene, em, BackgroundProbability);
     }
 
     /// <summary>

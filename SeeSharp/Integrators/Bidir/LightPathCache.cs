@@ -27,16 +27,16 @@ public class LightPathCache {
     protected PathCache PathCache { get; set; }
 
     /// <summary>
+    /// Provides the light sampling strategy used by the integrator.
+    /// </summary>
+    public LightSampling LightSampler {get;} = new LightSampling(new LightSampling.PowerLightSampling()) ;
+
+    /// <summary>
     /// Randomly samples either the background or an emitter from the scene
     /// </summary>
     /// <returns>The emitter and its selection probability</returns>
     public virtual (Emitter, float) SelectLight(ref RNG rng) {
-        if (BackgroundProbability > 0 && rng.NextFloat() <= BackgroundProbability) {
-            return (null, BackgroundProbability);
-        } else {
-            var emitter = Scene.Emitters[rng.NextInt(Scene.Emitters.Count)];
-            return (emitter, (1 - BackgroundProbability) / Scene.Emitters.Count);
-        }
+        return LightSampler.SampleEmission(Scene, rng.NextFloat(), BackgroundProbability);
     }
 
     /// <summary>
@@ -44,13 +44,9 @@ public class LightPathCache {
     /// </summary>
     /// <param name="em">An emitter in the scene</param>
     /// <returns>The selection probability</returns>
-    public virtual float SelectLightPmf(Emitter em) {
-        if (em == null) { // background
-            return BackgroundProbability;
-        } else {
-            return (1 - BackgroundProbability) / Scene.Emitters.Count;
-        }
-    }
+   public virtual float SelectLightPmf(Emitter em) {
+        return LightSampler.EmissionPmf(Scene, em, BackgroundProbability);
+    } 
 
     /// <summary>
     /// Probability of selecting the background instead of a surface emitter

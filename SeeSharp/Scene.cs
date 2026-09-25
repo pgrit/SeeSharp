@@ -78,6 +78,16 @@ public class Scene : IDisposable {
     public List<string> ValidationErrorMessages { get; private set; } = new();
 
     /// <summary>
+    /// An array containing all the power values of emitters in the scene.
+    /// </summary>
+    private float[] emitterPower;
+
+    /// <summary>
+    /// The Piecewise constant PDF of emitter power values.
+    /// </summary>
+    private PiecewiseConstantPDF emitterPDF;
+
+    /// <summary>
     /// Creates a semi-deep copy of the scene. That is, a shallow copy except that all lists of references
     /// are copied into new lists of references. So meshes in the new scene can be removed or added.
     /// The <see cref="FrameBuffer" /> and <see cref="Raytracer" /> are not copied and set to null, to
@@ -161,6 +171,19 @@ public class Scene : IDisposable {
         for (int i = 0; i < Emitters.Count; ++i)
             emitterToIdxTemp.Add(Emitters[i], i);
         emitterToIdx = emitterToIdxTemp.ToFrozenDictionary();
+         
+        emitterPower = new float[Emitters.Count];
+        for (int i = 0; i < Emitters.Count; ++i)
+            emitterPower[i] = Emitters[i].ComputeTotalPower().Luminance;
+
+        emitterPDF = new SeeSharp.Sampling.PiecewiseConstantPDF(emitterPower);
+    }
+
+    /// <summary>
+    /// Returns the Piecewise Constant PDF of the power values of emitters in the scene.
+    /// </summary>
+    public PiecewiseConstantPDF GetEmitterPDF() {
+        return emitterPDF;
     }
 
     /// <summary>

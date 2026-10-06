@@ -12,9 +12,9 @@
         margin-top: 2px;">Select a scene</h3>
 
     <div style="display: flex; flex-direction: row; gap: 16px;">
-        <AutocompleteInput Label="Scene name" @ref=sceneNameInput Candidates=availableSceneNames OnTextChanged="@OnSceneNameUpdate" OnSubmit="@LoadScene" />
+        <AutocompleteInput Label="Scene name" @ref=sceneNameInput Candidates=AvailableSceneNames OnTextChanged="@OnSceneNameUpdate" OnSubmit="@LoadScene" />
         <div style="align-content: center;">
-            @if (isSceneNameValid && !loading && scene?.Name != sceneNameInput.Text)
+            @if (IsSceneNameValid && !loading && scene?.Name != sceneNameInput.Text)
             {
                 <button class="btn" @onclick=LoadScene>Load</button>
             }
@@ -33,7 +33,7 @@
     <details>
         <summary class="dropdown-header">Available scenes</summary>
         <div class="dropdown-body">
-            @foreach (var s in availableSceneNames)
+            @foreach (var s in AvailableSceneNames)
             {
                 <p class="scene-button" @onclick=@(async () => {
                     sceneNameInput.Text = s;

@@ -1,20 +1,15 @@
-using Microsoft.AspNetCore.Components;
 using SeeSharp.SceneManagement;
 
 namespace SeeSharp.Blazor;
 
-public partial class SceneSelector : ComponentBase
-{
+public partial class SceneSelector : ComponentBase {
     [Parameter]
     public EventCallback<SceneDirectory> OnSceneLoaded { get; set; }
 
 
-    IEnumerable<string> availableSceneNames
-    {
-        get
-        {
-            if (_availableSceneNames == null)
-                _availableSceneNames = SceneRegistry.FindAvailableScenes().Order();
+    IEnumerable<string> AvailableSceneNames {
+        get {
+            _availableSceneNames ??= SceneRegistry.FindAvailableScenes().Order();
             return _availableSceneNames;
         }
     }
@@ -25,28 +20,24 @@ public partial class SceneSelector : ComponentBase
     SceneDirectory scene;
     bool loading = false;
 
-    SceneDirectory Scene => scene;
+    bool IsSceneNameValid => sceneNameInput?.Valid == true;
 
-    bool isSceneNameValid => sceneNameInput?.Valid == true;
-
-    protected override async Task OnAfterRenderAsync(bool firstRender)
-    {
-        if (firstRender)
-        {
-            var result = await ProtectedSessionStore.GetAsync<string>("lastScene");
-            if (result.Success)
-                sceneNameInput.Text = result.Value;
+    protected override async Task OnAfterRenderAsync(bool firstRender) {
+        if (firstRender) {
+            try {
+                var result = await ProtectedSessionStore.GetAsync<string>("lastScene");
+                if (result.Success)
+                    sceneNameInput.Text = result.Value;
+            } catch { } // If we cannot access session storage, just ignore
         }
     }
 
-    async Task OnSceneNameUpdate(string newName)
-    {
+    async Task OnSceneNameUpdate(string newName) {
         await ProtectedSessionStore.SetAsync("lastScene", newName);
     }
 
-    async Task LoadScene()
-    {
-        if (!isSceneNameValid || loading) return;
+    async Task LoadScene() {
+        if (!IsSceneNameValid || loading) return;
         loading = true;
         await Task.Run(() => scene = SceneRegistry.Find(sceneNameInput.Text));
         loading = false;

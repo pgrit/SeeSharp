@@ -1,0 +1,135 @@
+@namespace SeeSharp.Blazor
+@using System.Reflection
+
+@if (IsVisible)
+{
+    <div class="explorer-overlay">
+        <div class="toolbar-left">
+            <button class="btn-close" @onclick="Close">Return</button>
+        </div>
+
+        <div class="main-content">
+            <div class="tree-container">
+                @foreach (var root in Roots)
+                {
+                    <ul class="tree-root">
+                        <IntegratorTreeNode
+                            @key="root.Id"
+                            Node="root"
+                            SelectedNode="SelectedNode"
+                            OnNodeSelected="SelectNode" />
+                    </ul>
+                }
+            </div>
+
+            <div class="detail-container">
+                @if (SelectedNode != null)
+                {
+                    <div class="detail-header">
+                        <h2>@SelectedNode.Name</h2>
+                    </div>
+
+                    <div class="detail-body">
+                        @{
+                            var refTarget = SelectedNode.TargetInstances.FirstOrDefault();
+                        }
+                        @if (refTarget != null)
+                        {
+                            @foreach (var prop in SelectedNode.Properties)
+                            {
+                                <RenderSetting
+                                    @key="@($"{SelectedNode.Id}_{prop.Name}")"
+                                    Member="@prop"
+                                    Getter="() => prop.GetValue(refTarget)"
+                                    Setter="v => HandleParamChange(prop, SelectedNode, v)" />
+                            }
+                            @foreach (var field in SelectedNode.Fields)
+                            {
+                                var f = field;
+                                <RenderSetting
+                                    @key="@($"{SelectedNode.Id}_field_{f.Name}")"
+                                    Member="@f"
+                                    Getter="() => f.GetValue(refTarget)"
+                                    Setter="v => HandleParamChange(f, SelectedNode, v)" />
+                            }
+                        }
+                    </div>
+                }
+            </div>
+        </div>
+    </div>
+}
+
+<style>
+    .explorer-overlay {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100vw;
+        height: 100vh;
+        background: #fff;
+        z-index: 999999;
+        display: flex;
+        flex-direction: column;
+        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    }
+
+    .toolbar-left {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        font-size: 1.2rem;
+        font-weight: bold;
+        padding: 10px 25px;
+    }
+
+    .btn-close {
+        background: #e74c3c;
+        border: none;
+        color: white;
+        padding: 4px 16px;
+        border-radius: 4px;
+        cursor: pointer;
+        transition: 0.2s;
+    }
+    .btn-close:hover { background: #c0392b; }
+    .main-content { display: flex; flex: 1; overflow: hidden; }
+
+    .tree-container {
+        width: 500px;
+        border-right: 1px solid #ddd;
+        display: flex;
+        flex-direction: column;
+    }
+    .tree-root {
+        list-style: none;
+        padding: 0;
+        margin: 0;
+    }
+
+    .detail-container {
+        flex: 1;
+        background: white;
+        overflow-y: auto;
+        display: flex;
+        flex-direction: column;
+    }
+    .detail-header {
+        padding: 30px 40px;
+        border-bottom: 1px solid #eee;
+    }
+    .detail-body { padding: 40px; }
+
+    .node-label {
+        transition: background-color 0.1s ease, color 0.1s ease;
+    }
+    .node-label:hover {
+        background-color: #f0f0f0;
+    }
+    .node-label.selected {
+        background-color: #0969da;
+        color: white;
+        font-weight: bold;
+    }
+</style>
+

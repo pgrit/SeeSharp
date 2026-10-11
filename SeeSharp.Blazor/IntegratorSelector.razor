@@ -1,0 +1,329 @@
+@using System.Reflection
+@using SeeSharp.Integrators
+@using SeeSharp.Blazor
+@using Microsoft.AspNetCore.Components.Forms
+
+@namespace SeeSharp.Blazor
+
+<div class="integrator-selector">
+    @{
+        var globalGroups = GetGlobalParameterGroups();
+    }
+
+    @if (globalGroups.Any()) {
+        <SettingsGroup Title="Global Settings">
+            @foreach (var group in globalGroups)
+            {
+                var visibleProps = group.Properties.Where(p => !DecoupledParameters.Contains($"{group.Title}.{p.Name}")).ToList();
+                var visibleFields = group.Fields.Where(f => !DecoupledParameters.Contains($"{group.Title}.{f.Name}")).ToList();
+                if (!visibleProps.Any() && !visibleFields.Any()) continue;
+                <details open="true">
+                    <summary style="font-weight: bold; cursor: pointer;">
+                        <span style="display: inline-flex; align-items: center;">
+                            @(group.Title == "Global Settings" ? "Integrator Base" : group.Title)
+                        </span>
+                    </summary>
+                    <div style="padding-left: 0.5em; margin-top: 0.5em;">
+                        @foreach (var prop in visibleProps)
+                        {
+                            <RenderSetting
+                                Member="@prop"
+                                Getter="() => GetBulkValue(group.Title, prop.Name)"
+                                Setter="v => SetBulkValue(group.Title, prop.Name, v)" />
+                        }
+                        @foreach (var field in visibleFields)
+                        {
+                            <RenderSetting
+                                Member="@field"
+                                Getter="() => GetBulkValue(group.Title, field.Name)"
+                                Setter="v => SetBulkValue(group.Title, field.Name, v)" />
+                        }
+                    </div>
+                </details>
+            }
+        </SettingsGroup>
+    }
+
+    @if (addedIntegrators.Count > 1 && globalGroups.Any())
+    {
+        <SettingsGroup Title="Independent Parameters">
+            <div class="cascade-container">
+                <div class="cascade-btn" @onclick="ToggleCascade">
+                    <span>-- select --</span>
+                    <span style="font-size: 0.8em;">▼</span>
+                </div>
+                @if (isCascadeOpen)
+                {
+                    <div class="cascade-overlay" @onclick="CloseCascade"></div>
+                    <ul class="cascade-root">
+                        @foreach (var g in globalGroups)
+                        {
+                            var availProps = g.Properties.Where(p =>
+                                !DecoupledParameters.Contains($"{g.Title}.{p.Name}") &&
+                                !LocalDecoupledParameters.Values.Any(localSet => localSet.Contains($"{g.Title}.{p.Name}")));
+
+                            var availFields = g.Fields.Where(f =>
+                                !DecoupledParameters.Contains($"{g.Title}.{f.Name}") &&
+                                !LocalDecoupledParameters.Values.Any(localSet => localSet.Contains($"{g.Title}.{f.Name}")));
+                            var avail = availProps.Select(p => p.Name).Concat(availFields.Select(f => f.Name)).ToList();
+
+                            if (avail.Any())
+                            {
+                                <li class="cascade-item"
+                                    @onmouseenter="() => HandleMouseEnterModule(g.Title)"
+                                    @onclick:stopPropagation
+                                    style="@(activeCascadeModule == g.Title ? "background:#0969da;color:white;" : "")">
+                                    <span>@(g.Title == "Global Settings" ? "Integrator Base" : g.Title)</span>
+                                    <span class="cascade-arrow">▶</span>
+                                    @if (activeCascadeModule == g.Title)
+                                    {
+                                        <ul class="cascade-sub">
+                                            @foreach (var pName in avail)
+                                            {
+                                                string path = $"{g.Title}.{pName}";
+                                                <li class="cascade-subitem" @onclick="() => { DecoupledParameters.Add(path); CloseCascade(); _ = SaveConfigToBrowser(); }">
+                                                    @pName
+                                                </li>
+                                            }
+                                        </ul>
+                                    }
+                                </li>
+                            }
+                        }
+                    </ul>
+                }
+            </div>
+            @if (DecoupledParameters.Any())
+            {
+                @foreach (var path in DecoupledParameters)
+                {
+                    <div style="display: flex; align-items: center; font-size: 0.85em;">
+                        <button class="remove-btn" @onclick="() => RemoveUnlinkedParameter(path)">×</button>
+                        <span>@path.Split('.')[1]</span>
+                    </div>
+                }
+            }
+        </SettingsGroup>
+    }
+
+    <div style="display: flex; align-items: center; gap: 10px;">
+        <label style="margin: 0; white-space: nowrap;">Integrator:</label>
+        <select value="@selectedIntegrator" @onchange="OnSelectionChanged" style="flex: 0 1 120px; min-width: 0; width: 180px;">
+            @foreach (var type in integratorTypes)
+            {
+                <option value="@type.FullName" selected="@(type.FullName == selectedIntegrator)">@FormatClassName(type)</option>
+            }
+        </select>
+    </div>
+
+    <div class="main-actions" style="display: flex; flex-direction: column; gap: 0.5em; margin-top: 0.5em;">
+        <div style="display: flex; gap: 0.5em;">
+            <button @onclick="AddIntegrator">Add</button>
+            <button @onclick="RunAllIntegrators">Run All</button>
+            @if (undoStack.Count > 0) {
+                <button @onclick="UndoDelete" title="Restore last deleted integrator">↩</button>
+            }
+        </div>
+        <div style="display: flex; gap: 0.5em;">
+            <button @onclick="DownloadConfig" title="Save config to JSON file">Save</button>
+            <button type="button" onclick="document.getElementById('config-uploader').click()" title="Load config from JSON file">Load</button>
+            <InputFile id="config-uploader" OnChange="UploadConfig" style="display: none;" accept=".json" />
+            <button @onclick="() => showTree = true">
+                Tree
+            </button>
+            <IntegratorTree
+                IsVisible="@showTree"
+                Integrators="@addedIntegrators"
+                Names="@Names"
+                OnClose="() => showTree = false"
+                OnDataChanged="StateHasChanged" />
+        </div>
+    </div>
+
+    <div class="integrator-container">
+        @foreach (var integrator in addedIntegrators)
+        {
+            <div @key="integrator"
+                 class="integrator-box @(draggedItem == integrator ? "dragging" : "")"
+                 @ondrop="() => HandleDrop(integrator)"
+                 @ondragenter="() => HandleDragEnter(integrator)"
+                 @ondragover="() => {}"
+                 @ondragover:preventDefault>
+
+                <div class="integrator-header" @onclick="() => ToggleExpand(integrator)">
+                    <span class="drag-handle" draggable="true" @ondragstart="() => HandleDragStart(integrator)">⋮⋮</span>
+                    <span class="arrow @(IsExpanded(integrator) ? "down" : "")">▶</span>
+                    <input class="title-input" @bind="Names[integrator]" @onclick:stopPropagation />
+                    <button class="header-icon-btn" style="color: green;" @onclick="() => RunIntegrator(integrator)" @onclick:stopPropagation title="Run">▶</button>
+                    <button class="header-icon-btn" @onclick="() => DuplicateIntegrator(integrator)" @onclick:stopPropagation title="Duplicate">📑</button>
+                    <button class="header-icon-btn" @onclick="() => DeleteIntegrator(integrator)" @onclick:stopPropagation title="Delete">🗑️</button>
+                </div>
+
+                @if (IsExpanded(integrator)) {
+
+                    <div class="integrator-content" @onmousedown:stopPropagation>
+                        @{
+                            var allGroups = GetParameterGroups(integrator);
+                            string leafTitle = FormatClassName(integrator.GetType());
+
+                            var leafGroup = allGroups.FirstOrDefault(g => g.Title == leafTitle);
+                            var inheritedGroups = allGroups.Where(g => g.Title != leafTitle).ToList();
+                            var myLocalOverrides = LocalDecoupledParameters.GetValueOrDefault(integrator) ?? new();
+                        }
+
+                        <SettingsGroup Title="">
+                            <details open>
+                                <summary style="display: flex; font-size: 0.8em; font-weight: bold;">
+                                    Inherited Param
+                                    <div class="cascade-container" style="margin-left: auto; font-weight: normal">
+                                        <button type="button"
+                                            class="icon-btn-small"
+                                            @onclick="() => ToggleLocalMenu(integrator)"
+                                            @onclick:stopPropagation="true"
+                                            @onclick:preventDefault="true">➕</button>
+                                        @if (activeLocalMenuIntegrator == integrator) {
+                                            <div class="cascade-overlay"
+                                                @onclick="CloseLocalMenu"
+                                                @onclick:stopPropagation="true"
+                                                @onclick:preventDefault="true"></div>
+                                            <ul class="cascade-root" style="right:0; left:auto; top:20px; z-index:1001;">
+                                                @foreach (var ig in inheritedGroups) {
+                                                    var availProps = ig.Properties.Where(p =>
+                                                        !DecoupledParameters.Contains($"{ig.Title}.{p.Name}") &&
+                                                        !myLocalOverrides.Contains($"{ig.Title}.{p.Name}"));
+                                                    var availFields = ig.Fields.Where(f =>
+                                                        !DecoupledParameters.Contains($"{ig.Title}.{f.Name}") &&
+                                                        !myLocalOverrides.Contains($"{ig.Title}.{f.Name}"));
+                                                    var avail = availProps.Select(p => p.Name).Concat(availFields.Select(f => f.Name)).ToList();
+
+                                                    if (avail.Any()) {
+                                                        <li class="cascade-item"
+                                                            @onmouseenter="() => activeLocalSub = ig.Title"
+                                                            @onclick:stopPropagation
+                                                            @onclick:preventDefault="true"
+                                                            style="@(activeLocalSub == ig.Title ? "background:#0969da;color:white;" : "")">
+                                                            <span>@(ig.Title == "Global Settings" ? "Integrator Base" : ig.Title)</span>
+                                                            <span class="cascade-arrow">▶</span>
+                                                            @if (activeLocalSub == ig.Title) {
+                                                                <ul class="cascade-sub">
+                                                                    @foreach (var name in avail) {
+                                                                        string localPath = $"{ig.Title}.{name}";
+                                                                        <li class="cascade-subitem"
+                                                                            @onclick="() => AddLocalDecoupled(integrator, localPath)"
+                                                                            @onclick:stopPropagation="true"
+                                                                            @onclick:preventDefault="true">@name</li>
+                                                                    }
+                                                                </ul>
+                                                            }
+                                                        </li>
+                                                    }
+                                                }
+                                            </ul>
+                                        }
+                                    </div>
+                                </summary>
+
+                                <div style="margin-left: 8px;">
+                                @{
+                                    var relevantGlobals = DecoupledParameters.Where(dp => allGroups.Any(ag => ag.Title == dp.Split('.')[0])).ToList();
+                                }
+
+                                @if (relevantGlobals.Any() || myLocalOverrides.Any()) {
+                                    <div style="display: flex; flex-direction: column;">
+                                            @if (relevantGlobals.Any()) {
+                                                <div>
+                                                    <div style="font-size: 0.65em; font-weight: bold;">Global</div>
+                                                    <div style="display: flex; flex-direction: column;">
+                                                        @foreach (var path in relevantGlobals) {
+                                                            var parts = path.Split('.');
+                                                            var group = allGroups.FirstOrDefault(g => g.Title == parts[0]);
+                                                            if (group == null) continue;
+                                                            var prop = group.Properties.FirstOrDefault(p => p.Name == parts[1]);
+                                                            var field = group.Fields.FirstOrDefault(f => f.Name == parts[1]);
+                                                            if (prop == null && field == null) continue;
+
+                                                            <div style="display: flex; align-items: center;">
+                                                                <div style="flex-grow: 1;">
+                                                                    @if (prop != null) {
+                                                                        <RenderSetting
+                                                                            Member="@prop"
+                                                                            Getter="() => prop.GetValue(integrator)"
+                                                                            Setter="v => { prop.SetValue(integrator, v); _ = SaveConfigToBrowser(); }" />
+                                                                    } else {
+                                                                        <RenderSetting
+                                                                            Member="@field"
+                                                                            Getter="() => field.GetValue(integrator)"
+                                                                            Setter="v => { field.SetValue(integrator, v); _ = SaveConfigToBrowser(); }" />
+                                                                    }
+                                                                </div>
+                                                            </div>
+                                                        }
+                                                    </div>
+                                                </div>
+                                            }
+
+                                            @if (myLocalOverrides.Any()) {
+                                                <div>
+                                                    <div style="font-size: 0.65em; font-weight: bold;">Local</div>
+                                                    <div style="display: flex; flex-direction: column;">
+                                                        @foreach (var path in myLocalOverrides) {
+                                                            var parts = path.Split('.');
+                                                            var group = allGroups.FirstOrDefault(g => g.Title == parts[0]);
+                                                            if (group == null) continue;
+                                                            var prop = group.Properties.FirstOrDefault(p => p.Name == parts[1]);
+                                                            var field = group.Fields.FirstOrDefault(f => f.Name == parts[1]);
+                                                            if (prop == null && field == null) continue;
+
+                                                            <div style="display: flex; align-items: center;">
+                                                                <button class="remove-btn" @onclick="() => RemoveLocalDecoupled(integrator, path)">×</button>
+                                                                <div style="flex-grow: 1;">
+                                                                    @if (prop != null) {
+                                                                        <RenderSetting
+                                                                            Member="@prop"
+                                                                            Getter="() => prop.GetValue(integrator)"
+                                                                            Setter="v => { prop.SetValue(integrator, v); _ = SaveConfigToBrowser(); }" />
+                                                                    } else {
+                                                                        <RenderSetting
+                                                                            Member="@field"
+                                                                            Getter="() => field.GetValue(integrator)"
+                                                                            Setter="v => { field.SetValue(integrator, v); _ = SaveConfigToBrowser(); }" />
+                                                                    }
+                                                                </div>
+                                                            </div>
+                                                        }
+                                                    </div>
+                                                </div>
+                                            }
+                                    </div>
+                                } else {
+                                    <div style="color: #bbb; font-size: 0.8em; font-style: italic; margin-top: 4px;">No overrides.</div>
+                                }
+                                </div>
+                            </details>
+
+                            <details open>
+                                <summary style="font-size: 0.8em; font-weight: bold;">Unique Param (@leafTitle)</summary>
+                                <div style="margin-left: 8px;">
+                                @if (leafGroup != null && (leafGroup.Properties.Any() || leafGroup.Fields.Any())) {
+                                    @foreach (var p in leafGroup.Properties) {
+                                        <RenderSetting
+                                            Member="@p"
+                                            Getter="() => p.GetValue(integrator)"
+                                            Setter="v => { p.SetValue(integrator, v); _ = SaveConfigToBrowser(); }" />
+                                    }
+                                    @foreach (var f in leafGroup.Fields) {
+                                        <RenderSetting
+                                            Member="@f"
+                                            Getter="() => f.GetValue(integrator)"
+                                            Setter="v => { f.SetValue(integrator, v); _ = SaveConfigToBrowser(); }" />
+                                    }
+                                }
+                                </div>
+                            </details>
+                        </SettingsGroup>
+                    </div>
+                }
+            </div>
+        }
+    </div>
+</div>

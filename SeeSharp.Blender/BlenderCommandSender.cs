@@ -7,6 +7,7 @@ public class BlenderCommandSender {
     private TcpClient _client;
     private NetworkStream _stream;
     private bool _connected = false;
+    public bool IsConnected => _connected;
 
     public async Task<bool> TryConnectAsync() {
         try

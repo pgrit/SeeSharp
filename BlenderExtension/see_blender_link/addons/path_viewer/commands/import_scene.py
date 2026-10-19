@@ -1,5 +1,7 @@
 import bpy
 import os
+import tempfile
+import uuid
 
 def handle_import_scene(msg):
     file_name = msg.get("scene_name")
@@ -42,7 +44,17 @@ def handle_import_scene(msg):
         if os.path.exists(blend_path):
             print(f"Loading blend file: {blend_path}")
 
+            # Create a unique temporary filename
+            temp_dir = tempfile.gettempdir()
+            temp_blend_path = os.path.join(
+                temp_dir,
+                f"blender_temp_{uuid.uuid4().hex}.blend"
+            )
+
             bpy.ops.wm.open_mainfile(filepath=blend_path)
+            # Save as a temporary working copy
+            bpy.ops.wm.save_as_mainfile(filepath=temp_blend_path)
+            
             scene = bpy.context.scene
             if hasattr(scene, "path_viewer_props"):
                 scene.path_viewer_props.enabled = True

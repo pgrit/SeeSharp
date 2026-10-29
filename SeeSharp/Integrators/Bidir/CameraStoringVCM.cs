@@ -1364,7 +1364,7 @@ public class CameraStoringVCM<TLightPathData> : Integrator where TLightPathData 
         if (BackgroundProbability > 0 && primarySelect <= BackgroundProbability) {
             return (null, BackgroundProbability);
         } else {
-            float u = (primarySelect - BackgroundProbability) * (1 - BackgroundProbability);
+            float u = (primarySelect - BackgroundProbability) / (1 - BackgroundProbability);
             var emitter = Scene.Emitters[Math.Clamp((int)(u * Scene.Emitters.Count), 0, Scene.Emitters.Count - 1)];
             return (emitter, (1 - BackgroundProbability) / Scene.Emitters.Count);
         }

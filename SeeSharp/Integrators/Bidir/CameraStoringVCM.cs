@@ -21,7 +21,7 @@ public class CameraStoringVCM<TLightPathData> : Integrator where TLightPathData 
     /// The base seed to generate camera paths.
     /// </summary>
     public uint BaseSeedCamera {
-        get => (uint)(BaseSeed >> 16);
+        get => BaseSeed >> 16;
         set {
             Debug.Assert(value <= 0xFFFF);
             BaseSeed &= 0x0000FFFF;
@@ -419,6 +419,9 @@ public class CameraStoringVCM<TLightPathData> : Integrator where TLightPathData 
 
         // Even if hitting is disabled, we still consider directly visible backgrounds
         if (!EnableHitting && state.Depth > 1)
+            return (0, RgbColor.Black);
+
+        if (state.Depth < MinDepth)
             return (0, RgbColor.Black);
 
         // Compute the pdf of sampling the previous point by emission from the background

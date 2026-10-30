@@ -234,7 +234,7 @@ public abstract partial class BidirBase<CameraPayloadType> {
 
         var pathPdfs = new BidirPathPdfs(lightToCam, camToLight);
         pathPdfs.GatherCameraPdfs(path, lastCameraVertexIdx);
-        pathPdfs.GatherLightPdfs(PathCache,vertex, lastCameraVertexIdx);
+        pathPdfs.GatherLightPdfs(PathCache, vertex, lastCameraVertexIdx);
         if (vertex.Depth == 1)
             pathPdfs.PdfNextEvent = NextEventPdf(vertex.Point, ancestor.Point);
 
@@ -540,6 +540,9 @@ public abstract partial class BidirBase<CameraPayloadType> {
     /// <returns>MIS weighted contribution from the background</returns>
     protected virtual RgbColor OnBackgroundHit(Ray ray, ref CameraPath path) {
         if (Scene.Background == null)
+            return RgbColor.Black;
+
+        if (path.Vertices.Count < MinDepth || path.Vertices.Count > MaxDepth)
             return RgbColor.Black;
 
         // Compute the pdf of sampling the previous point by emission from the background

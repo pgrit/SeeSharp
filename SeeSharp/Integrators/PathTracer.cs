@@ -38,8 +38,8 @@ public class PathTracerBase<PayloadType> : Integrator {
     /// </summary>
     public bool EnableDenoiser = true;
 
-    TechPyramid techPyramidRaw;
-    TechPyramid techPyramidWeighted;
+    public TechPyramid TechPyramidRaw;
+    public TechPyramid TechPyramidWeighted;
 
     ThreadLocal<ulong> totalCamPathLen;
 
@@ -75,8 +75,8 @@ public class PathTracerBase<PayloadType> : Integrator {
             return;
         weight /= NumIterations;
         int cameraEdges = (int)depth - (isNextEvent ? 1 : 0);
-        techPyramidRaw.Add(cameraEdges, 0, (int)depth, pixel, weight);
-        techPyramidWeighted.Add(cameraEdges, 0, (int)depth, pixel, weight * misWeight);
+        TechPyramidRaw.Add(cameraEdges, 0, (int)depth, pixel, weight);
+        TechPyramidWeighted.Add(cameraEdges, 0, (int)depth, pixel, weight * misWeight);
     }
 
     /// <summary>
@@ -199,9 +199,9 @@ public class PathTracerBase<PayloadType> : Integrator {
         OnPrepareRender();
 
         if (RenderTechniquePyramid) {
-            techPyramidRaw = new TechPyramid(scene.FrameBuffer.Width, scene.FrameBuffer.Height,
+            TechPyramidRaw = new TechPyramid(scene.FrameBuffer.Width, scene.FrameBuffer.Height,
                 MinDepth, MaxDepth, false, false, false);
-            techPyramidWeighted = new TechPyramid(scene.FrameBuffer.Width, scene.FrameBuffer.Height,
+            TechPyramidWeighted = new TechPyramid(scene.FrameBuffer.Width, scene.FrameBuffer.Height,
                 MinDepth, MaxDepth, false, false, false);
         }
 
@@ -262,9 +262,9 @@ public class PathTracerBase<PayloadType> : Integrator {
 
         if (RenderTechniquePyramid) {
             string pathRaw = Path.Join(scene.FrameBuffer.Basename, "techs-raw");
-            techPyramidRaw.WriteToFiles(pathRaw);
+            TechPyramidRaw.WriteToFiles(pathRaw);
             string pathWeighted = Path.Join(scene.FrameBuffer.Basename, "techs-weighted");
-            techPyramidWeighted.WriteToFiles(pathWeighted);
+            TechPyramidWeighted.WriteToFiles(pathWeighted);
         }
     }
 

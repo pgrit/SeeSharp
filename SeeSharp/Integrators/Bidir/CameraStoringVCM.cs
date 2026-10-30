@@ -680,7 +680,7 @@ public class CameraStoringVCM<TLightPathData> : Integrator where TLightPathData 
         // All connections along the camera path
         float radius = ComputeLocalMergeRadius(cameraPath.FootprintRadius);
         sumReciprocals +=
-            CameraPathReciprocals(cameraPath.Vertices.Count - 2, pathPdfs, cameraPath.Pixel, radius, correlRatio)
+            CameraPathReciprocals(pathPdfs.NumPdfs - 2, pathPdfs, cameraPath.Pixel, radius, correlRatio)
             / pdfThis;
 
         return 1 / sumReciprocals;

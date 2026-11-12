@@ -156,8 +156,13 @@ def export_materials(result, out_dir):
         result["materials"][-1]["name"] = material.name
 
 def export_background(result, out_dir, scene):
-    if scene.world.seesharp.hdr:
-        result["background"] = map_texture(scene.world.seesharp.hdr, out_dir)
+    world = scene.world.seesharp
+    if world.hdr:
+        result["background"] = map_texture(world.hdr, out_dir)
+        if any(world.rotation):
+            conversion = axis_conversion(to_forward="Z", to_up="Y")
+            q = (conversion @ world.rotation.to_matrix() @ conversion.transposed()).to_quaternion()
+            result["background"]["rotation"] = [q.x, q.y, q.z, q.w]
 
 def export_camera(result, scene):
     camera = scene.camera

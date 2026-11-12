@@ -120,7 +120,11 @@ public static class JsonScene {
                 string dir = Path.GetDirectoryName(path);
                 filename = Path.Join(dir, filename);
 
-                resultScene.Background = new EnvironmentMap(new RgbImage(filename));
+                Quaternion? rotation = null;
+                if (backgroundElement.TryGetProperty("rotation", out var rotationElement))
+                    rotation = rotationElement.GetQuaternion();
+
+                resultScene.Background = new EnvironmentMap(new RgbImage(filename), rotation: rotation);
             }
         }
     }

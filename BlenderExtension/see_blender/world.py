@@ -8,6 +8,11 @@ class SeeSharpWorld(bpy.types.PropertyGroup):
         name="HDR Texture",
         description="HDR image to illuminate the scene with",
         type=bpy.types.Image)
+    rotation: FloatVectorProperty(
+        name="Rotation",
+        description="Rotation of the HDR background",
+        subtype="EULER",
+        size=3)
 
     @classmethod
     def register(cls):
@@ -35,6 +40,7 @@ class SEESHARP_PT_context_world(WorldButtonsPanel, Panel):
 
     def draw(self, context):
         self.layout.template_ID(context.world.seesharp, "hdr", open="image.open")
+        self.layout.prop(context.world.seesharp, "rotation")
 
 def register():
     bpy.utils.register_class(SeeSharpWorld)

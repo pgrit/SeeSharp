@@ -95,4 +95,12 @@ public static class JsonUtils {
             json[1].GetSingle(),
             json[2].GetSingle());
     }
+
+    public static Quaternion GetQuaternion(this JsonElement json) {
+        return new Quaternion(
+            json[0].GetSingle(),
+            json[1].GetSingle(),
+            json[2].GetSingle(),
+            json[3].GetSingle());
+    }
 }

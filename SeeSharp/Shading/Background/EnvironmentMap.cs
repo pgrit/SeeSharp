@@ -12,15 +12,17 @@ namespace SeeSharp.Shading.Background;
 /// </summary>
 public class EnvironmentMap : Background
 {
-    public EnvironmentMap(RgbImage image, bool useMisCompensation = false)
+    public EnvironmentMap(RgbImage image, bool useMisCompensation = false, Quaternion? rotation = null)
     {
         this.Image = image;
+        Rotation = Quaternion.Normalize(rotation ?? Quaternion.Identity);
+        inverseRotation = Quaternion.Conjugate(Rotation);
         BuildSamplingGrid(useMisCompensation);
     }
 
     public override RgbColor EmittedRadiance(Vector3 direction)
     {
-        var sphericalDir = WorldToSpherical(direction);
+        var sphericalDir = WorldToSpherical(ToLocal(direction));
         var pixelCoords = SphericalToPixel(sphericalDir);
 
         var col = pixelCoords.X * Image.Width;
@@ -52,7 +54,7 @@ public class EnvironmentMap : Background
 
         // Warp the pixel coordinates to the sphere of directions.
         var sphericalDir = PixelToSpherical(pixelPrimary);
-        var direction = SphericalToWorld(sphericalDir);
+        var direction = ToWorld(SphericalToWorld(sphericalDir));
 
         // Multiply the pdfs with the jacobian of the change of variables from unit square to sphere
         float jacobian = MathF.Sin(sphericalDir.Y) * MathF.PI * MathF.PI * 2.0f;
@@ -86,14 +88,14 @@ public class EnvironmentMap : Background
 
     public override Vector2 SampleDirectionInverse(Vector3 direction)
     {
-        var sphericalDir = WorldToSpherical(direction);
+        var sphericalDir = WorldToSpherical(ToLocal(direction));
         var pixelPrimary = SphericalToPixel(sphericalDir);
         return directionSampler.SampleInverse(pixelPrimary);
     }
 
     public override float DirectionPdf(Vector3 direction)
     {
-        var sphericalDir = WorldToSpherical(direction);
+        var sphericalDir = WorldToSpherical(ToLocal(direction));
         var pixelCoords = SphericalToPixel(sphericalDir);
         return directionSampler.Pdf(pixelCoords)
             / (MathF.Sin(sphericalDir.Y) * MathF.PI * MathF.PI * 2.0f);
@@ -220,6 +222,19 @@ public class EnvironmentMap : Background
     /// The image that illuminates the scene from all directions
     /// </summary>
     public readonly RgbImage Image;
+
+    /// <summary>
+    /// Rotation from the frame of the image to world space
+    /// </summary>
+    public readonly Quaternion Rotation;
+
+    readonly Quaternion inverseRotation;
+
+    protected Vector3 ToLocal(Vector3 direction)
+        => Rotation.IsIdentity ? direction : Vector3.Transform(direction, inverseRotation);
+
+    protected Vector3 ToWorld(Vector3 direction)
+        => Rotation.IsIdentity ? direction : Vector3.Transform(direction, Rotation);
 
     RegularGrid2d directionSampler;
 }
